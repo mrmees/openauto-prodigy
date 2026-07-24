@@ -2,7 +2,8 @@
 
 ## Active Plans
 
-- [Media lifecycle and persistence remediation design](plans/2026-07-24-media-lifecycle-persistence-remediation-design.md) and [implementation plan](plans/2026-07-24-media-lifecycle-persistence-remediation-plan.md) — exact/fallback restore ownership, deterministic user persistence, scanner quiescence, safe-eject/shutdown ordering, and test integrity
+- None. The next bounded wave requires revalidation and approval before it
+  becomes active guidance.
 
 ## Start Here
 
@@ -54,7 +55,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- [2026-07-24-media-lifecycle-persistence-remediation-design.md](plans/2026-07-24-media-lifecycle-persistence-remediation-design.md) and [implementation plan](plans/2026-07-24-media-lifecycle-persistence-remediation-plan.md) — ACTIVE
+- None.
 
 Parked plans (not current guidance):
 
@@ -70,6 +71,7 @@ Parked plans (not current guidance):
 Everything under `archive/` is history, not guidance. Internal links there may point at pre-restructure paths by design.
 
 - [archive/plans/](archive/plans/) — completed/superseded designs and implementation plans, incl. milestone-01..05 history and pre-restructure proto docs
+- [2026-07-24-media-lifecycle-persistence-remediation-design.md](archive/plans/2026-07-24-media-lifecycle-persistence-remediation-design.md) and [implementation plan](archive/plans/2026-07-24-media-lifecycle-persistence-remediation-plan.md) — completed exact/fallback restore ownership, durable media persistence, scanner quiescence, safe-eject/shutdown ordering, and test-integrity remediation
 - [2026-07-23-bt-hfp-avrcp-state-remediation-design.md](archive/plans/2026-07-23-bt-hfp-avrcp-state-remediation-design.md) and [implementation plan](archive/plans/2026-07-23-bt-hfp-avrcp-state-remediation-plan.md) — completed asynchronous Bluetooth snapshot, Agent1, AVRCP lifecycle, and selected-AG HFP remediation
 - [2026-07-23-aa-input-video-night-remediation-design.md](archive/plans/2026-07-23-aa-input-video-night-remediation-design.md) and [implementation plan](archive/plans/2026-07-23-aa-input-video-night-remediation-plan.md) — completed decoder-boundary, evdev-ownership, shared-night-state, and wireless-admission remediation
 - [2026-07-23-aa-protocol-crypto-flow-remediation-design.md](archive/plans/2026-07-23-aa-protocol-crypto-flow-remediation-design.md) and [implementation plan](archive/plans/2026-07-23-aa-protocol-crypto-flow-remediation-plan.md) — completed Android Auto TLS, fragmented-message, audio-permit, liveness, and navigation-state remediation

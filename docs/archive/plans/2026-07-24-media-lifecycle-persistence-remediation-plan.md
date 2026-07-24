@@ -1,8 +1,8 @@
 # Media Lifecycle and Persistence Remediation — Implementation Plan
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-24
 Date: 2026-07-24
-Design: `docs/plans/2026-07-24-media-lifecycle-persistence-remediation-design.md`
+Design: `docs/archive/plans/2026-07-24-media-lifecycle-persistence-remediation-design.md`
 Base: `origin/main` at `043d00e3cf75c366bcb4f6b6895e90ebb1cb78f5`
 Branch: `agent/media-lifecycle-persistence-remediation`
 

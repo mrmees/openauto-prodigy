@@ -14,15 +14,25 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-Media lifecycle and persistence remediation is **ACTIVE**. This consolidated
-wave corrects exact-track versus fallback restore positions, pending-restore
-ownership, seek and mode persistence, scanner cancellation, safe-eject and
-shutdown ordering, and media-test integrity without changing QML or consumer
-time contracts. Design and plan:
-`docs/plans/2026-07-24-media-lifecycle-persistence-remediation-design.md` and
-`docs/plans/2026-07-24-media-lifecycle-persistence-remediation-plan.md`.
+No implementation tranche is active. The remaining audit-remediation work is a
+final bounded installer and deployment lifecycle wave; it must be revalidated
+and receive its own approved design and plan before implementation begins.
 
 ## Done (recent)
+
+- Media lifecycle and persistence remediation — **COMPLETE 2026-07-24**
+  (Pi-live-validated). Exact saved tracks alone own saved positions, explicit
+  user transport actions durably take ownership, and shuffle, repeat, and seek
+  mutations persist at their boundary. Media scanning now quiesces before
+  eject and shutdown with generation-safe cancellation, while valid-fixture
+  errors and scanner timeouts fail deterministically. Live validation covered
+  exact and fallback restores, late-source retry, user takeover, mode restart,
+  cold-scan restart, active-scan safe eject and physical remount, local audio
+  and shared media state, one responsive process, byte-identical configuration
+  restoration, and unchanged hostapd/Bluetooth lifetimes. Design and plan:
+  `docs/archive/plans/2026-07-24-media-lifecycle-persistence-remediation-design.md`
+  and
+  `docs/archive/plans/2026-07-24-media-lifecycle-persistence-remediation-plan.md`.
 
 - UI input and widget-grid lifecycle remediation — **COMPLETE 2026-07-24**
   (Pi-live-validated). Navbar evdev claims now follow rendered 20/60/20 QML

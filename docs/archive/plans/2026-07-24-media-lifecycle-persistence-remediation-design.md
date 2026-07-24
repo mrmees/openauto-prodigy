@@ -1,6 +1,6 @@
 # Media Lifecycle and Persistence Remediation — Design
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-24
 Date: 2026-07-24
 Grounded against: `origin/main` at `043d00e3cf75c366bcb4f6b6895e90ebb1cb78f5`
 
