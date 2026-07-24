@@ -51,8 +51,10 @@ _oap_preferred_channel() {
 }
 
 # Parse `iw phy ... info` output. A channel is usable for AP selection only
-# when its frequency entry is neither disabled nor marked no-IR. VHT support
-# is associated with the same iw band as the selected 5 GHz channel.
+# when its frequency entry is neither disabled nor marked no-IR. Because the
+# generated hostapd contract does not enable DFS/802.11h, radar-detection
+# channels are also excluded from 5 GHz selection. VHT support is associated
+# with the same iw band as the selected 5 GHz channel.
 oap_select_wifi_contract() {
     local phy_info="${1:-}"
     local line current_band=""
@@ -84,6 +86,7 @@ oap_select_wifi_contract() {
                 continue
             fi
             if (( mhz >= 4900 && mhz < 6000 )); then
+                [[ "$restrictions" == *"radar detection"* ]] && continue
                 five_entries+=" ${channel}:${current_band}"
             elif (( mhz >= 2400 && mhz < 2500 )); then
                 two_entries+=" ${channel}:${current_band}"

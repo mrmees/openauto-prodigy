@@ -54,6 +54,28 @@ Wiphy phy-test
 \t\t\t* 5180 MHz [36] (no IR)
 """
 
+DFS_WITH_FALLBACK_FIXTURE = """\
+Wiphy phy-test
+\tBand 1:
+\t\tFrequencies:
+\t\t\t* 2437 MHz [6] (20.0 dBm)
+\tBand 2:
+\t\tVHT Capabilities (0x338001b2):
+\t\tFrequencies:
+\t\t\t* 5260 MHz [52] (20.0 dBm) (radar detection)
+"""
+
+DFS_ONLY_FIXTURE = """\
+Wiphy phy-test
+\tBand 1:
+\t\tFrequencies:
+\t\t\t* 2437 MHz [6] (disabled)
+\tBand 2:
+\t\tVHT Capabilities (0x338001b2):
+\t\tFrequencies:
+\t\t\t* 5260 MHz [52] (20.0 dBm) (radar detection)
+"""
+
 
 def run_bash(body: str, *, check: bool = True) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
@@ -180,6 +202,17 @@ def test_wifi_probe_and_renderers() -> None:
         raise AssertionError(f"unexpected 2.4 GHz contract: {fallback}")
     if probe(NO_USABLE_FIXTURE) is not None:
         raise AssertionError("probe accepted a fixture without a usable AP channel")
+
+    dfs_fallback = probe(DFS_WITH_FALLBACK_FIXTURE)
+    if dfs_fallback != {
+        "band": "2.4",
+        "mode": "g",
+        "channel": "6",
+        "vht": "false",
+    }:
+        raise AssertionError(f"DFS-only 5 GHz prevented fallback: {dfs_fallback}")
+    if probe(DFS_ONLY_FIXTURE) is not None:
+        raise AssertionError("probe accepted DFS-only channels without 802.11h")
 
     result = run_bash(
         f"""
@@ -346,6 +379,23 @@ def test_installer_integration_and_order() -> None:
             raise AssertionError(f"{script.name} did not install both managed configs")
     if source_run[1:3] != prebuilt_run[1:3]:
         raise AssertionError("install modes rendered different network configuration bytes")
+
+    source_dfs_fallback = run_network_installer(
+        SOURCE_INSTALLER, DFS_WITH_FALLBACK_FIXTURE
+    )
+    prebuilt_dfs_fallback = run_network_installer(
+        PREBUILT_INSTALLER, DFS_WITH_FALLBACK_FIXTURE
+    )
+    if source_dfs_fallback[1:3] != prebuilt_dfs_fallback[1:3]:
+        raise AssertionError("install modes diverged on the shared DFS fallback seam")
+    dfs_hostapd = source_dfs_fallback[2]
+    if dfs_hostapd is None:
+        raise AssertionError("DFS fallback did not render hostapd configuration")
+    dfs_lines = dfs_hostapd.decode().splitlines()
+    if "hw_mode=g" not in dfs_lines or "channel=6" not in dfs_lines:
+        raise AssertionError("installer DFS fallback did not select usable 2.4 GHz")
+    if "ieee80211ac=1" in dfs_lines:
+        raise AssertionError("installer DFS fallback incorrectly retained VHT")
 
     for script in (SOURCE_INSTALLER, PREBUILT_INSTALLER):
         result, network, hostapd, actions = run_network_installer(

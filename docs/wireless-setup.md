@@ -24,11 +24,12 @@ configuration through the same packaged hardware contract:
 Run `bash install.sh` and select either installation path. Both validate and
 apply a two-letter country code before probing the selected radio, then complete
 channel selection and configuration rendering before changing project-managed
-network files. If the adapter has no
-usable AP channel (entries marked `disabled` or `no IR` do not qualify), the
-installer stops with the existing network files unchanged. Both paths also
-install the same BlueZ SDP compatibility drop-in. The remaining sections are
-for manual configuration or troubleshooting.
+network files. If the adapter has no usable AP channel (entries marked
+`disabled`, `no IR`, or `radar detection` do not qualify), the installer stops
+with the existing network files unchanged.
+DFS channels are deliberately excluded because the generated hostapd contract
+does not enable 802.11h. Both paths also install the same BlueZ SDP compatibility
+drop-in. The remaining sections are for manual configuration or troubleshooting.
 
 When an AP interface is selected, both installers add an optional
 `Wants=hostapd.service` relationship from the application and configure
