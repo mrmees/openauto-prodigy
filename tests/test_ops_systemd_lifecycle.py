@@ -135,6 +135,67 @@ def test_wayland_condition(unit_dir: pathlib.Path) -> None:
                 server.close()
 
 
+def test_quoted_percent_paths(unit_dir: pathlib.Path) -> None:
+    suffix = uuid.uuid4().hex[:12]
+    unit = f"oap-quoted-path-{suffix}.service"
+    unit_path = unit_dir / unit
+    with tempfile.TemporaryDirectory(prefix="oap-systemd-path-") as tmp:
+        service_root = pathlib.Path(tmp) / "OpenAuto Prodigy 100%"
+        service_root.mkdir()
+        marker = service_root / "started 50%.txt"
+        helper = service_root / "notify service 100%"
+        helper.write_text(
+            "#!/usr/bin/env python3\n"
+            "import os, pathlib, signal, socket, sys, time\n"
+            "address = os.environ['NOTIFY_SOCKET']\n"
+            "if address.startswith('@'):\n"
+            "    address = '\\0' + address[1:]\n"
+            "client = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)\n"
+            "client.sendto(b'READY=1', address)\n"
+            "pathlib.Path(sys.argv[1]).write_text(str(pathlib.Path.cwd()))\n"
+            "signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))\n"
+            "while True: time.sleep(1)\n"
+        )
+        helper.chmod(0o755)
+
+        def systemd_command_path(path: pathlib.Path) -> str:
+            return str(path).replace("%", "%%")
+
+        def systemd_field_path(path: pathlib.Path) -> str:
+            return systemd_command_path(path)
+
+        unit_path.write_text(
+            "[Unit]\nDescription=Quoted path rendering test\n"
+            "[Service]\nType=notify\nNotifyAccess=main\n"
+            f"WorkingDirectory={systemd_field_path(service_root)}\n"
+            f'ExecStart="{systemd_command_path(helper)}" '
+            f'"{systemd_command_path(marker)}"\n'
+        )
+        try:
+            systemctl("daemon-reload")
+            start = systemctl("start", unit, check=False)
+            if start.returncode != 0:
+                loaded = systemctl(
+                    "show", "--property=WorkingDirectory", "--value", unit,
+                    check=False,
+                )
+                raise AssertionError(
+                    "systemd rejected the quoted-path runtime unit:\n"
+                    f"{unit_path.read_text()}\n"
+                    f"loaded WorkingDirectory={loaded.stdout.strip()!r}\n"
+                    f"{start.stderr}"
+                )
+            wait_active_pid(unit)
+            wait_for(marker.exists, "quoted-path helper to start")
+            if marker.read_text() != str(service_root):
+                raise AssertionError("systemd did not preserve the quoted working directory")
+        finally:
+            systemctl("stop", unit, check=False)
+            systemctl("reset-failed", unit, check=False)
+            unit_path.unlink(missing_ok=True)
+            systemctl("daemon-reload", check=False)
+
+
 def main() -> int:
     if shutil.which("systemctl") is None:
         print("SKIP: systemctl is unavailable")
@@ -150,6 +211,7 @@ def main() -> int:
     unit_dir = runtime_dir / "systemd/user"
     unit_dir.mkdir(parents=True, exist_ok=True)
     test_wayland_condition(unit_dir)
+    test_quoted_percent_paths(unit_dir)
 
     suffix = uuid.uuid4().hex[:12]
     app_unit = f"oap-lifecycle-app-{suffix}.service"

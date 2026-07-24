@@ -1832,23 +1832,78 @@ install_restart_helper() {
 }
 
 # ────────────────────────────────────────────────────
+systemd_escape_absolute_path() {
+    local path="$1"
+
+    [[ -n "$path" && "$path" == /* \
+        && "$path" != *$'\n'* && "$path" != *$'\r'* ]] || return 1
+    if LC_ALL=C printf '%s' "$path" | grep -q '[[:cntrl:]]'; then
+        return 1
+    fi
+
+    # These values are inserted inside a systemd double-quoted field. Protect
+    # its string syntax and both expansion forms used by ExecStart/systemd.
+    printf '%s' "$path" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' \
+        -e 's/%/%%/g' -e 's/\$/$$/g'
+}
+
+systemd_escape_path_field() {
+    local path="$1"
+
+    [[ -n "$path" && "$path" == /* \
+        && "$path" != *$'\n'* && "$path" != *$'\r'* ]] || return 1
+    if LC_ALL=C printf '%s' "$path" | grep -q '[[:cntrl:]]'; then
+        return 1
+    fi
+
+    # Path-valued directives consume the complete right-hand side, including
+    # spaces; surrounding quotes and C escapes would become literal path
+    # bytes. Only systemd's percent specifier needs doubling here.
+    printf '%s' "$path" | sed -e 's/%/%%/g'
+}
+
 render_application_unit() {
     local template_path="$1"
     local service_user="$2"
     local user_id="$3"
     local install_root="$4"
-    local escaped_user escaped_root
+    local escaped_user systemd_root systemd_working_root
+    local escaped_root escaped_working_root
 
     [[ -f "$template_path" ]] || return 1
     [[ -n "$service_user" && "$service_user" != *$'\n'* ]] || return 1
     [[ "$user_id" =~ ^[0-9]+$ ]] || return 1
     [[ -n "$install_root" && "$install_root" == /* && "$install_root" != *$'\n'* ]] || return 1
 
+    systemd_root=$(systemd_escape_absolute_path "$install_root") || return 1
+    systemd_working_root=$(systemd_escape_path_field "$install_root") || return 1
     escaped_user=$(printf '%s' "$service_user" | sed 's/[\\&|]/\\&/g')
-    escaped_root=$(printf '%s' "$install_root" | sed 's/[\\&|]/\\&/g')
+    escaped_root=$(printf '%s' "$systemd_root" | sed 's/[\\&|]/\\&/g')
+    escaped_working_root=$(printf '%s' "$systemd_working_root" | sed 's/[\\&|]/\\&/g')
     sed -e "s|@@USER@@|$escaped_user|g" \
         -e "s|@@USER_ID@@|$user_id|g" \
         -e "s|@@INSTALL_DIR@@|$escaped_root|g" \
+        -e "s|@@INSTALL_WORKING_DIR@@|$escaped_working_root|g" \
+        "$template_path"
+}
+
+render_system_service_unit() {
+    local template_path="$1"
+    local python_path="$2"
+    local system_service_root="$3"
+    local systemd_python systemd_root systemd_working_root
+    local sed_python sed_root sed_working_root
+
+    [[ -f "$template_path" ]] || return 1
+    systemd_python=$(systemd_escape_absolute_path "$python_path") || return 1
+    systemd_root=$(systemd_escape_absolute_path "$system_service_root") || return 1
+    systemd_working_root=$(systemd_escape_path_field "$system_service_root") || return 1
+    sed_python=$(printf '%s' "$systemd_python" | sed 's/[\\&|]/\\&/g')
+    sed_root=$(printf '%s' "$systemd_root" | sed 's/[\\&|]/\\&/g')
+    sed_working_root=$(printf '%s' "$systemd_working_root" | sed 's/[\\&|]/\\&/g')
+    sed -e "s|@@PYTHON_PATH@@|$sed_python|g" \
+        -e "s|@@SYS_DIR@@|$sed_root|g" \
+        -e "s|@@SYS_WORKING_DIR@@|$sed_working_root|g" \
         "$template_path"
 }
 
@@ -1881,6 +1936,13 @@ create_service() {
 # Step 6b: Create web config service
 # ────────────────────────────────────────────────────
 create_web_service() {
+    local systemd_root systemd_working_root
+
+    systemd_root=$(systemd_escape_absolute_path "$INSTALL_DIR") || {
+        fail "Install path cannot be represented safely in the web service unit: $INSTALL_DIR"
+        return 1
+    }
+    systemd_working_root=$(systemd_escape_path_field "$INSTALL_DIR") || return 1
 
     sudo tee /etc/systemd/system/${SERVICE_NAME}-web.service > /dev/null << SERVICE
 [Unit]
@@ -1890,8 +1952,8 @@ After=network.target ${SERVICE_NAME}.service
 [Service]
 Type=simple
 User=$USER
-WorkingDirectory=$INSTALL_DIR/web-config
-ExecStart=/usr/bin/python3 $INSTALL_DIR/web-config/server.py
+WorkingDirectory=$systemd_working_root/web-config
+ExecStart=/usr/bin/python3 "$systemd_root/web-config/server.py"
 Restart=on-failure
 RestartSec=5
 Environment=OAP_WEB_HOST=0.0.0.0
@@ -1983,6 +2045,17 @@ create_system_service() {
         warn "Could not create venv. Using system Python."
     fi
 
+    local systemd_python systemd_sys_dir systemd_working_sys_dir
+    systemd_python=$(systemd_escape_absolute_path "$PYTHON_PATH") || {
+        fail "Python path cannot be represented safely in the system service unit: $PYTHON_PATH"
+        return 1
+    }
+    systemd_sys_dir=$(systemd_escape_absolute_path "$SYS_DIR") || {
+        fail "Install path cannot be represented safely in the system service unit: $SYS_DIR"
+        return 1
+    }
+    systemd_working_sys_dir=$(systemd_escape_path_field "$SYS_DIR") || return 1
+
     # --- Template rendering ---
     # Render systemd unit from template (single source of truth)
     local TEMPLATE="$SYS_DIR/../system-service/openauto-system.service.in"
@@ -2004,11 +2077,11 @@ After=network.target bluetooth.target
 [Service]
 Type=notify
 User=root
-ExecStart=$PYTHON_PATH $SYS_DIR/openauto_system.py
+ExecStart="$systemd_python" "$systemd_sys_dir/openauto_system.py"
 ExecStopPost=-/usr/sbin/iptables -t nat -D OUTPUT -p tcp -j OPENAUTO_PROXY
 ExecStopPost=-/usr/sbin/iptables -t nat -F OPENAUTO_PROXY
 ExecStopPost=-/usr/sbin/iptables -t nat -X OPENAUTO_PROXY
-WorkingDirectory=$SYS_DIR
+WorkingDirectory=$systemd_working_sys_dir
 RuntimeDirectory=openauto
 Restart=always
 RestartSec=2
@@ -2021,9 +2094,8 @@ LockPersonality=yes
 WantedBy=multi-user.target
 SERVICE
     else
-        sed -e "s|@@PYTHON_PATH@@|$PYTHON_PATH|g" \
-            -e "s|@@SYS_DIR@@|$SYS_DIR|g" \
-            "$TEMPLATE" | sudo tee "$UNIT_PATH" > /dev/null
+        render_system_service_unit "$TEMPLATE" "$PYTHON_PATH" "$SYS_DIR" \
+            | sudo tee "$UNIT_PATH" > /dev/null
     fi
 
     # --- Reload and enable ---

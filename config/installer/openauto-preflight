@@ -51,8 +51,13 @@ check_wayland() {
     fi
 
     if command -v inotifywait >/dev/null 2>&1; then
-        if inotifywait -t "$timeout_seconds" -e create "$(dirname "$socket")" \
-            --include "$(basename "$socket")" >/dev/null 2>&1 && [[ -S "$socket" ]]; then
+        # The socket can appear after the first probe but before inotify has
+        # installed its watch. Always probe again after the bounded wait,
+        # including timeout/error, so a missed create edge cannot become a
+        # false startup skip.
+        inotifywait -t "$timeout_seconds" -e create "$(dirname "$socket")" \
+            --include "$(basename "$socket")" >/dev/null 2>&1 || true
+        if [[ -S "$socket" ]]; then
             pass "Wayland compositor ready (${WAYLAND_DISPLAY:-wayland-0})"
         else
             fail "Wayland socket not found at $socket after ${timeout_seconds}s"

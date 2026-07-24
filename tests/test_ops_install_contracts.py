@@ -19,6 +19,7 @@ BLUETOOTH_ASSET = REPO_ROOT / "config/systemd/bluetooth-compat.conf"
 APP_HOSTAPD_ASSET = REPO_ROOT / "config/systemd/openauto-prodigy-hostapd.conf"
 HOSTAPD_ASSET = REPO_ROOT / "config/systemd/hostapd-openauto.conf"
 APP_UNIT_TEMPLATE = REPO_ROOT / "config/systemd/openauto-prodigy.service.in"
+SYSTEM_UNIT_TEMPLATE = REPO_ROOT / "system-service/openauto-system.service.in"
 APP_PREFLIGHT = REPO_ROOT / "config/installer/openauto-preflight"
 SOURCE_INSTALLER = REPO_ROOT / "install.sh"
 PREBUILT_INSTALLER = REPO_ROOT / "install-prebuilt.sh"
@@ -395,6 +396,8 @@ install_dependencies
 
 
 def materialize_app_service(script: pathlib.Path) -> str:
+    escaper = extract_function(script, "systemd_escape_absolute_path")
+    field_escaper = extract_function(script, "systemd_escape_path_field")
     renderer = extract_function(script, "render_application_unit")
     function = extract_function(script, "create_service")
     with tempfile.TemporaryDirectory(prefix="oap-app-service-") as tmp:
@@ -430,6 +433,8 @@ sudo() {{
             ;;
     esac
 }}
+{escaper}
+{field_escaper}
 {renderer}
 {function}
 create_service
@@ -444,6 +449,48 @@ create_service
             )
         if systemctl_log.read_text().splitlines() != ["systemctl daemon-reload"]:
             raise AssertionError(f"{script.name} did not reload its application unit")
+        return unit.read_text()
+
+
+def materialize_web_service(script: pathlib.Path, install_dir: pathlib.Path) -> str:
+    escaper = extract_function(script, "systemd_escape_absolute_path")
+    field_escaper = extract_function(script, "systemd_escape_path_field")
+    function = extract_function(script, "create_web_service")
+    with tempfile.TemporaryDirectory(prefix="oap-web-service-") as tmp:
+        unit = pathlib.Path(tmp) / "openauto-prodigy-web.service"
+        shell = f"""
+set -euo pipefail
+INSTALL_DIR={shlex.quote(str(install_dir))}
+SERVICE_NAME=openauto-prodigy
+USER=test-user
+SYSTEMD_UNIT_DIR=/etc/systemd/system
+TEST_UNIT={shlex.quote(str(unit))}
+info() {{ :; }}
+ok() {{ :; }}
+fail() {{ printf '%s\n' "$*" >&2; }}
+sudo() {{
+    if [[ "$1" == tee ]]; then
+        /usr/bin/tee "$TEST_UNIT"
+    elif [[ "$1" == systemctl ]]; then
+        return 0
+    else
+        printf 'unexpected sudo command: %s\n' "$*" >&2
+        return 1
+    fi
+}}
+{escaper}
+{field_escaper}
+{function}
+create_web_service
+"""
+        result = subprocess.run(
+            ["bash", "-c", shell], cwd=REPO_ROOT, capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            raise AssertionError(
+                f"{script.name} web-service harness failed:\n"
+                f"{result.stdout}\n{result.stderr}"
+            )
         return unit.read_text()
 
 
@@ -462,13 +509,18 @@ def assert_canonical_app_startup_assets() -> None:
             raise AssertionError(f"{script.name} retains an inline application preflight")
 
     rendered = []
+    install_root = "/opt/OpenAuto Prodigy 100%"
     for script in (SOURCE_INSTALLER, PREBUILT_INSTALLER):
+        escaper = extract_function(script, "systemd_escape_absolute_path")
+        field_escaper = extract_function(script, "systemd_escape_path_field")
         renderer = extract_function(script, "render_application_unit")
         result = subprocess.run(
             ["bash", "-c", f"""
 set -euo pipefail
+{escaper}
+{field_escaper}
 {renderer}
-render_application_unit {shlex.quote(str(APP_UNIT_TEMPLATE))} test-user 4242 /opt/openauto-prodigy
+render_application_unit {shlex.quote(str(APP_UNIT_TEMPLATE))} test-user 4242 {shlex.quote(install_root)}
 """],
             cwd=REPO_ROOT,
             capture_output=True,
@@ -487,12 +539,13 @@ render_application_unit {shlex.quote(str(APP_UNIT_TEMPLATE))} test-user 4242 /op
         "After=graphical.target bluetooth.target pipewire.service",
         "ExecCondition=+/usr/local/bin/openauto-preflight --wayland",
         "ExecStartPre=+/usr/local/bin/openauto-preflight --system",
-        "ExecStart=/opt/openauto-prodigy/build/src/openauto-prodigy",
+        "WorkingDirectory=/opt/OpenAuto Prodigy 100%%",
+        'ExecStart="/opt/OpenAuto Prodigy 100%%/build/src/openauto-prodigy"',
     ):
         if required not in lines:
             raise AssertionError(f"canonical application unit is missing {required}")
     if lines.index("ExecCondition=+/usr/local/bin/openauto-preflight --wayland") > lines.index(
-        "ExecStart=/opt/openauto-prodigy/build/src/openauto-prodigy"
+        'ExecStart="/opt/OpenAuto Prodigy 100%%/build/src/openauto-prodigy"'
     ):
         raise AssertionError("Wayland condition runs after the application")
 
@@ -517,7 +570,7 @@ render_application_unit {shlex.quote(str(APP_UNIT_TEMPLATE))} test-user 4242 /op
             root / "bin/true",
             root / "bin/sh",
             root / "usr/local/bin/openauto-preflight",
-            root / "opt/openauto-prodigy/build/src/openauto-prodigy",
+            root / install_root.removeprefix("/") / "build/src/openauto-prodigy",
         ):
             executable.parent.mkdir(parents=True, exist_ok=True)
             executable.touch()
@@ -529,6 +582,141 @@ render_application_unit {shlex.quote(str(APP_UNIT_TEMPLATE))} test-user 4242 /op
         )
         if result.returncode != 0:
             raise AssertionError(f"systemd rejected canonical app unit:\n{result.stderr}")
+
+    escaped_install_root = install_root.replace("%", "%%")
+    escaped_working_root = escaped_install_root
+    rendered_web = []
+    rendered_system = []
+    for script in (SOURCE_INSTALLER, PREBUILT_INSTALLER):
+        web_unit = materialize_web_service(script, pathlib.Path(install_root))
+        rendered_web.append(web_unit)
+        for required in (
+            f"WorkingDirectory={escaped_working_root}/web-config",
+            f'ExecStart=/usr/bin/python3 "{escaped_install_root}/web-config/server.py"',
+        ):
+            if required not in web_unit.splitlines():
+                raise AssertionError(f"{script.name} web unit is missing {required}")
+
+        escaper = extract_function(script, "systemd_escape_absolute_path")
+        field_escaper = extract_function(script, "systemd_escape_path_field")
+        renderer = extract_function(script, "render_system_service_unit")
+        python_path = f"{install_root}/system-service/.venv/bin/python3"
+        system_root = f"{install_root}/system-service"
+        result = subprocess.run(
+            ["bash", "-c", f"""
+set -euo pipefail
+{escaper}
+{field_escaper}
+{renderer}
+render_system_service_unit {shlex.quote(str(SYSTEM_UNIT_TEMPLATE))} \
+    {shlex.quote(python_path)} {shlex.quote(system_root)}
+"""],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise AssertionError(f"{script.name} system unit renderer failed: {result.stderr}")
+        rendered_system.append(result.stdout)
+        system_lines = result.stdout.splitlines()
+        for required in (
+            f'ExecStart="{escaped_install_root}/system-service/.venv/bin/python3" '
+            f'"{escaped_install_root}/system-service/openauto_system.py"',
+            f"WorkingDirectory={escaped_working_root}/system-service",
+            "Type=notify",
+        ):
+            if required not in system_lines:
+                raise AssertionError(f"{script.name} system unit is missing {required}")
+
+    if rendered_web[0] != rendered_web[1]:
+        raise AssertionError("source and prebuilt installers render different web units")
+    if rendered_system[0] != rendered_system[1]:
+        raise AssertionError("source and prebuilt installers render different system units")
+
+    with tempfile.TemporaryDirectory(prefix="oap-aux-unit-verify-") as tmp:
+        root = pathlib.Path(tmp)
+        unit_dir = root / "etc/systemd/system"
+        unit_dir.mkdir(parents=True)
+        (unit_dir / "openauto-prodigy-web.service").write_text(
+            rendered_web[0].replace("User=test-user", "User=root")
+        )
+        (unit_dir / "openauto-system.service").write_text(rendered_system[0])
+        for name, body in (
+            ("multi-user.target", "[Unit]\nDescription=Multi-user\n"),
+            ("sysinit.target", "[Unit]\nDescription=Sysinit\n"),
+            ("network.target", "[Unit]\nDescription=Network\n"),
+            ("bluetooth.target", "[Unit]\nDescription=Bluetooth\n"),
+            ("openauto-prodigy.service", "[Service]\nExecStart=/bin/true\n"),
+        ):
+            (unit_dir / name).write_text(body)
+        for executable in (
+            root / "bin/true",
+            root / "usr/bin/python3",
+            root / "usr/sbin/iptables",
+            root / install_root.removeprefix("/") / "web-config/server.py",
+            root
+            / install_root.removeprefix("/")
+            / "system-service/.venv/bin/python3",
+            root / install_root.removeprefix("/") / "system-service/openauto_system.py",
+        ):
+            executable.parent.mkdir(parents=True, exist_ok=True)
+            executable.touch()
+            executable.chmod(0o755)
+        result = subprocess.run(
+            [
+                systemd_analyze,
+                "verify",
+                f"--root={root}",
+                "openauto-prodigy-web.service",
+                "openauto-system.service",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise AssertionError(f"systemd rejected canonical auxiliary units:\n{result.stderr}")
+
+
+def assert_wayland_rechecks_after_missed_event() -> None:
+    with tempfile.TemporaryDirectory(prefix="oap-wayland-race-") as tmp:
+        root = pathlib.Path(tmp)
+        runtime = root / "runtime"
+        fake_bin = root / "bin"
+        runtime.mkdir()
+        fake_bin.mkdir()
+        socket_path = runtime / "wayland-race"
+        inotifywait = fake_bin / "inotifywait"
+        inotifywait.write_text(
+            "#!/usr/bin/env python3\n"
+            "import os, socket\n"
+            "server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)\n"
+            "server.bind(os.environ['TEST_WAYLAND_SOCKET'])\n"
+            "server.close()\n"
+            "raise SystemExit(2)\n"
+        )
+        inotifywait.chmod(0o755)
+        env = os.environ.copy()
+        env.update(
+            {
+                "PATH": f"{fake_bin}:/usr/bin:/bin",
+                "XDG_RUNTIME_DIR": str(runtime),
+                "WAYLAND_DISPLAY": socket_path.name,
+                "TEST_WAYLAND_SOCKET": str(socket_path),
+                "OAP_PREFLIGHT_WAYLAND_TIMEOUT_SECONDS": "1",
+            }
+        )
+        result = subprocess.run(
+            [str(APP_PREFLIGHT), "--wayland"],
+            cwd=REPO_ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0 or "PASS: Wayland compositor ready" not in result.stdout:
+            raise AssertionError(
+                "Wayland preflight missed a socket created before its watch:\n"
+                f"{result.stdout}\n{result.stderr}"
+            )
 
     for script in (SOURCE_INSTALLER, PREBUILT_INSTALLER):
         function = extract_function(script, "create_preflight_script")
@@ -675,6 +863,7 @@ def test_restart() -> None:
         raise AssertionError("normal restart does not stay within systemd ownership")
 
     assert_canonical_app_startup_assets()
+    assert_wayland_rechecks_after_missed_event()
     for script in (SOURCE_INSTALLER, PREBUILT_INSTALLER):
         unit_lines = materialize_app_service(script).splitlines()
         for required in ("Type=notify", "NotifyAccess=main", "Restart=on-failure"):

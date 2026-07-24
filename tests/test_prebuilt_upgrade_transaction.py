@@ -14,6 +14,11 @@ import tempfile
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 INSTALLER = REPO_ROOT / "install-prebuilt.sh"
+MANAGED_SERVICES = (
+    "openauto-prodigy.service",
+    "openauto-prodigy-web.service",
+    "openauto-system.service",
+)
 
 FAILURE_POINTS = (
     "after-services-stopped",
@@ -151,19 +156,46 @@ def make_fake_commands(root: pathlib.Path) -> pathlib.Path:
         "case \"$command\" in\n"
         "  is-active)\n"
         "    [[ ${1:-} == --quiet ]] && shift\n"
-        "    [[ $(cat \"$TEST_STATE_DIR/$1\") == active ]]\n"
+        "    [[ $(cat \"$TEST_STATE_DIR/active/$1\") == active ]]\n"
+        "    ;;\n"
+        "  is-enabled)\n"
+        "    state=$(cat \"$TEST_STATE_DIR/enablement/$1\")\n"
+        "    printf '%s\\n' \"$state\"\n"
+        "    [[ $state == enabled || $state == enabled-runtime ]]\n"
         "    ;;\n"
         "  stop)\n"
-        "    echo inactive > \"$TEST_STATE_DIR/$1\"\n"
+        "    echo inactive > \"$TEST_STATE_DIR/active/$1\"\n"
         "    [[ $1 != openauto-prodigy.service ]] || rm -f \"$TEST_RUNNING_PAYLOAD\"\n"
         "    ;;\n"
         "  start)\n"
-        "    echo active > \"$TEST_STATE_DIR/$1\"\n"
+        "    state=$(cat \"$TEST_STATE_DIR/enablement/$1\")\n"
+        "    [[ $state != masked && $state != masked-runtime ]]\n"
+        "    echo active > \"$TEST_STATE_DIR/active/$1\"\n"
         "    if [[ $1 == openauto-prodigy.service ]]; then\n"
         "      cp \"$TEST_INSTALL_DIR/build/src/openauto-prodigy\" \"$TEST_RUNNING_PAYLOAD\"\n"
         "    fi\n"
         "    if [[ $1 == openauto-prodigy.service && ${TEST_PULL_SYSTEM:-false} == true ]]; then\n"
-        "      echo active > \"$TEST_STATE_DIR/openauto-system.service\"\n"
+        "      echo active > \"$TEST_STATE_DIR/active/openauto-system.service\"\n"
+        "    fi\n"
+        "    ;;\n"
+        "  enable|mask)\n"
+        "    runtime=false\n"
+        "    [[ ${1:-} != --runtime ]] || { runtime=true; shift; }\n"
+        "    if [[ $command == enable ]]; then\n"
+        "      [[ $runtime == true ]] && state=enabled-runtime || state=enabled\n"
+        "    else\n"
+        "      [[ $runtime == true ]] && state=masked-runtime || state=masked\n"
+        "    fi\n"
+        "    echo \"$state\" > \"$TEST_STATE_DIR/enablement/$1\"\n"
+        "    ;;\n"
+        "  disable)\n"
+        "    echo disabled > \"$TEST_STATE_DIR/enablement/$1\"\n"
+        "    ;;\n"
+        "  unmask)\n"
+        "    [[ ${1:-} != --runtime ]] || shift\n"
+        "    state=$(cat \"$TEST_STATE_DIR/enablement/$1\")\n"
+        "    if [[ $state == masked || $state == masked-runtime ]]; then\n"
+        "      echo disabled > \"$TEST_STATE_DIR/enablement/$1\"\n"
         "    fi\n"
         "    ;;\n"
         "  daemon-reload) : ;;\n"
@@ -174,7 +206,10 @@ def make_fake_commands(root: pathlib.Path) -> pathlib.Path:
     return fake_bin
 
 
-def make_case(initial_states: dict[str, bool]):
+def make_case(
+    initial_states: dict[str, bool],
+    initial_enablement: dict[str, str] | None = None,
+):
     temporary = tempfile.TemporaryDirectory(prefix="oap-prebuilt-transaction-")
     root = pathlib.Path(temporary.name)
     payload = make_payload(root)
@@ -182,15 +217,19 @@ def make_case(initial_states: dict[str, bool]):
     unit_dir, preflight, assets = make_external_assets(root)
     fake_bin = make_fake_commands(root)
     state_dir = root / "states"
-    state_dir.mkdir()
-    for service in (
-        "openauto-prodigy.service",
-        "openauto-prodigy-web.service",
-        "openauto-system.service",
-    ):
+    active_dir = state_dir / "active"
+    enablement_dir = state_dir / "enablement"
+    active_dir.mkdir(parents=True)
+    enablement_dir.mkdir()
+    initial_enablement = initial_enablement or {}
+    for service in MANAGED_SERVICES:
         write_file(
-            state_dir / service,
+            active_dir / service,
             "active\n" if initial_states.get(service, False) else "inactive\n",
+        )
+        write_file(
+            enablement_dir / service,
+            initial_enablement.get(service, "disabled") + "\n",
         )
     log = root / "systemctl.log"
     env = os.environ.copy()
@@ -209,6 +248,7 @@ def make_case(initial_states: dict[str, bool]):
             "TEST_PULL_SYSTEM": "true",
             "TEST_INSTALL_DIR": str(install),
             "TEST_RUNNING_PAYLOAD": str(root / "running-payload"),
+            "OAP_PREBUILT_TEST_AUTOSTART": "true",
             "USER": "test-user",
         }
     )
@@ -217,8 +257,18 @@ def make_case(initial_states: dict[str, bool]):
 
 def service_states(state_dir: pathlib.Path) -> dict[str, bool]:
     return {
-        path.name: path.read_text(encoding="utf-8").strip() == "active"
-        for path in state_dir.iterdir()
+        service: (state_dir / "active" / service).read_text(encoding="utf-8").strip()
+        == "active"
+        for service in MANAGED_SERVICES
+    }
+
+
+def service_enablement_states(state_dir: pathlib.Path) -> dict[str, str]:
+    return {
+        service: (state_dir / "enablement" / service)
+        .read_text(encoding="utf-8")
+        .strip()
+        for service in MANAGED_SERVICES
     }
 
 
@@ -250,10 +300,17 @@ def test_failure_rollbacks() -> None:
     initial = {
         "openauto-prodigy.service": True,
         "openauto-prodigy-web.service": True,
-        "openauto-system.service": False,
+        "openauto-system.service": True,
+    }
+    initial_enablement = {
+        "openauto-prodigy.service": "enabled",
+        "openauto-prodigy-web.service": "disabled",
+        "openauto-system.service": "masked",
     }
     for failure in FAILURE_POINTS:
-        temporary, _, install, units, preflight, states, _, env = make_case(initial)
+        temporary, _, install, units, preflight, states, _, env = make_case(
+            initial, initial_enablement
+        )
         try:
             old_payload = snapshot(install)
             old_external = external_snapshot(units, preflight)
@@ -266,6 +323,11 @@ def test_failure_rollbacks() -> None:
                 raise AssertionError(f"{failure} did not restore prior unit/preflight bytes")
             if service_states(states) != initial:
                 raise AssertionError(f"{failure} changed the prior active service set")
+            if service_enablement_states(states) != initial_enablement:
+                raise AssertionError(
+                    f"{failure} changed prior enablement/mask state: "
+                    f"{service_enablement_states(states)}"
+                )
             running = pathlib.Path(env["TEST_RUNNING_PAYLOAD"])
             if initial["openauto-prodigy.service"] and running.read_text() != "old-binary\n":
                 raise AssertionError(f"{failure} left the application on a retired payload")
@@ -302,6 +364,12 @@ def test_success_and_inactive_preservation() -> None:
                 raise AssertionError("successful transaction did not install the new preflight")
             if service_states(states) != initial:
                 raise AssertionError("successful transaction changed the active service set")
+            expected_enablement = {service: "enabled" for service in MANAGED_SERVICES}
+            if service_enablement_states(states) != expected_enablement:
+                raise AssertionError(
+                    "successful transaction did not exercise production enable mutations: "
+                    f"{service_enablement_states(states)}"
+                )
             running = pathlib.Path(env["TEST_RUNNING_PAYLOAD"])
             if initial["openauto-prodigy.service"]:
                 if running.read_text() != "new-binary\n":
