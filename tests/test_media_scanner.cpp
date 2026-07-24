@@ -15,10 +15,26 @@ class TestMediaScanner : public QObject {
     QVector<MediaTrackRecord> runScan(MediaScanner& s, const QString& root) {
         QSignalSpy done(&s, &MediaScanner::finished);
         s.scan({rootFor(root)});
-        [&]{ QVERIFY(done.wait(15000)); }();
-        [&]{ QVERIFY(!s.busy()); }();       // Codex P1: false when finished fires
-        [&]{ QVERIFY(!s.scanning()); }();
-        return done.takeFirst().at(0).value<QVector<MediaTrackRecord>>();
+        if (done.isEmpty() && !done.wait(15000)) {
+            QTest::qFail(qPrintable(QStringLiteral("scan timed out for root: %1").arg(root)),
+                         __FILE__, __LINE__);
+            return {};
+        }
+        if (s.busy() || s.scanning()) {
+            QTest::qFail(qPrintable(QStringLiteral(
+                             "scan finished with active state for root %1 (busy=%2, scanning=%3)")
+                             .arg(root).arg(s.busy()).arg(s.scanning())),
+                         __FILE__, __LINE__);
+            return {};
+        }
+        if (done.count() != 1 || done.first().isEmpty()) {
+            QTest::qFail(qPrintable(QStringLiteral(
+                             "scan produced an invalid finished signal for root %1 (count=%2)")
+                             .arg(root).arg(done.count())),
+                         __FILE__, __LINE__);
+            return {};
+        }
+        return done.first().at(0).value<QVector<MediaTrackRecord>>();
     }
 
 private slots:
