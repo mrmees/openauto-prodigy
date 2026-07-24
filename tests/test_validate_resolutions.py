@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import signal
+import socket
 import subprocess
 import tempfile
 import textwrap
@@ -25,9 +26,11 @@ class ValidateResolutionsTests(unittest.TestCase):
         self.bin_dir.mkdir()
         self.output_dir = self.root / "output"
         self.lock_file = self.root / ".X99-lock"
+        self.socket_file = self.root / "X99"
         self.xvfb_log = self.root / "xvfb.log"
         self.binary_log = self.root / "binary.log"
         self.renderer_log = self.root / "renderer.log"
+        self.vnc_log = self.root / "vnc.log"
         self._processes: list[subprocess.Popen[str]] = []
 
         self._write_executable(
@@ -36,15 +39,23 @@ class ValidateResolutionsTests(unittest.TestCase):
 import os
 from pathlib import Path
 import signal
+import socket
 import sys
 import time
 
 lock = Path(os.environ["OAP_VALIDATE_XVFB_LOCK_FILE"])
+socket_path = Path(os.environ["OAP_VALIDATE_XVFB_SOCKET_FILE"])
 log = Path(os.environ["OAP_TEST_XVFB_LOG"])
 pid = os.getpid()
-lock.write_text(f"{pid}\\n", encoding="utf-8")
+lock.write_text(os.environ.get("OAP_TEST_XVFB_LOCK_PID", str(pid)) + "\\n", encoding="utf-8")
+server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+server.bind(str(socket_path))
+server.listen(1)
 with log.open("a", encoding="utf-8") as stream:
     stream.write(f"start {pid} {' '.join(sys.argv[1:])}\\n")
+if os.environ.get("OAP_TEST_XVFB_EXIT_AFTER_SOCKET") == "1":
+    server.close()
+    raise SystemExit(23)
 
 def stop(signum, _frame):
     with log.open("a", encoding="utf-8") as stream:
@@ -55,6 +66,11 @@ def stop(signum, _frame):
                 lock.unlink()
         except FileNotFoundError:
             pass
+    server.close()
+    try:
+        socket_path.unlink()
+    except OSError:
+        pass
     raise SystemExit(128 + signum)
 
 for caught in (signal.SIGHUP, signal.SIGINT, signal.SIGTERM):
@@ -106,7 +122,10 @@ if os.environ.get("OAP_TEST_CONVERT_FAIL") == "1":
 Path(sys.argv[-1]).touch()
 """,
         )
-        self._write_executable("x11vnc", "#!/bin/sh\nexec /bin/sleep 60\n")
+        self._write_executable(
+            "x11vnc",
+            "#!/bin/sh\nprintf 'started\\n' >> \"$OAP_TEST_VNC_LOG\"\nexec /bin/sleep 60\n",
+        )
         self._write_executable("sleep", "#!/bin/sh\nexec /bin/sleep 0.01\n")
 
         self.env = os.environ.copy()
@@ -114,9 +133,11 @@ Path(sys.argv[-1]).touch()
             {
                 "PATH": f"{self.bin_dir}:{self.env['PATH']}",
                 "OAP_VALIDATE_XVFB_LOCK_FILE": str(self.lock_file),
+                "OAP_VALIDATE_XVFB_SOCKET_FILE": str(self.socket_file),
                 "OAP_TEST_XVFB_LOG": str(self.xvfb_log),
                 "OAP_TEST_BINARY_LOG": str(self.binary_log),
                 "OAP_TEST_RENDERER_LOG": str(self.renderer_log),
+                "OAP_TEST_VNC_LOG": str(self.vnc_log),
             }
         )
 
@@ -154,12 +175,18 @@ Path(sys.argv[-1]).touch()
             command.extend(["--resolution", "800x480"])
         return command
 
-    def _run(self, *, single: bool = True, extra_env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    def _run(
+        self,
+        *,
+        single: bool = True,
+        mode: str | None = "--screenshot",
+        extra_env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         env = self.env.copy()
         if extra_env:
             env.update(extra_env)
         return subprocess.run(
-            self._command(single=single),
+            self._command(single=single, mode=mode),
             cwd=REPO_ROOT,
             env=env,
             text=True,
@@ -213,6 +240,7 @@ Path(sys.argv[-1]).touch()
         self.assertIn("convert xwd:-", renderer)
         self.assertEqual(len(list(self.output_dir.glob("test-*.png"))), 6)
         self.assertFalse(self.lock_file.exists())
+        self.assertFalse(self.socket_file.exists())
         for line in self.xvfb_log.read_text(encoding="utf-8").splitlines():
             if line.startswith("start "):
                 self.assert_pid_gone(int(line.split()[1]))
@@ -241,6 +269,57 @@ Path(sys.argv[-1]).touch()
         self.assertIsNone(sentinel.poll())
         self.assertEqual(self.lock_file.read_text(encoding="utf-8"), contents)
         self.assertFalse(self.xvfb_log.exists())
+
+    def test_occupied_socket_is_refused_with_missing_or_malformed_lock(self) -> None:
+        listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        listener.bind(str(self.socket_file))
+        listener.listen(1)
+        def close_listener() -> None:
+            listener.close()
+            self.socket_file.unlink(missing_ok=True)
+
+        self.addCleanup(close_listener)
+
+        for lock_contents in (None, "not-a-pid\n"):
+            with self.subTest(lock_contents=lock_contents):
+                self.lock_file.unlink(missing_ok=True)
+                if lock_contents is not None:
+                    self.lock_file.write_text(lock_contents, encoding="utf-8")
+
+                result = self._run()
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("already has an X socket", result.stderr)
+                self.assertFalse(self.xvfb_log.exists())
+                self.assertFalse(self.binary_log.exists())
+                self.assertFalse(self.renderer_log.exists())
+                if lock_contents is not None:
+                    self.assertEqual(self.lock_file.read_text(encoding="utf-8"), lock_contents)
+
+    def test_immediate_xvfb_exit_with_leftover_socket_fails_before_consumers(self) -> None:
+        for mode in ("--screenshot", None):
+            with self.subTest(mode=mode or "interactive"):
+                for path in (self.lock_file, self.socket_file, self.binary_log, self.renderer_log, self.vnc_log):
+                    path.unlink(missing_ok=True)
+                result = self._run(
+                    mode=mode,
+                    extra_env={"OAP_TEST_XVFB_EXIT_AFTER_SOCKET": "1"},
+                )
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("failed to establish an owned :99 display", result.stderr)
+                self.assertTrue(self.socket_file.exists())
+                self.assertFalse(self.binary_log.exists())
+                self.assertFalse(self.renderer_log.exists())
+                self.assertFalse(self.vnc_log.exists())
+
+    def test_live_child_with_mismatched_lock_fails_before_consumers(self) -> None:
+        result = self._run(extra_env={"OAP_TEST_XVFB_LOCK_PID": "2147483647"})
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("failed to establish an owned :99 display", result.stderr)
+        self.assertFalse(self.binary_log.exists())
+        self.assertFalse(self.renderer_log.exists())
 
     def test_live_xvfb_pid_is_also_refused_without_signal(self) -> None:
         existing = subprocess.Popen(

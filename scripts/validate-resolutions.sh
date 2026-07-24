@@ -21,6 +21,7 @@ MODE="interactive"
 SINGLE_RES=""
 XVFB_DISPLAY=":99"
 XVFB_LOCK_FILE="${OAP_VALIDATE_XVFB_LOCK_FILE:-/tmp/.X99-lock}"
+XVFB_SOCKET_FILE="${OAP_VALIDATE_XVFB_SOCKET_FILE:-/tmp/.X11-unix/X99}"
 APP_PID=""
 VNC_PID=""
 XVFB_PID=""
@@ -50,7 +51,7 @@ process_state() {
             printf '%s\n' "$value"
             return 0
         fi
-    done < "/proc/$pid/status"
+    done < "/proc/$pid/status" 2>/dev/null
     return 1
 }
 
@@ -80,7 +81,7 @@ owned_child_is_running() {
             PPid:) parent_pid="$value" ;;
             State:) state="$value" ;;
         esac
-    done < "/proc/$pid/status"
+    done < "/proc/$pid/status" 2>/dev/null
 
     [ "$parent_pid" = "$$" ] && [ "$state" != "Z" ] && [ "$state" != "X" ]
 }
@@ -123,6 +124,10 @@ lock_pid() {
         return 0
     fi
     return 1
+}
+
+x_socket_exists() {
+    [ -e "$XVFB_SOCKET_FILE" ] || [ -S "$XVFB_SOCKET_FILE" ]
 }
 
 remove_owned_xvfb_lock() {
@@ -219,6 +224,16 @@ fi
 launch_xvfb() {
     local w="$1" h="$2"
     local existing_pid=""
+    local recorded_lock_pid=""
+    local ready=0
+    local ready_observations=0
+
+    # The socket is independent ownership evidence. Never start against an
+    # existing endpoint, even when its lock is absent or malformed.
+    if x_socket_exists; then
+        echo "Display $XVFB_DISPLAY already has an X socket; refusing to replace it." >&2
+        return 1
+    fi
 
     # A lock owned by any live process makes the display unavailable. The lock
     # is evidence only: never signal a PID merely because it appears here.
@@ -233,7 +248,30 @@ launch_xvfb() {
 
     Xvfb "$XVFB_DISPLAY" -screen 0 "${w}x${h}x24" &
     XVFB_PID=$!
-    sleep 1
+
+    # Do not expose or render through the display until the exact child this
+    # invocation launched is alive and owns both readiness artifacts.
+    for _ in {1..40}; do
+        if owned_child_is_running "$XVFB_PID"; then
+            recorded_lock_pid=$(lock_pid 2>/dev/null) || recorded_lock_pid=""
+            if [ "$recorded_lock_pid" = "$XVFB_PID" ] && x_socket_exists; then
+                ready_observations=$((ready_observations + 1))
+                if [ "$ready_observations" -ge 2 ]; then
+                    ready=1
+                    break
+                fi
+            else
+                ready_observations=0
+            fi
+        elif ! kill -0 "$XVFB_PID" 2>/dev/null; then
+            break
+        fi
+        sleep 0.05
+    done
+    if [ "$ready" -ne 1 ]; then
+        echo "Xvfb failed to establish an owned $XVFB_DISPLAY display; refusing to launch the app." >&2
+        return 1
+    fi
 }
 
 launch_app() {
