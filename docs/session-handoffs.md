@@ -4,6 +4,39 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — ALPHA-26-07-24-01 validation ledger cleared
+
+**What changed:** all three current milestone observations received live
+dispositions on the Pi at `192.168.1.149`. Prodigy reached systemd READY about
+32 seconds after boot with both wait-online units disabled. The source/prebuilt
+policy mismatch became a re-research-required engineering lead. The former
+Bluetooth `MediaPlayer1 Track` warning was absent, while three UDisks
+MountPoints `QDBusArgument` warnings became a precise local-media lead. After
+the connected Pixel 8 disconnected, an unpaired phone discovered
+`Prodigy_e57d`; the Bluetooth-advertising observation passed and was deleted.
+The stale Pi address in project vision was corrected.
+
+**Why:** current validation observations must resolve into passed evidence or
+confirmed technical leads rather than linger as implied work. The deployed
+binary is at runtime commit `23e4385`; the 17 later milestone commits contain no
+`src`, QML, library, or CMake runtime delta, so the checks exercise the tagged
+runtime behavior.
+
+**Status:** COMPLETE. `docs/validation-current.md` has no pending observations.
+No runtime or Pi configuration was changed.
+
+**Verification:** live `systemd-analyze`, systemd unit state, application and
+BlueZ journals, `bluetoothctl`/D-Bus adapter state, and the unpaired-phone RF
+scan were checked. `python3 scripts/check-doc-links.py` and `git diff --check`
+pass. Build, app-target build, and CTest were not run because repository changes
+are documentation-only.
+
+**Next 1-3 steps:** (1) discuss new product ideas against the cleaned wishlist;
+(2) select one current feature or engineering lead; (3) re-research it against
+the current tree before promotion and planning.
+
+---
+
 ## 2026-07-24 — Feature wishlist group triage
 
 **What changed:** Matthew reviewed all four feature groups item by item. The

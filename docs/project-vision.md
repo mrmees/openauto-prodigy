@@ -31,7 +31,7 @@ OpenAuto Prodigy is a clean-room, open-source replacement for OpenAuto Pro (Blue
 
 ## Testing Hardware
 
-- Pi 4 at 192.168.1.152 (SSH: matt@ via certificate authentication), device name = prodigy, running Debian Trixie.
+- Pi 4 at 192.168.1.149 (SSH: matt@ via certificate authentication), device name = prodigy, running Debian Trixie.
 - Phone with ADB debug access for companion app testing.
 - Dev VM (claude-dev) for local x86 builds and cross-compilation.
 

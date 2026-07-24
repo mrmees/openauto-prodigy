@@ -129,6 +129,14 @@ limits, and a verification command before implementation.
 
 ## Local Media
 
+- **UDisks MountPoints decoding emits read-only QDBusArgument warnings** —
+  Evidence: **LIVE HARDWARE CONFIRMED 2026-07-24** on the
+  milestone-equivalent runtime. A clean boot emits exactly three warnings while
+  the initial USB scan decodes the mounted root, boot, and removable filesystems;
+  the former Bluetooth MediaPlayer1 Track-type warning is absent. Candidate
+  deliverable: MountPoints decoding is warning-free for system and removable
+  filesystems, with representative D-Bus variant coverage.
+
 - **Valid tracks shorter than 500 ms can be classified as unplayable** —
   Evidence: **CODE-CONFIRMED 2026-07-24**. PlaybackPolicy compares the observed
   progress watermark with a fixed 500 ms threshold, while PlaybackEngine
@@ -197,6 +205,15 @@ limits, and a verification command before implementation.
   pins plus a documented/regression-checked regeneration procedure.
 
 ## Release Engineering and Documentation
+
+- **Prebuilt installs do not own the wait-online boot policy** — Evidence:
+  **INSTALLER GAP CONFIRMED 2026-07-24; FRESH-IMAGE VALIDATION REQUIRED**. The
+  source-installed Pi reaches Prodigy READY at roughly 32 seconds with both
+  NetworkManager and systemd-networkd wait-online units disabled, while
+  install-prebuilt.sh has no equivalent action and the target image presets
+  systemd-networkd-wait-online enabled. Candidate deliverable: both install
+  modes share one explicit wait-online contract and a fresh prebuilt install
+  proves no unused network manager delays application readiness.
 
 - **External API lacks a live user reference** — Evidence:
   **CODE-CONFIRMED 2026-07-24**. The shipped API is documented only through
