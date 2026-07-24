@@ -265,6 +265,10 @@ add_test(
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_prebuilt_release_package.py
 )
 add_test(
+    NAME test_prebuilt_upgrade_transaction
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_prebuilt_upgrade_transaction.py
+)
+add_test(
     NAME test_install_list_prebuilt
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_install_list_prebuilt.py
 )

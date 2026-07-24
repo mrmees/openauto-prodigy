@@ -44,6 +44,14 @@ The installers validate and render the complete AP configuration before they
 write either managed network file. A radio with no usable channel is rejected;
 5 GHz is preferred when available, while 2.4 GHz is the supported fallback.
 
+`config/installer/openauto-preflight` and
+`config/systemd/openauto-prodigy.service.in` are the canonical application
+startup assets for both install modes. The rendered unit preserves
+`Type=notify`, orders after Bluetooth and PipeWire, and uses the preflight's
+bounded Wayland check as an `ExecCondition`. A missing compositor socket skips
+that start without a failed unit or restart loop; a later start works once the
+socket appears.
+
 ## Expected services
 
 A guided install configures `bluetooth.service` in both install modes. When an
@@ -52,6 +60,12 @@ AP interface is selected, it also configures `hostapd.service` and
 no hostapd dependency. The install creates the OpenAuto Prodigy application,
 web-config, and privileged system-service units. Whether the main application
 unit starts automatically follows the choice made during installation.
+During a prebuilt upgrade, the installer stages and validates the replacement
+before stopping the active subset of those three managed services. It retains
+the old managed payload, application/web/system unit files, and preflight until
+the replacement has restored the same active set; a failure rolls those bytes
+and states back. Package-manager and unrelated machine configuration are not
+part of that payload transaction.
 
 ## Application restart and single-instance ownership
 

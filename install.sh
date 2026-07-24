@@ -1807,110 +1807,13 @@ clear_paired_phones() {
 # Step 6: Create pre-flight script and systemd service
 # ────────────────────────────────────────────────────
 create_preflight_script() {
-    sudo tee /usr/local/bin/openauto-preflight > /dev/null << 'PREFLIGHT'
-#!/bin/bash
-# OpenAuto Prodigy — Pre-flight checks
-# Runs as ExecStartPre before the main service.
-# Standalone usage: sudo openauto-preflight [--check-only]
-set -euo pipefail
+    local source="$INSTALL_DIR/config/installer/openauto-preflight"
 
-CHECK_ONLY=false
-if [[ "${1:-}" == "--check-only" ]]; then
-    CHECK_ONLY=true
-fi
-
-PASS=0
-FAIL=0
-
-pass() { echo "PASS: $1"; PASS=$((PASS + 1)); }
-fail() { echo "FAIL: $1"; FAIL=$((FAIL + 1)); }
-
-# 1. rfkill unblock (self-healing)
-if command -v rfkill &>/dev/null; then
-    if [[ "$CHECK_ONLY" == "true" ]]; then
-        if rfkill list wlan 2>/dev/null | grep -q "Soft blocked: yes"; then
-            fail "WiFi radio soft-blocked (run without --check-only to fix)"
-        else
-            pass "WiFi radio unblocked"
-        fi
-        if rfkill list bluetooth 2>/dev/null | grep -q "Soft blocked: yes"; then
-            fail "Bluetooth radio soft-blocked (run without --check-only to fix)"
-        else
-            pass "Bluetooth radio unblocked"
-        fi
-    else
-        if rfkill unblock wlan 2>/dev/null; then
-            pass "WiFi radio unblocked"
-        else
-            fail "Could not unblock WiFi radio"
-        fi
-        if rfkill unblock bluetooth 2>/dev/null; then
-            pass "Bluetooth radio unblocked"
-        else
-            fail "Could not unblock Bluetooth radio"
-        fi
+    if [[ ! -f "$source" ]]; then
+        fail "Canonical application preflight not found: $source"
+        return 1
     fi
-else
-    fail "rfkill not found"
-fi
-
-# 2. Wayland compositor check (wait for socket to appear)
-WAYLAND_SOCKET="${XDG_RUNTIME_DIR:-/run/user/1000}/${WAYLAND_DISPLAY:-wayland-0}"
-if [[ -e "$WAYLAND_SOCKET" ]]; then
-    pass "Wayland compositor ready (${WAYLAND_DISPLAY:-wayland-0})"
-elif command -v inotifywait &>/dev/null; then
-    # Block until socket appears (zero CPU, instant reaction, 15s timeout)
-    if inotifywait -t 15 -e create "$(dirname "$WAYLAND_SOCKET")" --include "$(basename "$WAYLAND_SOCKET")" &>/dev/null; then
-        pass "Wayland compositor ready (${WAYLAND_DISPLAY:-wayland-0})"
-    else
-        fail "Wayland socket not found at $WAYLAND_SOCKET after 15s"
-    fi
-else
-    # Fallback poll if inotifywait not available
-    for i in $(seq 1 20); do
-        if [[ -e "$WAYLAND_SOCKET" ]]; then break; fi
-        sleep 0.5
-    done
-    if [[ -e "$WAYLAND_SOCKET" ]]; then
-        pass "Wayland compositor ready (${WAYLAND_DISPLAY:-wayland-0})"
-    else
-        fail "Wayland socket not found at $WAYLAND_SOCKET after 10s"
-    fi
-fi
-
-# 3. SDP socket check (self-healing: fix permissions if wrong)
-SDP_SOCKET="/var/run/sdp"
-if [[ -e "$SDP_SOCKET" ]]; then
-    SDP_GROUP=$(stat -c '%G' "$SDP_SOCKET" 2>/dev/null || echo "unknown")
-    SDP_PERMS=$(stat -c '%a' "$SDP_SOCKET" 2>/dev/null || echo "000")
-    if [[ "$SDP_GROUP" == "bluetooth" ]] && [[ "${SDP_PERMS:1:1}" =~ [2367] ]]; then
-        pass "SDP socket ready (group=$SDP_GROUP perms=$SDP_PERMS)"
-    elif [[ "$CHECK_ONLY" == "true" ]]; then
-        fail "/var/run/sdp wrong permissions (group=$SDP_GROUP perms=$SDP_PERMS, need bluetooth group-writable)"
-    else
-        # Self-heal: fix permissions (we run as root via ExecStartPre=+)
-        chgrp bluetooth "$SDP_SOCKET" 2>/dev/null && chmod g+rw "$SDP_SOCKET" 2>/dev/null
-        if [[ $? -eq 0 ]]; then
-            pass "SDP socket fixed (was group=$SDP_GROUP, now bluetooth group-writable)"
-        else
-            fail "/var/run/sdp wrong permissions and could not fix (group=$SDP_GROUP perms=$SDP_PERMS)"
-        fi
-    fi
-else
-    fail "/var/run/sdp missing (is bluetooth.service running with --compat?)"
-fi
-
-# Summary
-echo "---"
-echo "Pre-flight: $PASS passed, $FAIL failed"
-
-if [[ "$FAIL" -gt 0 ]]; then
-    exit 1
-fi
-exit 0
-PREFLIGHT
-
-    sudo chmod +x /usr/local/bin/openauto-preflight
+    sudo install -D -m 0755 "$source" /usr/local/bin/openauto-preflight
     ok "Pre-flight script installed at /usr/local/bin/openauto-preflight"
 }
 
@@ -1929,38 +1832,40 @@ install_restart_helper() {
 }
 
 # ────────────────────────────────────────────────────
+render_application_unit() {
+    local template_path="$1"
+    local service_user="$2"
+    local user_id="$3"
+    local install_root="$4"
+    local escaped_user escaped_root
+
+    [[ -f "$template_path" ]] || return 1
+    [[ -n "$service_user" && "$service_user" != *$'\n'* ]] || return 1
+    [[ "$user_id" =~ ^[0-9]+$ ]] || return 1
+    [[ -n "$install_root" && "$install_root" == /* && "$install_root" != *$'\n'* ]] || return 1
+
+    escaped_user=$(printf '%s' "$service_user" | sed 's/[\\&|]/\\&/g')
+    escaped_root=$(printf '%s' "$install_root" | sed 's/[\\&|]/\\&/g')
+    sed -e "s|@@USER@@|$escaped_user|g" \
+        -e "s|@@USER_ID@@|$user_id|g" \
+        -e "s|@@INSTALL_DIR@@|$escaped_root|g" \
+        "$template_path"
+}
+
 create_service() {
-    local USER_ID
+    local USER_ID template_path rendered_unit
     USER_ID=$(id -u)
-
-    sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null << SERVICE
-[Unit]
-Description=OpenAuto Prodigy
-After=graphical.target bluetooth.target pipewire.service
-Wants=openauto-system.service
-StartLimitBurst=5
-StartLimitIntervalSec=60
-
-[Service]
-Type=notify
-User=$USER
-Environment=XDG_RUNTIME_DIR=/run/user/$USER_ID
-Environment=WAYLAND_DISPLAY=wayland-0
-Environment=QT_QPA_PLATFORM=wayland
-Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$USER_ID/bus
-WorkingDirectory=$INSTALL_DIR
-ExecStartPre=+/usr/local/bin/openauto-preflight
-ExecStartPre=-/bin/sh -c 'systemctl --user stop wf-panel-restore.service 2>/dev/null; pkill -f "lwrespawn.*wf-panel-pi"; pkill wf-panel-pi; true'
-ExecStart=$INSTALL_DIR/build/src/openauto-prodigy
-ExecStopPost=-/bin/sh -c '[ "\$SERVICE_RESULT" = "success" ] && systemd-run --user --unit=wf-panel-restore --setenv=WAYLAND_DISPLAY=wayland-0 /usr/bin/lwrespawn /usr/bin/wf-panel-pi || true'
-Restart=on-failure
-RestartSec=3
-WatchdogSec=30
-NotifyAccess=main
-
-[Install]
-WantedBy=graphical.target
-SERVICE
+    template_path="$INSTALL_DIR/config/systemd/openauto-prodigy.service.in"
+    rendered_unit=$(mktemp)
+    if ! render_application_unit "$template_path" "$USER" "$USER_ID" "$INSTALL_DIR" \
+        > "$rendered_unit"; then
+        rm -f "$rendered_unit"
+        fail "Could not render canonical application service template: $template_path"
+        return 1
+    fi
+    sudo install -D -m 0644 "$rendered_unit" \
+        "/etc/systemd/system/${SERVICE_NAME}.service"
+    rm -f "$rendered_unit"
 
     sudo systemctl daemon-reload
 

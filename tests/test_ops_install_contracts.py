@@ -18,6 +18,8 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 BLUETOOTH_ASSET = REPO_ROOT / "config/systemd/bluetooth-compat.conf"
 APP_HOSTAPD_ASSET = REPO_ROOT / "config/systemd/openauto-prodigy-hostapd.conf"
 HOSTAPD_ASSET = REPO_ROOT / "config/systemd/hostapd-openauto.conf"
+APP_UNIT_TEMPLATE = REPO_ROOT / "config/systemd/openauto-prodigy.service.in"
+APP_PREFLIGHT = REPO_ROOT / "config/installer/openauto-preflight"
 SOURCE_INSTALLER = REPO_ROOT / "install.sh"
 PREBUILT_INSTALLER = REPO_ROOT / "install-prebuilt.sh"
 RESTART_HELPER = REPO_ROOT / "docs/pi-config/restart.sh"
@@ -393,25 +395,31 @@ install_dependencies
 
 
 def materialize_app_service(script: pathlib.Path) -> str:
+    renderer = extract_function(script, "render_application_unit")
     function = extract_function(script, "create_service")
     with tempfile.TemporaryDirectory(prefix="oap-app-service-") as tmp:
         tmp_dir = pathlib.Path(tmp)
+        install_dir = tmp_dir / "install"
+        template = install_dir / "config/systemd/openauto-prodigy.service.in"
+        template.parent.mkdir(parents=True)
+        shutil.copyfile(APP_UNIT_TEMPLATE, template)
         unit = tmp_dir / "openauto-prodigy.service"
         systemctl_log = tmp_dir / "systemctl.log"
         shell = f"""
 set -euo pipefail
-INSTALL_DIR=/opt/openauto-prodigy
+INSTALL_DIR={shlex.quote(str(install_dir))}
 SERVICE_NAME=openauto-prodigy
 AUTOSTART=false
+SYSTEMD_UNIT_DIR={shlex.quote(str(tmp_dir))}
 TEST_UNIT={shlex.quote(str(unit))}
 TEST_SYSTEMCTL_LOG={shlex.quote(str(systemctl_log))}
 info() {{ :; }}
 ok() {{ :; }}
 sudo() {{
     case "$1" in
-        tee)
-            [[ "$2" == /etc/systemd/system/openauto-prodigy.service ]]
-            /usr/bin/tee "$TEST_UNIT"
+        install)
+            [[ "$2" == -D && "$3" == -m && "$4" == 0644 ]]
+            /usr/bin/install -D -m "$4" "$5" "$TEST_UNIT"
             ;;
         systemctl)
             printf '%s\n' "$*" >> "$TEST_SYSTEMCTL_LOG"
@@ -422,6 +430,7 @@ sudo() {{
             ;;
     esac
 }}
+{renderer}
 {function}
 create_service
 """
@@ -436,6 +445,124 @@ create_service
         if systemctl_log.read_text().splitlines() != ["systemctl daemon-reload"]:
             raise AssertionError(f"{script.name} did not reload its application unit")
         return unit.read_text()
+
+
+def assert_canonical_app_startup_assets() -> None:
+    prebuilt_required = extract_function(PREBUILT_INSTALLER, "require_payload")
+    for required in (
+        '"$PAYLOAD_DIR/config/installer/openauto-preflight"',
+        '"$PAYLOAD_DIR/config/systemd/openauto-prodigy.service.in"',
+    ):
+        if required not in prebuilt_required:
+            raise AssertionError(f"prebuilt payload validation omits {required}")
+    for script in (SOURCE_INSTALLER, PREBUILT_INSTALLER):
+        if "[Unit]" in extract_function(script, "create_service"):
+            raise AssertionError(f"{script.name} retains an inline application unit")
+        if "rfkill unblock" in extract_function(script, "create_preflight_script"):
+            raise AssertionError(f"{script.name} retains an inline application preflight")
+
+    rendered = []
+    for script in (SOURCE_INSTALLER, PREBUILT_INSTALLER):
+        renderer = extract_function(script, "render_application_unit")
+        result = subprocess.run(
+            ["bash", "-c", f"""
+set -euo pipefail
+{renderer}
+render_application_unit {shlex.quote(str(APP_UNIT_TEMPLATE))} test-user 4242 /opt/openauto-prodigy
+"""],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise AssertionError(f"{script.name} unit renderer failed: {result.stderr}")
+        rendered.append(result.stdout)
+    if rendered[0] != rendered[1]:
+        raise AssertionError("source and prebuilt installers render different app units")
+
+    lines = rendered[0].splitlines()
+    for required in (
+        "Type=notify",
+        "NotifyAccess=main",
+        "After=graphical.target bluetooth.target pipewire.service",
+        "ExecCondition=+/usr/local/bin/openauto-preflight --wayland",
+        "ExecStartPre=+/usr/local/bin/openauto-preflight --system",
+        "ExecStart=/opt/openauto-prodigy/build/src/openauto-prodigy",
+    ):
+        if required not in lines:
+            raise AssertionError(f"canonical application unit is missing {required}")
+    if lines.index("ExecCondition=+/usr/local/bin/openauto-preflight --wayland") > lines.index(
+        "ExecStart=/opt/openauto-prodigy/build/src/openauto-prodigy"
+    ):
+        raise AssertionError("Wayland condition runs after the application")
+
+    systemd_analyze = shutil.which("systemd-analyze")
+    if systemd_analyze is None:
+        raise AssertionError("systemd-analyze is required for installer contract tests")
+    with tempfile.TemporaryDirectory(prefix="oap-app-unit-verify-") as tmp:
+        root = pathlib.Path(tmp)
+        unit_dir = root / "etc/systemd/system"
+        unit_dir.mkdir(parents=True)
+        verify_unit = rendered[0].replace("User=test-user", "User=root")
+        (unit_dir / "openauto-prodigy.service").write_text(verify_unit)
+        for name, body in (
+            ("graphical.target", "[Unit]\nDescription=Graphical\n"),
+            ("sysinit.target", "[Unit]\nDescription=Sysinit\n"),
+            ("bluetooth.target", "[Unit]\nDescription=Bluetooth\n"),
+            ("pipewire.service", "[Service]\nExecStart=/bin/true\n"),
+            ("openauto-system.service", "[Service]\nExecStart=/bin/true\n"),
+        ):
+            (unit_dir / name).write_text(body)
+        for executable in (
+            root / "bin/true",
+            root / "bin/sh",
+            root / "usr/local/bin/openauto-preflight",
+            root / "opt/openauto-prodigy/build/src/openauto-prodigy",
+        ):
+            executable.parent.mkdir(parents=True, exist_ok=True)
+            executable.touch()
+            executable.chmod(0o755)
+        result = subprocess.run(
+            [systemd_analyze, "verify", f"--root={root}", "openauto-prodigy.service"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise AssertionError(f"systemd rejected canonical app unit:\n{result.stderr}")
+
+    for script in (SOURCE_INSTALLER, PREBUILT_INSTALLER):
+        function = extract_function(script, "create_preflight_script")
+        with tempfile.TemporaryDirectory(prefix="oap-preflight-install-") as tmp:
+            root = pathlib.Path(tmp)
+            install_root = root / "install"
+            source = install_root / "config/installer/openauto-preflight"
+            destination = root / "openauto-preflight"
+            source.parent.mkdir(parents=True)
+            shutil.copy2(APP_PREFLIGHT, source)
+            result = subprocess.run(
+                ["bash", "-c", f"""
+set -euo pipefail
+INSTALL_DIR={shlex.quote(str(install_root))}
+PREFLIGHT_DEST={shlex.quote(str(destination))}
+ok() {{ :; }}
+fail() {{ printf '%s\\n' "$*" >&2; }}
+sudo() {{
+    [[ "$1" == install && "$2" == -D && "$3" == -m && "$4" == 0755 ]]
+    /usr/bin/install -D -m "$4" "$5" {shlex.quote(str(destination))}
+}}
+{function}
+create_preflight_script
+"""],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                raise AssertionError(f"{script.name} preflight install failed: {result.stderr}")
+            if destination.read_bytes() != APP_PREFLIGHT.read_bytes():
+                raise AssertionError(f"{script.name} changed canonical preflight bytes")
+            if stat.S_IMODE(destination.stat().st_mode) != 0o755:
+                raise AssertionError(f"{script.name} installed preflight with wrong mode")
 
 
 def assert_source_installs_restart_helper() -> None:
@@ -547,6 +674,7 @@ def test_restart() -> None:
     ]:
         raise AssertionError("normal restart does not stay within systemd ownership")
 
+    assert_canonical_app_startup_assets()
     for script in (SOURCE_INSTALLER, PREBUILT_INSTALLER):
         unit_lines = materialize_app_service(script).splitlines()
         for required in ("Type=notify", "NotifyAccess=main", "Restart=on-failure"):

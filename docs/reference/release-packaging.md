@@ -30,6 +30,9 @@ openauto-prodigy-prebuilt-<tag>-pi4-aarch64/
   payload/
     build/src/openauto-prodigy
     config/
+      installer/openauto-preflight
+      installer/hardware-contracts.sh
+      systemd/openauto-prodigy.service.in
     pipewire-msbc/
       libspa-0.2-bluetooth_*+prodigy*_arm64.deb
     system-service/
@@ -39,7 +42,19 @@ openauto-prodigy-prebuilt-<tag>-pi4-aarch64/
 
 The package contains the complete tracked `config/`, `system-service/`, and
 `web-config/` directories. The packager removes Python cache directories from
-the staged system-service payload.
+the staged system-service payload. Packaging fails unless the canonical
+application preflight, application unit template, shared hardware contract,
+application binary, and restart helper are present with their required
+executable modes.
+
+`install-prebuilt.sh` treats `build/`, `config/`, `system-service/`,
+`web-config/`, and `restart.sh` as one managed payload transaction. It stages
+and validates these paths before stopping services, retains the prior payload
+and application/web/system unit assets during activation, and commits only
+after the services that were active at entry have regained readiness. A
+post-stop error restores the retained payload and the exact prior active set.
+APT state and unrelated global configuration are outside this rollback
+boundary.
 
 ## Required HFP Codec Package
 
