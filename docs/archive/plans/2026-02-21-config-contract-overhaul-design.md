@@ -2,7 +2,7 @@
 
 Date: 2026-02-21
 Status: ABANDONED — superseded by shipped generic config/theme work; residual
-configuration-surface gaps are consolidated in the current wishlist
+configuration-surface findings are tracked in `docs/engineering-backlog.md`
 
 ## Problem
 

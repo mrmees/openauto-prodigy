@@ -4,6 +4,39 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — Post-milestone planning cleanup review
+
+**What changed:** the `dev` planning-documentation range received its final
+cross-AI review with Claude model Fable. The review confirmed four findings:
+the archive index omitted four completed remediation-plan pairs; two retired
+config-plan headers still routed residual technical findings to the feature
+wishlist; project vision still named the former `claude-dev` environment; and
+its bench-hardware list omitted the Pixel 8 used in current validation. The
+index, archive routing metadata, and project-vision details were corrected.
+
+**Why:** the cleaned wishlist and evidence backlog are only a dependable
+baseline if every entry point routes future work into the right bucket and the
+supporting project context matches the current development and validation
+environment.
+
+**Status:** COMPLETE as documentation-only review remediation on `dev`. Fable
+reported no P1 findings. Of five total findings, four were confirmed and fixed
+(one P2 and three P3); one P3 handoff-rotation suggestion was dismissed because
+the repository rule rotates the oldest month and all entries remaining here are
+from the current month. Interrupted Codex/default-model attempts did not count
+as the final gate. The focused Fable recheck returned LGTM with no remaining
+P1, P2, or P3 findings and a merge-safe verdict.
+
+**Verification:** `python3 scripts/check-doc-links.py` and `git diff --check`
+are the local documentation gates. Build, app-target build, and CTest are not
+required because this range changes documentation only.
+
+**Next 1-3 steps:** (1) merge the planning-cleanup PR after checks pass; (2)
+discuss genuinely new wishlist ideas; (3) re-research any selected engineering
+lead against the current tree before promotion.
+
+---
+
 ## 2026-07-24 — ALPHA-26-07-24-01 validation ledger cleared
 
 **What changed:** all three current milestone observations received live
