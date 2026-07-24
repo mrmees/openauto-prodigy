@@ -141,7 +141,13 @@ To create a prebuilt package from this repo:
 ./tools/package-prebuilt-release.sh --build-dir build-pi --version-tag <tag>
 ```
 
-`cross-build.sh` defaults to building only the app target (`openauto-prodigy`), which is all a Pi deploy or package needs (~4-6 min); pass `--full` to also build the ARM test binaries (~20 min).
+`cross-build.sh` defaults to building only the app target (`openauto-prodigy`),
+which is all a Pi deploy or package needs. Its high-churn CMake and object cache
+lives in the persistent Docker volume `openauto-prodigy-pi4-build-<uid>`; only
+the final binary is copied to `build-pi/src/openauto-prodigy`. This avoids
+writing the cross-build tree through the Windows/9p source mount. Use
+`--reset-cache` to recreate that app-only cache. Pass `--full` to retain the
+legacy host-visible build tree and also build the ARM test binaries (~20 min).
 
 Prebuilt release convention:
 - Asset: `openauto-prodigy-prebuilt-<tag>-pi4-aarch64.tar.gz`
