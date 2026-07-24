@@ -1,7 +1,8 @@
 # Config Contract Overhaul — Design Document
 
 Date: 2026-02-21
-Status: PARKED — needs re-triage (approved 2026-02-21, never executed)
+Status: ABANDONED — superseded by shipped generic config/theme work; residual
+configuration-surface findings are tracked in `docs/engineering-backlog.md`
 
 ## Problem
 

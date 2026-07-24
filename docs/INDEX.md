@@ -16,7 +16,9 @@
 - [project-vision.md](project-vision.md) — product intent, design principles, constraints
 - [roadmap-current.md](roadmap-current.md) — current priorities (Now/Next/Later)
 - [session-handoffs.md](session-handoffs.md) — session continuity log (recent entries; older months rotate to [archive/session-handoffs/](archive/session-handoffs/))
-- [wishlist.md](wishlist.md) — idea parking lot
+- [wishlist.md](wishlist.md) — unpromoted user-facing capabilities
+- [engineering-backlog.md](engineering-backlog.md) — technical findings that require fresh research before promotion
+- [validation-current.md](validation-current.md) — current milestone observations awaiting hardware validation
 - [design-decisions.md](design-decisions.md) — architectural choices and rationale
 - [design-philosophy.md](design-philosophy.md) — core design principles (detailed)
 
@@ -56,11 +58,6 @@ Active plans:
 
 - None.
 
-Parked plans (not current guidance):
-
-- [2026-02-21-config-contract-overhaul-design.md](plans/2026-02-21-config-contract-overhaul-design.md) — PARKED (needs re-triage)
-- [2026-02-21-config-contract-overhaul-plan.md](plans/2026-02-21-config-contract-overhaul-plan.md) — PARKED (needs re-triage)
-
 ## Pi Configuration (pi-config/)
 
 - [pi-config/](pi-config/) — system config snapshot (hostapd, systemd, BlueZ, labwc, udev, boot)
@@ -70,17 +67,22 @@ Parked plans (not current guidance):
 Everything under `archive/` is history, not guidance. Internal links there may point at pre-restructure paths by design.
 
 - [archive/plans/](archive/plans/) — completed/superseded designs and implementation plans, incl. milestone-01..05 history and pre-restructure proto docs
+- [2026-02-21-config-contract-overhaul-design.md](archive/plans/2026-02-21-config-contract-overhaul-design.md) and [implementation plan](archive/plans/2026-02-21-config-contract-overhaul-plan.md) — abandoned after shipped generic config/theme work superseded the original design; residual technical findings are tracked in the engineering backlog
 - [2026-07-24-installer-deployment-lifecycle-remediation-design.md](archive/plans/2026-07-24-installer-deployment-lifecycle-remediation-design.md) and [implementation plan](archive/plans/2026-07-24-installer-deployment-lifecycle-remediation-plan.md) — completed source ownership, shared hardware/startup contracts, recoverable prebuilt upgrades, and Xvfb ownership remediation
 - [2026-07-24-media-lifecycle-persistence-remediation-design.md](archive/plans/2026-07-24-media-lifecycle-persistence-remediation-design.md) and [implementation plan](archive/plans/2026-07-24-media-lifecycle-persistence-remediation-plan.md) — completed exact/fallback restore ownership, durable media persistence, scanner quiescence, safe-eject/shutdown ordering, and test-integrity remediation
+- [2026-07-24-ui-input-widget-grid-lifecycle-remediation-design.md](archive/plans/2026-07-24-ui-input-widget-grid-lifecycle-remediation-design.md) and [implementation plan](archive/plans/2026-07-24-ui-input-widget-grid-lifecycle-remediation-plan.md) — completed navbar input geometry, widget remap/persistence, plugin-view retirement, and screen-DPI connection ownership
+- [2026-07-23-audio-eq-rt-safety-remediation-design.md](archive/plans/2026-07-23-audio-eq-rt-safety-remediation-design.md) and [implementation plan](archive/plans/2026-07-23-audio-eq-rt-safety-remediation-plan.md) — completed audio-ring ownership, bounded PipeWire ingestion, RT-safe diagnostics, and atomic equalizer coefficient publication
 - [2026-07-23-bt-hfp-avrcp-state-remediation-design.md](archive/plans/2026-07-23-bt-hfp-avrcp-state-remediation-design.md) and [implementation plan](archive/plans/2026-07-23-bt-hfp-avrcp-state-remediation-plan.md) — completed asynchronous Bluetooth snapshot, Agent1, AVRCP lifecycle, and selected-AG HFP remediation
 - [2026-07-23-aa-input-video-night-remediation-design.md](archive/plans/2026-07-23-aa-input-video-night-remediation-design.md) and [implementation plan](archive/plans/2026-07-23-aa-input-video-night-remediation-plan.md) — completed decoder-boundary, evdev-ownership, shared-night-state, and wireless-admission remediation
 - [2026-07-23-aa-protocol-crypto-flow-remediation-design.md](archive/plans/2026-07-23-aa-protocol-crypto-flow-remediation-design.md) and [implementation plan](archive/plans/2026-07-23-aa-protocol-crypto-flow-remediation-plan.md) — completed Android Auto TLS, fragmented-message, audio-permit, liveness, and navigation-state remediation
+- [2026-07-22-ops-deploy-p1-remediation-design.md](archive/plans/2026-07-22-ops-deploy-p1-remediation-design.md) and [implementation plan](archive/plans/2026-07-22-ops-deploy-p1-remediation-plan.md) — completed shared BlueZ SDP setup, recoverable service lifetimes, readiness-aware restarts, and single IPC ownership
 - [2026-07-22-aa-session-transport-lifecycle-remediation-design.md](archive/plans/2026-07-22-aa-session-transport-lifecycle-remediation-design.md) and [implementation plan](archive/plans/2026-07-22-aa-session-transport-lifecycle-remediation-plan.md) — completed Android Auto session, messenger, TLS, channel-open, and RFCOMM startup lifecycle remediation
 - [2026-07-22-api-core-async-lifecycle-remediation-design.md](archive/plans/2026-07-22-api-core-async-lifecycle-remediation-design.md) and [implementation plan](archive/plans/2026-07-22-api-core-async-lifecycle-remediation-plan.md) — completed secure-pairing and asynchronous-lifecycle hardening wave
 - [2026-07-22-config-startup-contract-remediation-design.md](archive/plans/2026-07-22-config-startup-contract-remediation-design.md) and [implementation plan](archive/plans/2026-07-22-config-startup-contract-remediation-plan.md) — completed logging/YAML/brightness startup-contract correction
 - [2026-07-22-bt-avrcp-time-units-remediation-design.md](archive/plans/2026-07-22-bt-avrcp-time-units-remediation-design.md) and [implementation plan](archive/plans/2026-07-22-bt-avrcp-time-units-remediation-plan.md) — completed Bluetooth AVRCP millisecond-boundary correction
 - [2026-07-22-aa-night-initial-state-remediation-design.md](archive/plans/2026-07-22-aa-night-initial-state-remediation-design.md) and [implementation plan](archive/plans/2026-07-22-aa-night-initial-state-remediation-plan.md) — completed Android Auto initial night-state delivery correction
 - [2026-07-21-documentation-drift-remediation-design.md](archive/plans/2026-07-21-documentation-drift-remediation-design.md) and [implementation plan](archive/plans/2026-07-21-documentation-drift-remediation-plan.md) — completed current-guidance reconciliation
+- [2026-07-20-memory-teardown-safety-design.md](archive/plans/2026-07-20-memory-teardown-safety-design.md) and [implementation plan](archive/plans/2026-07-20-memory-teardown-safety-plan.md) — completed generation-safe video buffers, guarded weather completions, and ordered SCO monitor teardown
 - [2026-07-05-phase-f-light-plans.md](archive/plans/2026-07-05-phase-f-light-plans.md) — completed Phase F record; the disproven `0x8012` premise is closed and the unpromoted key-event idea remains in the wishlist
 - [archive/session-handoffs/](archive/session-handoffs/) — rotated handoff months + vestigial per-session files
 - [archive/validation/](archive/validation/) — hardware validation logs and pipeline baselines

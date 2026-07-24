@@ -23,17 +23,17 @@ OpenAuto Prodigy is a clean-room, open-source replacement for OpenAuto Pro (Blue
 
 ## Constraints
 
-- Development hardware: Raspberry Pi 4, 1024x600 DFRobot touchscreen, Raspberry Pi Official Touch Screen, Samsung S25+ / Moto Edge 5G 2024, Android 16, Android Auto 16.1
+- Development hardware: Raspberry Pi 4, 1024x600 DFRobot touchscreen, Raspberry Pi Official Touch Screen, Pixel 8 / Samsung S25+ / Moto Edge 5G 2024, Android 16, Android Auto 16.1
 - Stack: Qt 6.8 + QML, C++17, CMake, prodigy-oaa-protocol (in-tree AA protocol library), PipeWire.
 - Cross-compile via Docker (aarch64), deploy via rsync + SSH.
 - Solo-maintained: process must stay lightweight.
-- No GPU passthrough on dev VM — GPU-dependent work tested on Pi only.
+- No GPU passthrough in the WSL2 development environment — GPU-dependent work tested on Pi only.
 
 ## Testing Hardware
 
-- Pi 4 at 192.168.1.152 (SSH: matt@ via certificate authentication), device name = prodigy, running Debian Trixie.
+- Pi 4 at 192.168.1.149 (SSH: matt@ via certificate authentication), device name = prodigy, running Debian Trixie.
 - Phone with ADB debug access for companion app testing.
-- Dev VM (claude-dev) for local x86 builds and cross-compilation.
+- WSL2 Debian Trixie environment for local x86 builds and Docker-based cross-compilation.
 
 ## Non-Goals
 
@@ -42,6 +42,26 @@ OpenAuto Prodigy is a clean-room, open-source replacement for OpenAuto Pro (Blue
 - Cloud services, accounts, or telemetry.
 - Full CarPlay or non-AA projection protocols.
 - USB AndroidAuto Support
+
+## Long-Term Community Architecture
+
+The project should evolve toward three explicit layers:
+
+1. **Protocol definitions:** the community-owned `open-android-auto` schema and
+   wire definitions remain reusable and independent. Prodigy consumes them; it
+   does not fork or privately mutate them.
+2. **Reusable protocol implementations:** session, channel, message, and
+   transport implementations should become usable outside this Qt application.
+   New boundaries should avoid Qt ownership, event-loop, and transport
+   assumptions where practical, while preserving the current working system
+   during migration.
+3. **Prodigy application:** the Qt/QML shell, hardware policy, plugins, and
+   product integrations compose the reusable implementation rather than define
+   the protocol's only usable runtime.
+
+This is a direction, not an active refactor. Any repository split or de-Qt work
+requires a separately approved design with explicit ownership, threading,
+transport, and compatibility boundaries.
 
 ## Direction Change Log
 

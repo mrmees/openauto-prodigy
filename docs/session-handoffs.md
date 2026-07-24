@@ -4,6 +4,164 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — Post-milestone planning cleanup review
+
+**What changed:** the `dev` planning-documentation range received its final
+cross-AI review with Claude model Fable. The review confirmed four findings:
+the archive index omitted four completed remediation-plan pairs; two retired
+config-plan headers still routed residual technical findings to the feature
+wishlist; project vision still named the former `claude-dev` environment; and
+its bench-hardware list omitted the Pixel 8 used in current validation. The
+index, archive routing metadata, and project-vision details were corrected.
+
+**Why:** the cleaned wishlist and evidence backlog are only a dependable
+baseline if every entry point routes future work into the right bucket and the
+supporting project context matches the current development and validation
+environment.
+
+**Status:** COMPLETE as documentation-only review remediation on `dev`. Fable
+reported no P1 findings. Of five total findings, four were confirmed and fixed
+(one P2 and three P3); one P3 handoff-rotation suggestion was dismissed because
+the repository rule rotates the oldest month and all entries remaining here are
+from the current month. Interrupted Codex/default-model attempts did not count
+as the final gate. The focused Fable recheck returned LGTM with no remaining
+P1, P2, or P3 findings and a merge-safe verdict.
+
+**Verification:** `python3 scripts/check-doc-links.py` and `git diff --check`
+are the local documentation gates. Build, app-target build, and CTest are not
+required because this range changes documentation only.
+
+**Next 1-3 steps:** (1) merge the planning-cleanup PR after checks pass; (2)
+discuss genuinely new wishlist ideas; (3) re-research any selected engineering
+lead against the current tree before promotion.
+
+---
+
+## 2026-07-24 — ALPHA-26-07-24-01 validation ledger cleared
+
+**What changed:** all three current milestone observations received live
+dispositions on the Pi at `192.168.1.149`. Prodigy reached systemd READY about
+32 seconds after boot with both wait-online units disabled. The source/prebuilt
+policy mismatch became a re-research-required engineering lead. The former
+Bluetooth `MediaPlayer1 Track` warning was absent, while three UDisks
+MountPoints `QDBusArgument` warnings became a precise local-media lead. After
+the connected Pixel 8 disconnected, an unpaired phone discovered
+`Prodigy_e57d`; the Bluetooth-advertising observation passed and was deleted.
+The stale Pi address in project vision was corrected.
+
+**Why:** current validation observations must resolve into passed evidence or
+confirmed technical leads rather than linger as implied work. The deployed
+binary is at runtime commit `23e4385`; the 17 later milestone commits contain no
+`src`, QML, library, or CMake runtime delta, so the checks exercise the tagged
+runtime behavior.
+
+**Status:** COMPLETE. `docs/validation-current.md` has no pending observations.
+No runtime or Pi configuration was changed.
+
+**Verification:** live `systemd-analyze`, systemd unit state, application and
+BlueZ journals, `bluetoothctl`/D-Bus adapter state, and the unpaired-phone RF
+scan were checked. `python3 scripts/check-doc-links.py` and `git diff --check`
+pass. Build, app-target build, and CTest were not run because repository changes
+are documentation-only.
+
+**Next 1-3 steps:** (1) discuss new product ideas against the cleaned wishlist;
+(2) select one current feature or engineering lead; (3) re-research it against
+the current tree before promotion and planning.
+
+---
+
+## 2026-07-24 — Feature wishlist group triage
+
+**What changed:** Matthew reviewed all four feature groups item by item. The
+wishlist now contains 19 intentional capabilities, ten explicitly marked
+long-term. Shipped source arbitration and in-car theme selection were removed;
+battery charging presentation, proxy-result acknowledgement, WiFi password
+rotation, dashboard-editing polish, and generic widget-size work were declined
+or returned to their future owning phase. Native call controls now exclude AA
+ownership, the remaining AA System-audio gap is stated precisely, and the
+Miata-specific work is framed as reusable vehicle GPIO/power integration.
+
+**Why:** the wishlist should express capabilities Matthew actually wants, not
+preserve stale assumptions, already-shipped behavior, or incidental design
+practices. Explicit long-term labels keep valid directions visible without
+making them look ready for promotion.
+
+**Status:** COMPLETE as documentation-only triage on local `dev`. No item was
+promoted, implemented, or pushed.
+
+**Verification:** `python3 scripts/check-doc-links.py` and `git diff --check`
+pass. Build, app-target build, and CTest were not run because only Markdown
+changed.
+
+**Next 1-3 steps:** (1) discuss genuinely new wishlist ideas against this clean
+baseline; (2) run and retire or promote the three current Pi validation checks;
+(3) re-research any selected engineering lead before design or execution.
+
+---
+
+## 2026-07-24 — Backlog audit and canonical rebucketing
+
+**What changed:** local `dev` was fast-forwarded to the post-milestone cleanup
+commit `bbce99a`, then every retained wishlist entry was checked against the
+current code and recent PR #26-#37 remediation history. The result is 27
+atomic, user-facing capabilities in `docs/wishlist.md`, 33 evidence-tagged
+technical leads in the new `docs/engineering-backlog.md`, and three Pi checks
+in the new `docs/validation-current.md`. Six stale, unsupported, or
+implementation-criterion entries were closed during the audit. The roadmap's
+stale unpromoted Later list was removed, concrete product ideas were preserved
+in the wishlist, and the reusable non-Qt protocol direction moved into project
+vision.
+
+**Why:** the previous wishlist still made broad reliability practices and old
+review findings look like approved deliverables. The new buckets distinguish
+product decisions from technical evidence and unconfirmed hardware
+observations, while requiring engineering findings to be re-researched against
+the current tree before any plan is written.
+
+**Status:** COMPLETE as a documentation-only audit on local `dev`; nothing was
+promoted, implemented, pushed, or given execution priority. `dev` remains ahead
+of the stale remote branch and includes the local post-release cleanup commit.
+
+**Verification:** `python3 scripts/check-doc-links.py` and `git diff --check`
+pass. The local branch is `dev`; the audit was grounded on `bbce99a`. Build,
+app-target build, and CTest were not run because only Markdown and repository
+workflow guidance changed.
+
+**Next 1-3 steps:** (1) run and retire or promote the three current milestone
+validation checks on the Pi; (2) discuss the user-facing wishlist groups and
+remove or prioritize candidates; (3) re-research only the selected engineering
+lead before converting it into a bounded design and plan.
+
+---
+
+## 2026-07-24 — Wishlist consolidation and stale-plan retirement
+
+**What changed:** the wishlist was reduced from a dated finding log to 35
+actionable outcomes grouped by reliability, product/UX, engineering, long-term
+architecture, and current-release validation. Completed, superseded,
+theoretical, and explicitly dismissed entries were removed; related config,
+Bluetooth, call UI, audio, widget, web-config, media, and release items were
+consolidated. The 2026-02-21 config-contract design and plan are now ABANDONED
+and archived. Architecture now states the modal Dialog versus shell z-band
+stacking contract, and live cross-references follow the new wishlist names.
+
+**Why:** milestone ALPHA-26-07-24-01 closed a large remediation campaign, but
+the old ledger still mixed shipped fixes and review history with promotable
+work. The consolidated file is now a decision surface for the next discussion,
+not an excavation log.
+
+**Status:** COMPLETE as a documentation-only cleanup. No wishlist item was
+promoted and no runtime behavior changed.
+
+**Verification:** `python3 scripts/check-doc-links.py` and `git diff --check`
+pass. Build and CTest were not run because only Markdown files moved or changed.
+
+**Next 1-3 steps:** (1) discuss the 35 retained outcomes; (2) remove, split, or
+re-rank them as Matthew decides; (3) only then add new ideas or promote one
+bounded scope into a fresh design.
+
+---
+
 ## 2026-07-24 — ALPHA-26-07-24-01 milestone release
 
 **What changed:** Matthew declared the completed audit-remediation campaign a

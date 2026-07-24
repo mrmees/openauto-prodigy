@@ -12,7 +12,10 @@
 - **Only ACTIVE files are current guidance.** Everything else is context.
 - Completion flips the header to `COMPLETED <date>` and moves the file to `docs/archive/plans/` **in the same commit**.
 - New plans and specs (from brainstorming/writing-plans or any other process) are saved HERE in `docs/plans/` — nowhere else.
-- New feature ideas found mid-execution go to `docs/wishlist.md`, not into scope (**wishlist-then-promote**). Plans don't grow features mid-execution.
+- New user-facing capability ideas found mid-execution go to `docs/wishlist.md` (**wishlist-then-promote**).
+- Concrete technical findings go to `docs/engineering-backlog.md`; they must be re-researched against current code before promotion.
+- Unconfirmed milestone or hardware observations go to `docs/validation-current.md` until validated.
+- None of these buckets grows an active plan's scope.
 
 ## What lives where (canonical docs)
 
@@ -24,6 +27,9 @@
 | Per-feature design rationale | the `*-design.md` this plan's header cites (may live in `docs/archive/plans/` once shipped) |
 | Cross-cutting rails (API/JS/dashboards/overlays must compose) | root `AGENTS.md` § hard constraints; full history in `docs/archive/plans/2026-07-05-extensibility-architecture-design.md` |
 | What previous sessions did / deviations | `docs/session-handoffs.md` |
+| Which user-facing capabilities are not yet promoted? | `docs/wishlist.md` |
+| Which technical leads need fresh research? | `docs/engineering-backlog.md` |
+| Which current milestone observations need hardware validation? | `docs/validation-current.md` |
 
 Precedence when they disagree: **AGENTS.md constraints > design doc > plan detail.** If a plan step contradicts its design doc, stop and record the conflict in `docs/session-handoffs.md` rather than guessing.
 

@@ -150,6 +150,14 @@ omits `node.dont-fallback` so that fallback stays available.
 
 QML shell and app views are packaged into the binary via `qt_add_qml_module`
 (+ qmlcache) — UI changes ship by rebuilding, not by copying QML files.
+`OverlayService` z-bands order only the delegates hosted inside the shell's
+`OverlayHost`: notifications 1000, user overlays 2000, system modals 3000,
+the dim fixture 3500, and gestures 4000. Qt Quick Controls `Dialog` instances
+parented to the window's `QQuickOverlay` are composed in that separate overlay
+plane above every shell z-band. A shell-hosted overlay therefore cannot cover a
+modal Dialog merely by choosing a larger band; new cross-cutting surfaces must
+choose deliberately between the service-managed shell plane and the native
+modal plane.
 `PluginModel` and `PluginViewHost` activate plugin views. The host detaches a
 view logically and runs the outgoing plugin's deactivation hook before any
 replacement activation. The old QML subtree and child context remain readable
