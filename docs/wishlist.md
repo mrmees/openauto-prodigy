@@ -23,17 +23,6 @@ all three when promoting an item; they are not estimates or approval.
 
 ## Projection and Audio
 
-- **Android Auto assistant microphone transport** — capture the configured
-  microphone when the phone opens the AVInput channel and return audio with the
-  configured gain. This is protocol-critical work and requires its own
-  main-tier design plus phone bench validation.
-  **Stack:** Current Prodigy; the AVInput descriptor/handler and PipeWire
-  capture service exist, but their production lifecycle is not connected.
-  **Hardware:** A compatible microphone is attached to the current Pi bench.
-  **Investigation:** Targeted spike, not extensive feasibility research.
-  **Priority:** First likely promotion candidate; re-research the capture
-  lifecycle and AA flow-control boundary before treating it as an easy fix.
-
 - **Keep AA system sounds audible during media playback** — define an
   intentional policy for touch clicks and other short System-channel sounds.
   Current priority ordering can mute System audio beneath AA media; the former

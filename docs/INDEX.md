@@ -2,7 +2,9 @@
 
 ## Active Plans
 
-- None. New implementation work requires promotion and approval.
+- [AA Assistant microphone transport design](plans/2026-07-24-aa-assistant-microphone-transport-design.md)
+  and [implementation plan](plans/2026-07-24-aa-assistant-microphone-transport-plan.md)
+  — bounded PipeWire capture, AVInput flow control, gain, and teardown.
 
 ## Start Here
 
@@ -57,7 +59,8 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- None.
+- [AA Assistant microphone transport design](plans/2026-07-24-aa-assistant-microphone-transport-design.md)
+  and [implementation plan](plans/2026-07-24-aa-assistant-microphone-transport-plan.md).
 
 ## Pi Configuration (pi-config/)
 

@@ -19,10 +19,15 @@ spike, or research-first feasibility work.
 
 ## Now
 
-No implementation wave is active. The consolidated audit-remediation campaign
-is complete; subsequent work must be promoted from the wishlist or engineering
-backlog, or begin with a newly approved design, rather than extending a closed
-plan.
+Android Auto Assistant microphone transport is promoted and ACTIVE. The
+bounded outcome is a 16 kHz mono PipeWire capture path that applies configured
+gain, crosses the real-time boundary through a bounded PCM bridge, obeys the
+phone's AVInput transmit window, reports immediate open failure honestly, and
+quiesces capture before session/transport teardown. Implementation and Pi/
+Pixel voice validation are defined in
+`docs/plans/2026-07-24-aa-assistant-microphone-transport-design.md` and
+`docs/plans/2026-07-24-aa-assistant-microphone-transport-plan.md`. No other
+wishlist item is part of this wave.
 
 ## Done (recent)
 

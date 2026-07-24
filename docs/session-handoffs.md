@@ -4,6 +4,51 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — AA Assistant microphone transport promoted
+
+**What changed:** the qualified Assistant microphone item was re-researched
+against the current AVInput handler, orchestrator, PipeWire capture service,
+audio ring, configuration, tests, recovered protocol evidence, and the
+established aasdk/OpenAuto source-channel implementation. It is removed from
+the unapproved wishlist and promoted into an ACTIVE design and implementation
+plan. Roadmap Now and the documentation index point to that bounded wave.
+
+The design keeps AVInput request/response and transmit permits in the protocol
+handler, owns PipeWire capture in the orchestrator, and crosses the real-time
+callback through a fixed SPSC PCM bridge drained only on the Qt owner thread.
+Immediate capture failure returns response value 1 rather than false success;
+valid captures return 0. The phone's `max_unacked`/ACK exchange bounds sends,
+configured gain is applied with S16 saturation, and capture-first teardown
+prevents callbacks or stale PCM from crossing a session generation.
+
+**Why:** the missing signal connection was real, but connecting it directly
+would have called Qt transport state from PipeWire's real-time thread, ignored
+phone flow control, claimed success before capture existed, left configured
+gain unused, and raced session finalization. The active design resolves those
+owners without changing protobuf definitions, playback/focus, HFP/SCO, or any
+other wishlist item.
+
+**Status:** ACTIVE as a planning package on local `dev`, grounded at
+`975b3ef7`. No runtime code has changed and no implementation has started.
+The attached Pi microphone is sufficient for the required live gate. Fable's
+initial planning review returned one P2 and two P3 findings; all three were
+confirmed and fixed. They pin fail-closed behavior without a capture
+controller, the config-schema range/consumer update, and accurate Tier-main
+review-gate wording. No finding was dismissed. The focused no-timeout Fable
+recheck returned LGTM with no remaining P1, P2, or P3 findings and a
+merge-safe verdict.
+
+**Verification:** `git diff --check` and
+`python3 scripts/check-doc-links.py` are the documentation gates. Full build,
+explicit app-target build, CTest, cross-build, and Pi/Pixel validation belong
+to implementation Tasks 2-5 and are not claimed by this planning commit.
+
+**Next 1-3 steps:** (1) commit the reviewed planning package locally; (2) begin
+Task 2 only with Matthew's implementation go-ahead; (3) retain Fable as the
+final pre-push review after implementation.
+
+---
+
 ## 2026-07-24 — Future-item qualifiers and AA next-steps triage
 
 **What changed:** local and remote `dev` were fast-forwarded to the merged PR
