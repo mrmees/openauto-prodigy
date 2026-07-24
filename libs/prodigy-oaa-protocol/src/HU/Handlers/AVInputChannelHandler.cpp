@@ -1,9 +1,14 @@
 #include "oaa/HU/Handlers/AVInputChannelHandler.hpp"
 
 #include <QDebug>
+#include <QThread>
 
 #include <QtEndian>
 
+#include <algorithm>
+#include <utility>
+
+#include "oaa/av/AVMediaAckIndicationMessage.pb.h"
 #include "oaa/av/AVInputOpenRequestMessage.pb.h"
 #include "oaa/av/AVInputOpenResponseMessage.pb.h"
 
@@ -15,21 +20,28 @@ AVInputChannelHandler::AVInputChannelHandler(QObject* parent)
 {
 }
 
+void AVInputChannelHandler::setCaptureController(CaptureController controller)
+{
+    Q_ASSERT(QThread::currentThread() == thread());
+    captureController_ = std::move(controller);
+}
+
 void AVInputChannelHandler::onChannelOpened()
 {
     channelOpen_ = true;
     capturing_ = false;
     session_ = 0;
+    maxUnacked_ = 1;
+    unacked_ = 0;
     qDebug() << "[AVInputChannel] opened";
 }
 
 void AVInputChannelHandler::onChannelClosed()
 {
+    Q_ASSERT(QThread::currentThread() == thread());
     channelOpen_ = false;
-    if (capturing_) {
-        capturing_ = false;
-        emit micCaptureRequested(false);
-    }
+    stopCapture();
+    maxUnacked_ = 1;
     qDebug() << "[AVInputChannel] closed";
 }
 
@@ -55,43 +67,84 @@ void AVInputChannelHandler::onMessage(uint16_t messageId, const QByteArray& payl
 
 void AVInputChannelHandler::handleInputOpenRequest(const QByteArray& payload)
 {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     oaa::proto::messages::AVInputOpenRequest req;
     if (!req.ParseFromArray(payload.constData(), payload.size())) {
         qWarning() << "[AVInputChannel] failed to parse InputOpenRequest";
         return;
     }
 
-    bool open = req.open();
-    if (req.has_max_unacked())
-        maxUnacked_ = req.max_unacked();
+    const bool open = req.open();
+    const int32_t requestedWindow = req.has_max_unacked() ? req.max_unacked() : 1;
 
     qDebug() << "[AVInputChannel] input open request:" << (open ? "OPEN" : "CLOSE")
              << "anc:" << req.anc() << "ec:" << req.ec()
-             << "max_unacked:" << maxUnacked_;
+             << "max_unacked:" << requestedWindow;
 
-    // Send response
-    oaa::proto::messages::AVInputOpenResponse resp;
-    resp.set_session(session_);
-    resp.set_value(0);
+    if (!open) {
+        stopCapture();
+        maxUnacked_ = 1;
+        sendInputOpenResponse(true);
+        return;
+    }
 
-    QByteArray data(resp.ByteSizeLong(), '\0');
-    resp.SerializeToArray(data.data(), data.size());
-    emit sendRequested(channelId(), oaa::AVMessageId::INPUT_OPEN_RESPONSE, data);
+    // A repeated OPEN starts a fresh generation. Stop the prior capture before
+    // asking the application to create its replacement, and reset all permits.
+    stopCapture();
+    maxUnacked_ = requestedWindow > 0 ? requestedWindow : 1;
+    unacked_ = 0;
 
-    capturing_ = open;
-    emit micCaptureRequested(open);
+    bool success = false;
+    if (captureController_) {
+        emit micCaptureRequested(true);
+        success = captureController_(true);
+    } else {
+        qWarning() << "[AVInputChannel] no capture controller; failing open request";
+    }
+
+    capturing_ = success;
+    if (!success) {
+        maxUnacked_ = 1;
+        unacked_ = 0;
+    }
+    sendInputOpenResponse(success);
 }
 
 void AVInputChannelHandler::handleAckIndication(const QByteArray& payload)
 {
-    Q_UNUSED(payload);
-    // Phone acknowledged our mic data — nothing to do currently
+    Q_ASSERT(QThread::currentThread() == thread());
+
+    oaa::proto::messages::AVMediaAckIndication ack;
+    if (!ack.ParseFromArray(payload.constData(), payload.size())) {
+        qWarning() << "[AVInputChannel] failed to parse AVMediaAckIndication";
+        return;
+    }
+    if (!capturing_ || ack.session_id() != session_)
+        return;
+
+    uint32_t count = 0;
+    if (ack.receive_timestamps_size() > 0) {
+        count = static_cast<uint32_t>(ack.receive_timestamps_size());
+    } else if (ack.has_ack_count()) {
+        count = ack.ack_count();
+    }
+    if (count == 0 || unacked_ == 0)
+        return;
+
+    const bool wasFull = unacked_ >= static_cast<uint32_t>(maxUnacked_);
+    unacked_ -= std::min(count, unacked_);
+    if (wasFull && unacked_ < static_cast<uint32_t>(maxUnacked_))
+        emit sendWindowAvailable();
 }
 
-void AVInputChannelHandler::sendMicData(const QByteArray& data, uint64_t timestamp)
+bool AVInputChannelHandler::sendMicData(const QByteArray& data, uint64_t timestamp)
 {
+    Q_ASSERT(QThread::currentThread() == thread());
     if (!channelOpen_ || !capturing_)
-        return;
+        return false;
+    if (unacked_ >= static_cast<uint32_t>(maxUnacked_))
+        return false;
 
     // AV_MEDIA_WITH_TIMESTAMP wire format: [8-byte BE timestamp][raw audio]
     // Messenger only prepends the messageId, so we must pack the timestamp here.
@@ -101,7 +154,33 @@ void AVInputChannelHandler::sendMicData(const QByteArray& data, uint64_t timesta
     payload.append(reinterpret_cast<const char*>(&tsBE), 8);
     payload.append(data);
 
+    ++unacked_;
     emit sendRequested(channelId(), oaa::AVMessageId::AV_MEDIA_WITH_TIMESTAMP, payload);
+    return true;
+}
+
+void AVInputChannelHandler::stopCapture()
+{
+    unacked_ = 0;
+    if (!capturing_)
+        return;
+
+    // Clear first so a re-entrant observer cannot enqueue another mic frame.
+    capturing_ = false;
+    emit micCaptureRequested(false);
+    if (captureController_)
+        captureController_(false);
+}
+
+void AVInputChannelHandler::sendInputOpenResponse(bool success)
+{
+    oaa::proto::messages::AVInputOpenResponse resp;
+    resp.set_session(session_);
+    resp.set_value(success ? 0 : 1);
+
+    QByteArray data(resp.ByteSizeLong(), '\0');
+    resp.SerializeToArray(data.data(), data.size());
+    emit sendRequested(channelId(), oaa::AVMessageId::INPUT_OPEN_RESPONSE, data);
 }
 
 } // namespace hu
