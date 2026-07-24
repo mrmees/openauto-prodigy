@@ -2,6 +2,7 @@
 
 #include <spa/utils/ringbuffer.h>
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <cstring>
 #include <vector>
