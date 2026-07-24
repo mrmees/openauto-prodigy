@@ -4,6 +4,36 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — PR #37 review follow-up
+
+**What changed:** the shared installer hardware contract now pins the Bash
+locale to `C` while validating both two-letter country codes and hexadecimal
+input-property bitmaps. The completed prebuilt WiFi capability, BlueZ SDP, and
+preflight work was removed from the wishlist.
+
+**Why:** Bash ERE ranges follow the caller's collation locale. Under
+`en_US.UTF-8`, a non-ASCII country-code character could match `[A-Za-z]` and
+reach hostapd configuration even though the intended contract is ASCII only.
+Keeping the locale boundary inside each parser makes source and prebuilt
+install behavior independent of the invoking shell and Pi image locale.
+
+**Status:** COMPLETE on `agent/installer-deployment-lifecycle-remediation`.
+Both actionable PR review findings were confirmed and fixed. The three stated
+non-actionable nits remain unchanged: installer-internal IPv4 defaults, the
+existing passphrase control-character scope, and transaction-directory
+tampering after capture.
+
+**Verification:** the hardware-contract test passes under both `C` and
+`en_US.UTF-8`, with direct non-ASCII rejection also exercised at the sourced
+function boundary. Bash syntax, error-level ShellCheck, focused installer and
+release-package tests, the full local build, explicit `openauto-prodigy`
+target, `ctest --output-on-failure`, documentation links, and diff checks pass.
+
+**Next 1-3 steps:** (1) push the review follow-up to draft PR #37; (2) let the
+reviewer verify the locale case; (3) merge the final wave when approved.
+
+---
+
 ## 2026-07-24 — Installer and deployment lifecycle remediation COMPLETE
 
 **What changed:** source mode now resolves and validates the complete checkout

@@ -9,6 +9,7 @@
 oap_input_properties_have_direct() {
     local properties="${1:-}"
     local low_nibble
+    local LC_ALL=C
 
     # Trim ASCII whitespace and require exactly one hexadecimal token.
     properties="${properties#"${properties%%[!$' \t\r\n']*}"}"
@@ -24,6 +25,7 @@ oap_input_properties_have_direct() {
 
 oap_normalize_country_code() {
     local country="${1:-}"
+    local LC_ALL=C
 
     [[ "$country" =~ ^[A-Za-z]{2}$ ]] || return 1
     LC_ALL=C tr '[:lower:]' '[:upper:]' <<< "$country" | tr -d '\n'
