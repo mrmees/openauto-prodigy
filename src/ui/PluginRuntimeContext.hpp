@@ -22,18 +22,29 @@ public:
     /// The child context is where the plugin exposes its QML bindings.
     void activate();
 
-    /// Call plugin's onDeactivated(), destroy child context.
-    void deactivate();
+    /// Call the plugin deactivation hook exactly once while retaining the child
+    /// QQmlContext for an outgoing QML view still finishing its dispatch.
+    void deactivatePlugin();
+
+    /// Destroy the retained child context. Ensures the plugin hook ran first.
+    void retireContext();
 
     QQmlContext* qmlContext() const { return childContext_; }
-    bool isActive() const { return active_; }
+    bool isActive() const;
     IPlugin* plugin() const { return plugin_; }
 
 private:
+    enum class LifecycleState {
+        Inactive,
+        Active,
+        PluginDeactivated,
+        Retired,
+    };
+
     IPlugin* plugin_;
     QQmlEngine* engine_;
     QQmlContext* childContext_ = nullptr;
-    bool active_ = false;
+    LifecycleState state_ = LifecycleState::Inactive;
 };
 
 } // namespace oap

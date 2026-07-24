@@ -134,10 +134,16 @@ void PluginModel::retireActiveContext()
     QPointer<PluginRuntimeContext> retiringContext = activeContext_;
     activeContext_ = nullptr;
 
+    // The plugin hook owns runtime/focus teardown and must complete before a
+    // rapid reactivation can call onActivated() again. Its child QQmlContext
+    // remains alive for the outgoing view until the ordered retirement edge.
+    if (retiringContext)
+        retiringContext->deactivatePlugin();
+
     viewHost_->clearViewThen([retiringContext]() mutable {
         if (!retiringContext)
             return;
-        retiringContext->deactivate();
+        retiringContext->retireContext();
         delete retiringContext.data();
         retiringContext.clear();
     });

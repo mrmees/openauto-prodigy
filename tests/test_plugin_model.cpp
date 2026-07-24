@@ -23,9 +23,10 @@ public:
     QString marker_;
     QPointer<QQmlContext> runtimeContext_;
     QPointer<QQuickItem> viewAtDeactivation_;
+    QStringList* lifecycleLog_ = nullptr;
     int activationCount_ = 0;
     int deactivationCount_ = 0;
-    bool viewGoneBeforeDeactivation_ = false;
+    bool viewAliveDuringDeactivation_ = false;
     bool contextAliveDuringDeactivation_ = false;
 
     MockPlugin(const QString& id, const QString& name, QObject* parent = nullptr)
@@ -45,14 +46,18 @@ public:
     {
         runtimeContext_ = context;
         ++activationCount_;
+        if (lifecycleLog_)
+            lifecycleLog_->append(id_ + QStringLiteral(":activated"));
         context->setContextProperty(QStringLiteral("pluginMarker"), marker_);
     }
 
     void onDeactivated() override
     {
         ++deactivationCount_;
-        viewGoneBeforeDeactivation_ = viewAtDeactivation_.isNull();
+        viewAliveDuringDeactivation_ = !viewAtDeactivation_.isNull();
         contextAliveDuringDeactivation_ = !runtimeContext_.isNull();
+        if (lifecycleLog_)
+            lifecycleLog_->append(id_ + QStringLiteral(":deactivated"));
     }
 };
 
@@ -195,7 +200,7 @@ private slots:
         bool laterSawLogicalHome = false;
         bool laterReadViewProperty = false;
         bool laterReadContextProperty = false;
-        bool laterSawNotDeactivated = false;
+        bool laterSawDeactivated = false;
         connect(&source, &ModelDispatchSource::dispatch, &model, [&]() {
             model.setActivePlugin(QString());
         });
@@ -209,7 +214,7 @@ private slots:
                                        && plugin->runtimeContext_->contextProperty(
                                               QStringLiteral("pluginMarker")).toString()
                                               == QStringLiteral("alpha");
-            laterSawNotDeactivated = plugin->deactivationCount_ == 0;
+            laterSawDeactivated = plugin->deactivationCount_ == 1;
         });
 
         emit source.dispatch();
@@ -217,14 +222,14 @@ private slots:
         QVERIFY(laterSawLogicalHome);
         QVERIFY(laterReadViewProperty);
         QVERIFY(laterReadContextProperty);
-        QVERIFY(laterSawNotDeactivated);
+        QVERIFY(laterSawDeactivated);
         QVERIFY(outgoing);
         QVERIFY(plugin->runtimeContext_);
+        QVERIFY(plugin->viewAliveDuringDeactivation_);
+        QVERIFY(plugin->contextAliveDuringDeactivation_);
 
         QTRY_VERIFY(outgoing.isNull());
-        QTRY_COMPARE(plugin->deactivationCount_, 1);
-        QVERIFY(plugin->viewGoneBeforeDeactivation_);
-        QVERIFY(plugin->contextAliveDuringDeactivation_);
+        QCOMPARE(plugin->deactivationCount_, 1);
         QTRY_VERIFY(plugin->runtimeContext_.isNull());
     }
 
@@ -236,6 +241,9 @@ private slots:
         first->marker_ = QStringLiteral("alpha");
         second->qmlUrl_ = qmlUrl_;
         second->marker_ = QStringLiteral("beta");
+        QStringList lifecycleLog;
+        first->lifecycleLog_ = &lifecycleLog;
+        second->lifecycleLog_ = &lifecycleLog;
         MockHostContext ctx;
         oap::PluginManager manager;
         QQmlEngine engine;
@@ -259,22 +267,85 @@ private slots:
         QVERIFY(first->runtimeContext_);
         QVERIFY(secondView);
         QVERIFY(second->runtimeContext_);
-        QCOMPARE(first->deactivationCount_, 0);
+        QCOMPARE(first->deactivationCount_, 1);
+        QCOMPARE(lifecycleLog,
+                 QStringList({QStringLiteral("test.a:activated"),
+                              QStringLiteral("test.a:deactivated"),
+                              QStringLiteral("test.b:activated")}));
 
         // Queue a second distinct retirement before the first event runs.
         model.setActivePlugin(QString());
         QVERIFY(!model.viewHost()->hasView());
         QVERIFY(secondView);
-        QCOMPARE(second->deactivationCount_, 0);
+        QCOMPARE(second->deactivationCount_, 1);
+        QCOMPARE(lifecycleLog,
+                 QStringList({QStringLiteral("test.a:activated"),
+                              QStringLiteral("test.a:deactivated"),
+                              QStringLiteral("test.b:activated"),
+                              QStringLiteral("test.b:deactivated")}));
 
         QTRY_VERIFY(firstView.isNull());
         QTRY_VERIFY(secondView.isNull());
-        QTRY_COMPARE(first->deactivationCount_, 1);
-        QTRY_COMPARE(second->deactivationCount_, 1);
-        QVERIFY(first->viewGoneBeforeDeactivation_);
-        QVERIFY(second->viewGoneBeforeDeactivation_);
+        QCOMPARE(first->deactivationCount_, 1);
+        QCOMPARE(second->deactivationCount_, 1);
+        QVERIFY(first->viewAliveDuringDeactivation_);
+        QVERIFY(second->viewAliveDuringDeactivation_);
         QTRY_VERIFY(first->runtimeContext_.isNull());
         QTRY_VERIFY(second->runtimeContext_.isNull());
+    }
+
+    void testRapidReactivationCannotBeDeactivatedByOldRetirement()
+    {
+        auto* plugin = new MockPlugin("test.a", "A", this);
+        plugin->qmlUrl_ = qmlUrl_;
+        plugin->marker_ = QStringLiteral("alpha");
+        QStringList lifecycleLog;
+        plugin->lifecycleLog_ = &lifecycleLog;
+        MockHostContext ctx;
+        oap::PluginManager manager;
+        QQmlEngine engine;
+        QQuickItem visualHost;
+
+        manager.registerStaticPlugin(plugin);
+        manager.initializeAll(&ctx);
+        oap::PluginModel model(&manager, &engine);
+        model.viewHost()->setHostItem(&visualHost);
+
+        model.setActivePlugin(plugin->id());
+        QPointer<QQuickItem> outgoing = newestChild(visualHost);
+        QPointer<QQmlContext> outgoingContext = plugin->runtimeContext_;
+        plugin->viewAtDeactivation_ = outgoing;
+        model.setActivePlugin(QString());
+        QCOMPARE(plugin->deactivationCount_, 1);
+        QVERIFY(outgoing);
+        QVERIFY(outgoingContext);
+
+        // Reactivate the same plugin before the old view/context queue drains.
+        model.setActivePlugin(plugin->id());
+        QPointer<QQuickItem> replacement = newestChild(visualHost, outgoing);
+        QPointer<QQmlContext> replacementContext = plugin->runtimeContext_;
+        plugin->viewAtDeactivation_ = replacement;
+        QVERIFY(replacement);
+        QVERIFY(replacementContext);
+        QVERIFY(replacementContext != outgoingContext);
+        QCOMPARE(plugin->activationCount_, 2);
+        QCOMPARE(plugin->deactivationCount_, 1);
+        QCOMPARE(lifecycleLog,
+                 QStringList({QStringLiteral("test.a:activated"),
+                              QStringLiteral("test.a:deactivated"),
+                              QStringLiteral("test.a:activated")}));
+
+        QTRY_VERIFY(outgoing.isNull());
+        QTRY_VERIFY(outgoingContext.isNull());
+        QVERIFY(replacement);
+        QVERIFY(replacementContext);
+        QCOMPARE(model.activePluginId(), plugin->id());
+        QCOMPARE(plugin->deactivationCount_, 1);
+
+        model.setActivePlugin(QString());
+        QCOMPARE(plugin->deactivationCount_, 2);
+        QTRY_VERIFY(replacement.isNull());
+        QTRY_VERIFY(replacementContext.isNull());
     }
 
     void testLoadFailureRetiresContextWithoutPendingView()
@@ -298,6 +369,7 @@ private slots:
         QVERIFY(!model.viewHost()->hasView());
         QCOMPARE(plugin->activationCount_, 1);
         QCOMPARE(plugin->deactivationCount_, 1);
+        QVERIFY(!plugin->viewAliveDuringDeactivation_);
         QVERIFY(plugin->contextAliveDuringDeactivation_);
         QVERIFY(plugin->runtimeContext_.isNull());
     }
@@ -337,8 +409,8 @@ private slots:
         QVERIFY(activeView.isNull());
         QCOMPARE(first->deactivationCount_, 1);
         QCOMPARE(second->deactivationCount_, 1);
-        QVERIFY(first->viewGoneBeforeDeactivation_);
-        QVERIFY(second->viewGoneBeforeDeactivation_);
+        QVERIFY(first->viewAliveDuringDeactivation_);
+        QVERIFY(second->viewAliveDuringDeactivation_);
         QVERIFY(first->contextAliveDuringDeactivation_);
         QVERIFY(second->contextAliveDuringDeactivation_);
         QVERIFY(first->runtimeContext_.isNull());
