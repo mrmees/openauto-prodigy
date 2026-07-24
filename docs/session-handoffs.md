@@ -4,6 +4,33 @@ Newest entries first.
 
 ---
 
+## 2026-07-23 — PR #34 pre-merge review
+
+**What changed:** nothing — the review confirmed the branch as-is.
+
+**Review adjudication:** zero findings. Verified in depth: the tagged-field
+seqlock coefficient publication (odd/even generation bracket plus per-field
+generation tags makes any cross-generation mix fail even with relaxed loads;
+each generation is used once under the control mutex, so matching tags imply a
+coherent snapshot); strict SPSC ring cursor ownership (drop-newest leaves the
+same full-ring fill dynamics as the old drop-oldest, and short writes stay
+frame-aligned because reads/writes are always stride multiples); PipeWire
+buffer validation ordering (chunk zeroed before rejection so recycled buffers
+cannot replay stale audio); all four nullable `createStreamWithOptions`
+callers null-check; `IEqualizerService` changed comments only (no vtable
+change, no HOST_API_VERSION bump owed); deprecated `audio.adaptive` preserved
+in place on save. Observations without action: `isValidStream` hardcodes the
+stream count (debug assert covers drift); error-path QString allocation in
+`onStreamStateChanged` runs on the PW loop thread (error-only, acceptable).
+
+**Verification:** full local build, explicit `openauto-prodigy` target, and
+`ctest --output-on-failure` (all tests) passed on the branch.
+
+**Next 1-3 steps:** (1) merge PR #34; (2) at the next milestone tag, deploy the
+accumulated PR #32-#34 fixes to the Pi together.
+
+---
+
 ## 2026-07-23 — PR #33 pre-merge review fixes
 
 **What changed:** two confirmed P3 findings from the PR #33 review were fixed
