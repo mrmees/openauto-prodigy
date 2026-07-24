@@ -24,6 +24,7 @@
 #include <oaa/HU/Handlers/PhoneStatusChannelHandler.hpp>
 #include "ServiceDiscoveryBuilder.hpp"
 #include "VideoDecoder.hpp"
+#include "AVInputCaptureBridge.hpp"
 #include "core/services/IAudioService.hpp"
 #include "TouchHandler.hpp"
 
@@ -113,6 +114,17 @@ signals:
 private:
     friend class AndroidAutoOrchestratorTestAccess;
 
+    struct MicCaptureRequest {
+        QString name;
+        int sampleRate = 16000;
+        int channels = 1;
+        int bitDepth = 16;
+        oap::IAudioService::CaptureCallback callback;
+        std::function<void()> onStreamError;
+    };
+    using MicCaptureOpen = std::function<oap::AudioStreamHandle*(const MicCaptureRequest&)>;
+    using MicCaptureClose = std::function<void(oap::AudioStreamHandle*)>;
+
     void onNewConnection();
     void onPhoneWillConnect();
     void onSessionStateChanged(oaa::SessionState state);
@@ -124,6 +136,9 @@ private:
     void teardownSession(bool deferDeletion = true);
     void startProtocolCapture();
     void stopProtocolCapture();
+    bool startAssistantMicCapture();
+    void stopAssistantMicCapture();
+    void onAssistantMicCaptureError(uint64_t generation);
 
     oap::IConfigService* configService_;
     oap::IAudioService* audioService_;
@@ -167,6 +182,14 @@ private:
     TouchHandler touchHandler_;
     VideoDecoder videoDecoder_;
     QTimer watchdogTimer_;
+    AVInputCaptureBridge micCaptureBridge_;
+
+    // Assistant AVInput capture effects. Production binds these to the
+    // concrete AudioService options path; focused tests replace them with a
+    // deterministic backend without requiring a PipeWire daemon.
+    MicCaptureOpen micCaptureOpen_;
+    MicCaptureClose micCaptureClose_;
+    oap::AudioStreamHandle* micCaptureHandle_ = nullptr;
 
     // PipeWire audio stream handles (created/destroyed per session)
     oap::AudioStreamHandle* mediaStream_ = nullptr;

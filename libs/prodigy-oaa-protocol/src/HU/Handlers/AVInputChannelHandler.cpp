@@ -159,6 +159,18 @@ bool AVInputChannelHandler::sendMicData(const QByteArray& data, uint64_t timesta
     return true;
 }
 
+void AVInputChannelHandler::abortCapture()
+{
+    Q_ASSERT(QThread::currentThread() == thread());
+    unacked_ = 0;
+    maxUnacked_ = 1;
+    if (!capturing_)
+        return;
+
+    capturing_ = false;
+    emit micCaptureRequested(false);
+}
+
 void AVInputChannelHandler::stopCapture()
 {
     unacked_ = 0;

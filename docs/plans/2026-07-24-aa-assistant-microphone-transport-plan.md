@@ -128,6 +128,9 @@ changes, DSP/AEC/ANC, UI, or microphone hardware access.
 
 - Modify: `src/core/aa/AndroidAutoOrchestrator.hpp`
 - Modify: `src/core/aa/AndroidAutoOrchestrator.cpp`
+- Modify: `libs/prodigy-oaa-protocol/include/oaa/HU/Handlers/AVInputChannelHandler.hpp`
+- Modify: `libs/prodigy-oaa-protocol/src/HU/Handlers/AVInputChannelHandler.cpp`
+- Modify: `tests/test_avinput_channel_handler.cpp`
 - Modify: `tests/test_aa_orchestrator.cpp`
 - Modify: `docs/reference/config-schema.md`
 
@@ -142,6 +145,8 @@ changes, DSP/AEC/ANC, UI, or microphone hardware access.
 - An immediate capture failure returns false to the handler and leaves no
   handle/active bridge. A queued runtime error is generation-checked, logs once,
   and runs the same local stop path without an unsolicited wire response.
+- The application-side abort edge disables handler sending and resets permits
+  without reinvoking the capture controller or manufacturing a response.
 - Replacement open, phone close, channel close, disconnect, stop, and
   destructor close/quiesce the PipeWire capture first, then purge the bridge
   and reset handler state before session finalization or transport deletion.

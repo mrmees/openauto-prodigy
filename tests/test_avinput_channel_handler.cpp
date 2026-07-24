@@ -204,6 +204,32 @@ private slots:
         QCOMPARE(sendSpy.count(), 0);
     }
 
+    void testAbortCaptureDisablesSendingWithoutControllerOrResponse() {
+        oaa::hu::AVInputChannelHandler handler;
+        QList<bool> controllerCalls;
+        handler.setCaptureController([&controllerCalls](bool open) {
+            controllerCalls.append(open);
+            return true;
+        });
+        handler.onChannelOpened();
+
+        oaa::proto::messages::AVInputOpenRequest request;
+        request.set_open(true);
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, serialize(request));
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+        QSignalSpy captureSpy(&handler, &oaa::hu::AVInputChannelHandler::micCaptureRequested);
+
+        handler.abortCapture();
+        QCOMPARE(controllerCalls, QList<bool>({true}));
+        QCOMPARE(sendSpy.count(), 0);
+        QCOMPARE(captureSpy.count(), 1);
+        QCOMPARE(captureSpy[0][0].toBool(), false);
+        QVERIFY(!handler.sendMicData(QByteArray(320, '\x42'), 1));
+
+        handler.abortCapture();
+        QCOMPARE(captureSpy.count(), 1);
+    }
+
     void testTransmitWindowBlocksUntilValidAck() {
         oaa::hu::AVInputChannelHandler handler;
         handler.setCaptureController([](bool) { return true; });

@@ -31,6 +31,11 @@ public:
     // when the channel/capture is closed or the phone's transmit window is full.
     bool sendMicData(const QByteArray& data, uint64_t timestamp);
 
+    // Application-side runtime failure/teardown edge. Disables sending and
+    // resets permits without invoking the capture controller or sending an
+    // unsolicited protocol response.
+    void abortCapture();
+
 signals:
     void micCaptureRequested(bool open);
     void sendWindowAvailable();

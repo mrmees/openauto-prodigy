@@ -214,7 +214,7 @@ therefore readable and writable with `ConfigService` dot paths.
 | `audio.buffer_ms.speech` | int | `500` | Static speech/navigation buffer target in milliseconds; clamped to 500–5000. |
 | `audio.buffer_ms.system` | int | `500` | Static AA system-sound buffer target in milliseconds; clamped to 500–5000. |
 | `audio.microphone.device` | string | `auto` | PipeWire capture node or automatic selection. |
-| `audio.microphone.gain` | double | `1.0` | Microphone gain multiplier. |
+| `audio.microphone.gain` | double | `1.0` | Microphone gain multiplier, normalized to 0.5–4.0 when Assistant AVInput capture starts. |
 | `audio.equalizer.streams.media.preset` | string | `Flat` | Media/local/BT-tap EQ preset. |
 | `audio.equalizer.streams.navigation.preset` | string | `Voice` | Navigation EQ preset. |
 | `audio.equalizer.streams.system.preset` | string | `Voice` | AA system-sound EQ preset; this is not HFP call audio. |

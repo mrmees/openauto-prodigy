@@ -7,6 +7,8 @@
 #include "core/aa/AndroidAutoOrchestrator.hpp"
 #include "core/aa/NightModeProvider.hpp"
 #include "core/aa/WirelessAaConfig.hpp"
+#include "core/YamlConfig.hpp"
+#include "core/services/AudioService.hpp"
 #include "core/services/IConfigService.hpp"
 #include "core/services/NightModeService.hpp"
 #ifdef HAS_BLUETOOTH
@@ -15,6 +17,8 @@
 #include "oaa/sensor/SensorEventIndicationMessage.pb.h"
 #include "oaa/sensor/SensorStartRequestMessage.pb.h"
 #include "oaa/sensor/SensorTypeEnum.pb.h"
+#include "oaa/av/AVInputOpenRequestMessage.pb.h"
+#include "oaa/av/AVInputOpenResponseMessage.pb.h"
 
 namespace oap::aa {
 
@@ -40,6 +44,19 @@ private:
     bool valid_ = false;
     int startCount_ = 0;
     int stopCount_ = 0;
+};
+
+struct TestMicCaptureBackend {
+    oap::AudioStreamHandle* openResult = nullptr;
+    QString name;
+    int sampleRate = 0;
+    int channels = 0;
+    int bitDepth = 0;
+    QList<oap::IAudioService::CaptureCallback> callbacks;
+    QList<std::function<void()>> errors;
+    int closeCount = 0;
+    oap::AudioStreamHandle* closedHandle = nullptr;
+    bool bridgeActiveDuringClose = false;
 };
 
 class AndroidAutoOrchestratorTestAccess {
@@ -88,6 +105,42 @@ public:
     static VideoDecoder& videoDecoder(AndroidAutoOrchestrator& orchestrator)
     {
         return orchestrator.videoDecoder_;
+    }
+
+    static oaa::hu::AVInputChannelHandler& avInputHandler(
+        AndroidAutoOrchestrator& orchestrator)
+    {
+        return orchestrator.avInputHandler_;
+    }
+
+    static void installMicCaptureBackend(AndroidAutoOrchestrator& orchestrator,
+                                         TestMicCaptureBackend& backend)
+    {
+        orchestrator.micCaptureOpen_ = [&backend](const auto& request) {
+            backend.name = request.name;
+            backend.sampleRate = request.sampleRate;
+            backend.channels = request.channels;
+            backend.bitDepth = request.bitDepth;
+            backend.callbacks.append(request.callback);
+            backend.errors.append(request.onStreamError);
+            return backend.openResult;
+        };
+        orchestrator.micCaptureClose_ = [&orchestrator, &backend](auto* handle) {
+            ++backend.closeCount;
+            backend.closedHandle = handle;
+            backend.bridgeActiveDuringClose = orchestrator.micCaptureBridge_.isActive();
+        };
+    }
+
+    static bool micBridgeActive(const AndroidAutoOrchestrator& orchestrator)
+    {
+        return orchestrator.micCaptureBridge_.isActive();
+    }
+
+    static oap::AudioStreamHandle* micCaptureHandle(
+        const AndroidAutoOrchestrator& orchestrator)
+    {
+        return orchestrator.micCaptureHandle_;
     }
 
     static bool watchdogActive(const AndroidAutoOrchestrator& orchestrator)
@@ -554,6 +607,165 @@ private slots:
         QCOMPARE(providerPtr->stopCount(), 0);
         nightService.stop();
         QCOMPARE(providerPtr->stopCount(), 1);
+    }
+
+    void testAssistantMicOpenCaptureGainAndClose() {
+        StubConfigService cfg;
+        oap::YamlConfig yaml;
+        yaml.setMicrophoneGain(2.0);
+        oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, &yaml);
+        oap::AudioStreamHandle fakeHandle;
+        oap::aa::TestMicCaptureBackend backend;
+        backend.openResult = &fakeHandle;
+        oap::aa::AndroidAutoOrchestratorTestAccess::installMicCaptureBackend(
+            orch, backend);
+
+        auto& handler = oap::aa::AndroidAutoOrchestratorTestAccess::avInputHandler(orch);
+        handler.onChannelOpened();
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        oaa::proto::messages::AVInputOpenRequest open;
+        open.set_open(true);
+        open.set_max_unacked(1);
+        QByteArray payload(open.ByteSizeLong(), '\0');
+        QVERIFY(open.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, payload);
+
+        QCOMPARE(sendSpy.count(), 1);
+        oaa::proto::messages::AVInputOpenResponse response;
+        QByteArray responsePayload = sendSpy[0][2].toByteArray();
+        QVERIFY(response.ParseFromArray(responsePayload.constData(), responsePayload.size()));
+        QCOMPARE(response.value(), 0);
+        QCOMPARE(backend.name, QStringLiteral("AA Assistant Microphone"));
+        QCOMPARE(backend.sampleRate, 16000);
+        QCOMPARE(backend.channels, 1);
+        QCOMPARE(backend.bitDepth, 16);
+        QCOMPARE(backend.callbacks.size(), 1);
+        QCOMPARE(backend.errors.size(), 1);
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::micBridgeActive(orch));
+        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::micCaptureHandle(orch),
+                 &fakeHandle);
+
+        QByteArray pcm(oap::aa::AVInputCaptureBridge::FrameBytes, '\0');
+        for (qsizetype offset = 0; offset < pcm.size(); offset += 2) {
+            qToLittleEndian<qint16>(1000,
+                reinterpret_cast<uchar*>(pcm.data()) + offset);
+        }
+        sendSpy.clear();
+        backend.callbacks.front()(reinterpret_cast<const uint8_t*>(pcm.constData()),
+                                  pcm.size());
+        QTRY_COMPARE(sendSpy.count(), 1);
+        const QByteArray mediaPayload = sendSpy[0][2].toByteArray();
+        QCOMPARE(sendSpy[0][1].value<uint16_t>(),
+                 static_cast<uint16_t>(oaa::AVMessageId::AV_MEDIA_WITH_TIMESTAMP));
+        QCOMPARE(qFromLittleEndian<qint16>(
+                     reinterpret_cast<const uchar*>(mediaPayload.constData()) + 8),
+                 qint16(2000));
+
+        oaa::proto::messages::AVInputOpenRequest close;
+        close.set_open(false);
+        payload.resize(close.ByteSizeLong());
+        QVERIFY(close.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, payload);
+
+        QCOMPARE(backend.closeCount, 1);
+        QCOMPARE(backend.closedHandle, &fakeHandle);
+        QVERIFY(backend.bridgeActiveDuringClose);
+        QVERIFY(!oap::aa::AndroidAutoOrchestratorTestAccess::micBridgeActive(orch));
+        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::micCaptureHandle(orch),
+                 nullptr);
+    }
+
+    void testAssistantMicImmediateOpenFailureIsHonest() {
+        StubConfigService cfg;
+        oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, nullptr);
+        oap::aa::TestMicCaptureBackend backend;
+        oap::aa::AndroidAutoOrchestratorTestAccess::installMicCaptureBackend(
+            orch, backend);
+
+        auto& handler = oap::aa::AndroidAutoOrchestratorTestAccess::avInputHandler(orch);
+        handler.onChannelOpened();
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+        oaa::proto::messages::AVInputOpenRequest open;
+        open.set_open(true);
+        QByteArray payload(open.ByteSizeLong(), '\0');
+        QVERIFY(open.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, payload);
+
+        QCOMPARE(sendSpy.count(), 1);
+        oaa::proto::messages::AVInputOpenResponse response;
+        const QByteArray responsePayload = sendSpy[0][2].toByteArray();
+        QVERIFY(response.ParseFromArray(responsePayload.constData(), responsePayload.size()));
+        QCOMPARE(response.value(), 1);
+        QCOMPARE(backend.closeCount, 0);
+        QVERIFY(!oap::aa::AndroidAutoOrchestratorTestAccess::micBridgeActive(orch));
+        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::micCaptureHandle(orch),
+                 nullptr);
+    }
+
+    void testAssistantMicRuntimeErrorStopsCurrentGenerationOnly() {
+        StubConfigService cfg;
+        oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, nullptr);
+        oap::AudioStreamHandle firstHandle;
+        oap::AudioStreamHandle secondHandle;
+        oap::aa::TestMicCaptureBackend backend;
+        backend.openResult = &firstHandle;
+        oap::aa::AndroidAutoOrchestratorTestAccess::installMicCaptureBackend(
+            orch, backend);
+
+        auto& handler = oap::aa::AndroidAutoOrchestratorTestAccess::avInputHandler(orch);
+        handler.onChannelOpened();
+        oaa::proto::messages::AVInputOpenRequest open;
+        open.set_open(true);
+        QByteArray payload(open.ByteSizeLong(), '\0');
+        QVERIFY(open.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, payload);
+        QCOMPARE(backend.errors.size(), 1);
+
+        backend.openResult = &secondHandle;
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, payload);
+        QCOMPARE(backend.closeCount, 1);
+        QCOMPARE(backend.closedHandle, &firstHandle);
+        QCOMPARE(backend.errors.size(), 2);
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::micBridgeActive(orch));
+
+        backend.errors[0]();
+        QCOMPARE(backend.closeCount, 1);
+        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::micCaptureHandle(orch),
+                 &secondHandle);
+
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+        backend.errors[1]();
+        QCOMPARE(backend.closeCount, 2);
+        QCOMPARE(backend.closedHandle, &secondHandle);
+        QVERIFY(backend.bridgeActiveDuringClose);
+        QVERIFY(!oap::aa::AndroidAutoOrchestratorTestAccess::micBridgeActive(orch));
+        QVERIFY(!handler.sendMicData(QByteArray(320, '\x42'), 1));
+        QCOMPARE(sendSpy.count(), 0); // no unsolicited failure response
+    }
+
+    void testAssistantMicTeardownClosesCaptureBeforeBridge() {
+        StubConfigService cfg;
+        oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, nullptr);
+        oap::AudioStreamHandle fakeHandle;
+        oap::aa::TestMicCaptureBackend backend;
+        backend.openResult = &fakeHandle;
+        oap::aa::AndroidAutoOrchestratorTestAccess::installMicCaptureBackend(
+            orch, backend);
+
+        auto& handler = oap::aa::AndroidAutoOrchestratorTestAccess::avInputHandler(orch);
+        handler.onChannelOpened();
+        oaa::proto::messages::AVInputOpenRequest open;
+        open.set_open(true);
+        QByteArray payload(open.ByteSizeLong(), '\0');
+        QVERIFY(open.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, payload);
+
+        orch.stop();
+        QCOMPARE(backend.closeCount, 1);
+        QVERIFY(backend.bridgeActiveDuringClose);
+        QVERIFY(!oap::aa::AndroidAutoOrchestratorTestAccess::micBridgeActive(orch));
+        QVERIFY(!handler.sendMicData(QByteArray(320, '\x42'), 1));
     }
 };
 
