@@ -10,6 +10,14 @@ namespace oap {
 PluginViewHost::PluginViewHost(QQmlEngine* engine, QObject* parent)
     : QObject(parent), engine_(engine) {}
 
+PluginViewHost::~PluginViewHost()
+{
+    destroying_ = true;
+    finishRetirements();
+    delete activeView_.data();
+    activeView_.clear();
+}
+
 void PluginViewHost::setHostItem(QQuickItem* host)
 {
     hostItem_ = host;
@@ -22,7 +30,7 @@ bool PluginViewHost::hasView() const
 
 bool PluginViewHost::loadView(const QUrl& qmlUrl, QQmlContext* pluginContext)
 {
-    if (!hostItem_ || !engine_ || !pluginContext) return false;
+    if (destroying_ || !hostItem_ || !engine_ || !pluginContext) return false;
 
     clearView();
 
@@ -77,16 +85,60 @@ bool PluginViewHost::loadView(const QUrl& qmlUrl, QQmlContext* pluginContext)
 
 void PluginViewHost::clearView()
 {
+    clearViewThen({});
+}
+
+void PluginViewHost::clearViewThen(RetirementCompletion completion)
+{
     QPointer<QQuickItem> outgoing = activeView_;
-    if (!outgoing)
+    if (!outgoing) {
+        if (completion)
+            completion();
         return;
+    }
 
     // Logical detach is immediate, while QObject destruction is deferred past
-    // the input or signal dispatch which requested the transition.
+    // the input or signal dispatch which requested the transition. Register the
+    // ordered completion before publishing the logical transition so teardown
+    // and reentrant navigation cannot strand it.
     activeView_.clear();
+    const quint64 retirementId = nextRetirementId_++;
+    pendingRetirements_.append({retirementId, outgoing, std::move(completion)});
+
+    QPointer<PluginViewHost> guard(this);
     emit viewCleared();
-    if (outgoing)
-        outgoing->deleteLater();
+    if (!guard)
+        return;
+
+    QMetaObject::invokeMethod(this, [guard, retirementId]() {
+        if (guard)
+            guard->finishRetirement(retirementId);
+    }, Qt::QueuedConnection);
+}
+
+void PluginViewHost::finishRetirement(quint64 id)
+{
+    for (qsizetype i = 0; i < pendingRetirements_.size(); ++i) {
+        if (pendingRetirements_[i].id != id)
+            continue;
+
+        PendingRetirement retirement = std::move(pendingRetirements_[i]);
+        pendingRetirements_.removeAt(i);
+
+        // Context retirement callbacks must observe that the QML subtree is
+        // already gone, including during synchronous host/model teardown.
+        delete retirement.view.data();
+        retirement.view.clear();
+        if (retirement.completion)
+            retirement.completion();
+        return;
+    }
+}
+
+void PluginViewHost::finishRetirements()
+{
+    while (!pendingRetirements_.isEmpty())
+        finishRetirement(pendingRetirements_.constFirst().id);
 }
 
 } // namespace oap

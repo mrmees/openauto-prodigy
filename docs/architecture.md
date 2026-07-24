@@ -151,8 +151,11 @@ omits `node.dont-fallback` so that fallback stays available.
 QML shell and app views are packaged into the binary via `qt_add_qml_module`
 (+ qmlcache) — UI changes ship by rebuilding, not by copying QML files.
 `PluginModel` and `PluginViewHost` activate plugin views. The host detaches a
-view logically before scheduling its QML subtree for deferred deletion, and
-retains QObject ownership so shell teardown also reclaims pending views. A
+view logically before retiring its QML subtree and runtime context as one
+ordered unit: the subtree survives the current dispatch, is destroyed on the
+next event-loop turn, and only then are its context properties deactivated.
+Explicit QObject ownership makes shell teardown complete the same order
+synchronously rather than stranding pending views or contexts. A
 `ScreenDpiBinding` owns the replaceable window/current-screen DPI connections;
 only the active screen publishes structural DPI data to `DisplayInfo`.
 `DashboardManager` owns one `WidgetGridModel`/`WidgetContextFactory` pair per
