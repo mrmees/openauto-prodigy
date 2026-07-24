@@ -15,6 +15,11 @@ void PluginViewHost::setHostItem(QQuickItem* host)
     hostItem_ = host;
 }
 
+bool PluginViewHost::hasView() const
+{
+    return !activeView_.isNull();
+}
+
 bool PluginViewHost::loadView(const QUrl& qmlUrl, QQmlContext* pluginContext)
 {
     if (!hostItem_ || !engine_ || !pluginContext) return false;
@@ -37,26 +42,33 @@ bool PluginViewHost::loadView(const QUrl& qmlUrl, QQmlContext* pluginContext)
         return false;
     }
 
-    activeView_ = qobject_cast<QQuickItem*>(obj);
-    if (!activeView_) {
+    auto* view = qobject_cast<QQuickItem*>(obj);
+    if (!view) {
         delete obj;
         emit viewLoadFailed("Created object is not a QQuickItem");
         return false;
     }
 
-    // Parent to host and fill it
-    activeView_->setParentItem(hostItem_);
-    activeView_->setWidth(hostItem_->width());
-    activeView_->setHeight(hostItem_->height());
+    // PluginViewHost owns the QObject lifetime while the shell host owns the
+    // visual placement.  This also lets host teardown reclaim a view whose
+    // deferred-delete event has not run yet.
+    view->setParent(this);
+    view->setParentItem(hostItem_);
+    view->setWidth(hostItem_->width());
+    view->setHeight(hostItem_->height());
+    activeView_ = view;
 
-    // Track host resizes
-    connect(hostItem_, &QQuickItem::widthChanged, activeView_, [this]() {
-        if (activeView_ && hostItem_)
-            activeView_->setWidth(hostItem_->width());
+    // Each view tracks only itself.  An outgoing view waiting for deferred
+    // deletion can therefore never resize or otherwise affect its replacement.
+    const QPointer<QQuickItem> guardedHost = hostItem_;
+    const QPointer<QQuickItem> guardedView = view;
+    connect(hostItem_, &QQuickItem::widthChanged, view, [guardedHost, guardedView]() {
+        if (guardedHost && guardedView)
+            guardedView->setWidth(guardedHost->width());
     });
-    connect(hostItem_, &QQuickItem::heightChanged, activeView_, [this]() {
-        if (activeView_ && hostItem_)
-            activeView_->setHeight(hostItem_->height());
+    connect(hostItem_, &QQuickItem::heightChanged, view, [guardedHost, guardedView]() {
+        if (guardedHost && guardedView)
+            guardedView->setHeight(guardedHost->height());
     });
 
     emit viewLoaded();
@@ -65,11 +77,16 @@ bool PluginViewHost::loadView(const QUrl& qmlUrl, QQmlContext* pluginContext)
 
 void PluginViewHost::clearView()
 {
-    if (activeView_) {
-        delete activeView_;
-        activeView_ = nullptr;
-        emit viewCleared();
-    }
+    QPointer<QQuickItem> outgoing = activeView_;
+    if (!outgoing)
+        return;
+
+    // Logical detach is immediate, while QObject destruction is deferred past
+    // the input or signal dispatch which requested the transition.
+    activeView_.clear();
+    emit viewCleared();
+    if (outgoing)
+        outgoing->deleteLater();
 }
 
 } // namespace oap

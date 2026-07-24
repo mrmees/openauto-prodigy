@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QPointer>
 #include <QUrl>
 
 class QQmlEngine;
@@ -24,10 +25,10 @@ public:
     /// Returns true on success.
     bool loadView(const QUrl& qmlUrl, QQmlContext* pluginContext);
 
-    /// Destroy the current plugin view (must be called before context deactivation).
+    /// Logically detach the current view and schedule its deferred destruction.
     void clearView();
 
-    bool hasView() const { return activeView_ != nullptr; }
+    bool hasView() const;
 
 signals:
     void viewLoaded();
@@ -35,9 +36,9 @@ signals:
     void viewLoadFailed(const QString& error);
 
 private:
-    QQmlEngine* engine_;
-    QQuickItem* hostItem_ = nullptr;
-    QQuickItem* activeView_ = nullptr;
+    QPointer<QQmlEngine> engine_;
+    QPointer<QQuickItem> hostItem_;
+    QPointer<QQuickItem> activeView_;
 };
 
 } // namespace oap

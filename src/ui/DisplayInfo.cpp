@@ -40,6 +40,11 @@ int DisplayInfo::densityBias() const
     return densityBias_;
 }
 
+qreal DisplayInfo::qScreenDpi() const
+{
+    return qscreenDpi_;
+}
+
 void DisplayInfo::setWindowSize(int w, int h)
 {
     if (w <= 0 || h <= 0)
@@ -93,6 +98,7 @@ void DisplayInfo::setQScreenDpi(qreal dpi)
         return;
     qscreenDpi_ = dpi;
     updateCellSide();
+    emit qScreenDpiChanged();
 }
 
 void DisplayInfo::setConfigScreenSizeOverride(qreal inches)

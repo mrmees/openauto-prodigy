@@ -150,9 +150,14 @@ omits `node.dont-fallback` so that fallback stays available.
 
 QML shell and app views are packaged into the binary via `qt_add_qml_module`
 (+ qmlcache) — UI changes ship by rebuilding, not by copying QML files.
-`PluginModel` and `PluginViewHost` activate plugin views. `DashboardManager`
-owns one `WidgetGridModel`/`WidgetContextFactory` pair per dashboard and seeds
-the Android Auto and Settings singleton launchers on an empty home dashboard.
+`PluginModel` and `PluginViewHost` activate plugin views. The host detaches a
+view logically before scheduling its QML subtree for deferred deletion, and
+retains QObject ownership so shell teardown also reclaims pending views. A
+`ScreenDpiBinding` owns the replaceable window/current-screen DPI connections;
+only the active screen publishes structural DPI data to `DisplayInfo`.
+`DashboardManager` owns one `WidgetGridModel`/`WidgetContextFactory` pair per
+dashboard and seeds the Android Auto and Settings singleton launchers on an
+empty home dashboard.
 `WidgetRegistry` combines built-in descriptors, plugin contributions, and —
 when WebEngine is available — valid web-widget packages.
 

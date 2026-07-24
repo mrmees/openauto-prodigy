@@ -63,6 +63,7 @@ oap_add_test(test_plugin_manager SOURCES test_plugin_manager.cpp
 add_dependencies(test_plugin_manager
     fixture_stale_plugin fixture_imposter_plugin fixture_valid_plugin fixture_throwing_plugin)
 oap_add_test(test_plugin_model SOURCES test_plugin_model.cpp)
+oap_add_test(test_plugin_view_host SOURCES test_plugin_view_host.cpp)
 oap_add_test(test_play_queue SOURCES test_play_queue.cpp)
 oap_add_test(test_folder_model SOURCES test_folder_model.cpp)
 
@@ -273,7 +274,7 @@ add_test(
 set_tests_properties(test_ops_systemd_lifecycle PROPERTIES SKIP_RETURN_CODE 77)
 
 # GUI/Quick tests need offscreen platform when no display is available
-set_tests_properties(test_theme_service test_display_service test_plugin_model test_aa_orchestrator
+set_tests_properties(test_theme_service test_display_info test_display_service test_plugin_model test_plugin_view_host test_aa_orchestrator
     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
 set_tests_properties(test_settings_input_boundary test_settings_menu_structure test_gesture_overlay_controller test_widget_contract_qml

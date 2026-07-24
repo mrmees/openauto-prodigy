@@ -1,6 +1,17 @@
 #include <QtTest>
 #include <QSignalSpy>
+#include <QWindow>
 #include "ui/DisplayInfo.hpp"
+#include "ui/ScreenDpiBinding.hpp"
+
+class FakeDpiSource : public QObject {
+    Q_OBJECT
+public:
+    void publish(qreal dpi) { emit physicalDotsPerInchChanged(dpi); }
+
+signals:
+    void physicalDotsPerInchChanged(qreal dpi);
+};
 
 class TestDisplayInfo : public QObject {
     Q_OBJECT
@@ -32,6 +43,10 @@ private slots:
     void testSetFullscreen();
     void testSetQScreenDpi();
     void testSetConfigScreenSizeOverride();
+    void testScreenDpiBindingReplacesSource();
+    void testScreenDpiBindingRepeatedBindIsIdempotent();
+    void testScreenDpiBindingNullAndTeardown();
+    void testScreenDpiBindingWindowPath();
 };
 
 void TestDisplayInfo::testDefaultDimensions()
@@ -225,8 +240,11 @@ void TestDisplayInfo::testSetFullscreen()
 void TestDisplayInfo::testSetQScreenDpi()
 {
     oap::DisplayInfo info;
+    QSignalSpy spy(&info, &oap::DisplayInfo::qScreenDpiChanged);
     // Set a valid DPI -- structural for future use
     info.setQScreenDpi(150.0);
+    QCOMPARE(info.qScreenDpi(), 150.0);
+    QCOMPARE(spy.count(), 1);
     // cellSide should still be the same (resolution-independent)
     QVERIFY(qAbs(info.cellSide() - 131.9) < 1.0);
 }
@@ -237,6 +255,85 @@ void TestDisplayInfo::testSetConfigScreenSizeOverride()
     info.setConfigScreenSizeOverride(10.0);
     // cellSide unchanged (resolution-independent by design)
     QVERIFY(qAbs(info.cellSide() - 131.9) < 1.0);
+}
+
+void TestDisplayInfo::testScreenDpiBindingReplacesSource()
+{
+    oap::DisplayInfo info;
+    oap::ScreenDpiBinding binding(&info);
+    FakeDpiSource first;
+    FakeDpiSource second;
+    const auto signal = QMetaMethod::fromSignal(&FakeDpiSource::physicalDotsPerInchChanged);
+
+    binding.bindDpiSource(&first, 100.0, signal);
+    QCOMPARE(info.qScreenDpi(), 100.0);
+    first.publish(110.0);
+    QCOMPARE(info.qScreenDpi(), 110.0);
+
+    binding.bindDpiSource(&second, 200.0, signal);
+    QCOMPARE(info.qScreenDpi(), 200.0);
+    first.publish(120.0);
+    QCOMPARE(info.qScreenDpi(), 200.0); // former source is disconnected
+    second.publish(210.0);
+    QCOMPARE(info.qScreenDpi(), 210.0);
+}
+
+void TestDisplayInfo::testScreenDpiBindingRepeatedBindIsIdempotent()
+{
+    oap::DisplayInfo info;
+    oap::ScreenDpiBinding binding(&info);
+    FakeDpiSource source;
+    const auto signal = QMetaMethod::fromSignal(&FakeDpiSource::physicalDotsPerInchChanged);
+
+    binding.bindDpiSource(&source, 140.0, signal);
+    binding.bindDpiSource(&source, 140.0, signal);
+    binding.bindDpiSource(&source, 140.0, signal);
+
+    QSignalSpy spy(&info, &oap::DisplayInfo::qScreenDpiChanged);
+    source.publish(141.0);
+    QCOMPARE(info.qScreenDpi(), 141.0);
+    QCOMPARE(spy.count(), 1);
+}
+
+void TestDisplayInfo::testScreenDpiBindingNullAndTeardown()
+{
+    oap::DisplayInfo info;
+    FakeDpiSource source;
+    const auto signal = QMetaMethod::fromSignal(&FakeDpiSource::physicalDotsPerInchChanged);
+
+    {
+        oap::ScreenDpiBinding binding(&info);
+        binding.bindDpiSource(&source, 150.0, signal);
+        binding.bindDpiSource(nullptr, 0.0, {});
+        source.publish(160.0);
+        QCOMPARE(info.qScreenDpi(), 150.0);
+
+        binding.bindDpiSource(&source, 170.0, signal);
+        QCOMPARE(info.qScreenDpi(), 170.0);
+    }
+
+    source.publish(180.0);
+    QCOMPARE(info.qScreenDpi(), 170.0);
+
+    // Destroying DisplayInfo first leaves the binding's guarded sink safe.
+    oap::ScreenDpiBinding binding(nullptr);
+    binding.bindDpiSource(&source, 190.0, signal);
+    source.publish(191.0);
+    binding.bindWindow(nullptr);
+}
+
+void TestDisplayInfo::testScreenDpiBindingWindowPath()
+{
+    oap::DisplayInfo info;
+    oap::ScreenDpiBinding binding(&info);
+    QWindow window;
+
+    binding.bindWindow(&window);
+    QVERIFY(info.qScreenDpi() > 0.0);
+    const qreal dpi = info.qScreenDpi();
+    binding.bindWindow(&window);
+    QCOMPARE(info.qScreenDpi(), dpi);
+    binding.bindWindow(nullptr);
 }
 
 QTEST_MAIN(TestDisplayInfo)

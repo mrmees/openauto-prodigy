@@ -15,7 +15,6 @@
 #include "core/WidevineCdm.hpp"
 #endif
 #include <QGuiApplication>
-#include <QScreen>
 #include <QCommandLineParser>
 #include <QIcon>
 #include <QQmlApplicationEngine>
@@ -74,6 +73,7 @@
 #include "ui/AudioDeviceModel.hpp"
 #include "ui/CodecCapabilityModel.hpp"
 #include "ui/DisplayInfo.hpp"
+#include "ui/ScreenDpiBinding.hpp"
 #include "ui/GestureOverlayController.hpp"
 #include "core/widget/WidgetRegistry.hpp"
 #include "core/widget/WidgetTypes.hpp"
@@ -1236,14 +1236,10 @@ int main(int argc, char *argv[])
             QObject::connect(rootWindow, &QQuickWindow::heightChanged, displayInfo, updateSize);
             updateSize();  // push initial real values
 
-            // Wire QScreen DPI at startup
-            auto* screen = rootWindow->screen();
-            if (screen) {
-                displayInfo->setQScreenDpi(screen->physicalDotsPerInch());
-                // Track DPI changes on current screen
-                QObject::connect(screen, &QScreen::physicalDotsPerInchChanged,
-                                 displayInfo, &oap::DisplayInfo::setQScreenDpi);
-            }
+            // One owner replaces both the window and current-screen DPI
+            // connections as the window moves between screens.
+            auto* screenDpiBinding = new oap::ScreenDpiBinding(displayInfo, rootWindow);
+            screenDpiBinding->bindWindow(rootWindow);
 
             // Wire fullscreen state
             displayInfo->setFullscreen(rootWindow->visibility() == QWindow::FullScreen);
@@ -1252,17 +1248,6 @@ int main(int argc, char *argv[])
                 displayInfo->setFullscreen(v == QWindow::FullScreen);
             });
 
-            // Handle window moving to a different monitor — reconnect DPI signal
-            QObject::connect(rootWindow, &QWindow::screenChanged,
-                             displayInfo, [displayInfo](QScreen* newScreen) {
-                if (newScreen) {
-                    displayInfo->setQScreenDpi(newScreen->physicalDotsPerInch());
-                    // Note: old screen's signal auto-disconnects when screen is destroyed.
-                    // Connect to new screen's DPI change signal.
-                    QObject::connect(newScreen, &QScreen::physicalDotsPerInchChanged,
-                                     displayInfo, &oap::DisplayInfo::setQScreenDpi);
-                }
-            });
         }
     }
 

@@ -22,6 +22,7 @@ public:
 
     qreal cellSide() const;
     int densityBias() const;
+    qreal qScreenDpi() const;
 
     void setWindowSize(int w, int h);
     void setScreenSizeInches(qreal inches);
@@ -38,6 +39,7 @@ signals:
     void windowSizeChanged();
     void screenSizeChanged();
     void cellSideChanged();
+    void qScreenDpiChanged();
 
 private:
     void updateCellSide();
