@@ -29,7 +29,9 @@ void AVInputChannelHandler::setCaptureController(CaptureController controller)
 void AVInputChannelHandler::onChannelOpened()
 {
     channelOpen_ = true;
-    capturing_ = false;
+    // A duplicate open is a lifecycle reset, not permission to orphan an
+    // already-running capture while silently disabling transmission.
+    stopCapture();
     session_ = 0;
     maxUnacked_ = 1;
     unacked_ = 0;
@@ -68,6 +70,11 @@ void AVInputChannelHandler::onMessage(uint16_t messageId, const QByteArray& payl
 void AVInputChannelHandler::handleInputOpenRequest(const QByteArray& payload)
 {
     Q_ASSERT(QThread::currentThread() == thread());
+
+    if (!channelOpen_) {
+        qWarning() << "[AVInputChannel] ignoring input request before channel open";
+        return;
+    }
 
     oaa::proto::messages::AVInputOpenRequest req;
     if (!req.ParseFromArray(payload.constData(), payload.size())) {

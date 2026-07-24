@@ -100,11 +100,12 @@ protocol/socket work.
 The Qt consumer emits 20 ms packets: 640 bytes at 16 kHz, mono, S16LE. It
 applies gain sample-by-sample with signed 16-bit saturation, obtains a
 microsecond monotonic timestamp at send time, and calls the handler on the Qt
-thread. A 4 KiB ring bounds queued capture to approximately 128 ms. If the
-producer overruns that ring or the protocol window refuses a packet, the
-consumer discards stale queued PCM before the next send opportunity; live
-voice must recover at the present rather than replay delayed speech. Drop
-diagnostics are aggregated and logged only by the Qt consumer.
+thread. Normal PipeWire batches remain FIFO and drain one frame per timer tick;
+a 4 KiB ring bounds queued capture to approximately 128 ms. If the producer
+overruns that ring or the protocol window refuses a packet, the consumer
+discards stale queued PCM before the next send opportunity; live voice must
+recover at the present rather than replay delayed speech. Drop diagnostics are
+aggregated and logged only by the Qt consumer.
 
 The bridge snapshots gain when a capture generation starts. Non-finite or
 out-of-settings-range input falls back/clamps to the documented 0.5–4.0 range;

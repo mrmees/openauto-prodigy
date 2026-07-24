@@ -6,7 +6,6 @@
 #include <QtEndian>
 
 #include <algorithm>
-#include <array>
 #include <chrono>
 #include <cmath>
 #include <limits>
@@ -119,16 +118,6 @@ void AVInputCaptureBridge::drainOnce()
                         << "events=" << overflowDrops;
         ring_.drain();
         return;
-    }
-
-    // Never replay a backlog. Discard complete old frames until at most one
-    // complete 20 ms frame remains, then send that newest available frame.
-    std::array<uint8_t, FrameBytes> discard{};
-    while (ring_.available() >= FrameBytes * 2) {
-        if (ring_.read(discard.data(), FrameBytes) != FrameBytes) {
-            return;
-        }
-        ++droppedFrames_;
     }
 
     if (ring_.available() < FrameBytes)

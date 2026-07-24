@@ -767,6 +767,39 @@ private slots:
         QVERIFY(!oap::aa::AndroidAutoOrchestratorTestAccess::micBridgeActive(orch));
         QVERIFY(!handler.sendMicData(QByteArray(320, '\x42'), 1));
     }
+
+    void testAudioServiceTeardownQuiescesAssistantCapture() {
+        StubConfigService cfg;
+        auto audioService = std::make_unique<oap::AudioService>();
+        oap::aa::AndroidAutoOrchestrator orch(&cfg, audioService.get(), nullptr);
+        oap::AudioStreamHandle fakeHandle;
+        oap::aa::TestMicCaptureBackend backend;
+        backend.openResult = &fakeHandle;
+        oap::aa::AndroidAutoOrchestratorTestAccess::installMicCaptureBackend(
+            orch, backend);
+
+        auto& handler = oap::aa::AndroidAutoOrchestratorTestAccess::avInputHandler(orch);
+        handler.onChannelOpened();
+        oaa::proto::messages::AVInputOpenRequest open;
+        open.set_open(true);
+        QByteArray payload(open.ByteSizeLong(), '\0');
+        QVERIFY(open.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, payload);
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::micBridgeActive(orch));
+
+        audioService.reset();
+
+        QCOMPARE(backend.closeCount, 1);
+        QCOMPARE(backend.closedHandle, &fakeHandle);
+        QVERIFY(backend.bridgeActiveDuringClose);
+        QVERIFY(!oap::aa::AndroidAutoOrchestratorTestAccess::micBridgeActive(orch));
+        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::micCaptureHandle(orch),
+                 nullptr);
+        QVERIFY(!handler.sendMicData(QByteArray(320, '\x42'), 1));
+
+        orch.stop();
+        QCOMPARE(backend.closeCount, 1);
+    }
 };
 
 QTEST_MAIN(TestAndroidAutoOrchestrator)

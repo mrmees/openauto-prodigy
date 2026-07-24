@@ -84,6 +84,11 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
         if (concreteAudio_)
             concreteAudio_->closeCaptureStreamHandle(handle);
     };
+    if (concreteAudio_) {
+        connect(concreteAudio_, &oap::AudioService::aboutToDestroyPipeWire,
+                this, &AndroidAutoOrchestrator::onAudioServiceAboutToDestroy,
+                Qt::DirectConnection);
+    }
 
     // WiFi handler needs SSID/password from config
     if (yamlConfig_) {
@@ -885,6 +890,27 @@ void AndroidAutoOrchestrator::onAssistantMicCaptureError(uint64_t generation)
     qCWarning(lcAA) << "AA Assistant microphone capture failed at runtime";
     stopAssistantMicCapture();
     avInputHandler_.abortCapture();
+}
+
+void AndroidAutoOrchestrator::onAudioServiceAboutToDestroy()
+{
+    Q_ASSERT(QThread::currentThread() == thread());
+
+    // AudioService emits this while its streams and capture handles are still
+    // valid. Quiesce our capture now, then invalidate every non-owning audio
+    // handle before AudioService destroys any remaining objects itself.
+    stopAssistantMicCapture();
+    avInputHandler_.abortCapture();
+    mediaStream_ = nullptr;
+    speechStream_ = nullptr;
+    systemStream_ = nullptr;
+    mediaStreamActive_ = false;
+    speechStreamActive_ = false;
+    systemStreamActive_ = false;
+    micCaptureOpen_ = {};
+    micCaptureClose_ = {};
+    concreteAudio_ = nullptr;
+    audioService_ = nullptr;
 }
 
 void AndroidAutoOrchestrator::teardownSession(bool deferDeletion)

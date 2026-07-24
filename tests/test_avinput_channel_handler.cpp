@@ -65,6 +65,42 @@ private slots:
         QCOMPARE(captureSpy[0][0].toBool(), true);
     }
 
+    void testInputRequestBeforeChannelOpenIsIgnored() {
+        oaa::hu::AVInputChannelHandler handler;
+        int controllerCalls = 0;
+        handler.setCaptureController([&controllerCalls](bool) {
+            ++controllerCalls;
+            return true;
+        });
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        oaa::proto::messages::AVInputOpenRequest request;
+        request.set_open(true);
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, serialize(request));
+
+        QCOMPARE(controllerCalls, 0);
+        QCOMPARE(sendSpy.count(), 0);
+        QVERIFY(!handler.sendMicData(QByteArray(320, '\x42'), 1));
+    }
+
+    void testDuplicateChannelOpenStopsExistingCapture() {
+        oaa::hu::AVInputChannelHandler handler;
+        QList<bool> controllerCalls;
+        handler.setCaptureController([&controllerCalls](bool open) {
+            controllerCalls.append(open);
+            return true;
+        });
+        handler.onChannelOpened();
+
+        oaa::proto::messages::AVInputOpenRequest request;
+        request.set_open(true);
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, serialize(request));
+        handler.onChannelOpened();
+
+        QCOMPARE(controllerCalls, QList<bool>({true, false}));
+        QVERIFY(!handler.sendMicData(QByteArray(320, '\x42'), 1));
+    }
+
     void testInputOpenRequestStopsCapture() {
         oaa::hu::AVInputChannelHandler handler;
         QList<bool> controllerCalls;

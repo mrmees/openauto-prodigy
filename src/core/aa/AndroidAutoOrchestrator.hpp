@@ -139,6 +139,7 @@ private:
     bool startAssistantMicCapture();
     void stopAssistantMicCapture();
     void onAssistantMicCaptureError(uint64_t generation);
+    void onAudioServiceAboutToDestroy();
 
     oap::IConfigService* configService_;
     oap::IAudioService* audioService_;

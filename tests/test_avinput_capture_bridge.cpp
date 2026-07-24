@@ -94,6 +94,26 @@ private slots:
         QVERIFY(timestamps.front() > 0);
     }
 
+    void testNormalBatchedFramesDrainInOrder() {
+        oap::aa::AVInputCaptureBridge bridge;
+        QList<qint16> sentSamples;
+        const uint64_t generation = bridge.start(1.0,
+            [&sentSamples](const QByteArray& frame, uint64_t) {
+                sentSamples.append(sampleAt(frame, 0));
+                return true;
+            });
+
+        QByteArray batch = fullFrame(100);
+        batch.append(fullFrame(200));
+        bridge.pushPcm(generation,
+                       reinterpret_cast<const uint8_t*>(batch.constData()),
+                       batch.size());
+
+        QTRY_COMPARE(sentSamples.size(), 2);
+        QCOMPARE(sentSamples, QList<qint16>({100, 200}));
+        QCOMPARE(bridge.droppedFrames(), uint64_t(0));
+    }
+
     void testWindowRefusalPurgesUntilPermitReturns() {
         oap::aa::AVInputCaptureBridge bridge;
         QList<qint16> sentSamples;
