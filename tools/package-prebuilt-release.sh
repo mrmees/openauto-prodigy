@@ -96,10 +96,12 @@ fi
 BINARY_PATH="$BUILD_DIR/src/openauto-prodigy"
 INSTALL_SCRIPT="$REPO_ROOT/install-prebuilt.sh"
 RESTART_SCRIPT="$REPO_ROOT/docs/pi-config/restart.sh"
+HARDWARE_CONTRACTS="$REPO_ROOT/config/installer/hardware-contracts.sh"
 
 [[ -x "$BINARY_PATH" ]] || fail "missing executable binary: $BINARY_PATH"
 [[ -f "$INSTALL_SCRIPT" ]] || fail "missing installer script: $INSTALL_SCRIPT"
 [[ -f "$RESTART_SCRIPT" ]] || fail "missing restart helper: $RESTART_SCRIPT"
+[[ -f "$HARDWARE_CONTRACTS" ]] || fail "missing hardware contract library: $HARDWARE_CONTRACTS"
 
 PACKAGE_NAME="openauto-prodigy-prebuilt-${VERSION_TAG}-${TARGET_NAME}"
 STAGE_DIR="$OUTPUT_DIR/$PACKAGE_NAME"

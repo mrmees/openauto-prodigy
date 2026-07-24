@@ -333,9 +333,9 @@ def test_hostapd() -> None:
             raise AssertionError(f"{script.name} still propagates app stops to hostapd")
 
         network = extract_function(script, "configure_network")
-        if network.index("configure_hostapd_lifecycle") > network.index(
-            'if [[ -z "$WIFI_IFACE" ]]'
-        ):
+        empty_branch = network.index('if [[ -z "$WIFI_IFACE" ]]')
+        empty_return = network.index("return", empty_branch)
+        if "configure_hostapd_lifecycle" not in network[empty_branch:empty_return]:
             raise AssertionError(
                 f"{script.name} does not clean stale drop-ins on a no-AP install"
             )

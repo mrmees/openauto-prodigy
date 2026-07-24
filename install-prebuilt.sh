@@ -44,6 +44,20 @@ ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 fail()  { echo -e "${RED}[FAIL]${NC} $*"; }
 
+load_hardware_contracts() {
+    local library="$PAYLOAD_DIR/config/installer/hardware-contracts.sh"
+
+    if [[ ! -r "$library" ]]; then
+        fail "Missing installer hardware contract library: $library"
+        return 1
+    fi
+    # shellcheck source=config/installer/hardware-contracts.sh
+    if ! source "$library"; then
+        fail "Could not load installer hardware contract library: $library"
+        return 1
+    fi
+}
+
 require_payload() {
     info "Validating payload..."
 
@@ -53,6 +67,7 @@ require_payload() {
         "$PAYLOAD_DIR/config/systemd/bluetooth-compat.conf"
         "$PAYLOAD_DIR/config/systemd/openauto-prodigy-hostapd.conf"
         "$PAYLOAD_DIR/config/systemd/hostapd-openauto.conf"
+        "$PAYLOAD_DIR/config/installer/hardware-contracts.sh"
         "$PAYLOAD_DIR/system-service/openauto_system.py"
         "$PAYLOAD_DIR/web-config/server.py"
         "$PAYLOAD_DIR/restart.sh"
@@ -152,7 +167,11 @@ setup_hardware() {
     for dev in /dev/input/event*; do
         if [[ -e "$dev" ]]; then
             local PROPS_PATH="/sys/class/input/$(basename "$dev")/device/properties"
-            if [[ -f "$PROPS_PATH" ]] && (( $(cat "$PROPS_PATH" 2>/dev/null || echo 0) & 2 )); then
+            local properties=""
+            if [[ -f "$PROPS_PATH" ]]; then
+                properties=$(cat "$PROPS_PATH" 2>/dev/null || true)
+            fi
+            if oap_input_properties_have_direct "$properties"; then
                 NAME=$(cat "/sys/class/input/$(basename "$dev")/device/name" 2>/dev/null || echo "unknown")
                 TOUCH_DEVS+=("$dev")
                 printf "  %-24s %s\n" "$dev" "$NAME"
@@ -215,6 +234,12 @@ setup_hardware() {
 
         read -p "Country code (for 5GHz) [US]: " COUNTRY_CODE
         COUNTRY_CODE=${COUNTRY_CODE:-US}
+        local normalized_country
+        if ! normalized_country=$(oap_normalize_country_code "$COUNTRY_CODE"); then
+            fail "Invalid country code '$COUNTRY_CODE'; enter exactly two ASCII letters."
+            return 1
+        fi
+        COUNTRY_CODE="$normalized_country"
     fi
 
     # AA settings
@@ -444,49 +469,54 @@ configure_hostapd_lifecycle() {
 }
 
 configure_network() {
-    configure_hostapd_lifecycle
-
     if [[ -z "$WIFI_IFACE" ]]; then
+        configure_hostapd_lifecycle
         warn "Skipping network configuration (no wireless interface)"
         return
     fi
 
     info "Configuring WiFi AP on $WIFI_IFACE..."
 
-    sudo mkdir -p /etc/systemd/network
-    sudo tee /etc/systemd/network/10-openauto-ap.network > /dev/null << NETCFG
-[Match]
-Name=$WIFI_IFACE
+    local normalized_country
+    if ! normalized_country=$(oap_normalize_country_code "$COUNTRY_CODE"); then
+        fail "Invalid country code '$COUNTRY_CODE'; network configuration was not changed."
+        return 1
+    fi
+    COUNTRY_CODE="$normalized_country"
 
-[Network]
-Address=${AP_IP}/24
-DHCPServer=yes
+    if ! sudo "${OAP_IW_BIN:-iw}" reg set "$COUNTRY_CODE" 2>/dev/null; then
+        warn "Could not apply wireless regulatory domain $COUNTRY_CODE; probing current channel permissions."
+    fi
+    if ! oap_probe_wifi_contract "$WIFI_IFACE"; then
+        fail "No usable WiFi AP channel was reported for $WIFI_IFACE; network configuration was not changed."
+        return 1
+    fi
 
-[DHCPServer]
-PoolOffset=10
-PoolSize=40
-EmitDNS=no
-NETCFG
+    local network_config hostapd_config
+    network_config=$(oap_render_networkd_config "$WIFI_IFACE" "$AP_IP") || {
+        fail "Could not render network configuration; no managed network file was changed."
+        return 1
+    }
+    hostapd_config=$(oap_render_hostapd_config \
+        "$WIFI_IFACE" "$WIFI_SSID" "$WIFI_PASS" "$COUNTRY_CODE") || {
+        fail "Could not render hostapd configuration; no managed network file was changed."
+        return 1
+    }
 
-    sudo tee /etc/hostapd/hostapd.conf > /dev/null << HOSTAPD
-interface=$WIFI_IFACE
-driver=nl80211
-ssid=$WIFI_SSID
-hw_mode=a
-channel=36
-ieee80211n=1
-ieee80211ac=1
-wmm_enabled=1
-country_code=$COUNTRY_CODE
-ieee80211d=1
-macaddr_acl=0
-auth_algs=1
-ignore_broadcast_ssid=0
-wpa=2
-wpa_passphrase=$WIFI_PASS
-wpa_key_mgmt=WPA-PSK
-rsn_pairwise=CCMP
-HOSTAPD
+    configure_hostapd_lifecycle
+    local network_tmp hostapd_tmp install_status=0
+    network_tmp=$(mktemp)
+    hostapd_tmp=$(mktemp)
+    printf '%s\n' "$network_config" > "$network_tmp"
+    printf '%s\n' "$hostapd_config" > "$hostapd_tmp"
+    sudo install -D -m 0644 "$network_tmp" \
+        /etc/systemd/network/10-openauto-ap.network || install_status=$?
+    if [[ $install_status -eq 0 ]]; then
+        sudo install -D -m 0644 "$hostapd_tmp" \
+            /etc/hostapd/hostapd.conf || install_status=$?
+    fi
+    rm -f "$network_tmp" "$hostapd_tmp"
+    [[ $install_status -eq 0 ]] || return "$install_status"
 
     if [[ -f /etc/default/hostapd ]]; then
         sudo sed -i 's|^#\?DAEMON_CONF=.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' /etc/default/hostapd
@@ -774,6 +804,7 @@ run_diagnostics() {
 main() {
     print_header
     require_payload
+    load_hardware_contracts
     check_system
     install_dependencies
     setup_hardware

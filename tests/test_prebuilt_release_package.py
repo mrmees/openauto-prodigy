@@ -13,6 +13,7 @@ import tempfile
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 PACKAGE_SCRIPT = REPO_ROOT / "tools" / "package-prebuilt-release.sh"
 RESTART_HELPER = REPO_ROOT / "docs" / "pi-config" / "restart.sh"
+HARDWARE_CONTRACTS = REPO_ROOT / "config" / "installer" / "hardware-contracts.sh"
 
 
 def make_fake_binary(path: pathlib.Path) -> None:
@@ -72,6 +73,7 @@ def main() -> int:
             f"{package_root}/payload/build/src/openauto-prodigy",
             f"{package_root}/payload/config/themes/default/theme.yaml",
             f"{package_root}/payload/config/systemd/bluetooth-compat.conf",
+            f"{package_root}/payload/config/installer/hardware-contracts.sh",
             f"{package_root}/payload/system-service/openauto_system.py",
             f"{package_root}/payload/system-service/requirements.txt",
             f"{package_root}/payload/web-config/server.py",
@@ -93,6 +95,14 @@ def main() -> int:
                 raise AssertionError("package does not contain the tested restart helper")
             if restart_member.mode & 0o111 == 0:
                 raise AssertionError("packaged restart helper is not executable")
+            hardware_name = (
+                f"{package_root}/payload/config/installer/hardware-contracts.sh"
+            )
+            packaged_hardware = tar.extractfile(tar.getmember(hardware_name))
+            if packaged_hardware is None:
+                raise AssertionError("packaged hardware contracts is not a regular file")
+            if packaged_hardware.read() != HARDWARE_CONTRACTS.read_bytes():
+                raise AssertionError("package does not contain the shared hardware contracts")
 
         # Case 2: without a deb (and without the explicit override) the
         # packager must REFUSE — a release with silent-mic HFP is not a
