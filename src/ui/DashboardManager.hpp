@@ -83,6 +83,8 @@ private:
     };
 
     void saveAll();
+    void connectModelPersistence(WidgetGridModel* model);
+    void commitSharedBaseline();
     // Pure navigation (no placement/page-count change): persists only the
     // active dashboard id, debounced via persistTimer_, instead of
     // reserializing every dashboard through saveAll(). See class docs.
@@ -98,6 +100,7 @@ private:
     QList<Entry> entries_;
     int active_ = 0;
     bool loading_ = false;
+    bool committingBaseline_ = false;
 
     // Debounced persistence for nav-only active-id changes (switchTo/
     // switchToIndex/next/previousDashboard). Nav taps update active_ and

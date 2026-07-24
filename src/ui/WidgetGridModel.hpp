@@ -96,7 +96,12 @@ public:
 
     // Serialization
     QList<GridPlacement> placements() const;
+    QList<GridPlacement> baselinePlacements() const { return basePlacements_; }
+    int baselinePageCount() const { return basePageCount_; }
+    int baselineGridColumns() const { return savedCols_; }
+    int baselineGridRows() const { return savedRows_; }
     void setPlacements(const QList<GridPlacement>& placements, WidgetRegistry* registry = nullptr);
+    void adoptLiveAsBaseline();
 
     // Instance ID management
     int nextInstanceId() const { return nextInstanceId_; }
@@ -107,6 +112,7 @@ signals:
     void placementsChanged();
     void activePageChanged();
     void pageCountChanged();
+    void baselineChanged();
     void widgetConfigChanged(const QString& instanceId, const QVariantMap& effectiveConfig);
     void widgetDeselectedFromCpp();
 

@@ -445,6 +445,12 @@ removes surplus spill-only pages without removing intentionally empty user
 pages. Adding/removing a page or editing a placement adopts the current page
 topology as the next baseline.
 
+Only that baseline is persisted. A display-only remap may change the live page
+count and placement pages, but restarting while constrained reconstructs those
+live results from the unchanged saved topology. Since saved grid dimensions are
+shared by all dashboards, a user edit in a remapped layout commits every
+dashboard's current live topology at those dimensions in one persistence step.
+
 A placement whose minimum span is larger than the entire grid is retained but
 marked invisible. It still occupies its page for cleanup purposes and becomes
 visible again when the grid can contain it. If dimensions change while a widget

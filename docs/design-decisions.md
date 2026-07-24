@@ -301,9 +301,21 @@ edits. The copy is cheap (small QList of POD-like structs).
 
 ### Base/Live Snapshot Pattern
 
-**Decision:** Two parallel placement lists: `basePlacements_` (persisted from YAML, updated by promoteToBase) and `livePlacements_` (runtime state exposed to QML).
+**Decision:** Two parallel placement lists: `basePlacements_` (persisted to
+YAML, updated by explicit user mutation) and `livePlacements_` (runtime state
+exposed to QML). `DashboardManager` serializes the baseline placements, page
+count, and matching baseline dimensions; automatic remap notifications never
+serialize live-only topology.
 
-**Rationale:** Clean separation of persisted vs runtime state. Remap reads from base and writes to live, ensuring the remap algorithm always has a stable input. Structural edits (move, resize, add, remove) update live first, then `promoteToBase()` copies live back to base so future remaps reflect the latest user intent. YAML serialization reads from live. The QAbstractListModel interface exposes live placements.
+**Rationale:** Clean separation of persisted vs runtime state. Remap reads from
+base and writes to live, ensuring the remap algorithm always has a stable input
+even across a restart at constrained dimensions. Structural edits (move,
+resize, add, remove) update live first, then `promoteToBase()` copies live back
+to base so future remaps reflect the latest user intent. Because grid dimensions
+are one global YAML value, a model's user-mutation signal makes the manager
+adopt every dashboard's current live topology at the same dimensions before one
+save. This prevents different dashboards from being serialized against mixed
+coordinate systems while keeping QML bound to live placements.
 
 ### Reserved Page Derived from Singleton Presence
 

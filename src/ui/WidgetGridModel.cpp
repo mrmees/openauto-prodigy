@@ -984,6 +984,12 @@ bool WidgetGridModel::isReservedPage(int page) const
 
 void WidgetGridModel::promoteToBase()
 {
+    adoptLiveAsBaseline();
+    emit baselineChanged();
+}
+
+void WidgetGridModel::adoptLiveAsBaseline()
+{
     basePlacements_ = livePlacements_;
     basePageCount_ = pageCount_;
     savedCols_ = cols_;
