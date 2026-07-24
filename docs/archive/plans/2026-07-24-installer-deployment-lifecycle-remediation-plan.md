@@ -1,6 +1,6 @@
 # Installer and Deployment Lifecycle Remediation — Implementation Plan
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-24
 Date: 2026-07-24
 Design: `docs/plans/2026-07-24-installer-deployment-lifecycle-remediation-design.md`
 Base: `origin/main` at `76b3cd103170f736ae8210c95f0cff1bca62b1cf`

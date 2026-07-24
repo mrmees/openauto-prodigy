@@ -4,6 +4,68 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — Installer and deployment lifecycle remediation COMPLETE
+
+**What changed:** source mode now resolves and validates the complete checkout
+that owns the running installer, rejects stdin or copied-script execution before
+mutation, supervises package/build process groups, and preserves the entry
+application state across rebuilds. Source and prebuilt modes share hexadecimal
+touch parsing, AP-capability/channel selection, strict SSID/country validation,
+carrier-independent networking, a canonical preflight, and canonical application
+unit rendering. Prebuilt upgrades stage and validate managed payloads before an
+unconditional managed-service stop boundary, restore payload/unit/activity and
+enablement policy on failure, and require application, system, and web readiness
+before retiring rollback material. Startup now conditions on the actual user
+PipeWire socket and Wayland socket, while the resolution helper accepts only an
+Xvfb child whose PID, lock, socket, and parent ownership agree. The bounded
+implementation spans `0fa4f08` through `3e151b3` after documentation activation
+commit `f150a65`.
+
+**Why:** checkout assumptions, decimal bitmap parsing, unsupported radio
+selection, unmanaged child lifetimes, in-place payload replacement, divergent
+startup assets, cross-manager PipeWire ordering, and lock-file PID authority
+could leave an install incomplete, run stale code, produce unusable network
+configuration, or signal an unrelated process. The new boundaries make those
+ownership and readiness decisions explicit without changing application C++,
+QML, Android Auto, Bluetooth media, HFP, protobuf/API, or audio behavior.
+
+**Status:** COMPLETE on
+`agent/installer-deployment-lifecycle-remediation`, based on merged PR #36. The
+reviewed aarch64 application target was built but not deployed because this wave
+changes installer, packaged shell assets, tests, and documentation only. The Pi
+matrix ran from temporary roots and units; all temporary files and units were
+removed. Production remains one responsive application process (PID `380741`)
+with zero service restarts, the original configuration hash
+`f038a7a3f6f768ac10070e0db36b1cc90afe7d465839cab62a70a6d642344c10`, and the
+pre-existing dirty checkout untouched. Hostapd PID `46989` and Bluetooth PID
+`672` remained unchanged with zero restarts.
+
+**Review gate:** the initial pass returned five P2 findings and the required
+rerun returned five P2 findings plus one P3 finding. All eleven were confirmed
+and fixed; none were dismissed or silently dropped. Fixes cover enablement
+rollback, systemd-special paths, Wayland races, owned Xvfb readiness, DFS and
+6 GHz filtering, AP capability and SSID bounds, real PipeWire coordination, web
+readiness, and managed-service stop races. No third pass was run under the
+one-rerun policy.
+
+**Verification:** focused source-lifecycle, hardware-contract, prebuilt
+transaction/package/selection, operations-systemd, and resolution-validation
+tests passed with Bash syntax and error-level ShellCheck. The full local build,
+explicit `openauto-prodigy` target, `ctest --output-on-failure`, documentation
+link/private-reference checks, and `git diff --check origin/main..HEAD` passed.
+`./cross-build.sh` produced the aarch64 target. On the Pi, the shared parser
+identified the sole direct touchscreen and selected live wlan0 channel 36 with
+VHT while the synthetic DFS-only case fell back to 2.4 GHz channel 6. Temporary
+prebuilt success, every forced rollback boundary, exact service activity and
+enablement restoration, web readiness failure, and real user-systemd
+Wayland/PipeWire absent/present conditions passed.
+
+**Next 1-3 steps:** (1) publish this completed branch as a draft PR targeting
+`main`; (2) review and merge it as the independent final consolidated wave;
+(3) promote future work from the wishlist under a new approved plan.
+
+---
+
 ## 2026-07-24 — PR #36 pre-merge review
 
 **What changed:** nothing — the review confirmed the branch as-is.

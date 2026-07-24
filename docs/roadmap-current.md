@@ -14,17 +14,25 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-Installer and deployment lifecycle remediation — **ACTIVE**. The final bounded
-audit-remediation wave owns source-checkout and child-process lifetimes, shared
-hardware/network detection, canonical preflight and application units,
-recoverable prebuilt payload swaps, and Xvfb launch ownership. It does not
-change application, Android Auto, Bluetooth, HFP, QML, or API behavior. Design
-and plan:
-`docs/plans/2026-07-24-installer-deployment-lifecycle-remediation-design.md`
-and
-`docs/plans/2026-07-24-installer-deployment-lifecycle-remediation-plan.md`.
+No implementation wave is active. The consolidated audit-remediation campaign
+is complete; subsequent work must be promoted from the wishlist or a newly
+approved design rather than extending a closed plan.
 
 ## Done (recent)
+
+- Installer and deployment lifecycle remediation — **COMPLETE 2026-07-24**
+  (Pi-live-validated). Source installs now bind to their complete checkout and
+  own child-process and rebuild lifetimes. Both install modes share validated
+  touch, AP-radio, network, preflight, and unit contracts. Prebuilt upgrades
+  stage and recover managed payloads while preserving service activity and
+  enablement, and resolution validation cleans up only its own verified Xvfb
+  child. Live validation covered Pi touch/WiFi capability parsing, temporary
+  success and rollback transactions, real Wayland/PipeWire socket conditions,
+  one responsive production process, byte-identical configuration, and
+  unchanged hostapd/Bluetooth lifetimes. Design and plan:
+  `docs/archive/plans/2026-07-24-installer-deployment-lifecycle-remediation-design.md`
+  and
+  `docs/archive/plans/2026-07-24-installer-deployment-lifecycle-remediation-plan.md`.
 
 - Media lifecycle and persistence remediation — **COMPLETE 2026-07-24**
   (Pi-live-validated). Exact saved tracks alone own saved positions, explicit

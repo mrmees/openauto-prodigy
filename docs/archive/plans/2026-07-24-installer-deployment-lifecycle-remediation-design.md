@@ -1,6 +1,6 @@
 # Installer and Deployment Lifecycle Remediation — Design
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-24
 Date: 2026-07-24
 Grounded against: `origin/main` at `76b3cd103170f736ae8210c95f0cff1bca62b1cf`
 Publication: one standalone branch and draft pull request
