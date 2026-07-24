@@ -4,6 +4,52 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — Future-item qualifiers and AA next-steps triage
+
+**What changed:** local and remote `dev` were fast-forwarded to the merged PR
+#38 commit before the next planning pass. Every wishlist entry now states
+current Prodigy/Companion stack fit, hardware needs, and whether promotion
+requires normal design, one targeted spike, or research-first feasibility work.
+The external `E:\tmp\Next Steps for AA in Prodigy.txt` intake was checked
+against the current Prodigy tree, the in-tree protocol definitions, the
+recovered display/channel reference, and current official Android for Cars
+documentation. The wishlist now contains 24 capabilities, 13 marked long-term,
+and all 24 carry all three qualifiers.
+
+The intake produced five net capabilities: CarLocalMedia exposure, native
+cluster-lite, AA/native blended UI, AA broadcast-radio exposure, and vehicle
+climate/control. Cluster-lite is separated from true projected multi-display;
+native FM is separated from uncertain AA radio activation. The former OBD item
+now describes a GPS/OBD/CAN/GPIO sensor-provider bridge, and the key-event item
+now includes rotary, D-pad, call, Assistant, and navigation input. Existing
+audio-policy items absorbed the remaining audio notes. The reusable probe
+harness remains a bounded research method inside activation-dependent items,
+not a product feature, and already-shipped AA/local media arbitration was not
+re-added.
+
+**Why:** “future” previously mixed software-ready work, hardware-bound work,
+and protocol ideas whose phone-side activation is still unknown. The three
+qualifiers make those constraints visible before prioritization and prevent a
+plausible recovered schema from being mistaken for an implementation-ready
+feature.
+
+**Status:** COMPLETE as a documentation-only intake and triage on local `dev`.
+No feature was promoted and no implementation priority was accepted from the
+source document. Fable found two P3 terminology inconsistencies; both were
+confirmed and fixed. The focused Fable recheck returned LGTM with no remaining
+P1, P2, or P3 findings and a merge-safe verdict.
+
+**Verification:** each of the 24 capability bullets has exactly one Stack,
+Hardware, and Investigation qualifier. `python3 scripts/check-doc-links.py`
+and `git diff --check` are the local documentation gates. Build, app-target
+build, and CTest are not required because only planning documentation changed.
+
+**Next 1-3 steps:** (1) review Matthew's desired wording or classification
+clarifications; (2) discuss additional wishlist ideas; (3) promote only a
+chosen capability whose hardware and investigation gate are understood.
+
+---
+
 ## 2026-07-24 — Post-milestone planning cleanup review
 
 **What changed:** the `dev` planning-documentation range received its final

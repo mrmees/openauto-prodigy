@@ -16,7 +16,8 @@
 - [project-vision.md](project-vision.md) — product intent, design principles, constraints
 - [roadmap-current.md](roadmap-current.md) — current priorities (Now/Next/Later)
 - [session-handoffs.md](session-handoffs.md) — session continuity log (recent entries; older months rotate to [archive/session-handoffs/](archive/session-handoffs/))
-- [wishlist.md](wishlist.md) — unpromoted user-facing capabilities
+- [wishlist.md](wishlist.md) — unpromoted user-facing capabilities with stack,
+  hardware, and investigation qualifiers
 - [engineering-backlog.md](engineering-backlog.md) — technical findings that require fresh research before promotion
 - [validation-current.md](validation-current.md) — current milestone observations awaiting hardware validation
 - [design-decisions.md](design-decisions.md) — architectural choices and rationale

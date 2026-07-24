@@ -3,7 +3,9 @@
 Governance: capture user-facing capability ideas in `docs/wishlist.md`, concrete
 technical findings in `docs/engineering-backlog.md`, and unconfirmed hardware
 observations in `docs/validation-current.md`. Only promoted work should appear
-in this roadmap.
+in this roadmap. Wishlist entries must state current-stack fit, required or
+unavailable hardware, and whether promotion needs normal design, a targeted
+spike, or research-first feasibility work.
 
 > **Parity program status (updated 2026-07-21):** the 2026-07-05 design sprint
 > (`docs/archive/plans/2026-07-05-fable-work-program-design.md`, phases A–F)
