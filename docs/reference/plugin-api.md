@@ -327,9 +327,9 @@ Per-stream audio equalization with presets and manual band control.
 | `isBypassed(StreamId)` | Main thread | Get bypass state |
 | `bundledPresetNames()` | Main thread | List built-in preset names |
 | `userPresetNames()` | Main thread | List user-created preset names |
-| `saveUserPreset(StreamId, name)` | Main thread | Save current gains as user preset. Returns name used, or empty string if name collides with a bundled preset. |
+| `saveUserPreset(StreamId, name)` | Main thread | Save current gains as a user preset. An omitted name is generated; whitespace-only or bundled names return an empty string. An existing user name retains overwrite semantics. |
 | `deleteUserPreset(name)` | Main thread | Delete a user preset. Streams using it revert to Flat. |
-| `renameUserPreset(old, new)` | Main thread | Rename a user preset |
+| `renameUserPreset(old, new)` | Main thread | Rename a user preset; rejects blank, bundled, or duplicate targets. |
 
 `StreamId` values are `Media`, `Navigation`, and `System`. `Phone` remains a
 deprecated source-compatibility alias for `System`; numeric value 2 processes

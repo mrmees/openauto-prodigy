@@ -4,6 +4,33 @@ Newest entries first.
 
 ---
 
+## 2026-07-23 — PR #34 pre-merge review
+
+**What changed:** nothing — the review confirmed the branch as-is.
+
+**Review adjudication:** zero findings. Verified in depth: the tagged-field
+seqlock coefficient publication (odd/even generation bracket plus per-field
+generation tags makes any cross-generation mix fail even with relaxed loads;
+each generation is used once under the control mutex, so matching tags imply a
+coherent snapshot); strict SPSC ring cursor ownership (drop-newest leaves the
+same full-ring fill dynamics as the old drop-oldest, and short writes stay
+frame-aligned because reads/writes are always stride multiples); PipeWire
+buffer validation ordering (chunk zeroed before rejection so recycled buffers
+cannot replay stale audio); all four nullable `createStreamWithOptions`
+callers null-check; `IEqualizerService` changed comments only (no vtable
+change, no HOST_API_VERSION bump owed); deprecated `audio.adaptive` preserved
+in place on save. Observations without action: `isValidStream` hardcodes the
+stream count (debug assert covers drift); error-path QString allocation in
+`onStreamStateChanged` runs on the PW loop thread (error-only, acceptable).
+
+**Verification:** full local build, explicit `openauto-prodigy` target, and
+`ctest --output-on-failure` (all tests) passed on the branch.
+
+**Next 1-3 steps:** (1) merge PR #34; (2) at the next milestone tag, deploy the
+accumulated PR #32-#34 fixes to the Pi together.
+
+---
+
 ## 2026-07-23 — PR #33 pre-merge review fixes
 
 **What changed:** two confirmed P3 findings from the PR #33 review were fixed
@@ -226,5 +253,57 @@ deadline stability, and unchanged hostapd/Bluetooth lifetimes.
 **Next 1-3 steps:** (1) publish this branch as a draft PR targeting `main`;
 (2) review and merge it as an independent wave; (3) revalidate the next bounded
 subsystem wave before activating another public plan.
+
+---
+
+## 2026-07-23 — Audio and equalizer real-time safety remediation COMPLETE
+
+**What changed:** `AudioRingBuffer` now uses strict single-producer/
+single-consumer cursor ownership and drop-newest short writes. PipeWire
+playback and capture validate their containers, chunks, offsets, sizes, and
+bounded capacities before access; rejected playback buffers are recycled as
+empty; static buffering replaces unreachable adaptive growth; and RT callbacks
+publish primitive diagnostics for later Qt-thread logging. Equalizer public
+ingress and preset namespaces are validated, restoration is save-free until a
+user mutation, and the engine publishes complete coefficient snapshots through
+lock-free atomic primitives with one bounded RT read attempt.
+
+**Why:** the previous overflow, malformed-buffer, configuration, preset, and
+coefficient-publication boundaries could race, dereference invalid PipeWire
+state, allocate or block on the RT thread, index outside fixed state, rewrite
+configuration without a user action, or expose a torn filter update. The fixes
+keep routing, focus, protocol, API, and QML behavior unchanged.
+
+**Status:** COMPLETE on `agent/audio-eq-rt-safety-remediation`, based on merged
+PR #33. The behavior-changing aarch64 binary through `fea943b` was retained
+behind rollback snapshot `/var/backups/openauto-prodigy/20260723T224456Z` and
+deployed. One application process (PID `306153`) owns responsive IPC and
+reports `ALPHA-26-07-15-02-140-gfea943b`. The Pixel automatically resumed
+wireless H.265 projection; AA Media, Speech, and System streams and the
+Bluetooth EQ graph were present without stream errors or restarts. Audible
+A2DP was unavailable while the Pixel occupied Android Auto, so that row is
+recorded as unavailable rather than inferred. Hostapd PID `46989` and Bluetooth
+PID `672` remained unchanged with zero restarts. The original configuration was
+restored byte-for-byte, and the Pi's pre-existing dirty checkout was untouched.
+
+**Review gate:** the first pass returned three findings and the required rerun
+returned two. All five were confirmed and fixed; none were dismissed or left
+unadjudicated. The fixes cover clean-shutdown persistence, capture bounds,
+preset namespace consistency, rejected-buffer metadata, and exact accepted
+ring-stream coverage. No second rerun was performed under the one-rerun policy.
+
+**Verification:** focused audio-ring, AudioService, configuration, equalizer
+service, and equalizer engine tests passed. The ring stress passed fifty
+repetitions and the engine stress passed one hundred. `cmake --build .
+-j$(nproc)`, the explicit `openauto-prodigy` target, and `ctest
+--output-on-failure` passed in `~/builds/openauto-prodigy`.
+`git diff --check origin/main..HEAD` and `./cross-build.sh` passed. Live
+validation covered binary identity, exact process/IPC ownership, audio graph
+creation, wireless H.265 reconnect, exact configuration restoration, and
+unchanged hostapd/Bluetooth lifetimes.
+
+**Next 1-3 steps:** (1) review and merge the draft PR as an independent wave;
+(2) revalidate the next consolidated subsystem batch; (3) approve its bounded
+design and plan before implementation.
 
 ---

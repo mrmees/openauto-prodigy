@@ -56,10 +56,9 @@ audio:
   master_volume: 80
   output_device: auto
   buffer_ms:
-    media: 100
-    speech: 100
-    system: 100
-  adaptive: true
+    media: 500
+    speech: 500
+    system: 500
   microphone:
     device: auto
     gain: 1.0
@@ -211,10 +210,9 @@ therefore readable and writable with `ConfigService` dot paths.
 |---|---|---|---|
 | `audio.master_volume` | int | `80` | Master output volume. |
 | `audio.output_device` | string | `auto` | PipeWire output node or automatic selection. |
-| `audio.buffer_ms.media` | int | `100` | Media playback buffer target. |
-| `audio.buffer_ms.speech` | int | `100` | Speech/navigation playback buffer target. |
-| `audio.buffer_ms.system` | int | `100` | AA system-sound playback buffer target. |
-| `audio.adaptive` | bool | `true` | Enables adaptive audio buffering. |
+| `audio.buffer_ms.media` | int | `500` | Static media playback buffer target in milliseconds; clamped to 500–5000. |
+| `audio.buffer_ms.speech` | int | `500` | Static speech/navigation buffer target in milliseconds; clamped to 500–5000. |
+| `audio.buffer_ms.system` | int | `500` | Static AA system-sound buffer target in milliseconds; clamped to 500–5000. |
 | `audio.microphone.device` | string | `auto` | PipeWire capture node or automatic selection. |
 | `audio.microphone.gain` | double | `1.0` | Microphone gain multiplier. |
 | `audio.equalizer.streams.media.preset` | string | `Flat` | Media/local/BT-tap EQ preset. |
@@ -282,7 +280,7 @@ The following maps or sequences are not writable as whole values through
 | `logging.debug_categories` | `[]` of strings | Selective debug categories using the canonical values `aa`, `bt`, `audio`, `plugin`, `ui`, `core`, and `eq`; `aa` also enables the Android Auto protocol library category. Owned by the typed `loggingDebugCategories()` / `setLoggingDebugCategories()` accessors. Generic dot-path access remains scalar-only. |
 | `audio.equalizer.streams.<stream>.gains` | Optional list of exactly ten finite values, clamped to ±12 dB | `EqualizerService` dedicated accessors. |
 | `audio.equalizer.streams.<stream>.bypassed` | Optional bool, effectively `false` when absent | `EqualizerService` dedicated accessors. |
-| `audio.equalizer.user_presets` | `[]`; entries contain `name` and ten `gains` | `EqualizerService` dedicated accessors. |
+| `audio.equalizer.user_presets` | `[]`; entries contain a non-blank, non-bundled, unique `name` and ten `gains` | `EqualizerService` dedicated accessors. Invalid/duplicate restored entries are ignored in memory without causing a clean-start rewrite. |
 | `plugins.enabled` | `[org.openauto.android-auto]` | Plugin manager / typed accessor. |
 | `plugins.disabled` | `[]` | Reserved plugin-disable list. |
 | `plugin_config.<plugin-id>` | Empty map by default | Per-plugin scalar or string-list storage. |

@@ -13,6 +13,8 @@
 #include <pipewire/pipewire.h>
 #include <spa/param/audio/format-utils.h>
 
+class TestAudioService;
+
 namespace oap {
 
 class EqualizerEngine;  // forward declaration for RT-safe EQ processing
@@ -33,18 +35,23 @@ struct AudioStreamHandle {
     std::atomic<float> targetGain{1.0f};  // 0.0 - 1.0 (may be ducked/muted)
     float baseVolume = 1.0f;   // gain before ducking (Qt thread only)
     float rtCurrentGain = 1.0f;  // ramp state (PW RT thread only)
-    int bufferMs = 50;  // ring buffer size in milliseconds
-    int maxBufferMs = 100;  // adaptive growth cap
+    int bufferMs = 500;  // fixed ring buffer target in milliseconds
 
     // Underrun tracking (written on PW RT thread, read on Qt main thread)
     std::atomic<uint32_t> underrunCount{0};
 
     // Rate matching state (PW RT thread only, no atomics needed)
     uint32_t rateCtlCount = 0;
-    uint32_t diagCount = 0;
     uint32_t activeCallbacks = 0; // callbacks with data in current window
     float filteredFill = 0.5f;    // EMA of normalized fill level
     float rateIntegral = 0.0f;    // PI controller integral term
+
+    // Primitive RT diagnostics. The process callback only stores atomics; the
+    // Qt-owner diagnostic timer consumes and logs them.
+    std::atomic<uint32_t> rateDiagnosticUpdates{0};
+    std::atomic<uint32_t> rateAvailableBytes{0};
+    std::atomic<int32_t> rateFillPermille{0};
+    std::atomic<int32_t> rateCorrectionPpm{0};
 
     // Format info for process callback
     int sampleRate = 48000;
@@ -184,14 +191,10 @@ public:
     /// proceed on a failed activation (design §3.1 — no silent failure).
     bool setStreamActive(AudioStreamHandle* handle, bool active);
 
-    /// Drain a stream's ring buffer (reader-side, plain read-index catch-up).
-    /// Precondition: BOTH the reader AND the writer are quiesced. The reader is
-    /// quiesced by deactivating PLAYBACK first (stops the process callback); the
-    /// writer is quiesced by the caller (the BT tap gates its capture callback
-    /// off before draining). drain() is NOT writer-safe: write() advances the
-    /// read index on overflow, so an overflowing writer would be a second
-    /// concurrent read-index mutator and could overwrite the flush — leaving
-    /// stale pre-drain audio readable (see AudioRingBuffer::drain()).
+    /// Drain a stream's ring buffer (reader-side read-index catch-up).
+    /// The playback reader must be quiesced first. A concurrent writer is safe
+    /// because it owns only the write index, although the BT tap deliberately
+    /// quiesces both sides so its activation boundary starts completely empty.
     void resetStreamRing(AudioStreamHandle* handle);
 
     /// Perceptual cubic volume curve: (v/100)^3, clamped to [0,100].
@@ -215,19 +218,32 @@ private slots:
     void onDeviceRemoved(uint32_t registryId);
 
 private:
+    friend class ::TestAudioService;
     void applyDucking();
     // Push a single gain onto a stream's channelVolumes control. Caps the value
     // count at min(channels, 2) — app streams are mono/stereo and the on-stack
     // volume array is sized 2, so a >2-channel handle must not read past it.
     // Caller MUST hold the PW thread-loop lock. Logs on set-control failure.
     void applyVolumeToStream(AudioStreamHandle* handle, float vol);
-    void checkAdaptiveBuffers();
+    void reportAudioDiagnostics();
     static void onPlaybackProcess(void* userdata);
+    // Real playback-buffer body, factored so malformed PipeWire structures can
+    // be driven headlessly. Returns false without touching an invalid buffer.
+    static bool fillPlaybackBuffer(AudioStreamHandle* handle, struct pw_buffer* buf);
+    // Total, bounded ring-capacity calculation. Returns 0 for an unsupported
+    // sample rate or impossible size and writes the clamped buffer target.
+    static uint32_t playbackRingCapacityBytes(int sampleRate, int channels,
+                                              int bufferMs, int* normalizedBufferMs);
     // Shared PW state-change hook for BOTH playback and capture streams: on
-    // PW_STREAM_STATE_ERROR it marshals handle->onStreamError to the Qt thread.
-    // userdata is the AudioStreamHandle in both cases.
+    // PW_STREAM_STATE_ERROR it queues an unconditional diagnostic and marshals
+    // handle->onStreamError (when supplied) to the Qt thread. userdata is the
+    // AudioStreamHandle in both cases.
     static void onStreamStateChanged(void* userdata, enum pw_stream_state old,
                                      enum pw_stream_state state, const char* error);
+    // Validate one mapped capture plane before pointer arithmetic or narrowing
+    // its SPA-sized payload to the callback's int length.
+    static bool capturePayload(const struct spa_data& data,
+                               const uint8_t*& payload, int& size);
     static void onCaptureProcess(void* userdata);
 
     struct pw_thread_loop* threadLoop_ = nullptr;
@@ -249,9 +265,7 @@ private:
 
     PipeWireDeviceRegistry deviceRegistry_{this};
 
-    // Adaptive buffer growth
-    bool adaptiveBuffers_ = true;
-    QTimer adaptiveTimer_;
+    QTimer audioDiagnosticTimer_;
 };
 
 } // namespace oap

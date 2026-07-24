@@ -1,10 +1,16 @@
 #include "core/audio/EqualizerEngine.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstring>
 
 namespace oap {
+
+static_assert(std::atomic<uint64_t>::is_always_lock_free,
+              "Equalizer RT publication requires lock-free tagged atomics");
+static_assert(std::atomic<uint32_t>::is_always_lock_free,
+              "Equalizer RT publication requires a lock-free generation atomic");
 
 EqualizerEngine::EqualizerEngine(float sampleRate, int channels)
     : sampleRate_(sampleRate)
@@ -13,11 +19,6 @@ EqualizerEngine::EqualizerEngine(float sampleRate, int channels)
 {
     gains_.fill(0.0f);
 
-    // Initialize both buffers to unity (flat)
-    // bufferA_ and bufferB_ default-construct to unity
-    activeCoeffs_.store(&bufferA_, std::memory_order_relaxed);
-    writeCoeffs_ = &bufferB_;
-    generation_.store(0, std::memory_order_relaxed);
     lastSeenGeneration_ = 0;
 
     // Initialize RT-side interpolation state to unity
@@ -38,6 +39,8 @@ void EqualizerEngine::setGain(int band, float dB)
 {
     if (band < 0 || band >= kNumBands) return;
 
+    std::lock_guard<std::mutex> lock(controlMutex_);
+
     // Sanitize non-finite input to 0 before clamping (defense in depth,
     // design §4.5 / round-2 F5): std::clamp(NaN) does not sanitize NaN, and
     // a NaN reaching coefficient generation would poison the RT filter.
@@ -45,40 +48,44 @@ void EqualizerEngine::setGain(int band, float dB)
     dB = std::clamp(dB, -12.0f, 12.0f);
     gains_[band] = dB;
 
-    recomputeCoeffs();
+    recomputeCoeffsLocked();
 }
 
 void EqualizerEngine::setAllGains(const std::array<float, kNumBands>& gainsDb)
 {
+    std::lock_guard<std::mutex> lock(controlMutex_);
     for (int i = 0; i < kNumBands; ++i) {
         float g = gainsDb[i];
         if (!std::isfinite(g)) g = 0.0f;   // sanitize before clamp (§4.5 / round-2 F5)
         gains_[i] = std::clamp(g, -12.0f, 12.0f);
     }
 
-    recomputeCoeffs();
+    recomputeCoeffsLocked();
 }
 
 float EqualizerEngine::getGain(int band) const
 {
     if (band < 0 || band >= kNumBands) return 0.0f;
+    std::lock_guard<std::mutex> lock(controlMutex_);
     return gains_[band];
 }
 
 void EqualizerEngine::setBypassed(bool bypassed)
 {
-    bypassed_.store(bypassed, std::memory_order_relaxed);
+    std::lock_guard<std::mutex> lock(controlMutex_);
+    bypassed_ = bypassed;
 
-    // Also update the coefficient buffer's bypass flag so the RT side picks it up
-    recomputeCoeffs();
+    // Also publish the bypass flag so the RT side picks it up.
+    recomputeCoeffsLocked();
 }
 
 bool EqualizerEngine::isBypassed() const
 {
-    return bypassed_.load(std::memory_order_relaxed);
+    std::lock_guard<std::mutex> lock(controlMutex_);
+    return bypassed_;
 }
 
-void EqualizerEngine::recomputeCoeffs()
+void EqualizerEngine::recomputeCoeffsLocked()
 {
     EngineCoeffs newCoeffs;
     for (int i = 0; i < kNumBands; ++i) {
@@ -89,30 +96,60 @@ void EqualizerEngine::recomputeCoeffs()
                 kCenterFreqs[i], gains_[i], kGraphicEqQ, sampleRate_);
         }
     }
-    newCoeffs.bypass = bypassed_.load(std::memory_order_relaxed);
+    newCoeffs.bypass = bypassed_;
 
-    swapCoeffs(newCoeffs);
+    publishCoeffsLocked(newCoeffs);
 }
 
-void EqualizerEngine::swapCoeffs(const EngineCoeffs& newCoeffs)
+void EqualizerEngine::publishCoeffsLocked(const EngineCoeffs& newCoeffs)
 {
-    // Write to inactive buffer, then swap pointer
-    *writeCoeffs_ = newCoeffs;
+    const uint32_t previous = publishedGeneration_.fetch_add(
+        1, std::memory_order_acq_rel);
+    assert((previous & 1u) == 0u);
+    const uint32_t next = previous + 2u;
 
-    // Swap: make writeCoeffs_ the active one, old active becomes write target
-    EngineCoeffs* prev = activeCoeffs_.exchange(writeCoeffs_, std::memory_order_release);
-    writeCoeffs_ = prev;
-    generation_.fetch_add(1, std::memory_order_release);
+    // Tag every primitive with the generation it belongs to. This closes the
+    // visibility gap inherent in a plain seqlock: even if a reader observes a
+    // field before it observes the odd marker, the tag makes that attempt fail.
+    for (int band = 0; band < kNumBands; ++band)
+        publishedBands_[band].store(next, newCoeffs.bands[band]);
+    publishedBypass_.store(packBypass(next, newCoeffs.bypass),
+                           std::memory_order_relaxed);
+    publishedGeneration_.store(next, std::memory_order_release);
+}
+
+bool EqualizerEngine::tryLoadPublishedCoeffs(EngineCoeffs& result,
+                                              uint32_t& generation) const
+{
+    const uint32_t before = publishedGeneration_.load(std::memory_order_acquire);
+    if ((before & 1u) != 0u)
+        return false;
+
+    for (int band = 0; band < kNumBands; ++band) {
+        if (!publishedBands_[band].load(before, result.bands[band]))
+            return false;
+    }
+    const uint64_t taggedBypass = publishedBypass_.load(std::memory_order_relaxed);
+    if (static_cast<uint32_t>(taggedBypass >> 32) != before)
+        return false;
+    result.bypass = (taggedBypass & 1u) != 0u;
+
+    const uint32_t after = publishedGeneration_.load(std::memory_order_acquire);
+    if (before != after || (after & 1u) != 0u)
+        return false;
+    generation = after;
+    return true;
 }
 
 void EqualizerEngine::process(int16_t* data, int frameCount)
 {
     if (frameCount <= 0 || data == nullptr) return;
 
-    // Check for new coefficients (generation counter avoids ABA problem)
-    uint32_t gen = generation_.load(std::memory_order_acquire);
-    EngineCoeffs* current = activeCoeffs_.load(std::memory_order_acquire);
-    if (gen != lastSeenGeneration_) {
+    // Take one bounded snapshot attempt. If a publication overlaps this copy,
+    // defer it to the next callback; never spin or lock on the RT thread.
+    EngineCoeffs current;
+    uint32_t gen = 0;
+    if (tryLoadPublishedCoeffs(current, gen) && gen != lastSeenGeneration_) {
         // New coefficients arrived — start interpolation
 
         // If already interpolating, snapshot current interpolated position as "old"
@@ -133,10 +170,10 @@ void EqualizerEngine::process(int16_t* data, int frameCount)
             oldCoeffs_ = newCoeffs_;
         }
 
-        newCoeffs_ = current->bands;
+        newCoeffs_ = current.bands;
 
         // Handle bypass state change
-        float newBypassTarget = current->bypass ? 1.0f : 0.0f;
+        float newBypassTarget = current.bypass ? 1.0f : 0.0f;
         if (newBypassTarget != bypassTarget_) {
             bypassTarget_ = newBypassTarget;
             bypassRampRemaining_ = kInterpolationSamples;
@@ -145,7 +182,7 @@ void EqualizerEngine::process(int16_t* data, int frameCount)
         // If fully bypassed with no bypass ramp pending, skip interpolation —
         // just snap to new coefficients so they're ready when un-bypassed.
         if (bypassMix_ >= 1.0f && bypassRampRemaining_ <= 0) {
-            oldCoeffs_ = current->bands;
+            oldCoeffs_ = current.bands;
             interpSamplesRemaining_ = 0;
         } else {
             interpSamplesRemaining_ = kInterpolationSamples;

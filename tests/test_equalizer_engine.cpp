@@ -1,6 +1,8 @@
 #include <QtTest>
 #include <array>
+#include <atomic>
 #include <cmath>
+#include <thread>
 #include <vector>
 #include "core/audio/EqualizerEngine.hpp"
 
@@ -52,6 +54,20 @@ private:
     {
         if (rms < 1e-10f) return -200.0f;
         return 20.0f * std::log10(rms);
+    }
+
+    static bool sameCoefficients(const oap::EqualizerEngine::EngineCoeffs& lhs,
+                                 const oap::EqualizerEngine::EngineCoeffs& rhs)
+    {
+        for (int band = 0; band < oap::kNumBands; ++band) {
+            const auto& a = lhs.bands[band];
+            const auto& b = rhs.bands[band];
+            if (a.b0 != b.b0 || a.b1 != b.b1 || a.b2 != b.b2
+                || a.a1 != b.a1 || a.a2 != b.a2) {
+                return false;
+            }
+        }
+        return lhs.bypass == rhs.bypass;
     }
 
 private slots:
@@ -469,6 +485,81 @@ private slots:
         // churn must not have leaked into e2's state.
         for (int i = 0; i < 4800 * 2; ++i)
             QCOMPARE(sigA[i], sigB[i]);
+    }
+
+    void testConcurrentPublicationNeverInstallsTornSnapshot()
+    {
+        oap::EqualizerEngine engine;
+        std::array<float, oap::kNumBands> low;
+        std::array<float, oap::kNumBands> high;
+        low.fill(-12.0f);
+        high.fill(12.0f);
+
+        engine.setAllGains(low);
+        oap::EqualizerEngine::EngineCoeffs expectedLow;
+        uint32_t generation = 0;
+        QVERIFY(engine.tryLoadPublishedCoeffs(expectedLow, generation));
+
+        engine.setAllGains(high);
+        oap::EqualizerEngine::EngineCoeffs expectedHigh;
+        QVERIFY(engine.tryLoadPublishedCoeffs(expectedHigh, generation));
+        auto expectedLowBypassed = expectedLow;
+        expectedLowBypassed.bypass = true;
+        auto expectedHighBypassed = expectedHigh;
+        expectedHighBypassed.bypass = true;
+
+        std::atomic<bool> start{false};
+        std::atomic<bool> writerDone{false};
+        std::atomic<bool> invalidSnapshot{false};
+        std::atomic<int> processCalls{0};
+
+        std::thread writer([&] {
+            while (!start.load(std::memory_order_acquire)) {}
+            for (int i = 0; i < 10000; ++i) {
+                engine.setAllGains(low);
+                engine.setGain(3, -12.0f);
+                engine.setBypassed(true);
+                engine.setAllGains(high);
+                engine.setGain(3, 12.0f);
+                engine.setBypassed(false);
+                if ((i & 127) == 0)
+                    std::this_thread::yield();
+            }
+            writerDone.store(true, std::memory_order_release);
+        });
+
+        std::thread processor([&] {
+            std::array<int16_t, 128> audio{};
+            for (std::size_t i = 0; i < audio.size(); ++i)
+                audio[i] = static_cast<int16_t>((i * 257u) % 20000u);
+            start.store(true, std::memory_order_release);
+            while (!writerDone.load(std::memory_order_acquire)) {
+                engine.process(audio.data(), static_cast<int>(audio.size() / 2));
+                processCalls.fetch_add(1, std::memory_order_relaxed);
+            }
+        });
+
+        int acceptedSnapshots = 0;
+        while (!writerDone.load(std::memory_order_acquire)) {
+            oap::EqualizerEngine::EngineCoeffs snapshot;
+            uint32_t snapshotGeneration = 0;
+            if (engine.tryLoadPublishedCoeffs(snapshot, snapshotGeneration)) {
+                ++acceptedSnapshots;
+                if (!sameCoefficients(snapshot, expectedLow)
+                    && !sameCoefficients(snapshot, expectedLowBypassed)
+                    && !sameCoefficients(snapshot, expectedHigh)
+                    && !sameCoefficients(snapshot, expectedHighBypassed)) {
+                    invalidSnapshot.store(true, std::memory_order_relaxed);
+                }
+            }
+        }
+
+        writer.join();
+        processor.join();
+
+        QVERIFY(!invalidSnapshot.load(std::memory_order_relaxed));
+        QVERIFY(acceptedSnapshots > 0);
+        QVERIFY(processCalls.load(std::memory_order_relaxed) > 0);
     }
 };
 

@@ -1,6 +1,19 @@
 #include <QTest>
+#include <QCoreApplication>
 #include <QSignalSpy>
 #include "core/services/AudioService.hpp"
+#include <algorithm>
+#include <climits>
+#include <cstring>
+#include <memory>
+
+namespace {
+QStringList capturedMessages;
+void captureMessages(QtMsgType, const QMessageLogContext&, const QString& message)
+{
+    capturedMessages.append(message);
+}
+}
 
 /// Tests for AudioService.
 /// These tests do NOT require a running PipeWire daemon.
@@ -100,6 +113,179 @@ private slots:
         QCOMPARE(svc.openCaptureStreamWithOptions(co), nullptr);
         svc.setStreamActive(nullptr, true);   // must not crash
         svc.resetStreamRing(nullptr);         // must not crash
+    }
+
+    void playbackRingCapacityIsBoundedAndTotal()
+    {
+        int normalized = -1;
+        QCOMPARE(oap::AudioService::playbackRingCapacityBytes(
+                     48000, 2, 100, &normalized), 131072u);
+        QCOMPARE(normalized, 500);
+
+        QCOMPARE(oap::AudioService::playbackRingCapacityBytes(
+                     48000, 2, 5000, &normalized), 1048576u);
+        QCOMPARE(normalized, 5000);
+
+        QCOMPARE(oap::AudioService::playbackRingCapacityBytes(
+                     48000, 2, INT_MAX, &normalized), 1048576u);
+        QCOMPARE(normalized, 5000);
+
+        QCOMPARE(oap::AudioService::playbackRingCapacityBytes(
+                     0, 2, 500, &normalized), 0u);
+        QCOMPARE(normalized, 0);
+        QCOMPARE(oap::AudioService::playbackRingCapacityBytes(
+                     INT_MAX, 2, 500, &normalized), 0u);
+        QCOMPARE(oap::AudioService::playbackRingCapacityBytes(
+                     48000, 3, 500, &normalized), 0u);
+    }
+
+    void malformedPlaybackBuffersAreRejected()
+    {
+        oap::AudioStreamHandle handle;
+        handle.bytesPerFrame = 4;
+        handle.disableRateMatching = true;
+        handle.ringBuffer = std::make_unique<oap::AudioRingBuffer>(1024);
+
+        pw_buffer pw{};
+        pw.size = 7;
+        QVERIFY(!oap::AudioService::fillPlaybackBuffer(&handle, &pw));
+        QCOMPARE(pw.size, 0u);
+
+        spa_buffer spa{};
+        pw.buffer = &spa;
+        pw.size = 7;
+        QVERIFY(!oap::AudioService::fillPlaybackBuffer(&handle, &pw));
+        QCOMPARE(pw.size, 0u);
+
+        spa_data data{};
+        spa.n_datas = 1;
+        spa.datas = &data;
+        data.maxsize = 64;
+        pw.size = 7;
+        QVERIFY(!oap::AudioService::fillPlaybackBuffer(&handle, &pw));
+        QCOMPARE(pw.size, 0u);
+
+        uint8_t memory[64];
+        data.data = memory;
+        QVERIFY(!oap::AudioService::fillPlaybackBuffer(&handle, &pw));
+
+        spa_chunk chunk{};
+        chunk.offset = 3;
+        chunk.stride = 4;
+        chunk.size = 16;
+        data.chunk = &chunk;
+        handle.bytesPerFrame = 0;
+        pw.size = 4;
+        QVERIFY(!oap::AudioService::fillPlaybackBuffer(&handle, &pw));
+        QCOMPARE(pw.size, 0u);
+        QCOMPARE(chunk.offset, 0u);
+        QCOMPARE(chunk.stride, 0);
+        QCOMPARE(chunk.size, 0u);
+    }
+
+    void validPlaybackBufferIsFilledAndSilenced()
+    {
+        oap::AudioStreamHandle handle;
+        handle.bytesPerFrame = 4;
+        handle.channels = 2;
+        handle.disableRateMatching = true;
+        handle.ringBuffer = std::make_unique<oap::AudioRingBuffer>(1024);
+        const uint8_t input[8] = {1, 2, 3, 4, 5, 6, 7, 8};
+        QCOMPARE(handle.ringBuffer->write(input, sizeof(input)), 8u);
+
+        uint8_t memory[64];
+        std::memset(memory, 0xCC, sizeof(memory));
+        spa_chunk chunk{};
+        spa_data data{};
+        data.data = memory;
+        data.maxsize = sizeof(memory);
+        data.chunk = &chunk;
+        spa_buffer spa{};
+        spa.n_datas = 1;
+        spa.datas = &data;
+        pw_buffer pw{};
+        pw.buffer = &spa;
+        pw.requested = 4;
+
+        QVERIFY(oap::AudioService::fillPlaybackBuffer(&handle, &pw));
+        QCOMPARE(chunk.offset, 0u);
+        QCOMPARE(chunk.stride, 4);
+        QCOMPARE(chunk.size, 16u);
+        QCOMPARE(pw.size, 4u);
+        QCOMPARE(std::memcmp(memory, input, sizeof(input)), 0);
+        for (int i = 8; i < 16; ++i)
+            QCOMPARE(memory[i], static_cast<uint8_t>(0));
+    }
+
+    void capturePayloadBoundsAreValidatedBeforeCallbackNarrowing()
+    {
+        uint8_t memory[16]{};
+        spa_chunk chunk{};
+        spa_data data{};
+        data.data = memory;
+        data.maxsize = sizeof(memory);
+        data.chunk = &chunk;
+        const uint8_t* payload = nullptr;
+        int payloadSize = -1;
+
+        chunk.offset = 4;
+        chunk.size = 8;
+        QVERIFY(oap::AudioService::capturePayload(data, payload, payloadSize));
+        QCOMPARE(payload, memory + 4);
+        QCOMPARE(payloadSize, 8);
+
+        chunk.offset = 17;
+        chunk.size = 1;
+        QVERIFY(!oap::AudioService::capturePayload(data, payload, payloadSize));
+        QCOMPARE(payload, nullptr);
+        QCOMPARE(payloadSize, 0);
+
+        chunk.offset = 12;
+        chunk.size = 5;
+        QVERIFY(!oap::AudioService::capturePayload(data, payload, payloadSize));
+
+        data.maxsize = UINT32_MAX;
+        chunk.offset = 0;
+        chunk.size = static_cast<uint32_t>(INT_MAX) + 1u;
+        QVERIFY(!oap::AudioService::capturePayload(data, payload, payloadSize));
+    }
+
+    void streamErrorLogsWithoutRecoveryHookAndHookStillDispatches()
+    {
+        oap::AudioStreamHandle handle;
+        handle.name = QStringLiteral("headless-test-stream");
+        bool hookCalled = false;
+        handle.onStreamError = [&hookCalled]() { hookCalled = true; };
+        handle.errorContext = QCoreApplication::instance();
+
+        capturedMessages.clear();
+        QtMessageHandler previous = qInstallMessageHandler(captureMessages);
+        oap::AudioService::onStreamStateChanged(
+            &handle, PW_STREAM_STATE_STREAMING, PW_STREAM_STATE_ERROR,
+            "synthetic failure");
+        QCoreApplication::processEvents();
+        qInstallMessageHandler(previous);
+
+        QVERIFY(hookCalled);
+        QVERIFY(std::any_of(capturedMessages.cbegin(), capturedMessages.cend(),
+            [](const QString& message) {
+                return message.contains("headless-test-stream")
+                    && message.contains("synthetic failure");
+            }));
+
+        // Logging is independent from recovery-hook presence.
+        handle.onStreamError = {};
+        capturedMessages.clear();
+        previous = qInstallMessageHandler(captureMessages);
+        oap::AudioService::onStreamStateChanged(
+            &handle, PW_STREAM_STATE_STREAMING, PW_STREAM_STATE_ERROR,
+            "diagnostic only");
+        QCoreApplication::processEvents();
+        qInstallMessageHandler(previous);
+        QVERIFY(std::any_of(capturedMessages.cbegin(), capturedMessages.cend(),
+            [](const QString& message) {
+                return message.contains("diagnostic only");
+            }));
     }
 
     void testFocusRecencyBreaksTies()
