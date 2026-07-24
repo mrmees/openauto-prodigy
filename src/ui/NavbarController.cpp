@@ -193,11 +193,12 @@ void NavbarController::setEdge(const QString& edge)
     if (edge_ == edge)
         return;
     edge_ = edge;
-    emit edgeChanged();
 
-    // The old report describes the previous rendered edge. QML publishes the
-    // replacement rectangles after its anchors and dimensions settle.
+    // Invalidate the old edge before notifying QML. The edgeChanged handler
+    // begins the generation it will publish after layout settles, so no later
+    // C++ invalidation may supersede that pending report.
     beginNavbarGeometryUpdate();
+    emit edgeChanged();
 }
 
 bool NavbarController::leftHandDrive() const

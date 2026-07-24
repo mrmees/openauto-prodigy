@@ -467,6 +467,42 @@ private slots:
         QVERIFY(dispatchPixel(router, bridge, 1, 35, 300, oap::aa::TouchEvent::Down));
     }
 
+    void testEdgeChangedHandlerPublishesTheActiveGeometryGeneration()
+    {
+        oap::aa::TouchRouter router;
+        oap::aa::EvdevCoordBridge bridge(&router);
+        bridge.setDisplayMapping(1024, 600, 4095, 4095);
+        auto ctrl = makeController(true, "bottom");
+        ctrl->setCoordBridge(&bridge);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
+
+        const QVariantList leftGeometry{rect(0, 0, 70, 120), rect(0, 120, 70, 360),
+                                        rect(0, 480, 70, 120)};
+        QObject::connect(ctrl.get(), &oap::NavbarController::edgeChanged, ctrl.get(),
+                         [controller = ctrl.get(), leftGeometry]() {
+            const qint64 generation = controller->beginNavbarGeometryUpdate();
+            QMetaObject::invokeMethod(
+                controller, [controller, generation, leftGeometry]() {
+                    controller->setNavbarGeometry(generation, 1024, 600, leftGeometry);
+                }, Qt::QueuedConnection);
+        });
+
+        ctrl->setEdge(QStringLiteral("left"));
+
+        // Invalidation is synchronous, while the QML-equivalent report waits
+        // for the deferred layout pass.
+        QVERIFY(!dispatchPixel(router, bridge, 0, 512, 558, oap::aa::TouchEvent::Down));
+        QCoreApplication::processEvents();
+
+        QSignalSpy gestureSpy(ctrl.get(), &oap::NavbarController::gestureTriggered);
+        QVERIFY(dispatchPixel(router, bridge, 1, 35, 300, oap::aa::TouchEvent::Down));
+        QVERIFY(dispatchPixel(router, bridge, 1, 35, 300, oap::aa::TouchEvent::Up));
+        QTRY_COMPARE(gestureSpy.count(), 1);
+        QCOMPARE(gestureSpy.at(0).at(0).toInt(), 1);
+    }
+
     void testDuplicateEvdevDownCannotReplaceAcceptedSlot()
     {
         oap::aa::TouchRouter router;
