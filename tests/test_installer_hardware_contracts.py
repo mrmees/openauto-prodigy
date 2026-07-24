@@ -17,6 +17,9 @@ PREBUILT_INSTALLER = REPO_ROOT / "install-prebuilt.sh"
 
 FIVE_GHZ_FIXTURE = """\
 Wiphy phy-test
+\tSupported interface modes:
+\t\t * managed
+\t\t * AP
 \tBand 1:
 \t\tCapabilities: 0x1020
 \t\tFrequencies:
@@ -32,6 +35,9 @@ Wiphy phy-test
 
 TRIXIE_DECIMAL_FIXTURE = """\
 Wiphy phy-test
+\tSupported interface modes:
+\t\t * managed
+\t\t * AP
 \tBand 1:
 \t\tCapabilities: 0x1020
 \t\tFrequencies:
@@ -48,6 +54,9 @@ Wiphy phy-test
 
 MALFORMED_FRACTION_FIXTURE = """\
 Wiphy phy-test
+\tSupported interface modes:
+\t\t * managed
+\t\t * AP
 \tBand 1:
 \t\tFrequencies:
 \t\t\t* 2437.0 MHz [6] (20.0 dBm)
@@ -60,6 +69,9 @@ Wiphy phy-test
 
 FALLBACK_FIXTURE = """\
 Wiphy phy-test
+\tSupported interface modes:
+\t\t * managed
+\t\t * AP
 \tBand 1:
 \t\tVHT Capabilities (0x00000000):
 \t\tFrequencies:
@@ -73,6 +85,9 @@ Wiphy phy-test
 
 NO_USABLE_FIXTURE = """\
 Wiphy phy-test
+\tSupported interface modes:
+\t\t * managed
+\t\t * AP
 \tBand 1:
 \t\tFrequencies:
 \t\t\t* 2437 MHz [6] (disabled)
@@ -84,6 +99,9 @@ Wiphy phy-test
 
 DFS_WITH_FALLBACK_FIXTURE = """\
 Wiphy phy-test
+\tSupported interface modes:
+\t\t * managed
+\t\t * AP
 \tBand 1:
 \t\tFrequencies:
 \t\t\t* 2437 MHz [6] (20.0 dBm)
@@ -95,6 +113,9 @@ Wiphy phy-test
 
 DFS_ONLY_FIXTURE = """\
 Wiphy phy-test
+\tSupported interface modes:
+\t\t * managed
+\t\t * AP
 \tBand 1:
 \t\tFrequencies:
 \t\t\t* 2437 MHz [6] (disabled)
@@ -102,6 +123,48 @@ Wiphy phy-test
 \t\tVHT Capabilities (0x338001b2):
 \t\tFrequencies:
 \t\t\t* 5260 MHz [52] (20.0 dBm) (radar detection)
+"""
+
+MANAGED_ONLY_FIXTURE = """\
+Wiphy phy-test
+\tSupported interface modes:
+\t\t * managed
+\tBand 1:
+\t\tFrequencies:
+\t\t\t* 2437.0 MHz [6] (20.0 dBm)
+\tBand 2:
+\t\tVHT Capabilities (0x338001b2):
+\t\tFrequencies:
+\t\t\t* 5180.0 MHz [36] (20.0 dBm)
+"""
+
+AP_VLAN_ONLY_FIXTURE = MANAGED_ONLY_FIXTURE.replace(
+    "\t\t * managed\n", "\t\t * managed\n\t\t * AP/VLAN\n"
+)
+
+SIX_GHZ_WITH_FALLBACK_FIXTURE = """\
+Wiphy phy-test
+\tSupported interface modes:
+\t\t * managed
+\t\t * AP
+\tBand 1:
+\t\tFrequencies:
+\t\t\t* 2437.0 MHz [6] (20.0 dBm)
+\tBand 4:
+\t\tHE Iftypes: AP
+\t\tFrequencies:
+\t\t\t* 5955.0 MHz [1] (20.0 dBm)
+"""
+
+SIX_GHZ_ONLY_FIXTURE = """\
+Wiphy phy-test
+\tSupported interface modes:
+\t\t * managed
+\t\t * AP
+\tBand 4:
+\t\tHE Iftypes: AP
+\t\tFrequencies:
+\t\t\t* 5955.0 MHz [1] (20.0 dBm)
 """
 
 
@@ -192,6 +255,18 @@ printf 'band=%s\nmode=%s\nchannel=%s\nvht=%s\n' \\
         return dict(line.split("=", 1) for line in result.stdout.splitlines())
 
 
+def render_hostapd_for_ssid(ssid: str) -> subprocess.CompletedProcess[str]:
+    return run_bash(
+        f"""
+set -euo pipefail
+source {shlex.quote(str(LIBRARY))}
+oap_select_wifi_contract {shlex.quote(FIVE_GHZ_FIXTURE)}
+oap_render_hostapd_config wlan-test {shlex.quote(ssid)} abcdefgh US
+""",
+        check=False,
+    )
+
+
 def test_wifi_probe_and_renderers() -> None:
     five = probe(FIVE_GHZ_FIXTURE)
     if five != {"band": "5", "mode": "a", "channel": "36", "vht": "true"}:
@@ -205,6 +280,22 @@ def test_wifi_probe_and_renderers() -> None:
         "vht": "true",
     }:
         raise AssertionError(f"unexpected Trixie decimal contract: {trixie_decimal}")
+
+    if probe(MANAGED_ONLY_FIXTURE) is not None:
+        raise AssertionError("managed-only radio was accepted without AP mode")
+    if probe(AP_VLAN_ONLY_FIXTURE) is not None:
+        raise AssertionError("AP/VLAN was accepted as the exact AP interface mode")
+
+    six_fallback = probe(SIX_GHZ_WITH_FALLBACK_FIXTURE)
+    if six_fallback != {
+        "band": "2.4",
+        "mode": "g",
+        "channel": "6",
+        "vht": "false",
+    }:
+        raise AssertionError(f"6 GHz frequency was misclassified: {six_fallback}")
+    if probe(SIX_GHZ_ONLY_FIXTURE) is not None:
+        raise AssertionError("6 GHz-only radio was accepted without an HE contract")
 
     malformed_fraction = probe(MALFORMED_FRACTION_FIXTURE)
     if malformed_fraction != {
@@ -305,6 +396,36 @@ oap_render_hostapd_config wlan-test Prodigy_test abcdefgh US
         raise AssertionError("2.4 GHz fallback rendering does not use the selected channel")
     if "ieee80211ac=1" in fallback_render:
         raise AssertionError("2.4 GHz fallback rendering incorrectly enables VHT")
+
+
+def test_hostapd_ssid_boundary() -> None:
+    accepted = ("A", "A" * 32, "é" * 16)
+    rejected = (
+        "",
+        "A" * 33,
+        "é" * 17,
+        "bad\rssid",
+        "bad\nssid",
+        "bad\tssid",
+        "bad\x7fssid",
+    )
+
+    for ssid in accepted:
+        result = render_hostapd_for_ssid(ssid)
+        if result.returncode != 0:
+            raise AssertionError(
+                f"valid {len(ssid.encode('utf-8'))}-byte SSID rejected: {ssid!r}\n"
+                f"{result.stderr}"
+            )
+        if f"ssid={ssid}" not in result.stdout.splitlines():
+            raise AssertionError(f"valid SSID was not rendered byte-for-byte: {ssid!r}")
+
+    for ssid in rejected:
+        result = render_hostapd_for_ssid(ssid)
+        if result.returncode == 0:
+            raise AssertionError(
+                f"invalid {len(ssid.encode('utf-8'))}-byte/control SSID accepted: {ssid!r}"
+            )
 
 
 def run_network_installer(
@@ -470,6 +591,7 @@ def test_installer_integration_and_order() -> None:
 def main() -> int:
     test_input_properties_and_country()
     test_wifi_probe_and_renderers()
+    test_hostapd_ssid_boundary()
     test_installer_integration_and_order()
     return 0
 

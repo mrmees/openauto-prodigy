@@ -61,6 +61,7 @@ oap_select_wifi_contract() {
     local mhz channel restrictions
     local five_entries="" two_entries=""
     local selected_entry selected_band=""
+    local in_supported_modes=false supports_ap=false
     local -A band_has_vht=()
 
     OAP_WIFI_BAND=""
@@ -69,6 +70,20 @@ oap_select_wifi_contract() {
     OAP_WIFI_USE_VHT=false
 
     while IFS= read -r line; do
+        if [[ "$line" =~ ^[[:space:]]*Supported[[:space:]]+interface[[:space:]]+modes:[[:space:]]*$ ]]; then
+            in_supported_modes=true
+            continue
+        fi
+        if [[ "$in_supported_modes" == "true" ]]; then
+            if [[ "$line" =~ ^[[:space:]]*\*[[:space:]]+AP[[:space:]]*$ ]]; then
+                supports_ap=true
+                continue
+            fi
+            if [[ "$line" =~ ^[[:space:]]*\*[[:space:]]+[^[:space:]].*$ ]]; then
+                continue
+            fi
+            in_supported_modes=false
+        fi
         if [[ "$line" =~ Band[[:space:]]+([0-9]+): ]]; then
             current_band="${BASH_REMATCH[1]}"
             continue
@@ -88,14 +103,23 @@ oap_select_wifi_contract() {
                 || [[ "$restrictions" =~ \(no[[:space:]]+IR([,\)]) ]]; then
                 continue
             fi
-            if (( mhz >= 4900 && mhz < 6000 )); then
+            # This renderer supports classic 2.4/5 GHz hostapd contracts only.
+            # Validate the standard channel/frequency mapping explicitly so a
+            # 6 GHz channel (for example 5955 MHz channel 1) cannot be emitted
+            # as hw_mode=a without a future HE/6 GHz contract.
+            if (( channel >= 36 && channel <= 177 \
+                && mhz == 5000 + (5 * channel) )); then
                 [[ "$restrictions" == *"radar detection"* ]] && continue
                 five_entries+=" ${channel}:${current_band}"
-            elif (( mhz >= 2400 && mhz < 2500 )); then
+            elif (( (channel >= 1 && channel <= 13 \
+                    && mhz == 2407 + (5 * channel)) \
+                || (channel == 14 && mhz == 2484) )); then
                 two_entries+=" ${channel}:${current_band}"
             fi
         fi
     done <<< "$phy_info"
+
+    [[ "$supports_ap" == "true" ]] || return 1
 
     # Prefer common non-DFS 5 GHz channels, then any remaining usable 5 GHz
     # channel. Only fall back to 2.4 GHz when no usable 5 GHz choice exists.
@@ -174,6 +198,16 @@ EmitDNS=no
 EOF
 }
 
+_oap_hostapd_ssid_is_valid() {
+    local ssid="${1:-}"
+    local LC_ALL=C
+    local ssid_bytes
+
+    ssid_bytes=${#ssid}
+    [[ $ssid_bytes -ge 1 && $ssid_bytes -le 32 ]] || return 1
+    [[ ! "$ssid" =~ [[:cntrl:]] ]]
+}
+
 oap_render_hostapd_config() {
     local interface="${1:-}"
     local ssid="${2:-}"
@@ -181,7 +215,7 @@ oap_render_hostapd_config() {
     local country="${4:-}"
 
     [[ -n "$interface" && "$interface" != *$'\n'* ]] || return 1
-    [[ -n "$ssid" && "$ssid" != *$'\n'* ]] || return 1
+    _oap_hostapd_ssid_is_valid "$ssid" || return 1
     [[ ${#passphrase} -ge 8 && ${#passphrase} -le 63 && "$passphrase" != *$'\n'* ]] \
         || return 1
     country=$(oap_normalize_country_code "$country") || return 1

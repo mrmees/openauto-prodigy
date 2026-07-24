@@ -16,7 +16,8 @@ configuration through the same packaged hardware contract:
 - Lets you choose which interface to use for the AP
 - Configures systemd-networkd for static IP + DHCP server
 - Writes hostapd.conf with your SSID/password
-- Reads the selected adapter's live `iw` channel capabilities
+- Requires the selected adapter's live `iw` capabilities to advertise the
+  exact AP interface mode
 - Prefers usable 5GHz (channel 36 when available), enables 802.11ac only when
   the selected radio band advertises VHT, and falls back to a usable 2.4GHz
   channel otherwise
@@ -28,8 +29,10 @@ network files. If the adapter has no usable AP channel (entries marked
 `disabled`, `no IR`, or `radar detection` do not qualify), the installer stops
 with the existing network files unchanged.
 DFS channels are deliberately excluded because the generated hostapd contract
-does not enable 802.11h. Both paths also install the same BlueZ SDP compatibility
-drop-in. The remaining sections are for manual configuration or troubleshooting.
+does not enable 802.11h. Radios or channels requiring a 6 GHz/HE contract are
+also excluded. The generated SSID must contain 1–32 bytes and no control
+characters. Both paths also install the same BlueZ SDP compatibility drop-in.
+The remaining sections are for manual configuration or troubleshooting.
 
 When an AP interface is selected, both installers add an optional
 `Wants=hostapd.service` relationship from the application and configure
