@@ -30,6 +30,34 @@ Wiphy phy-test
 \t\t\t* 5220 MHz [44] (20.0 dBm) (no IR)
 """
 
+TRIXIE_DECIMAL_FIXTURE = """\
+Wiphy phy-test
+\tBand 1:
+\t\tCapabilities: 0x1020
+\t\tFrequencies:
+\t\t\t* 2412.0 MHz [1] (20.0 dBm)
+\t\t\t* 2437.0 MHz [6] (20.0 dBm)
+\tBand 2:
+\t\tVHT Capabilities (0x338001b2):
+\t\tFrequencies:
+\t\t\t* 5180.0 MHz [36] (20.0 dBm)
+\t\t\t* 5200.0 MHz [40] (disabled)
+\t\t\t* 5220.0 MHz [44] (20.0 dBm) (no IR)
+\t\t\t* 5260.0 MHz [52] (20.0 dBm) (radar detection)
+"""
+
+MALFORMED_FRACTION_FIXTURE = """\
+Wiphy phy-test
+\tBand 1:
+\t\tFrequencies:
+\t\t\t* 2437.0 MHz [6] (20.0 dBm)
+\tBand 2:
+\t\tVHT Capabilities (0x338001b2):
+\t\tFrequencies:
+\t\t\t* 5180.5 MHz [36] (20.0 dBm)
+\t\t\t* 5200.00 MHz [40] (20.0 dBm)
+"""
+
 FALLBACK_FIXTURE = """\
 Wiphy phy-test
 \tBand 1:
@@ -168,6 +196,26 @@ def test_wifi_probe_and_renderers() -> None:
     five = probe(FIVE_GHZ_FIXTURE)
     if five != {"band": "5", "mode": "a", "channel": "36", "vht": "true"}:
         raise AssertionError(f"unexpected 5 GHz contract: {five}")
+
+    trixie_decimal = probe(TRIXIE_DECIMAL_FIXTURE)
+    if trixie_decimal != {
+        "band": "5",
+        "mode": "a",
+        "channel": "36",
+        "vht": "true",
+    }:
+        raise AssertionError(f"unexpected Trixie decimal contract: {trixie_decimal}")
+
+    malformed_fraction = probe(MALFORMED_FRACTION_FIXTURE)
+    if malformed_fraction != {
+        "band": "2.4",
+        "mode": "g",
+        "channel": "6",
+        "vht": "false",
+    }:
+        raise AssertionError(
+            f"malformed fractional frequency was accepted: {malformed_fraction}"
+        )
 
     alternate_five = probe(
         FIVE_GHZ_FIXTURE.replace(

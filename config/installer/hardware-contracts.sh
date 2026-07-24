@@ -77,10 +77,13 @@ oap_select_wifi_contract() {
             band_has_vht["$current_band"]=true
             continue
         fi
-        if [[ "$line" =~ \*[[:space:]]+([0-9]+)[[:space:]]+MHz[[:space:]]+\[([0-9]+)\](.*)$ ]]; then
+        # Trixie's iw prints frequencies as either `5180 MHz` or
+        # `5180.0 MHz`. Accept only an optional exact `.0` suffix so a
+        # malformed/non-integral token cannot be truncated into another band.
+        if [[ "$line" =~ \*[[:space:]]+([0-9]+)(\.0)?[[:space:]]+MHz[[:space:]]+\[([0-9]+)\](.*)$ ]]; then
             mhz="${BASH_REMATCH[1]}"
-            channel="${BASH_REMATCH[2]}"
-            restrictions="${BASH_REMATCH[3]}"
+            channel="${BASH_REMATCH[3]}"
+            restrictions="${BASH_REMATCH[4]}"
             if [[ "$restrictions" =~ \(disabled\) ]] \
                 || [[ "$restrictions" =~ \(no[[:space:]]+IR([,\)]) ]]; then
                 continue
