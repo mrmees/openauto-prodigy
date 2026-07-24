@@ -148,7 +148,8 @@ void NavbarController::handleCancel(int controlIndex)
     resetControlState(controlIndex);
 }
 
-void NavbarController::onZoneTouch(int controlIndex, int slot, float x, float y,
+void NavbarController::onZoneTouch(int controlIndex, qint64 geometryGeneration,
+                                    int slot, float x, float y,
                                     oap::aa::TouchEvent event)
 {
     Q_UNUSED(x)
@@ -157,7 +158,9 @@ void NavbarController::onZoneTouch(int controlIndex, int slot, float x, float y,
         return;
 
     // Marshal to main thread
-    QMetaObject::invokeMethod(this, [this, controlIndex, slot, event]() {
+    QMetaObject::invokeMethod(this, [this, controlIndex, geometryGeneration, slot, event]() {
+        if (geometryGeneration != activeNavbarGeometryGeneration_)
+            return;
         auto& state = controls_[controlIndex];
         switch (event) {
         case aa::TouchEvent::Down:
@@ -441,10 +444,12 @@ void NavbarController::setNavbarGeometry(qint64 generation,
     };
     for (int i = 0; i < static_cast<int>(parsed.size()); ++i) {
         const Rect& rect = parsed[i];
+        const qint64 geometryGeneration = generation;
         coordBridge_->updateZone(
             zoneIds[i], 50, rect.x, rect.y, rect.w, rect.h,
-            [this, i](int slot, float x, float y, aa::TouchEvent event) {
-                onZoneTouch(i, slot, x, y, event);
+            [this, i, geometryGeneration]
+            (int slot, float x, float y, aa::TouchEvent event) {
+                onZoneTouch(i, geometryGeneration, slot, x, y, event);
             });
     }
 }

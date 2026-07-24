@@ -152,7 +152,9 @@ reports the actual 20/60/20 control geometry in shell coordinates;
 Starting a newer report removes the former claims, and invalid or hidden
 geometry leaves the navbar unregistered. `TouchRouter` continues to own
 coordinate conversion and sticky routing, so unclaimed projection touches are
-unchanged.
+unchanged. Each queued navbar callback carries the geometry generation that
+claimed it; the controller rejects stale events before they can change gesture
+ownership or start a timer.
 
 An accepted evdev slot owns its navbar gesture until matching release or
 cancellation. Competing downs cannot replace that owner. Popup generations are

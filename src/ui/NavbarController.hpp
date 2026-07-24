@@ -48,8 +48,8 @@ public:
 
     // --- Evdev zone callback (reader thread) ---
     // Must marshal to main thread via QMetaObject::invokeMethod
-    void onZoneTouch(int controlIndex, int slot, float x, float y,
-                     oap::aa::TouchEvent event);
+    void onZoneTouch(int controlIndex, qint64 geometryGeneration,
+                     int slot, float x, float y, oap::aa::TouchEvent event);
 
     // --- Properties ---
     QString edge() const;

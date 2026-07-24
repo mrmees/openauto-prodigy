@@ -513,6 +513,47 @@ private slots:
         QCOMPARE(gestureSpy.count(), 0);
     }
 
+    void testQueuedDownFromInvalidatedGeometryCannotStartGesture()
+    {
+        oap::aa::TouchRouter router;
+        oap::aa::EvdevCoordBridge bridge(&router);
+        bridge.setDisplayMapping(1024, 600, 4095, 4095);
+        auto ctrl = makeController();
+        ctrl->setCoordBridge(&bridge);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
+
+        oap::ActionRegistry registry;
+        int actionCount = 0;
+        registry.registerAction(QStringLiteral("navbar.volume.tap"),
+                                [&actionCount](const QVariant&) { ++actionCount; });
+        registry.registerAction(QStringLiteral("navbar.volume.longHold"),
+                                [&actionCount](const QVariant&) { ++actionCount; });
+        ctrl->setActionRegistry(&registry);
+        QSignalSpy gestureSpy(ctrl.get(), &oap::NavbarController::gestureTriggered);
+        QSignalSpy holdSpy(ctrl.get(), &oap::NavbarController::holdProgress);
+
+        // The router callback queues the Down to the controller's main thread.
+        QVERIFY(dispatchPixel(router, bridge, 0, 100, 558, oap::aa::TouchEvent::Down));
+        ctrl->beginNavbarGeometryUpdate();
+        QTest::qWait(700);
+
+        QCOMPARE(gestureSpy.count(), 0);
+        QCOMPARE(holdSpy.count(), 0);
+        QCOMPARE(actionCount, 0);
+
+        // The stale Down did not leave the control pressed: a fresh generation
+        // accepts and completes the next gesture normally.
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
+        QVERIFY(dispatchPixel(router, bridge, 1, 100, 558, oap::aa::TouchEvent::Down));
+        QVERIFY(dispatchPixel(router, bridge, 1, 100, 558, oap::aa::TouchEvent::Up));
+        QTRY_COMPARE(gestureSpy.count(), 1);
+        QCOMPARE(actionCount, 1);
+    }
+
     // --- Popup zone registration (Task 2) ---
 
     void testShowPopupRegistersZones()
