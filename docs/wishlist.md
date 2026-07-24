@@ -29,9 +29,10 @@ all three when promoting an item; they are not estimates or approval.
   main-tier design plus phone bench validation.
   **Stack:** Current Prodigy; the AVInput descriptor/handler and PipeWire
   capture service exist, but their production lifecycle is not connected.
-  **Hardware:** A compatible microphone is required; the existing configuration
-  already assumes one, but Pi capture must be bench-verified.
+  **Hardware:** A compatible microphone is attached to the current Pi bench.
   **Investigation:** Targeted spike, not extensive feasibility research.
+  **Priority:** First likely promotion candidate; re-research the capture
+  lifecycle and AA flow-control boundary before treating it as an easy fix.
 
 - **Keep AA system sounds audible during media playback** — define an
   intentional policy for touch clicks and other short System-channel sounds.
@@ -59,26 +60,31 @@ all three when promoting an item; they are not estimates or approval.
   experimental toggle and capture whether current Pixel/Moto phones activate
   service type 20 before designing the feature.
 
-- **Native cluster-lite second display** — render Prodigy-owned turn data,
+- **Long-term: native cluster-lite second display** — render Prodigy-owned turn data,
   calls, now-playing information, and later vehicle gauges in a separate QML
   window assigned to a configured Qt/DRM screen; do not require a second AA
   video stream.
   **Stack:** Current Prodigy providers and Qt/QML stack, extended with explicit
   multi-window/screen ownership.
-  **Hardware:** A second display/output is required for completion; desktop
-  simulation can cover only part of the work.
+  **Hardware:** Available without new purchases: retain the current USB display
+  and attach an existing monitor to the Pi's native HDMI output.
   **Investigation:** Targeted spike for Pi multi-screen/DRM placement; feature
   feasibility itself is established.
 
-- **Long-term: AA/native blended dashboard** — reserve a stable native region
-  for gauges, climate, camera, or media while Android Auto owns the remaining
-  viewport, with authoritative touch and focus boundaries.
+- **Long-term: AA/native blended dashboard** — keep the normal Prodigy
+  dashboard visible while embedding the MAIN Android Auto surface in a smaller
+  QML region; AA decides how to arrange its own content within that advertised
+  region while Prodigy owns the surrounding gauges, climate, camera, or media.
+  This is not a secondary-display video channel.
   **Stack:** Substantial extension of current Prodigy display, AA service
-  discovery, input, and dashboard ownership.
-  **Hardware:** An ultrawide or otherwise representative display is required
-  for final validation; a simulated resolution may support early exploration.
-  **Investigation:** Research first. Confirm current-phone behavior for native
-  element/inset/blended-UI fields before committing to a layout architecture.
+  discovery, input, and dashboard ownership. The recovered blended-UI field is
+  not yet in the hands-off in-tree protocol definitions and must arrive through
+  an upstream protocol-library update.
+  **Hardware:** Existing Pi touchscreen and phone bench; no ultrawide or second
+  display is required for feasibility or implementation.
+  **Investigation:** Research first. Trace the newer AA APK's asymmetric insets,
+  native-element rectangles/types, corner radii, and runtime resize behavior,
+  then test a bounded embedded MAIN viewport on current phones.
 
 - **Long-term: live navbar viewport changes during projection** — renegotiate
   the AA content region and update touch/navbar mappings through one
@@ -95,7 +101,8 @@ all three when promoting an item; they are not estimates or approval.
   secondary content and additional resolutions.
   **Stack:** Substantial multi-instance refactor of the current singleton AA
   video path, using protocol definitions already present in the stack.
-  **Hardware:** A second physical display/output is required for completion.
+  **Hardware:** Available without new purchases: an existing HDMI monitor can
+  run beside the current USB display.
   **Investigation:** Research first. Validate phone activation and per-display
   lifecycle with an isolated descriptor/capture spike before implementation.
 
@@ -179,44 +186,56 @@ all three when promoting an item; they are not estimates or approval.
 ## Extensions and Vehicle Hardware
 
 - **Long-term: vehicle sensor-provider bridge and telemetry** — normalize
-  external GPS, OBD-II, CAN, and GPIO sources behind bounded providers, expose
-  selected gauges through dashboards/API, and advertise only real supported
-  location, speed, gear, fuel/range, odometer, motion, and driving-state data to
-  Android Auto.
-  **Stack:** Extension within current Prodigy plugins, providers, API, and AA
-  sensor channel; Companion can consume the public provider/API surface.
-  **Hardware:** At least one external GNSS, OBD-II, CAN, or GPIO adapter is
-  required; current availability must be inventoried before promotion.
-  **Investigation:** Targeted spike per adapter and sensor type. The overall
-  path is established, but data quality, permissions, rates, and vehicle mapping
-  require bench evidence.
+  Companion phone location plus external GPS, OBD-II, CAN, and device-backend
+  sources behind bounded providers, expose selected gauges through dashboards/
+  API, and advertise only real supported location, speed, gear, fuel/range,
+  odometer, motion, and driving-state data to Android Auto.
+  **Stack:** Extension within current Prodigy providers, frozen-additive API,
+  AA sensor channel, and Companion reporting. Companion GPS requires a new
+  additive report; it is not present merely because the phone already knows its
+  location.
+  **Hardware:** OBD-II and CAN access are available. Companion GPS needs no new
+  hardware; a PL2303GL-based GNSS receiver is an optional independent source.
+  **Investigation:** Research first for the Companion-GPS-to-AA loop and whether
+  location-with-speed or separate OBD/CAN speed changes Google Maps behavior;
+  use targeted spikes for each physical adapter and sensor type.
 
 - **Backup-camera integration** — provide a low-latency camera surface with an
-  explicit activation source, safe projection/media interaction, and a clear
-  unavailable state.
-  **Stack:** Extension within current Prodigy media/display/plugin ownership.
-  **Hardware:** A compatible camera/capture path and reverse-activation source
-  are required and are not assumed to be on the current bench.
+  explicit activation action, safe projection/media interaction, and a clear
+  unavailable state. GPIO, automation, or third-party software should all
+  dispatch the same canonical action rather than own the camera UI directly.
+  **Stack:** Extension within current Prodigy media/display/plugin ownership;
+  activation goes through ActionRegistry and is callable through the External
+  API.
+  **Hardware:** USB webcams are available for prototyping. A production camera
+  and any reverse-signal device remain installation choices, not API
+  prerequisites.
   **Investigation:** Targeted spike for the camera/capture hardware path before
   UI planning.
 
-- **Long-term: native FM radio** — integrate RTL-SDR tuning and RDS station/
-  track metadata as a first-class Prodigy media source.
-  **Stack:** New radio/media plugin within the current Prodigy service and audio
-  architecture.
-  **Hardware:** RTL-SDR tuner and suitable antenna are required and not assumed
-  to be available.
+- **Long-term: FM radio backend and optional native UI** — integrate RTL-SDR
+  tuning, audio, and RDS station/track metadata behind a canonical radio
+  backend. Prefer Android Auto as the primary interface if its recovered radio
+  service works well enough; build a native Prodigy widget only if needed.
+  **Stack:** New radio backend within the current Prodigy service, media, and
+  audio architecture; a native widget is not a prerequisite.
+  **Hardware:** An RTL-SDR Blog V4 is available; antenna suitability and Linux
+  driver/tuning setup must be verified when promoted.
   **Investigation:** Targeted spike for tuner support, RF quality, PipeWire
   routing, and RDS reliability.
 
 - **Long-term: expose broadcast radio inside Android Auto** — advertise the AA
-  terrestrial-radio service so a native Prodigy tuner can be controlled through
-  the phone-rendered AA interface, including station and RDS metadata.
-  **Stack:** Extension within the current AA protocol stack, dependent on a
-  completed native radio source.
-  **Hardware:** The native-radio tuner/antenna hardware is required.
+  terrestrial-radio service so the Prodigy radio backend can be controlled
+  through the phone-rendered AA interface, including station and RDS metadata.
+  A successful AA surface may eliminate the need for a native FM widget.
+  **Stack:** Extension within the current AA protocol stack plus a headless
+  tuner/backend; it does not depend on completing a native radio UI.
+  **Hardware:** No hardware is required for an initial simulated activation
+  probe. The available RTL-SDR Blog V4 and a suitable antenna support real
+  tuning validation later.
   **Investigation:** Research first. Isolate radio service discovery and capture
-  current-phone activation before planning full control semantics.
+  current-phone activation before planning the backend or full control
+  semantics.
 
 - **Key-event, rotary, and steering-wheel navigation map** — map keyboard, HID,
   rotary encoder, GPIO, or CAN buttons to native focus/back/media actions and AA
@@ -229,24 +248,32 @@ all three when promoting an item; they are not estimates or approval.
   **Investigation:** Targeted spike for AA rotary advertisement/event behavior;
   native action mapping is established.
 
-- **Long-term: vehicle GPIO and power integration** — support the Miata's
-  ignition sense, power latch, amplifier switching, dimmer, and MCP23017 needs
-  through reusable plugin/hardware capabilities rather than one-off shell
-  behavior. Vehicle wiring remains outside this repository.
-  **Stack:** Extension within current Prodigy hardware/plugin providers plus
-  external power-control circuitry.
-  **Hardware:** Vehicle-specific wiring, MCP23017 and/or related interfaces, and
-  safe power-latch hardware are required.
-  **Investigation:** Research first for electrical safety, shutdown guarantees,
-  fault behavior, and vehicle-specific signal validation.
+- **Long-term: external device and vehicle-I/O integration** — keep pins,
+  polarity, debounce, relays, timing, retries, and board/vehicle configuration
+  in a separate user-selected backend service. Prodigy owns semantic action
+  mapping, availability, UI/AA presentation, and safety policy rather than
+  attempting to support every GPIO, CAN, serial, MQTT, or automation stack.
+  **Stack:** The current External API already lets a backend register client-
+  owned actions, receive ActionInvokedEvent, and dispatch Prodigy actions. An
+  additive provider/report contract is still needed for state, acknowledgements,
+  and backend errors.
+  **Hardware:** Backend-defined. Existing GPIO, relay, OBD-II, and CAN equipment
+  is sufficient for experiments; Prodigy requires no canonical board.
+  **Investigation:** Research first for the semantic capability/state contract,
+  disconnect behavior, authorization, electrical safety, and shutdown
+  guarantees.
 
-- **Long-term: vehicle climate and control integration** — present bounded
-  HVAC, heated-seat, defrost, door, lock, or mirror state/control through native
-  UI and, only if proven viable, the recovered AA car-control surface. Begin
-  read-only; writes require explicit per-vehicle allowlists and fail-safe rules.
-  **Stack:** Substantial Prodigy provider/UI and AA protocol extension; no
-  generic Companion-only implementation can supply missing vehicle controls.
-  **Hardware:** A vehicle-specific CAN/VHAL-equivalent adapter and known signal
-  definitions are required and are not present by assumption.
-  **Investigation:** Research first. Establish phone activation, adapter access,
-  legal/safety boundaries, and read/write semantics before feature planning.
+- **Long-term: experimental AA vehicle-control bridge** — discover what the
+  recovered AA car-control surface can present, then map supported semantic
+  controls such as fan, defrost, seat heat, or auxiliary switches to user-
+  selected external-backend actions. Missing or unmapped controls report
+  unavailable; AA never receives arbitrary GPIO or bus access.
+  **Stack:** Substantial AA protocol/provider extension over the current
+  External API action path. Reliable two-way controls also need the additive
+  backend state/acknowledgement contract described above.
+  **Hardware:** No hardware is required for a simulated feasibility probe. Real
+  actuation uses whatever GPIO, relay, CAN, or other device the external backend
+  defines.
+  **Investigation:** Research first. Establish phone activation and UI/control
+  behavior with a simulated backend before defining mappings, authorization,
+  fail-safe behavior, or writes to real devices.

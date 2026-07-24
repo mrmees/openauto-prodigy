@@ -13,7 +13,7 @@ requires normal design, one targeted spike, or research-first feasibility work.
 The external `E:\tmp\Next Steps for AA in Prodigy.txt` intake was checked
 against the current Prodigy tree, the in-tree protocol definitions, the
 recovered display/channel reference, and current official Android for Cars
-documentation. The wishlist now contains 24 capabilities, 13 marked long-term,
+documentation. The wishlist now contains 24 capabilities, 14 marked long-term,
 and all 24 carry all three qualifiers.
 
 The intake produced five net capabilities: CarLocalMedia exposure, native
@@ -27,6 +27,18 @@ harness remains a bounded research method inside activation-dependent items,
 not a product feature, and already-shipped AA/local media arbitration was not
 re-added.
 
+Matthew's clarification pass confirmed CarLocalMedia as research-first;
+cluster-lite as long-term with an available USB-display-plus-HDMI test setup;
+and blended MAIN-display embedding as long-term/research-first without new
+hardware. AA radio remains an experiment that may replace a native FM widget,
+backed by an available RTL-SDR Blog V4. USB webcams can prototype an API/
+ActionRegistry-driven camera. OBD-II and CAN are available; Companion GPS
+loopback and optional PL2303GL GNSS remain sensor experiments. GPIO and device
+variability move behind an external backend that registers actions, while an
+experimental AA vehicle-control bridge maps semantic controls to that backend.
+An attached microphone makes Assistant transport the first likely promotion
+candidate.
+
 **Why:** “future” previously mixed software-ready work, hardware-bound work,
 and protocol ideas whose phone-side activation is still unknown. The three
 qualifiers make those constraints visible before prioritization and prevent a
@@ -34,19 +46,22 @@ plausible recovered schema from being mistaken for an implementation-ready
 feature.
 
 **Status:** COMPLETE as a documentation-only intake and triage on local `dev`.
-No feature was promoted and no implementation priority was accepted from the
-source document. Fable found two P3 terminology inconsistencies; both were
+No feature was promoted; Matthew selected microphone transport as the first
+likely promotion candidate rather than automatically accepting the source
+document's full priority order. Fable found two P3 terminology inconsistencies
+in the initial qualifier pass; both were
 confirmed and fixed. The focused Fable recheck returned LGTM with no remaining
-P1, P2, or P3 findings and a merge-safe verdict.
+P1, P2, or P3 findings and a merge-safe verdict. Fable clarification review:
+LGTM with no P1, P2, or P3 findings and a merge-safe verdict.
 
 **Verification:** each of the 24 capability bullets has exactly one Stack,
 Hardware, and Investigation qualifier. `python3 scripts/check-doc-links.py`
 and `git diff --check` are the local documentation gates. Build, app-target
 build, and CTest are not required because only planning documentation changed.
 
-**Next 1-3 steps:** (1) review Matthew's desired wording or classification
-clarifications; (2) discuss additional wishlist ideas; (3) promote only a
-chosen capability whose hardware and investigation gate are understood.
+**Next 1-3 steps:** (1) re-research and bound Assistant microphone transport
+for promotion; (2) discuss additional wishlist ideas; (3) promote other
+capabilities only when their hardware and investigation gates are understood.
 
 ---
 
