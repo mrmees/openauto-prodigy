@@ -281,6 +281,10 @@ add_test(
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_installer_hardware_contracts.py
 )
 add_test(
+    NAME test_validate_resolutions
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_validate_resolutions.py
+)
+add_test(
     NAME test_ops_install_contracts
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_ops_install_contracts.py
 )
