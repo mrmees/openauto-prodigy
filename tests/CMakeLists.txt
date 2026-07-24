@@ -75,6 +75,11 @@ file(COPY data/media DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/data)
 
 oap_add_test(test_media_playback_policy SOURCES test_media_playback_policy.cpp)
 
+oap_add_test(test_media_player_plugin
+    SOURCES test_media_player_plugin.cpp
+    DEFS TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}/data"
+)
+
 oap_add_test(test_media_art_provider SOURCES test_media_art_provider.cpp)
 
 oap_add_test(test_media_tag_reader

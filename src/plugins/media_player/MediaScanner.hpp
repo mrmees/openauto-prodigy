@@ -4,6 +4,10 @@
 #include <QObject>
 #include <QVector>
 
+#include <atomic>
+#include <functional>
+#include <memory>
+
 class QThread;
 
 namespace oap {
@@ -32,9 +36,17 @@ public:
     /// Coalescing: while busy, remembers the NEWEST root set; the in-flight
     /// result is discarded on completion and the pending set scans next.
     void scan(const QVector<Root>& roots);
+    /// Owner-thread lifecycle boundary. Cancels pending work, interrupts and
+    /// joins the active generation, suppresses its queued completion, and
+    /// returns with busy()==false and scanning()==false. Idempotent.
+    void stop();
     bool busy() const { return thread_ != nullptr; }
     bool scanning() const { return scanning_; }
     int lastScanTagReads() const { return lastScanTagReads_; }  // test hook
+    using CheckpointHook = std::function<void(const char*)>;
+    /// Test-only phase barrier; set only while idle. The hook runs on the
+    /// worker thread immediately before an interruption check.
+    void setCheckpointHookForTest(CheckpointHook hook);
 
     static QString rootKeyForPath(const QString& rootPath);
 
@@ -51,7 +63,9 @@ private:
         int tagReads = 0;
     };
     void startScan(QVector<Root> roots);
-    void runScan(const QVector<Root>& roots, ScanOutcome* out);
+    void runScan(const QVector<Root>& roots, ScanOutcome* out,
+                 const std::shared_ptr<std::atomic_bool>& cancelled);
+    void stopInternal(bool notifyState);
 
     QString cacheDir_;
     QThread* thread_ = nullptr;
@@ -59,6 +73,9 @@ private:
     bool hasPending_ = false;
     QVector<Root> pendingRoots_;
     int lastScanTagReads_ = 0;
+    quint64 generation_ = 0;  ///< invalidates queued completion after stop/restart
+    CheckpointHook checkpointHook_;
+    std::shared_ptr<std::atomic_bool> cancelToken_;
 };
 
 } // namespace plugins

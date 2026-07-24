@@ -1,7 +1,14 @@
 #include <QtTest>
 #include <QSignalSpy>
+#include <QElapsedTimer>
+#include <QMutex>
+#include <QSemaphore>
 #include <QTemporaryDir>
+#include <QThread>
 #include "plugins/media_player/MediaScanner.hpp"
+
+#include <atomic>
+#include <thread>
 
 using namespace oap::plugins;
 
@@ -15,10 +22,26 @@ class TestMediaScanner : public QObject {
     QVector<MediaTrackRecord> runScan(MediaScanner& s, const QString& root) {
         QSignalSpy done(&s, &MediaScanner::finished);
         s.scan({rootFor(root)});
-        [&]{ QVERIFY(done.wait(15000)); }();
-        [&]{ QVERIFY(!s.busy()); }();       // Codex P1: false when finished fires
-        [&]{ QVERIFY(!s.scanning()); }();
-        return done.takeFirst().at(0).value<QVector<MediaTrackRecord>>();
+        if (done.isEmpty() && !done.wait(15000)) {
+            QTest::qFail(qPrintable(QStringLiteral("scan timed out for root: %1").arg(root)),
+                         __FILE__, __LINE__);
+            return {};
+        }
+        if (s.busy() || s.scanning()) {
+            QTest::qFail(qPrintable(QStringLiteral(
+                             "scan finished with active state for root %1 (busy=%2, scanning=%3)")
+                             .arg(root).arg(s.busy()).arg(s.scanning())),
+                         __FILE__, __LINE__);
+            return {};
+        }
+        if (done.count() != 1 || done.first().isEmpty()) {
+            QTest::qFail(qPrintable(QStringLiteral(
+                             "scan produced an invalid finished signal for root %1 (count=%2)")
+                             .arg(root).arg(done.count())),
+                         __FILE__, __LINE__);
+            return {};
+        }
+        return done.first().at(0).value<QVector<MediaTrackRecord>>();
     }
 
 private slots:
@@ -168,6 +191,82 @@ private slots:
         QCOMPARE(done.count(), 1);
         QCOMPARE(done.takeFirst().at(0).value<QVector<MediaTrackRecord>>().size(), 2);
         QVERIFY(!s.busy());
+    }
+
+    void stopCancelsActiveAndPendingWorkThenAllowsRestart() {
+        QTemporaryDir cache;
+        MediaScanner s;
+        s.setCacheDir(cache.path());
+        QSignalSpy state(&s, &MediaScanner::scanningChanged);
+        QSignalSpy done(&s, &MediaScanner::finished);
+
+        // No event-loop turn between start/coalesce/stop: even if the worker
+        // finishes quickly, its completion is queued and must be invalidated.
+        s.scan({rootFor(fixtures())});
+        s.scan({rootFor(fixtures() + QStringLiteral("/AlbumA"))});
+        QVERIFY(s.scanning());
+        s.stop();
+        QVERIFY(!s.busy());
+        QVERIFY(!s.scanning());
+        QCOMPARE(done.count(), 0);
+        QCOMPARE(state.count(), 2);  // one start edge, one explicit stop edge
+
+        // Idempotent and silent once already quiescent.
+        s.stop();
+        QCOMPARE(state.count(), 2);
+
+        // A fresh generation remains usable; a stale completion from the
+        // cancelled worker cannot clear or publish over it.
+        const auto records = runScan(s, fixtures() + QStringLiteral("/AlbumA"));
+        QCOMPARE(records.size(), 2);
+        QVERIFY(!s.busy());
+        QVERIFY(!s.scanning());
+    }
+
+    void checkpointsCoverWorkerPhasesAndStopInterruptsInFlightEntry() {
+        QTemporaryDir cache;
+        QSemaphore enteredEntry;
+        QSemaphore releaseEntry;
+        std::atomic_bool blocked{false};
+        MediaScanner s;
+        s.setCacheDir(cache.path());
+        QMutex phaseMutex;
+        QStringList phases;
+        s.setCheckpointHookForTest([&](const char* phase) {
+            QMutexLocker lock(&phaseMutex);
+            phases.append(QString::fromLatin1(phase));
+        });
+        QCOMPARE(runScan(s, fixtures()).size(), 5);
+        for (const QString& expected : {QStringLiteral("root"), QStringLiteral("cache"),
+                                        QStringLiteral("traversal"), QStringLiteral("entry"),
+                                        QStringLiteral("tags"),
+                                        QStringLiteral("art"), QStringLiteral("rewrite")})
+            QVERIFY2(phases.contains(expected), qPrintable(expected));
+
+        s.setCheckpointHookForTest([&](const char* phase) {
+            if (qstrcmp(phase, "entry") != 0 || blocked.exchange(true)) return;
+            enteredEntry.release();
+            releaseEntry.acquire();
+        });
+        QSignalSpy done(&s, &MediaScanner::finished);
+        s.scan({rootFor(fixtures())});
+        if (!enteredEntry.tryAcquire(1, 15000)) {
+            releaseEntry.release();
+            s.stop();
+            QFAIL("scanner never reached directory-entry phase");
+        }
+        std::thread unblocker([&] {
+            QThread::msleep(50);
+            releaseEntry.release();
+        });
+        QElapsedTimer elapsed;
+        elapsed.start();
+        s.stop();
+        unblocker.join();
+        QVERIFY2(elapsed.elapsed() < 2000, "in-flight checkpoint stop was not bounded");
+        QCOMPARE(done.count(), 0);
+        QVERIFY(!s.busy());
+        QVERIFY(!s.scanning());
     }
 };
 

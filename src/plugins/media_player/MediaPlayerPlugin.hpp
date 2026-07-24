@@ -12,6 +12,8 @@
 #include <QVariantList>
 #include <QVector>
 
+#include <optional>
+
 class QQmlContext;
 
 namespace oap {
@@ -33,7 +35,7 @@ class UsbMediaWatcher;
 /// Composition of PlaybackEngine (transport + PCM tap into AudioService),
 /// PlayQueue (order/shuffle/repeat) and FolderModel (browse). Feeds
 /// MediaStatusService as source "MediaPlayer" via main.cpp wiring.
-/// Spec: docs/plans/2026-07-08-media-player-design.md
+/// Base spec: docs/archive/plans/2026-07-08-media-player-design.md
 class MediaPlayerPlugin : public QObject, public IPlugin {
     Q_OBJECT
     Q_INTERFACES(oap::IPlugin)
@@ -133,6 +135,13 @@ public:
     /// unmount so QMediaPlayer never holds a file open into Unmount().
     Q_INVOKABLE void ejectVolume(const QString& mountPath);
 
+protected:
+    /// Narrow test seam around the external UDisks side effect. Production
+    /// delegates directly to UsbMediaWatcher; focused tests override these to
+    /// prove scanner/root ordering without a live system daemon.
+    virtual bool isKnownEjectMount(const QString& mountPath) const;
+    virtual void requestEjectMount(const QString& mountPath);
+
 signals:
     void playbackStateChanged();
     void metadataChanged();
@@ -144,18 +153,27 @@ signals:
     void libraryScanningChanged();   ///< both edges of a scan (Codex P1)
     void libraryChanged();           ///< library rebuilt (also after removeVolume, Codex P2)
 
+private slots:
+    /// Production UsbMediaWatcher delivery seam. Keeping this as a real Qt
+    /// slot lets focused tests drive the same late-mount restore path without
+    /// requiring a live UDisks daemon.
+    void onVolumeMounted(const QString& mount, const QString& label, const QString& uuid);
+    void handleUnplayable(const QString& reason);  ///< production engine error seam
+
 private:
     void setHasTrack(bool has);
-    void saveState();
+    void saveState(std::optional<qint64> positionOverrideMs = std::nullopt);
+    void persistModes();
+    void takeRestoreOwnership();
+    qint64 boundedSeekPosition(qint64 positionMs) const;
     void restoreState();
     void retryPendingRestore();   ///< re-attempt a boot restore after a late USB mount (P1)
     void clearPendingRestore();   ///< drop stashed restore state (user took over)
     void startTrack(const QString& path);       ///< playFile + reset progress watermark
-    void handleUnplayable(const QString& reason);  ///< spec §11 skip/stop policy
     /// Shared yank/eject cleanup (design §9): drop the volume from library +
     /// queue and recover playback. Runs for volumeRemoved, the playback-error
     /// yank path, AND the eject sequence. Idempotent via mountKeys_.take().
-    void purgeVolume(const QString& mount);
+    void purgeVolume(const QString& mount, bool refreshAfter = true);
 
     IHostContext* hostContext_ = nullptr;
     PlaybackEngine* engine_ = nullptr;

@@ -53,6 +53,13 @@ private:
     QString fixture(const char* name) const {
         return QStringLiteral(TEST_DATA_DIR "/media/") + QLatin1String(name);
     }
+    QString fixtureError(const QString& path, const QSignalSpy& errors) const {
+        QStringList messages;
+        for (const auto& arguments : errors)
+            messages.append(arguments.value(0).toString());
+        return QStringLiteral("fixture=%1; PlaybackEngine errors: %2")
+            .arg(path, messages.join(QStringLiteral(" | ")));
+    }
 };
 
 void TestPlaybackEngine::testPlaysFixtureToCompletion() {
@@ -62,11 +69,11 @@ void TestPlaybackEngine::testPlaysFixtureToCompletion() {
     QSignalSpy finished(&eng, &PlaybackEngine::trackFinished);
     QSignalSpy errors(&eng, &PlaybackEngine::errorOccurred);
 
-    eng.playFile(fixture("tone-44k.mp3"));
+    const QString path = fixture("tone-44k.mp3");
+    eng.playFile(path);
     // 0.5 s fixture; allow generous slack for backend spin-up.
     QTRY_VERIFY_WITH_TIMEOUT(finished.count() == 1 || errors.count() > 0, 15000);
-    if (errors.count() > 0)
-        QSKIP("Multimedia backend unavailable in this environment (spike env should match!)");
+    QVERIFY2(errors.isEmpty(), qPrintable(fixtureError(path, errors)));
 
     QCOMPARE(audio.created, 1);
     QCOMPARE(audio.lastName, QString("Local Media"));
@@ -89,10 +96,10 @@ void TestPlaybackEngine::testMetadataAndState() {
     QSignalSpy finished(&eng, &PlaybackEngine::trackFinished);
     QSignalSpy errors(&eng, &PlaybackEngine::errorOccurred);
 
-    eng.playFile(fixture("tone-48k.flac"));
+    const QString path = fixture("tone-48k.flac");
+    eng.playFile(path);
     QTRY_VERIFY_WITH_TIMEOUT(finished.count() == 1 || errors.count() > 0, 15000);
-    if (errors.count() > 0)
-        QSKIP("Multimedia backend unavailable in this environment");
+    QVERIFY2(errors.isEmpty(), qPrintable(fixtureError(path, errors)));
 
     QVERIFY(meta.count() >= 1);
     QCOMPARE(eng.title(), QString("Tone 48"));
@@ -121,11 +128,11 @@ void TestPlaybackEngine::testReleaseAudioResourcesIdempotent() {
     eng.setAudioService(&audio);
     QSignalSpy errors(&eng, &PlaybackEngine::errorOccurred);
 
-    eng.playFile(fixture("tone-44k.mp3"));
+    const QString path = fixture("tone-44k.mp3");
+    eng.playFile(path);
     // Wait until a stream actually exists (audio began flowing).
     QTRY_VERIFY_WITH_TIMEOUT(audio.created == 1 || errors.count() > 0, 15000);
-    if (errors.count() > 0)
-        QSKIP("Multimedia backend unavailable in this environment");
+    QVERIFY2(errors.isEmpty(), qPrintable(fixtureError(path, errors)));
 
     QCOMPARE(audio.destroyed, 0);            // stream lives during playback
     eng.releaseAudioResources();             // shutdown() path
