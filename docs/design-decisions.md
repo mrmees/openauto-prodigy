@@ -422,6 +422,23 @@ Separately, a running SCO node is audio-routing evidence, not sufficient proof
 that a call exists; requiring setup/call evidence prevents stale or unrelated
 nodes from creating a phantom call.
 
+### Local-media restore state has explicit ownership
+
+**Decision:** A saved local-media position belongs only to its exact saved
+track. If that path is absent at boot, an available fallback is adopted paused
+at zero while the raw exact-track restore remains pending. Play/pause, next,
+previous, queue selection, and seek explicitly take transport ownership and
+discard that pending restore. Shuffle/repeat persist at their control boundary;
+a seek persists its bounded requested millisecond value rather than an
+asynchronous player readback.
+
+**Rationale:** Boot-time USB mounting and Qt Multimedia delivery are both
+asynchronous. Treating decode policy as restore ownership can permanently lose
+a valid late-mount retry, while applying one track's saved time to another or
+reading position immediately after a seek creates internally inconsistent
+persistence. Explicit ownership makes late restoration possible until the user
+acts and makes every power-cut-sensitive mutation durable at its source.
+
 ---
 
 ### Application-lifetime night state

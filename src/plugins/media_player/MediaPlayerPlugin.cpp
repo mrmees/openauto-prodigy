@@ -129,18 +129,7 @@ bool MediaPlayerPlugin::initialize(IHostContext* context) {
     // volumeMounted synchronously — which upgrades mountKeys_ to uuid keys.
     watcher_ = new UsbMediaWatcher(this);
     connect(watcher_, &UsbMediaWatcher::volumeMounted, this,
-            [this](const QString& mount, const QString& /*label*/, const QString& uuid) {
-        // Key captured at mount time — never recomputed from a dead mount
-        // later (Codex P1). Store BEFORE refreshSources() rescans.
-        mountKeys_[mount] = uuid.isEmpty()
-            ? MediaScanner::rootKeyForPath(mount)
-            : (QStringLiteral("uuid-") + uuid);
-        refreshSources();
-        // A stick carrying the saved queue's current track may have just
-        // finished mounting — finish the boot restore that initialize() could
-        // not (Codex gate P1). No-op unless a restore is pending.
-        retryPendingRestore();
-    });
+            &MediaPlayerPlugin::onVolumeMounted);
     connect(watcher_, &UsbMediaWatcher::volumeRemoved, this, [this](const QString& mount) {
         // Eject-initiated removal already ran purgeVolume() in ejectVolume();
         // just clear the guard. A real yank runs the shared purge.
@@ -224,6 +213,20 @@ void MediaPlayerPlugin::setHasTrack(bool has) {
     if (hasTrack_ == has) return;
     hasTrack_ = has;
     emit hasTrackChanged();
+}
+
+void MediaPlayerPlugin::onVolumeMounted(const QString& mount, const QString& /*label*/,
+                                        const QString& uuid) {
+    // Key captured at mount time — never recomputed from a dead mount later
+    // (Codex P1). Store BEFORE refreshSources() rescans.
+    mountKeys_[mount] = uuid.isEmpty()
+        ? MediaScanner::rootKeyForPath(mount)
+        : (QStringLiteral("uuid-") + uuid);
+    refreshSources();
+    // A stick carrying the saved queue's current track may have just finished
+    // mounting. Pending restore ownership, rather than PlaybackPolicy's
+    // decode/autoplay guard, decides whether this retry may take the transport.
+    retryPendingRestore();
 }
 
 void MediaPlayerPlugin::startTrack(const QString& path) {
@@ -421,7 +424,7 @@ void MediaPlayerPlugin::ejectVolume(const QString& mountPath) {
 }
 
 void MediaPlayerPlugin::playPause() {
-    policy_.onUserAction();  // user action supersedes restore state
+    takeRestoreOwnership();
     if (!hasTrack_) return;
     switch (engine_->playbackState()) {
     case 1:  engine_->pause(); break;
@@ -431,22 +434,22 @@ void MediaPlayerPlugin::playPause() {
 }
 
 void MediaPlayerPlugin::next() {
-    policy_.onUserAction();  // user action supersedes restore state
+    takeRestoreOwnership();
     if (!hasTrack_) return;
     if (queue_->advance(true))
         startTrack(queue_->currentTrack());
 }
 
 void MediaPlayerPlugin::previous() {
-    policy_.onUserAction();  // user action supersedes restore state
+    takeRestoreOwnership();
     if (!hasTrack_) return;
     // Classic head-unit behavior: >3 s into the track = restart it.
     if (engine_->position() > 3000) {
-        engine_->seek(0);
+        seekTo(0);
     } else if (queue_->retreat()) {
         startTrack(queue_->currentTrack());
     } else {
-        engine_->seek(0);
+        seekTo(0);
     }
 }
 
@@ -456,13 +459,23 @@ void MediaPlayerPlugin::pauseIfPlaying() {
 }
 
 void MediaPlayerPlugin::seekTo(qint64 positionMs) {
-    if (hasTrack_) engine_->seek(positionMs);
+    if (!hasTrack_) return;
+    takeRestoreOwnership();
+    const qint64 bounded = boundedSeekPosition(positionMs);
+    engine_->seek(bounded);
+    // QMediaPlayer positionChanged is asynchronous. Persist the user request,
+    // not an immediate engine readback that may still contain the old value.
+    saveState(bounded);
 }
 
-void MediaPlayerPlugin::toggleShuffle() { queue_->setShuffle(!queue_->shuffle()); }
+void MediaPlayerPlugin::toggleShuffle() {
+    queue_->setShuffle(!queue_->shuffle());
+    persistModes();
+}
 
 void MediaPlayerPlugin::cycleRepeat() {
     queue_->setRepeatMode((queue_->repeatMode() + 1) % 3);
+    persistModes();
 }
 
 void MediaPlayerPlugin::refreshSources() {
@@ -538,7 +551,7 @@ void MediaPlayerPlugin::refreshSources() {
     scanner_->scan(currentRoots_);
 }
 
-void MediaPlayerPlugin::saveState() {
+void MediaPlayerPlugin::saveState(std::optional<qint64> positionOverrideMs) {
     if (!hostContext_ || !hostContext_->configService()) return;
     auto* cfg = hostContext_->configService();
     // Scale guard (Codex P2): last_queue is the full path list — a
@@ -553,10 +566,31 @@ void MediaPlayerPlugin::saveState() {
     // would persist a stale index against the current queue.
     cfg->setPluginValue(kPluginId, QStringLiteral("last_index"), queue_->currentIndex());
     cfg->setPluginValue(kPluginId, QStringLiteral("last_position_ms"),
-                        hasTrack_ ? engine_->position() : qint64(0));
+                        hasTrack_ ? positionOverrideMs.value_or(engine_->position()) : qint64(0));
     cfg->setPluginValue(kPluginId, QStringLiteral("shuffle"), queue_->shuffle());
     cfg->setPluginValue(kPluginId, QStringLiteral("repeat_mode"), queue_->repeatMode());
     cfg->save();
+}
+
+void MediaPlayerPlugin::persistModes() {
+    if (!hostContext_ || !hostContext_->configService() || !queue_) return;
+    auto* cfg = hostContext_->configService();
+    // Deliberately do not call saveState(): during a partial boot restore its
+    // visible queue is filtered while the raw exact-track restore is pending.
+    cfg->setPluginValue(kPluginId, QStringLiteral("shuffle"), queue_->shuffle());
+    cfg->setPluginValue(kPluginId, QStringLiteral("repeat_mode"), queue_->repeatMode());
+    cfg->save();
+}
+
+void MediaPlayerPlugin::takeRestoreOwnership() {
+    policy_.onUserAction();
+    clearPendingRestore();
+}
+
+qint64 MediaPlayerPlugin::boundedSeekPosition(qint64 positionMs) const {
+    const qint64 nonNegative = qMax<qint64>(0, positionMs);
+    const qint64 durationMs = engine_ ? engine_->duration() : 0;
+    return durationMs > 0 ? qMin(nonNegative, durationMs) : nonNegative;
 }
 
 void MediaPlayerPlugin::restoreState() {
@@ -590,7 +624,8 @@ void MediaPlayerPlugin::restoreState() {
         if (QFileInfo::exists(p)) existing << p;
     if (existing.isEmpty()) return;
     int startIdx = existing.indexOf(savedCurrent);
-    if (startIdx < 0) startIdx = 0;
+    const bool exactCurrentAvailable = startIdx >= 0;
+    if (!exactCurrentAvailable) startIdx = 0;
     queue_->setTracks(existing, startIdx);
     setHasTrack(true);
     // Restore PAUSED at the saved position — nothing auto-plays on boot
@@ -603,16 +638,18 @@ void MediaPlayerPlugin::restoreState() {
     // reads as playable and auto-advances into REAL playback — violating the
     // no-autoplay invariant (spec §10).
     policy_.onTrackStarted();
-    engine_->restorePaused(queue_->currentTrack(), pos);
+    // A saved position belongs only to its saved track. A surviving fallback
+    // is a different observable track and therefore starts at zero.
+    const qint64 restorePositionMs = exactCurrentAvailable ? qMax<qint64>(0, pos) : 0;
+    engine_->restorePaused(queue_->currentTrack(), restorePositionMs);
 }
 
 void MediaPlayerPlugin::retryPendingRestore() {
     if (!hasPendingRestore_) return;
-    // Only while the boot restore still owns the transport: policy_.restoring()
-    // is true from restorePaused() until the first user action (covers the
-    // partial-restore case); !hasTrack_ covers the nothing-restored case. Once
-    // the user has taken over, never clobber their choice (Codex gate P1).
-    if (!(policy_.restoring() || !hasTrack_)) return;
+    // User transport actions clear hasPendingRestore_ explicitly. A
+    // restore-time decode error may clear PlaybackPolicy::restoring() to
+    // enforce no-autoplay, but is not user takeover and must not block this
+    // exact-track retry.
 
     // Re-filter the RAW saved list against what exists now. Rebuild only once
     // the saved current is actually present; otherwise wait for the next mount.
@@ -632,7 +669,7 @@ void MediaPlayerPlugin::retryPendingRestore() {
     // corrupt just-mounted track would then read as playable and auto-advance
     // into REAL playback, violating the no-autoplay invariant (spec §10).
     policy_.onTrackStarted();
-    engine_->restorePaused(queue_->currentTrack(), pendingRestorePosMs_);
+    engine_->restorePaused(queue_->currentTrack(), qMax<qint64>(0, pendingRestorePosMs_));
     clearPendingRestore();
 }
 
