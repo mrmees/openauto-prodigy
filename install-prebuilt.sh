@@ -17,10 +17,24 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PAYLOAD_DIR="$SCRIPT_DIR/payload"
-INSTALL_DIR="$HOME/openauto-prodigy"
-CONFIG_DIR="$HOME/.openauto"
+PAYLOAD_DIR="${OAP_PAYLOAD_DIR:-$SCRIPT_DIR/payload}"
+INSTALL_DIR="${OAP_INSTALL_DIR:-$HOME/openauto-prodigy}"
+CONFIG_DIR="${OAP_CONFIG_DIR:-$HOME/.openauto}"
+SYSTEMD_UNIT_DIR="${OAP_SYSTEMD_UNIT_DIR:-/etc/systemd/system}"
+PREFLIGHT_DEST="${OAP_PREFLIGHT_DEST:-/usr/local/bin/openauto-preflight}"
 SERVICE_NAME="openauto-prodigy"
+
+PREBUILT_TRANSACTION_STATE="idle"
+PREBUILT_TRANSACTION_ROOT=""
+PREBUILT_STAGE_DIR=""
+PREBUILT_ROLLBACK_DIR=""
+PREBUILT_APP_WAS_ACTIVE=false
+PREBUILT_WEB_WAS_ACTIVE=false
+PREBUILT_SYSTEM_WAS_ACTIVE=false
+PREBUILT_APP_ENABLEMENT=not-found
+PREBUILT_WEB_ENABLEMENT=not-found
+PREBUILT_SYSTEM_ENABLEMENT=not-found
+PREBUILT_CLEANUP_RAN=false
 
 # Defaults for optional variables (may be overridden by setup_hardware)
 WIFI_IFACE=""
@@ -44,6 +58,20 @@ ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 fail()  { echo -e "${RED}[FAIL]${NC} $*"; }
 
+load_hardware_contracts() {
+    local library="$PAYLOAD_DIR/config/installer/hardware-contracts.sh"
+
+    if [[ ! -r "$library" ]]; then
+        fail "Missing installer hardware contract library: $library"
+        return 1
+    fi
+    # shellcheck source=config/installer/hardware-contracts.sh
+    if ! source "$library"; then
+        fail "Could not load installer hardware contract library: $library"
+        return 1
+    fi
+}
+
 require_payload() {
     info "Validating payload..."
 
@@ -53,6 +81,9 @@ require_payload() {
         "$PAYLOAD_DIR/config/systemd/bluetooth-compat.conf"
         "$PAYLOAD_DIR/config/systemd/openauto-prodigy-hostapd.conf"
         "$PAYLOAD_DIR/config/systemd/hostapd-openauto.conf"
+        "$PAYLOAD_DIR/config/systemd/openauto-prodigy.service.in"
+        "$PAYLOAD_DIR/config/installer/hardware-contracts.sh"
+        "$PAYLOAD_DIR/config/installer/openauto-preflight"
         "$PAYLOAD_DIR/system-service/openauto_system.py"
         "$PAYLOAD_DIR/web-config/server.py"
         "$PAYLOAD_DIR/restart.sh"
@@ -65,6 +96,13 @@ require_payload() {
             exit 1
         fi
     done
+
+    if [[ ! -x "$PAYLOAD_DIR/build/src/openauto-prodigy" \
+        || ! -x "$PAYLOAD_DIR/restart.sh" \
+        || ! -x "$PAYLOAD_DIR/config/installer/openauto-preflight" ]]; then
+        fail "Payload executables have invalid permissions."
+        exit 1
+    fi
 
     ok "Payload looks complete"
 }
@@ -134,6 +172,9 @@ install_dependencies() {
         python3-flask
         python3-dbus-next python3-yaml
         python3-venv
+
+        # Bounded, zero-CPU Wayland socket condition
+        inotify-tools
     )
 
     sudo apt install -y "${PACKAGES[@]}"
@@ -152,7 +193,11 @@ setup_hardware() {
     for dev in /dev/input/event*; do
         if [[ -e "$dev" ]]; then
             local PROPS_PATH="/sys/class/input/$(basename "$dev")/device/properties"
-            if [[ -f "$PROPS_PATH" ]] && (( $(cat "$PROPS_PATH" 2>/dev/null || echo 0) & 2 )); then
+            local properties=""
+            if [[ -f "$PROPS_PATH" ]]; then
+                properties=$(cat "$PROPS_PATH" 2>/dev/null || true)
+            fi
+            if oap_input_properties_have_direct "$properties"; then
                 NAME=$(cat "/sys/class/input/$(basename "$dev")/device/name" 2>/dev/null || echo "unknown")
                 TOUCH_DEVS+=("$dev")
                 printf "  %-24s %s\n" "$dev" "$NAME"
@@ -215,6 +260,12 @@ setup_hardware() {
 
         read -p "Country code (for 5GHz) [US]: " COUNTRY_CODE
         COUNTRY_CODE=${COUNTRY_CODE:-US}
+        local normalized_country
+        if ! normalized_country=$(oap_normalize_country_code "$COUNTRY_CODE"); then
+            fail "Invalid country code '$COUNTRY_CODE'; enter exactly two ASCII letters."
+            return 1
+        fi
+        COUNTRY_CODE="$normalized_country"
     fi
 
     # AA settings
@@ -236,10 +287,19 @@ setup_hardware() {
 # ────────────────────────────────────────────────────
 # Step 4: Deploy prebuilt payload
 # ────────────────────────────────────────────────────
-deploy_payload() {
-    info "Deploying prebuilt files to $INSTALL_DIR..."
+validate_prebuilt_paths() {
+    [[ -n "$INSTALL_DIR" && "$INSTALL_DIR" == /* && "$INSTALL_DIR" != "/" ]] || {
+        fail "Refusing unsafe install root: $INSTALL_DIR"
+        return 1
+    }
+    [[ "$SYSTEMD_UNIT_DIR" == /* && "$PREFLIGHT_DEST" == /* ]] || {
+        fail "Managed unit and preflight destinations must be absolute paths."
+        return 1
+    }
+}
 
-    if [[ -d "$INSTALL_DIR" ]]; then
+confirm_payload_replacement() {
+    if [[ -d "$INSTALL_DIR" && "${OAP_PREBUILT_ASSUME_YES:-false}" != "true" ]]; then
         warn "Directory $INSTALL_DIR already exists."
         read -p "Overwrite prebuilt payload in this directory? [Y/n] " -n 1 -r
         echo
@@ -248,24 +308,400 @@ deploy_payload() {
             exit 1
         fi
     fi
+}
 
-    mkdir -p "$INSTALL_DIR"
+prebuilt_transaction_checkpoint() {
+    local name="$1"
+    if [[ "${OAP_PREBUILT_FAIL_AT:-}" == "$name" ]]; then
+        fail "Injected prebuilt transaction failure at $name"
+        return 97
+    fi
+}
 
-    rm -rf \
-        "$INSTALL_DIR/build" \
-        "$INSTALL_DIR/config" \
-        "$INSTALL_DIR/system-service" \
-        "$INSTALL_DIR/web-config" \
-        "$INSTALL_DIR/restart.sh"
+stage_prebuilt_payload() {
+    local parent
+    validate_prebuilt_paths
+    parent=$(dirname "$INSTALL_DIR")
+    mkdir -p "$parent"
+    PREBUILT_TRANSACTION_ROOT=$(mktemp -d "$parent/.oap-upgrade.XXXXXX")
+    PREBUILT_STAGE_DIR="$PREBUILT_TRANSACTION_ROOT/stage"
+    PREBUILT_ROLLBACK_DIR="$PREBUILT_TRANSACTION_ROOT/rollback"
+    PREBUILT_TRANSACTION_STATE="staging"
+    mkdir -p "$PREBUILT_STAGE_DIR" "$PREBUILT_ROLLBACK_DIR/payload" \
+        "$PREBUILT_ROLLBACK_DIR/external"
 
-    cp -a "$PAYLOAD_DIR/build" "$INSTALL_DIR/"
-    cp -a "$PAYLOAD_DIR/config" "$INSTALL_DIR/"
-    cp -a "$PAYLOAD_DIR/system-service" "$INSTALL_DIR/"
-    cp -a "$PAYLOAD_DIR/web-config" "$INSTALL_DIR/"
-    cp "$PAYLOAD_DIR/restart.sh" "$INSTALL_DIR/restart.sh"
+    cp -a "$PAYLOAD_DIR/build" "$PREBUILT_STAGE_DIR/"
+    cp -a "$PAYLOAD_DIR/config" "$PREBUILT_STAGE_DIR/"
+    cp -a "$PAYLOAD_DIR/system-service" "$PREBUILT_STAGE_DIR/"
+    cp -a "$PAYLOAD_DIR/web-config" "$PREBUILT_STAGE_DIR/"
+    cp -a "$PAYLOAD_DIR/restart.sh" "$PREBUILT_STAGE_DIR/restart.sh"
 
-    chmod +x "$INSTALL_DIR/build/src/openauto-prodigy" "$INSTALL_DIR/restart.sh"
+    local required
+    for required in \
+        build/src/openauto-prodigy \
+        config/installer/hardware-contracts.sh \
+        config/installer/openauto-preflight \
+        config/systemd/openauto-prodigy.service.in \
+        system-service/openauto_system.py \
+        web-config/server.py \
+        restart.sh; do
+        if [[ ! -e "$PREBUILT_STAGE_DIR/$required" ]]; then
+            fail "Staged payload validation failed: missing $required"
+            return 1
+        fi
+    done
+    [[ -x "$PREBUILT_STAGE_DIR/build/src/openauto-prodigy" \
+        && -x "$PREBUILT_STAGE_DIR/config/installer/openauto-preflight" \
+        && -x "$PREBUILT_STAGE_DIR/restart.sh" ]] || {
+        fail "Staged payload validation failed: invalid executable permissions"
+        return 1
+    }
+    PREBUILT_TRANSACTION_STATE="staged"
+}
+
+backup_external_file() {
+    local source="$1"
+    local label="$2"
+    local backup="$PREBUILT_ROLLBACK_DIR/external/$label"
+
+    if sudo test -e "$source"; then
+        sudo cp -a "$source" "$backup"
+        touch "$backup.present"
+    else
+        touch "$backup.absent"
+    fi
+}
+
+capture_prebuilt_service_state() {
+    local state
+
+    sudo systemctl is-active --quiet "${SERVICE_NAME}.service" \
+        && PREBUILT_APP_WAS_ACTIVE=true || PREBUILT_APP_WAS_ACTIVE=false
+    sudo systemctl is-active --quiet "${SERVICE_NAME}-web.service" \
+        && PREBUILT_WEB_WAS_ACTIVE=true || PREBUILT_WEB_WAS_ACTIVE=false
+    sudo systemctl is-active --quiet "openauto-system.service" \
+        && PREBUILT_SYSTEM_WAS_ACTIVE=true || PREBUILT_SYSTEM_WAS_ACTIVE=false
+
+    state=$(sudo systemctl is-enabled "${SERVICE_NAME}.service" 2>/dev/null || true)
+    PREBUILT_APP_ENABLEMENT="${state:-not-found}"
+    state=$(sudo systemctl is-enabled "${SERVICE_NAME}-web.service" 2>/dev/null || true)
+    PREBUILT_WEB_ENABLEMENT="${state:-not-found}"
+    state=$(sudo systemctl is-enabled "openauto-system.service" 2>/dev/null || true)
+    PREBUILT_SYSTEM_ENABLEMENT="${state:-not-found}"
+}
+
+begin_prebuilt_transaction() {
+    local service
+    [[ "$PREBUILT_TRANSACTION_STATE" == "staged" ]] || {
+        fail "Prebuilt payload was not staged before the stop boundary."
+        return 1
+    }
+
+    capture_prebuilt_service_state
+    backup_external_file "$SYSTEMD_UNIT_DIR/${SERVICE_NAME}.service" application-unit
+    backup_external_file "$SYSTEMD_UNIT_DIR/${SERVICE_NAME}-web.service" web-unit
+    backup_external_file "$SYSTEMD_UNIT_DIR/openauto-system.service" system-unit
+    backup_external_file "$PREFLIGHT_DEST" preflight
+
+    PREBUILT_TRANSACTION_STATE="active"
+    # Stop every managed unit after capturing the entry set. An inactive unit
+    # can be activated between is-active and this boundary (dependency/job
+    # race); conditional stops would then retire files under a live process.
+    for service in "${SERVICE_NAME}-web.service" "${SERVICE_NAME}.service" \
+        "openauto-system.service"; do
+        sudo systemctl stop "$service" 2>/dev/null || true
+    done
+    for service in "${SERVICE_NAME}-web.service" "${SERVICE_NAME}.service" \
+        "openauto-system.service"; do
+        if sudo systemctl is-active --quiet "$service"; then
+            fail "Managed service remained active at the payload retirement boundary: $service"
+            return 1
+        fi
+    done
+    prebuilt_transaction_checkpoint after-services-stopped
+}
+
+deploy_payload() {
+    local relative live backup
+    info "Deploying staged prebuilt files to $INSTALL_DIR..."
+    [[ "$PREBUILT_TRANSACTION_STATE" == "active" ]] || return 1
+
+    sudo mkdir -p "$INSTALL_DIR"
+    for relative in build config system-service web-config restart.sh; do
+        live="$INSTALL_DIR/$relative"
+        backup="$PREBUILT_ROLLBACK_DIR/payload/$relative"
+        if sudo test -e "$live" || sudo test -L "$live"; then
+            mkdir -p "$(dirname "$backup")"
+            touch "$backup.present"
+            sudo mv "$live" "$backup"
+        else
+            touch "$backup.absent"
+        fi
+    done
+    prebuilt_transaction_checkpoint after-live-retired
+
+    for relative in build config system-service web-config restart.sh; do
+        sudo mv "$PREBUILT_STAGE_DIR/$relative" "$INSTALL_DIR/$relative"
+    done
+    prebuilt_transaction_checkpoint after-new-payload
+
+    sudo chmod +x "$INSTALL_DIR/build/src/openauto-prodigy" "$INSTALL_DIR/restart.sh"
     ok "Prebuilt payload deployed"
+}
+
+restore_external_file() {
+    local destination="$1"
+    local label="$2"
+    local backup="$PREBUILT_ROLLBACK_DIR/external/$label"
+
+    sudo rm -f "$destination"
+    if [[ -f "$backup.present" ]]; then
+        sudo mkdir -p "$(dirname "$destination")"
+        sudo cp -a "$backup" "$destination"
+    fi
+}
+
+restore_prebuilt_service_state() {
+    if [[ "$PREBUILT_SYSTEM_WAS_ACTIVE" == "true" ]]; then
+        sudo systemctl start "openauto-system.service"
+    fi
+    if [[ "$PREBUILT_APP_WAS_ACTIVE" == "true" ]]; then
+        sudo systemctl start "${SERVICE_NAME}.service"
+    fi
+    if [[ "$PREBUILT_WEB_WAS_ACTIVE" == "true" ]]; then
+        sudo systemctl start "${SERVICE_NAME}-web.service"
+    fi
+
+    # Wants= may activate a dependency that was inactive at entry. Restore the
+    # exact observable set after starting the services that were active.
+    if [[ "$PREBUILT_WEB_WAS_ACTIVE" == "false" ]] \
+        && sudo systemctl is-active --quiet "${SERVICE_NAME}-web.service"; then
+        sudo systemctl stop "${SERVICE_NAME}-web.service"
+    fi
+    if [[ "$PREBUILT_APP_WAS_ACTIVE" == "false" ]] \
+        && sudo systemctl is-active --quiet "${SERVICE_NAME}.service"; then
+        sudo systemctl stop "${SERVICE_NAME}.service"
+    fi
+    if [[ "$PREBUILT_SYSTEM_WAS_ACTIVE" == "false" ]] \
+        && sudo systemctl is-active --quiet "openauto-system.service"; then
+        sudo systemctl stop "openauto-system.service"
+    fi
+}
+
+verify_prebuilt_service_state() {
+    local service expected
+    while read -r service expected; do
+        if [[ "$expected" == "true" ]]; then
+            if ! sudo systemctl is-active --quiet "$service"; then
+                fail "Managed service did not regain its active state: $service"
+                return 1
+            fi
+        elif sudo systemctl is-active --quiet "$service"; then
+            fail "Managed service was unexpectedly activated: $service"
+            return 1
+        fi
+    done <<EOF
+openauto-system.service $PREBUILT_SYSTEM_WAS_ACTIVE
+${SERVICE_NAME}.service $PREBUILT_APP_WAS_ACTIVE
+${SERVICE_NAME}-web.service $PREBUILT_WEB_WAS_ACTIVE
+EOF
+}
+
+wait_prebuilt_web_ready() {
+    local host="${OAP_PREBUILT_WEB_READY_HOST:-127.0.0.1}"
+    local port="${OAP_PREBUILT_WEB_READY_PORT:-8080}"
+    local timeout_seconds="${OAP_PREBUILT_WEB_READY_TIMEOUT_SECONDS:-15}"
+    local deadline
+
+    [[ "$port" =~ ^[0-9]+$ && "$port" -ge 1 && "$port" -le 65535 ]] || port=8080
+    [[ "$timeout_seconds" =~ ^[1-9][0-9]*$ ]] || timeout_seconds=15
+    deadline=$((SECONDS + timeout_seconds))
+    while :; do
+        if python3 - "$host" "$port" >/dev/null 2>&1 <<'PY'
+import socket
+import sys
+
+with socket.create_connection((sys.argv[1], int(sys.argv[2])), timeout=0.5):
+    pass
+PY
+        then
+            ok "Web config socket ready at $host:$port"
+            return 0
+        fi
+        if (( SECONDS >= deadline )); then
+            fail "Web config socket did not become ready at $host:$port after ${timeout_seconds}s"
+            return 1
+        fi
+        sleep 0.2
+    done
+}
+
+clear_prebuilt_service_enablement() {
+    local service
+    for service in "openauto-system.service" "${SERVICE_NAME}.service" \
+        "${SERVICE_NAME}-web.service"; do
+        # Unit installation may replace a /dev/null mask, while enable writes
+        # wants links outside the files backed up by this transaction. Clear
+        # both persistent/runtime policy before restarting the prior active
+        # set. Final masks are reconstructed only after those starts, which
+        # also preserves the valid active-but-masked entry combination.
+        sudo systemctl unmask --runtime "$service" >/dev/null 2>&1 || true
+        sudo systemctl unmask "$service" >/dev/null 2>&1 || true
+        sudo systemctl disable "$service" >/dev/null 2>&1 || true
+    done
+}
+
+restore_prebuilt_service_enablement() {
+    local service expected
+    while read -r service expected; do
+        case "$expected" in
+            enabled)
+                sudo systemctl enable "$service"
+                ;;
+            enabled-runtime)
+                sudo systemctl enable --runtime "$service"
+                ;;
+            masked)
+                sudo systemctl mask "$service"
+                ;;
+            masked-runtime)
+                sudo systemctl mask --runtime "$service"
+                ;;
+            disabled|static|indirect|generated|transient|alias|not-found)
+                ;;
+            *)
+                fail "Unsupported captured enablement state for $service: $expected"
+                return 1
+                ;;
+        esac
+    done <<EOF
+openauto-system.service $PREBUILT_SYSTEM_ENABLEMENT
+${SERVICE_NAME}.service $PREBUILT_APP_ENABLEMENT
+${SERVICE_NAME}-web.service $PREBUILT_WEB_ENABLEMENT
+EOF
+}
+
+verify_prebuilt_service_enablement() {
+    local service expected actual
+    while read -r service expected; do
+        actual=$(sudo systemctl is-enabled "$service" 2>/dev/null || true)
+        actual="${actual:-not-found}"
+        if [[ "$actual" != "$expected" ]]; then
+            fail "Managed service enablement changed: $service (expected $expected, got $actual)"
+            return 1
+        fi
+    done <<EOF
+openauto-system.service $PREBUILT_SYSTEM_ENABLEMENT
+${SERVICE_NAME}.service $PREBUILT_APP_ENABLEMENT
+${SERVICE_NAME}-web.service $PREBUILT_WEB_ENABLEMENT
+EOF
+}
+
+rollback_prebuilt_transaction() {
+    local relative live backup rollback_failed=false
+    [[ "$PREBUILT_TRANSACTION_STATE" == "active" ]] || return 0
+    warn "Rolling back the interrupted prebuilt upgrade..."
+
+    for service in "${SERVICE_NAME}-web.service" "${SERVICE_NAME}.service" \
+        "openauto-system.service"; do
+        if sudo systemctl is-active --quiet "$service"; then
+            sudo systemctl stop "$service" || rollback_failed=true
+        fi
+    done
+
+    for relative in build config system-service web-config restart.sh; do
+        live="$INSTALL_DIR/$relative"
+        backup="$PREBUILT_ROLLBACK_DIR/payload/$relative"
+        if [[ -f "$backup.present" && ( -e "$backup" || -L "$backup" ) ]]; then
+            sudo rm -rf "$live" || rollback_failed=true
+            sudo mkdir -p "$(dirname "$live")" || rollback_failed=true
+            sudo mv "$backup" "$live" || rollback_failed=true
+        elif [[ -f "$backup.present" && ! -e "$live" && ! -L "$live" ]]; then
+            rollback_failed=true
+        elif [[ -f "$backup.absent" ]]; then
+            sudo rm -rf "$live" || rollback_failed=true
+        fi
+    done
+
+    restore_external_file "$SYSTEMD_UNIT_DIR/${SERVICE_NAME}.service" application-unit \
+        || rollback_failed=true
+    restore_external_file "$SYSTEMD_UNIT_DIR/${SERVICE_NAME}-web.service" web-unit \
+        || rollback_failed=true
+    restore_external_file "$SYSTEMD_UNIT_DIR/openauto-system.service" system-unit \
+        || rollback_failed=true
+    restore_external_file "$PREFLIGHT_DEST" preflight || rollback_failed=true
+    sudo systemctl daemon-reload || rollback_failed=true
+    clear_prebuilt_service_enablement || rollback_failed=true
+    restore_prebuilt_service_state || rollback_failed=true
+    restore_prebuilt_service_enablement || rollback_failed=true
+    verify_prebuilt_service_state || rollback_failed=true
+    verify_prebuilt_service_enablement || rollback_failed=true
+
+    if [[ "$rollback_failed" == "true" ]]; then
+        PREBUILT_TRANSACTION_STATE="rollback-failed"
+        warn "Rollback was incomplete; retained recovery material at $PREBUILT_TRANSACTION_ROOT"
+        return 1
+    fi
+
+    PREBUILT_TRANSACTION_STATE="rolled-back"
+    sudo rm -rf "$PREBUILT_TRANSACTION_ROOT"
+    PREBUILT_TRANSACTION_ROOT=""
+    warn "Previous managed payload and service state restored."
+}
+
+commit_prebuilt_transaction() {
+    [[ "$PREBUILT_TRANSACTION_STATE" == "active" ]] || return 1
+    restore_prebuilt_service_state
+    prebuilt_transaction_checkpoint after-services-restored
+    verify_prebuilt_service_state
+    if [[ "$PREBUILT_WEB_WAS_ACTIVE" == "true" ]]; then
+        wait_prebuilt_web_ready
+    fi
+    prebuilt_transaction_checkpoint after-readiness
+
+    PREBUILT_TRANSACTION_STATE="committed"
+    if ! sudo rm -rf "$PREBUILT_TRANSACTION_ROOT"; then
+        warn "Upgrade committed, but temporary rollback material remains at $PREBUILT_TRANSACTION_ROOT"
+    fi
+    PREBUILT_TRANSACTION_ROOT=""
+    ok "Prebuilt payload transaction committed"
+}
+
+prebuilt_installer_cleanup() {
+    local primary_status="${1:-0}"
+    if [[ "$PREBUILT_CLEANUP_RAN" == "true" ]]; then
+        return "$primary_status"
+    fi
+    PREBUILT_CLEANUP_RAN=true
+
+    if [[ "$PREBUILT_TRANSACTION_STATE" == "active" ]]; then
+        rollback_prebuilt_transaction || true
+    elif [[ ( "$PREBUILT_TRANSACTION_STATE" == "staging" \
+        || "$PREBUILT_TRANSACTION_STATE" == "staged" ) \
+        && -n "$PREBUILT_TRANSACTION_ROOT" ]]; then
+        sudo rm -rf "$PREBUILT_TRANSACTION_ROOT" || true
+        PREBUILT_TRANSACTION_ROOT=""
+    fi
+    return "$primary_status"
+}
+
+_prebuilt_exit_trap() {
+    local status=$?
+    trap - EXIT INT TERM HUP
+    prebuilt_installer_cleanup "$status" || true
+    exit "$status"
+}
+
+_prebuilt_signal_trap() {
+    local signal_number="$1"
+    exit $((128 + signal_number))
+}
+
+install_prebuilt_lifecycle_traps() {
+    trap '_prebuilt_exit_trap' EXIT
+    trap '_prebuilt_signal_trap 2' INT
+    trap '_prebuilt_signal_trap 15' TERM
+    trap '_prebuilt_signal_trap 1' HUP
 }
 
 # ────────────────────────────────────────────────────
@@ -444,49 +880,54 @@ configure_hostapd_lifecycle() {
 }
 
 configure_network() {
-    configure_hostapd_lifecycle
-
     if [[ -z "$WIFI_IFACE" ]]; then
+        configure_hostapd_lifecycle
         warn "Skipping network configuration (no wireless interface)"
         return
     fi
 
     info "Configuring WiFi AP on $WIFI_IFACE..."
 
-    sudo mkdir -p /etc/systemd/network
-    sudo tee /etc/systemd/network/10-openauto-ap.network > /dev/null << NETCFG
-[Match]
-Name=$WIFI_IFACE
+    local normalized_country
+    if ! normalized_country=$(oap_normalize_country_code "$COUNTRY_CODE"); then
+        fail "Invalid country code '$COUNTRY_CODE'; network configuration was not changed."
+        return 1
+    fi
+    COUNTRY_CODE="$normalized_country"
 
-[Network]
-Address=${AP_IP}/24
-DHCPServer=yes
+    if ! sudo "${OAP_IW_BIN:-iw}" reg set "$COUNTRY_CODE" 2>/dev/null; then
+        warn "Could not apply wireless regulatory domain $COUNTRY_CODE; probing current channel permissions."
+    fi
+    if ! oap_probe_wifi_contract "$WIFI_IFACE"; then
+        fail "No usable WiFi AP channel was reported for $WIFI_IFACE; network configuration was not changed."
+        return 1
+    fi
 
-[DHCPServer]
-PoolOffset=10
-PoolSize=40
-EmitDNS=no
-NETCFG
+    local network_config hostapd_config
+    network_config=$(oap_render_networkd_config "$WIFI_IFACE" "$AP_IP") || {
+        fail "Could not render network configuration; no managed network file was changed."
+        return 1
+    }
+    hostapd_config=$(oap_render_hostapd_config \
+        "$WIFI_IFACE" "$WIFI_SSID" "$WIFI_PASS" "$COUNTRY_CODE") || {
+        fail "Could not render hostapd configuration; no managed network file was changed."
+        return 1
+    }
 
-    sudo tee /etc/hostapd/hostapd.conf > /dev/null << HOSTAPD
-interface=$WIFI_IFACE
-driver=nl80211
-ssid=$WIFI_SSID
-hw_mode=a
-channel=36
-ieee80211n=1
-ieee80211ac=1
-wmm_enabled=1
-country_code=$COUNTRY_CODE
-ieee80211d=1
-macaddr_acl=0
-auth_algs=1
-ignore_broadcast_ssid=0
-wpa=2
-wpa_passphrase=$WIFI_PASS
-wpa_key_mgmt=WPA-PSK
-rsn_pairwise=CCMP
-HOSTAPD
+    configure_hostapd_lifecycle
+    local network_tmp hostapd_tmp install_status=0
+    network_tmp=$(mktemp)
+    hostapd_tmp=$(mktemp)
+    printf '%s\n' "$network_config" > "$network_tmp"
+    printf '%s\n' "$hostapd_config" > "$hostapd_tmp"
+    sudo install -D -m 0644 "$network_tmp" \
+        /etc/systemd/network/10-openauto-ap.network || install_status=$?
+    if [[ $install_status -eq 0 ]]; then
+        sudo install -D -m 0644 "$hostapd_tmp" \
+            /etc/hostapd/hostapd.conf || install_status=$?
+    fi
+    rm -f "$network_tmp" "$hostapd_tmp"
+    [[ $install_status -eq 0 ]] || return "$install_status"
 
     if [[ -f /etc/default/hostapd ]]; then
         sudo sed -i 's|^#\?DAEMON_CONF=.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' /etc/default/hostapd
@@ -532,34 +973,103 @@ LABWC
 # ────────────────────────────────────────────────────
 # Step 8: Create systemd service
 # ────────────────────────────────────────────────────
+create_preflight_script() {
+    local source="$INSTALL_DIR/config/installer/openauto-preflight"
+
+    if [[ ! -f "$source" ]]; then
+        fail "Canonical application preflight not found: $source"
+        return 1
+    fi
+    sudo install -D -m 0755 "$source" "$PREFLIGHT_DEST"
+    ok "Pre-flight script installed at $PREFLIGHT_DEST"
+}
+
+systemd_escape_absolute_path() {
+    local path="$1"
+
+    [[ -n "$path" && "$path" == /* \
+        && "$path" != *$'\n'* && "$path" != *$'\r'* ]] || return 1
+    if LC_ALL=C printf '%s' "$path" | grep -q '[[:cntrl:]]'; then
+        return 1
+    fi
+
+    printf '%s' "$path" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' \
+        -e 's/%/%%/g' -e 's/\$/$$/g'
+}
+
+systemd_escape_path_field() {
+    local path="$1"
+
+    [[ -n "$path" && "$path" == /* \
+        && "$path" != *$'\n'* && "$path" != *$'\r'* ]] || return 1
+    if LC_ALL=C printf '%s' "$path" | grep -q '[[:cntrl:]]'; then
+        return 1
+    fi
+
+    printf '%s' "$path" | sed -e 's/%/%%/g'
+}
+
+render_application_unit() {
+    local template_path="$1"
+    local service_user="$2"
+    local user_id="$3"
+    local install_root="$4"
+    local escaped_user systemd_root systemd_working_root
+    local escaped_root escaped_working_root
+
+    [[ -f "$template_path" ]] || return 1
+    [[ -n "$service_user" && "$service_user" != *$'\n'* ]] || return 1
+    [[ "$user_id" =~ ^[0-9]+$ ]] || return 1
+    [[ -n "$install_root" && "$install_root" == /* && "$install_root" != *$'\n'* ]] || return 1
+
+    systemd_root=$(systemd_escape_absolute_path "$install_root") || return 1
+    systemd_working_root=$(systemd_escape_path_field "$install_root") || return 1
+    escaped_user=$(printf '%s' "$service_user" | sed 's/[\\&|]/\\&/g')
+    escaped_root=$(printf '%s' "$systemd_root" | sed 's/[\\&|]/\\&/g')
+    escaped_working_root=$(printf '%s' "$systemd_working_root" | sed 's/[\\&|]/\\&/g')
+    sed -e "s|@@USER@@|$escaped_user|g" \
+        -e "s|@@USER_ID@@|$user_id|g" \
+        -e "s|@@INSTALL_DIR@@|$escaped_root|g" \
+        -e "s|@@INSTALL_WORKING_DIR@@|$escaped_working_root|g" \
+        "$template_path"
+}
+
+render_system_service_unit() {
+    local template_path="$1"
+    local python_path="$2"
+    local system_service_root="$3"
+    local systemd_python systemd_root systemd_working_root
+    local sed_python sed_root sed_working_root
+
+    [[ -f "$template_path" ]] || return 1
+    systemd_python=$(systemd_escape_absolute_path "$python_path") || return 1
+    systemd_root=$(systemd_escape_absolute_path "$system_service_root") || return 1
+    systemd_working_root=$(systemd_escape_path_field "$system_service_root") || return 1
+    sed_python=$(printf '%s' "$systemd_python" | sed 's/[\\&|]/\\&/g')
+    sed_root=$(printf '%s' "$systemd_root" | sed 's/[\\&|]/\\&/g')
+    sed_working_root=$(printf '%s' "$systemd_working_root" | sed 's/[\\&|]/\\&/g')
+    sed -e "s|@@PYTHON_PATH@@|$sed_python|g" \
+        -e "s|@@SYS_DIR@@|$sed_root|g" \
+        -e "s|@@SYS_WORKING_DIR@@|$sed_working_root|g" \
+        "$template_path"
+}
+
 create_service() {
     info "Creating systemd service..."
 
-    local USER_ID
+    local USER_ID template_path rendered_unit
     USER_ID=$(id -u)
-
-    sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null << SERVICE
-[Unit]
-Description=OpenAuto Prodigy
-After=graphical.target
-Wants=openauto-system.service
-
-[Service]
-Type=notify
-NotifyAccess=main
-User=$USER
-Environment=XDG_RUNTIME_DIR=/run/user/$USER_ID
-Environment=WAYLAND_DISPLAY=wayland-0
-Environment=QT_QPA_PLATFORM=wayland
-Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$USER_ID/bus
-WorkingDirectory=$INSTALL_DIR
-ExecStart=$INSTALL_DIR/build/src/openauto-prodigy
-Restart=on-failure
-RestartSec=3
-
-[Install]
-WantedBy=graphical.target
-SERVICE
+    template_path="$INSTALL_DIR/config/systemd/openauto-prodigy.service.in"
+    rendered_unit=$(mktemp)
+    if ! render_application_unit "$template_path" "$USER" "$USER_ID" "$INSTALL_DIR" \
+        > "$rendered_unit"; then
+        rm -f "$rendered_unit"
+        fail "Could not render canonical application service template: $template_path"
+        return 1
+    fi
+    sudo install -D -m 0644 "$rendered_unit" \
+        "$SYSTEMD_UNIT_DIR/${SERVICE_NAME}.service"
+    rm -f "$rendered_unit"
 
     sudo systemctl daemon-reload
 
@@ -577,7 +1087,14 @@ SERVICE
 create_web_service() {
     info "Creating web config panel service..."
 
-    sudo tee /etc/systemd/system/${SERVICE_NAME}-web.service > /dev/null << SERVICE
+    local systemd_root systemd_working_root
+    systemd_root=$(systemd_escape_absolute_path "$INSTALL_DIR") || {
+        fail "Install path cannot be represented safely in the web service unit: $INSTALL_DIR"
+        return 1
+    }
+    systemd_working_root=$(systemd_escape_path_field "$INSTALL_DIR") || return 1
+
+    sudo tee "$SYSTEMD_UNIT_DIR/${SERVICE_NAME}-web.service" > /dev/null << SERVICE
 [Unit]
 Description=OpenAuto Prodigy Web Config
 After=network.target ${SERVICE_NAME}.service
@@ -585,8 +1102,8 @@ After=network.target ${SERVICE_NAME}.service
 [Service]
 Type=simple
 User=$USER
-WorkingDirectory=$INSTALL_DIR/web-config
-ExecStart=/usr/bin/python3 $INSTALL_DIR/web-config/server.py
+WorkingDirectory=$systemd_working_root/web-config
+ExecStart=/usr/bin/python3 "$systemd_root/web-config/server.py"
 Restart=on-failure
 RestartSec=5
 Environment=OAP_WEB_HOST=0.0.0.0
@@ -597,8 +1114,8 @@ WantedBy=multi-user.target
 SERVICE
 
     sudo systemctl daemon-reload
-    sudo systemctl enable --now ${SERVICE_NAME}-web
-    ok "Web config service created (port 8080)"
+    sudo systemctl enable ${SERVICE_NAME}-web
+    ok "Web config service created (port 8080; prior active state preserved)"
 }
 
 # ────────────────────────────────────────────────────
@@ -638,7 +1155,7 @@ create_system_service() {
     fi
 
     # --- Upgrade detection and migration ---
-    local UNIT_PATH="/etc/systemd/system/openauto-system.service"
+    local UNIT_PATH="$SYSTEMD_UNIT_DIR/openauto-system.service"
     local MIGRATING=false
 
     if [[ -f "$UNIT_PATH" ]]; then
@@ -679,6 +1196,17 @@ create_system_service() {
         warn "Could not create venv. Using system Python."
     fi
 
+    local systemd_python systemd_sys_dir systemd_working_sys_dir
+    systemd_python=$(systemd_escape_absolute_path "$PYTHON_PATH") || {
+        fail "Python path cannot be represented safely in the system service unit: $PYTHON_PATH"
+        return 1
+    }
+    systemd_sys_dir=$(systemd_escape_absolute_path "$SYS_DIR") || {
+        fail "Install path cannot be represented safely in the system service unit: $SYS_DIR"
+        return 1
+    }
+    systemd_working_sys_dir=$(systemd_escape_path_field "$SYS_DIR") || return 1
+
     # --- Template rendering ---
     # Render systemd unit from template (single source of truth)
     local TEMPLATE="$SYS_DIR/openauto-system.service.in"
@@ -697,11 +1225,11 @@ After=network.target bluetooth.target
 [Service]
 Type=notify
 User=root
-ExecStart=$PYTHON_PATH $SYS_DIR/openauto_system.py
+ExecStart=/usr/bin/env -- "$systemd_python" "$systemd_sys_dir/openauto_system.py"
 ExecStopPost=-/usr/sbin/iptables -t nat -D OUTPUT -p tcp -j OPENAUTO_PROXY
 ExecStopPost=-/usr/sbin/iptables -t nat -F OPENAUTO_PROXY
 ExecStopPost=-/usr/sbin/iptables -t nat -X OPENAUTO_PROXY
-WorkingDirectory=$SYS_DIR
+WorkingDirectory=$systemd_working_sys_dir
 RuntimeDirectory=openauto
 Restart=always
 RestartSec=2
@@ -714,9 +1242,8 @@ LockPersonality=yes
 WantedBy=multi-user.target
 SERVICE
     else
-        sed -e "s|@@PYTHON_PATH@@|$PYTHON_PATH|g" \
-            -e "s|@@SYS_DIR@@|$SYS_DIR|g" \
-            "$TEMPLATE" | sudo tee "$UNIT_PATH" > /dev/null
+        render_system_service_unit "$TEMPLATE" "$PYTHON_PATH" "$SYS_DIR" \
+            | sudo tee "$UNIT_PATH" > /dev/null
     fi
 
     # --- Reload and enable ---
@@ -774,19 +1301,72 @@ run_diagnostics() {
 main() {
     print_header
     require_payload
+    load_hardware_contracts
+    install_prebuilt_lifecycle_traps
     check_system
     install_dependencies
     setup_hardware
+    validate_prebuilt_paths
+    confirm_payload_replacement
+    stage_prebuilt_payload
+    begin_prebuilt_transaction
     deploy_payload
     generate_config
     install_msbc_codec_fix
     configure_bluetooth
     configure_network
     configure_labwc
+    create_preflight_script
+    prebuilt_transaction_checkpoint after-preflight
     create_service
+    prebuilt_transaction_checkpoint after-application-unit
     create_web_service
+    prebuilt_transaction_checkpoint after-web-unit
     create_system_service
+    prebuilt_transaction_checkpoint after-system-unit
+    sudo systemctl daemon-reload
+    prebuilt_transaction_checkpoint after-daemon-reload
+    commit_prebuilt_transaction
     run_diagnostics
 }
 
-main "$@"
+run_prebuilt_transaction_test_action() {
+    local assets_dir="${OAP_PREBUILT_TEST_ASSETS_DIR:-}"
+    [[ -n "$assets_dir" ]] || {
+        fail "OAP_PREBUILT_TEST_ASSETS_DIR is required for the transaction harness"
+        return 2
+    }
+
+    install_prebuilt_lifecycle_traps
+    require_payload
+    validate_prebuilt_paths
+    stage_prebuilt_payload
+    begin_prebuilt_transaction
+    deploy_payload
+
+    sudo install -D -m 0755 "$assets_dir/preflight" "$PREFLIGHT_DEST"
+    prebuilt_transaction_checkpoint after-preflight
+    sudo install -D -m 0644 "$assets_dir/application-unit" \
+        "$SYSTEMD_UNIT_DIR/${SERVICE_NAME}.service"
+    if [[ "${OAP_PREBUILT_TEST_AUTOSTART:-false}" == "true" ]]; then
+        sudo systemctl enable "${SERVICE_NAME}.service"
+    fi
+    prebuilt_transaction_checkpoint after-application-unit
+    sudo install -D -m 0644 "$assets_dir/web-unit" \
+        "$SYSTEMD_UNIT_DIR/${SERVICE_NAME}-web.service"
+    sudo systemctl enable "${SERVICE_NAME}-web.service"
+    prebuilt_transaction_checkpoint after-web-unit
+    sudo install -D -m 0644 "$assets_dir/system-unit" \
+        "$SYSTEMD_UNIT_DIR/openauto-system.service"
+    sudo systemctl enable "openauto-system.service"
+    prebuilt_transaction_checkpoint after-system-unit
+    sudo systemctl daemon-reload
+    prebuilt_transaction_checkpoint after-daemon-reload
+    commit_prebuilt_transaction
+}
+
+if [[ "${OAP_PREBUILT_TEST_ACTION:-}" == "transaction" ]]; then
+    run_prebuilt_transaction_test_action "$@"
+else
+    main "$@"
+fi

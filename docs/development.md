@@ -74,8 +74,17 @@ cmake --build ~/builds/openauto-prodigy -j$(nproc)
 For a fresh Raspberry Pi, the install script handles everything:
 
 ```bash
+git clone --recurse-submodules https://github.com/mrmees/openauto-prodigy.git
+cd openauto-prodigy
 bash install.sh
 ```
+
+Run source mode only from the complete Git checkout that contains `install.sh`.
+The installer resolves that physical checkout and uses it as the source and
+build root, so it may live outside the user's home directory. Standard-input
+execution and a standalone copied script are rejected before privilege
+escalation or system mutation; clone the repository and run the checked-out
+script instead.
 
 `install.sh` provides an install mode picker:
 - Build locally from source.
@@ -93,7 +102,19 @@ The source mode installs dependencies, builds from source, generates config,
 installs the canonical `restart.sh` in the checkout root, and creates systemd
 services. Both source and prebuilt application units use `Type=notify`; their
 blocking systemd start/restart jobs complete at the application's `READY=1`
-boundary.
+boundary. Both install the byte-identical
+`config/installer/openauto-preflight` helper and render
+`config/systemd/openauto-prodigy.service.in` for the selected user, UID, and
+install root. The unit orders after Bluetooth and PipeWire. Its bounded
+Wayland `ExecCondition` skips a start cleanly when the compositor socket is
+absent; a later explicit start proceeds normally once the socket exists.
+
+Package and build commands run in process groups owned by the installer. Normal
+completion, command failure, or interruption terminates and reaps only those
+owned groups. If the application service was active before an in-place source
+rebuild, it is stopped before configure/link work and restored when the
+installer succeeds or exits with an error; an inactive service remains
+inactive, and declining a rebuild does not stop it.
 
 ### Prebuilt Install (RPi OS Trixie)
 
@@ -104,6 +125,14 @@ tar -xzf openauto-prodigy-prebuilt-<tag>-pi4-aarch64.tar.gz
 cd openauto-prodigy-prebuilt-<tag>-pi4-aarch64
 bash install-prebuilt.sh
 ```
+
+The prebuilt installer validates and stages the complete managed payload before
+stopping any service. It records the active state of the application,
+web-config, and privileged system service, swaps only the managed payload paths,
+and keeps the prior payload and unit files until the replacement services have
+regained exactly that state. Any post-stop failure restores the prior bytes and
+active set. Services that were inactive remain inactive; installing a unit does
+not start it as a side effect.
 
 To create a prebuilt package from this repo:
 

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Exercise the optional hostapd relationship in a real user systemd manager."""
+"""Exercise installer-owned startup relationships in a real user systemd manager."""
 
 from __future__ import annotations
 
 import os
 import pathlib
 import shutil
+import socket
 import subprocess
 import tempfile
 import time
@@ -15,6 +16,7 @@ import uuid
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 APP_HOSTAPD_ASSET = REPO_ROOT / "config/systemd/openauto-prodigy-hostapd.conf"
 HOSTAPD_ASSET = REPO_ROOT / "config/systemd/hostapd-openauto.conf"
+APP_PREFLIGHT = REPO_ROOT / "config/installer/openauto-preflight"
 SKIP_RETURN_CODE = 77
 
 
@@ -68,6 +70,202 @@ def write_unit(path: pathlib.Path, description: str, helper: pathlib.Path) -> No
     )
 
 
+def test_wayland_condition(unit_dir: pathlib.Path) -> None:
+    suffix = uuid.uuid4().hex[:12]
+    unit = f"oap-wayland-condition-{suffix}.service"
+    unit_path = unit_dir / unit
+    with tempfile.TemporaryDirectory(prefix="oap-wayland-condition-") as tmp:
+        root = pathlib.Path(tmp)
+        runtime = root / "runtime"
+        runtime.mkdir()
+        wayland_socket = runtime / "wayland-test"
+        marker = root / "started"
+        helper = root / "notify-service.py"
+        helper.write_text(
+            "#!/usr/bin/env python3\n"
+            "import os, pathlib, signal, socket, sys, time\n"
+            "address = os.environ['NOTIFY_SOCKET']\n"
+            "if address.startswith('@'):\n"
+            "    address = '\\0' + address[1:]\n"
+            "client = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)\n"
+            "client.sendto(b'READY=1', address)\n"
+            "pathlib.Path(sys.argv[1]).write_text('started\\n')\n"
+            "signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))\n"
+            "while True: time.sleep(1)\n"
+        )
+        helper.chmod(0o755)
+        unit_path.write_text(
+            "[Unit]\nDescription=Wayland condition test\n"
+            "[Service]\n"
+            "Type=notify\nNotifyAccess=main\n"
+            f"Environment=XDG_RUNTIME_DIR={runtime}\n"
+            "Environment=WAYLAND_DISPLAY=wayland-test\n"
+            "Environment=OAP_PREFLIGHT_WAYLAND_TIMEOUT_SECONDS=1\n"
+            f"ExecCondition={APP_PREFLIGHT} --wayland\n"
+            f"ExecStart={helper} {marker}\n"
+            "Restart=on-failure\nRestartSec=1\n"
+        )
+
+        server: socket.socket | None = None
+        try:
+            systemctl("daemon-reload")
+            result = systemctl("start", unit, check=False)
+            if result.returncode != 0:
+                raise AssertionError(f"skipped Wayland start failed: {result.stderr}")
+            if active(unit) or marker.exists():
+                raise AssertionError("missing Wayland socket launched the application")
+            if systemctl("is-failed", "--quiet", unit, check=False).returncode == 0:
+                raise AssertionError("missing Wayland socket marked the unit failed")
+            restarts = systemctl("show", "--property=NRestarts", "--value", unit)
+            if restarts.stdout.strip() not in ("", "0"):
+                raise AssertionError("missing Wayland socket entered a restart loop")
+
+            server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            server.bind(str(wayland_socket))
+            server.listen(1)
+            systemctl("start", unit)
+            wait_active_pid(unit)
+            wait_for(marker.exists, "conditioned application helper to start")
+        finally:
+            systemctl("stop", unit, check=False)
+            systemctl("reset-failed", unit, check=False)
+            unit_path.unlink(missing_ok=True)
+            systemctl("daemon-reload", check=False)
+            if server is not None:
+                server.close()
+
+
+def test_pipewire_condition(unit_dir: pathlib.Path) -> None:
+    suffix = uuid.uuid4().hex[:12]
+    unit = f"oap-pipewire-condition-{suffix}.service"
+    unit_path = unit_dir / unit
+    with tempfile.TemporaryDirectory(prefix="oap-pipewire-condition-") as tmp:
+        root = pathlib.Path(tmp)
+        runtime = root / "runtime"
+        runtime.mkdir()
+        pipewire_socket = runtime / "pipewire-test"
+        marker = root / "started"
+        helper = root / "notify-service.py"
+        helper.write_text(
+            "#!/usr/bin/env python3\n"
+            "import os, pathlib, signal, socket, sys, time\n"
+            "address = os.environ['NOTIFY_SOCKET']\n"
+            "if address.startswith('@'):\n"
+            "    address = '\\0' + address[1:]\n"
+            "client = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)\n"
+            "client.sendto(b'READY=1', address)\n"
+            "pathlib.Path(sys.argv[1]).write_text('started\\n')\n"
+            "signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))\n"
+            "while True: time.sleep(1)\n"
+        )
+        helper.chmod(0o755)
+        unit_path.write_text(
+            "[Unit]\nDescription=PipeWire condition test\n"
+            "[Service]\nType=notify\nNotifyAccess=main\n"
+            f"Environment=XDG_RUNTIME_DIR={runtime}\n"
+            "Environment=OAP_PREFLIGHT_PIPEWIRE_SOCKET_NAME=pipewire-test\n"
+            "Environment=OAP_PREFLIGHT_PIPEWIRE_TIMEOUT_SECONDS=1\n"
+            f"ExecCondition={APP_PREFLIGHT} --pipewire\n"
+            f"ExecStart={helper} {marker}\n"
+            "Restart=on-failure\nRestartSec=1\n"
+        )
+
+        server: socket.socket | None = None
+        try:
+            systemctl("daemon-reload")
+            result = systemctl("start", unit, check=False)
+            if result.returncode != 0:
+                raise AssertionError(f"skipped PipeWire start failed: {result.stderr}")
+            if active(unit) or marker.exists():
+                raise AssertionError("missing PipeWire socket launched the application")
+            if systemctl("is-failed", "--quiet", unit, check=False).returncode == 0:
+                raise AssertionError("missing PipeWire socket marked the unit failed")
+            restarts = systemctl("show", "--property=NRestarts", "--value", unit)
+            if restarts.stdout.strip() not in ("", "0"):
+                raise AssertionError("missing PipeWire socket entered a restart loop")
+
+            server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            server.bind(str(pipewire_socket))
+            server.listen(1)
+            systemctl("start", unit)
+            wait_active_pid(unit)
+            wait_for(marker.exists, "PipeWire-conditioned helper to start")
+        finally:
+            systemctl("stop", unit, check=False)
+            systemctl("reset-failed", unit, check=False)
+            unit_path.unlink(missing_ok=True)
+            systemctl("daemon-reload", check=False)
+            if server is not None:
+                server.close()
+
+
+def test_quoted_percent_paths(unit_dir: pathlib.Path) -> None:
+    suffix = uuid.uuid4().hex[:12]
+    unit = f"oap-quoted-path-{suffix}.service"
+    unit_path = unit_dir / unit
+    with tempfile.TemporaryDirectory(prefix="oap-systemd-path-") as tmp:
+        service_root = pathlib.Path(tmp) / "OpenAuto Prodigy 100% \\ path"
+        service_root.mkdir()
+        marker = service_root / "started 50%.txt"
+        helper = service_root / "notify service 100%"
+        helper.write_text(
+            "#!/usr/bin/env python3\n"
+            "import os, pathlib, signal, socket, sys, time\n"
+            "address = os.environ['NOTIFY_SOCKET']\n"
+            "if address.startswith('@'):\n"
+            "    address = '\\0' + address[1:]\n"
+            "client = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)\n"
+            "client.sendto(b'READY=1', address)\n"
+            "pathlib.Path(sys.argv[1]).write_text(str(pathlib.Path.cwd()))\n"
+            "signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))\n"
+            "while True: time.sleep(1)\n"
+        )
+        helper.chmod(0o755)
+
+        def systemd_command_path(path: pathlib.Path) -> str:
+            return (
+                str(path)
+                .replace("\\", "\\\\")
+                .replace('"', '\\"')
+                .replace("%", "%%")
+                .replace("$", "$$")
+            )
+
+        def systemd_field_path(path: pathlib.Path) -> str:
+            return str(path).replace("%", "%%")
+
+        unit_path.write_text(
+            "[Unit]\nDescription=Quoted path rendering test\n"
+            "[Service]\nType=notify\nNotifyAccess=main\n"
+            f"WorkingDirectory={systemd_field_path(service_root)}\n"
+            f'ExecStart=/usr/bin/env -- "{systemd_command_path(helper)}" '
+            f'"{systemd_command_path(marker)}"\n'
+        )
+        try:
+            systemctl("daemon-reload")
+            start = systemctl("start", unit, check=False)
+            if start.returncode != 0:
+                loaded = systemctl(
+                    "show", "--property=WorkingDirectory", "--value", unit,
+                    check=False,
+                )
+                raise AssertionError(
+                    "systemd rejected the quoted-path runtime unit:\n"
+                    f"{unit_path.read_text()}\n"
+                    f"loaded WorkingDirectory={loaded.stdout.strip()!r}\n"
+                    f"{start.stderr}"
+                )
+            wait_active_pid(unit)
+            wait_for(marker.exists, "quoted-path helper to start")
+            if marker.read_text() != str(service_root):
+                raise AssertionError("systemd did not preserve the quoted working directory")
+        finally:
+            systemctl("stop", unit, check=False)
+            systemctl("reset-failed", unit, check=False)
+            unit_path.unlink(missing_ok=True)
+            systemctl("daemon-reload", check=False)
+
+
 def main() -> int:
     if shutil.which("systemctl") is None:
         print("SKIP: systemctl is unavailable")
@@ -82,6 +280,9 @@ def main() -> int:
     )
     unit_dir = runtime_dir / "systemd/user"
     unit_dir.mkdir(parents=True, exist_ok=True)
+    test_wayland_condition(unit_dir)
+    test_pipewire_condition(unit_dir)
+    test_quoted_percent_paths(unit_dir)
 
     suffix = uuid.uuid4().hex[:12]
     app_unit = f"oap-lifecycle-app-{suffix}.service"

@@ -1,0 +1,28 @@
+[Unit]
+Description=OpenAuto Prodigy
+After=graphical.target bluetooth.target
+Wants=openauto-system.service
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+[Service]
+Type=notify
+User=@@USER@@
+Environment=XDG_RUNTIME_DIR=/run/user/@@USER_ID@@
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=QT_QPA_PLATFORM=wayland
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/@@USER_ID@@/bus
+WorkingDirectory=@@INSTALL_WORKING_DIR@@
+ExecCondition=+/usr/local/bin/openauto-preflight --wayland
+ExecCondition=+/usr/local/bin/openauto-preflight --pipewire
+ExecStartPre=+/usr/local/bin/openauto-preflight --system
+ExecStartPre=-/bin/sh -c 'systemctl --user stop wf-panel-restore.service 2>/dev/null; pkill -f "lwrespawn.*wf-panel-pi"; pkill wf-panel-pi; true'
+ExecStart=/usr/bin/env -- "@@INSTALL_DIR@@/build/src/openauto-prodigy"
+ExecStopPost=-/bin/sh -c '[ "$SERVICE_RESULT" = "success" ] && systemd-run --user --unit=wf-panel-restore --setenv=WAYLAND_DISPLAY=wayland-0 /usr/bin/lwrespawn /usr/bin/wf-panel-pi || true'
+Restart=on-failure
+RestartSec=3
+WatchdogSec=30
+NotifyAccess=main
+
+[Install]
+WantedBy=graphical.target

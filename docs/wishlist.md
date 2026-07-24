@@ -38,12 +38,6 @@ Ideas captured here. Promote to `roadmap-current.md` when ready to commit.
   the prompt shows the MAC-derived fallback; the later managed-objects
   snapshot does not retroactively update `pairingDeviceName_`.
 
-- **Probe WiFi capabilities in the prebuilt installer** — the source installer
-  selects 5 GHz or 2.4 GHz from `iw phy`, while `install-prebuilt.sh` always
-  writes 5 GHz channel 36. It also omits the source installer's BlueZ SDP
-  compatibility drop-in and preflight helper. Share those setup paths and cover
-  a 2.4-GHz-only adapter fixture plus a fresh prebuilt SDP check.
-
 - **Reconcile installer-only configuration keys** — the installer still writes
   display pixel dimensions that runtime does not consume, while
   `connection.bt_name` works only because load-time unknown keys are retained

@@ -9,23 +9,30 @@ OpenAuto Prodigy uses wireless-only Android Auto. The phone discovers the Pi via
 
 ## Automated Setup
 
-The source-build path in `install.sh` handles WiFi AP configuration
-automatically:
+Both the source-build and prebuilt installation paths handle WiFi AP
+configuration through the same packaged hardware contract:
 
 - Detects available wireless interfaces
 - Lets you choose which interface to use for the AP
 - Configures systemd-networkd for static IP + DHCP server
 - Writes hostapd.conf with your SSID/password
-- Prefers 5GHz (channel 36) when the selected adapter supports it and falls
-  back to 2.4GHz otherwise
+- Requires the selected adapter's live `iw` capabilities to advertise the
+  exact AP interface mode
+- Prefers usable 5GHz (channel 36 when available), enables 802.11ac only when
+  the selected radio band advertises VHT, and falls back to a usable 2.4GHz
+  channel otherwise
 
-Run `bash install.sh` and select the source-build path for that capability
-detection. The prebuilt path currently configures 5 GHz channel 36 without an
-adapter capability probe and does not install the `openauto-preflight` helper.
-Both install paths install the same BlueZ SDP compatibility drop-in. Use an
-adapter that supports the prebuilt WiFi configuration, or use the manual 2.4
-GHz settings when needed. The remaining sections are for manual configuration
-or troubleshooting.
+Run `bash install.sh` and select either installation path. Both validate and
+apply a two-letter country code before probing the selected radio, then complete
+channel selection and configuration rendering before changing project-managed
+network files. If the adapter has no usable AP channel (entries marked
+`disabled`, `no IR`, or `radar detection` do not qualify), the installer stops
+with the existing network files unchanged.
+DFS channels are deliberately excluded because the generated hostapd contract
+does not enable 802.11h. Radios or channels requiring a 6 GHz/HE contract are
+also excluded. The generated SSID must contain 1–32 bytes and no control
+characters. Both paths also install the same BlueZ SDP compatibility drop-in.
+The remaining sections are for manual configuration or troubleshooting.
 
 When an AP interface is selected, both installers add an optional
 `Wants=hostapd.service` relationship from the application and configure
@@ -52,7 +59,7 @@ driver=nl80211
 ssid=OpenAutoProdigy
 
 # 5GHz is preferred on the Pi's combo radio to reduce WiFi/Bluetooth
-# coexistence interference. The source installer detects adapter capabilities;
+# coexistence interference. Both installers detect adapter capabilities;
 # for a manual 2.4GHz setup, use hw_mode=g and a suitable channel such as 6.
 hw_mode=a
 channel=36

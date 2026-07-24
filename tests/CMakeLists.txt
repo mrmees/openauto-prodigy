@@ -265,8 +265,24 @@ add_test(
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_prebuilt_release_package.py
 )
 add_test(
+    NAME test_prebuilt_upgrade_transaction
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_prebuilt_upgrade_transaction.py
+)
+add_test(
     NAME test_install_list_prebuilt
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_install_list_prebuilt.py
+)
+add_test(
+    NAME test_install_source_lifecycle
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_install_source_lifecycle.py
+)
+add_test(
+    NAME test_installer_hardware_contracts
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_installer_hardware_contracts.py
+)
+add_test(
+    NAME test_validate_resolutions
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_validate_resolutions.py
 )
 add_test(
     NAME test_ops_install_contracts

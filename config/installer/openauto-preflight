@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# OpenAuto Prodigy — application service preflight
+set -euo pipefail
+
+MODE="all"
+CHECK_ONLY=false
+case "${1:-}" in
+    "") ;;
+    --check-only) CHECK_ONLY=true ;;
+    --wayland) MODE="wayland" ;;
+    --pipewire) MODE="pipewire" ;;
+    --system) MODE="system" ;;
+    *) echo "Usage: openauto-preflight [--check-only|--wayland|--pipewire|--system]" >&2; exit 2 ;;
+esac
+
+PASS=0
+FAIL=0
+pass() { echo "PASS: $1"; PASS=$((PASS + 1)); }
+fail() { echo "FAIL: $1"; FAIL=$((FAIL + 1)); }
+
+check_radios() {
+    if ! command -v rfkill >/dev/null 2>&1; then
+        fail "rfkill not found"
+        return
+    fi
+
+    local radio
+    for radio in wlan bluetooth; do
+        if [[ "$CHECK_ONLY" == "true" ]]; then
+            if rfkill list "$radio" 2>/dev/null | grep -q "Soft blocked: yes"; then
+                fail "$radio radio soft-blocked (run without --check-only to fix)"
+            else
+                pass "$radio radio unblocked"
+            fi
+        elif rfkill unblock "$radio" 2>/dev/null; then
+            pass "$radio radio unblocked"
+        else
+            fail "Could not unblock $radio radio"
+        fi
+    done
+}
+
+check_runtime_socket() {
+    local socket="$1"
+    local description="$2"
+    local socket_label="$3"
+    local timeout_seconds="$4"
+    local attempts attempt
+
+    [[ "$timeout_seconds" =~ ^[1-9][0-9]*$ ]] || timeout_seconds=15
+    if [[ -S "$socket" ]]; then
+        pass "$description"
+        return
+    fi
+
+    if command -v inotifywait >/dev/null 2>&1; then
+        # The socket can appear after the first probe but before inotify has
+        # installed its watch. Always probe again after the bounded wait,
+        # including timeout/error, so a missed create edge cannot become a
+        # false startup skip.
+        inotifywait -t "$timeout_seconds" -e create "$(dirname "$socket")" \
+            --include "$(basename "$socket")" >/dev/null 2>&1 || true
+        if [[ -S "$socket" ]]; then
+            pass "$description"
+        else
+            fail "$socket_label socket not found at $socket after ${timeout_seconds}s"
+        fi
+        return
+    fi
+
+    attempts=$((timeout_seconds * 10))
+    for ((attempt = 0; attempt < attempts; attempt++)); do
+        [[ -S "$socket" ]] && break
+        sleep 0.1
+    done
+    if [[ -S "$socket" ]]; then
+        pass "$description"
+    else
+        fail "$socket_label socket not found at $socket after ${timeout_seconds}s"
+    fi
+}
+
+check_wayland() {
+    local display="${WAYLAND_DISPLAY:-wayland-0}"
+    check_runtime_socket \
+        "${XDG_RUNTIME_DIR:-/run/user/1000}/$display" \
+        "Wayland compositor ready ($display)" \
+        "Wayland" \
+        "${OAP_PREFLIGHT_WAYLAND_TIMEOUT_SECONDS:-15}"
+}
+
+check_pipewire() {
+    local socket_name="${OAP_PREFLIGHT_PIPEWIRE_SOCKET_NAME:-pipewire-0}"
+    check_runtime_socket \
+        "${XDG_RUNTIME_DIR:-/run/user/1000}/$socket_name" \
+        "PipeWire ready ($socket_name)" \
+        "PipeWire" \
+        "${OAP_PREFLIGHT_PIPEWIRE_TIMEOUT_SECONDS:-15}"
+}
+
+check_sdp() {
+    local socket="${OAP_PREFLIGHT_SDP_SOCKET:-/var/run/sdp}"
+    local socket_group socket_perms
+
+    if [[ ! -e "$socket" ]]; then
+        fail "$socket missing (is bluetooth.service running with --compat?)"
+        return
+    fi
+
+    socket_group=$(stat -c '%G' "$socket" 2>/dev/null || echo unknown)
+    socket_perms=$(stat -c '%a' "$socket" 2>/dev/null || echo 000)
+    if [[ "$socket_group" == "bluetooth" && "${socket_perms:1:1}" =~ [2367] ]]; then
+        pass "SDP socket ready (group=$socket_group perms=$socket_perms)"
+    elif [[ "$CHECK_ONLY" == "true" ]]; then
+        fail "$socket wrong permissions (group=$socket_group perms=$socket_perms, need bluetooth group-writable)"
+    elif chgrp bluetooth "$socket" 2>/dev/null && chmod g+rw "$socket" 2>/dev/null; then
+        pass "SDP socket fixed (was group=$socket_group, now bluetooth group-writable)"
+    else
+        fail "$socket has wrong permissions and could not be fixed (group=$socket_group perms=$socket_perms)"
+    fi
+}
+
+case "$MODE" in
+    wayland) check_wayland ;;
+    pipewire) check_pipewire ;;
+    system) check_radios; check_sdp ;;
+    all) check_radios; check_wayland; check_pipewire; check_sdp ;;
+esac
+
+echo "---"
+echo "Pre-flight: $PASS passed, $FAIL failed"
+[[ "$FAIL" -eq 0 ]]

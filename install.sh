@@ -3,14 +3,14 @@
 # OpenAuto Prodigy — Interactive Install Script
 # Targets: Raspberry Pi OS Trixie (Debian 13) on RPi 4
 #
-# Usage: curl -sSL <url> | bash
-#    or: bash install.sh
+# Usage: bash install.sh
 #    or: bash install.sh --mode prebuilt
 #    or: bash install.sh --list-prebuilt
 #
 set -euo pipefail
 
-# ERR trap is set after TUI detection in main()
+# ERR trap is set after TUI detection in main(). Lifecycle traps are installed
+# before source-mode mutation for both privileged and unprivileged execution.
 
 # Wrap entire script in a block so bash reads it all into memory before
 # executing. This prevents git pull from modifying the script mid-run.
@@ -65,13 +65,21 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-REPO_URL="https://github.com/mrmees/openauto-prodigy.git"
 GITHUB_RELEASES_API="${OAP_GITHUB_API_URL:-https://api.github.com/repos/mrmees/openauto-prodigy/releases?per_page=20}"
 PREBUILT_ASSET_REGEX='^openauto-prodigy-prebuilt-.*-pi4-aarch64\.tar\.gz$'
 LEGACY_PREBUILT_ASSET_REGEX='^openauto-prodigy-prebuilt-.*\.tar\.gz$'
-INSTALL_DIR="$HOME/openauto-prodigy"
+INSTALL_DIR=""
 CONFIG_DIR="$HOME/.openauto"
 SERVICE_NAME="openauto-prodigy"
+
+# Invocation-owned lifecycle state. An owned process-group leader remains
+# unreaped until _wait_owned_command() or installer_cleanup() clears the state,
+# preventing a recycled PID from becoming a cleanup target.
+OWNED_GROUP_LEADER_PID=""
+SUDO_KEEPALIVE_GROUP_PID=""
+CLEANUP_RAN=false
+APP_SERVICE_RESTORE_REQUIRED=false
+APP_SERVICE_STOPPED=false
 
 # Defaults for optional variables (may be overridden by setup_hardware)
 WIFI_IFACE=""
@@ -151,6 +159,208 @@ info()  { echo -e "${BLUE}[INFO]${NC} $*"; _log_aggregate "INFO" "$*"; }
 ok()    { echo -e "${GREEN}[OK]${NC} $*"; _log_aggregate "OK" "$*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; _log_aggregate "WARN" "$*"; }
 fail()  { echo -e "${RED}[FAIL]${NC} $*"; _log_aggregate "FAIL" "$*"; }
+
+load_hardware_contracts() {
+    local library="$INSTALL_DIR/config/installer/hardware-contracts.sh"
+
+    if [[ ! -r "$library" ]]; then
+        fail "Missing installer hardware contract library: $library"
+        return 1
+    fi
+    # shellcheck source=config/installer/hardware-contracts.sh
+    if ! source "$library"; then
+        fail "Could not load installer hardware contract library: $library"
+        return 1
+    fi
+}
+
+source_checkout_error() {
+    fail "Source installation requires install.sh from a complete OpenAuto Prodigy git checkout."
+    echo "Clone the repository, enter that checkout, and run: bash install.sh --mode source" >&2
+    echo "Running from standard input or copying install.sh by itself is not supported." >&2
+}
+
+# Establish the one physical checkout that contains this running script. This
+# is intentionally source-mode-only: release listing and prebuilt selection do
+# not require a local source tree.
+resolve_source_checkout() {
+    local script_source="${BASH_SOURCE[0]:-}"
+    local script_path script_dir checkout_root resolved_root
+
+    if [[ -z "$script_source" ]]; then
+        source_checkout_error
+        return 1
+    fi
+    script_path=$(readlink -f -- "$script_source" 2>/dev/null) || {
+        source_checkout_error
+        return 1
+    }
+    [[ -f "$script_path" ]] || {
+        source_checkout_error
+        return 1
+    }
+    script_dir=$(dirname -- "$script_path")
+    checkout_root=$(git -C "$script_dir" rev-parse --show-toplevel 2>/dev/null) || {
+        source_checkout_error
+        return 1
+    }
+    resolved_root=$(readlink -f -- "$checkout_root" 2>/dev/null) || {
+        source_checkout_error
+        return 1
+    }
+
+    if [[ "$script_path" != "$resolved_root/install.sh" ]] \
+        || [[ ! -f "$resolved_root/CMakeLists.txt" ]] \
+        || [[ ! -f "$resolved_root/src/main.cpp" ]] \
+        || [[ ! -f "$resolved_root/src/CMakeLists.txt" ]] \
+        || [[ ! -f "$resolved_root/libs/prodigy-oaa-protocol/CMakeLists.txt" ]] \
+        || [[ ! -f "$resolved_root/config/systemd/bluetooth-compat.conf" ]] \
+        || [[ ! -f "$resolved_root/web-config/server.py" ]]; then
+        source_checkout_error
+        return 1
+    fi
+
+    INSTALL_DIR="$resolved_root"
+}
+
+_start_owned_command() {
+    local output_path="$1"
+    shift
+
+    if [[ -n "$OWNED_GROUP_LEADER_PID" ]]; then
+        fail "Internal error: an installer-owned command is already active"
+        return 1
+    fi
+
+    # Keep an invocation-owned session leader alive until the command has
+    # finished and any same-session stragglers have been terminated. The
+    # installer therefore never needs to signal a group after reaping its
+    # ownership token.
+    local supervisor='
+        "$@" &
+        command_pid=$!
+        if wait "$command_pid"; then status=0; else status=$?; fi
+        for member in $(ps -o pid= --sid "$$" 2>/dev/null); do
+            [[ "$member" == "$$" ]] || kill -TERM "$member" 2>/dev/null || true
+        done
+        for attempt in {1..20}; do
+            remaining=false
+            for member in $(ps -o pid= --sid "$$" 2>/dev/null); do
+                if [[ "$member" != "$$" ]]; then remaining=true; break; fi
+            done
+            [[ "$remaining" == false ]] && break
+            sleep 0.1
+        done
+        for member in $(ps -o pid= --sid "$$" 2>/dev/null); do
+            [[ "$member" == "$$" ]] || kill -KILL "$member" 2>/dev/null || true
+        done
+        exit "$status"
+    '
+    if [[ -n "$output_path" ]]; then
+        setsid -- bash -c "$supervisor" oap-owned-command "$@" > "$output_path" 2>&1 &
+    else
+        setsid -- bash -c "$supervisor" oap-owned-command "$@" &
+    fi
+    OWNED_GROUP_LEADER_PID=$!
+}
+
+_wait_owned_command() {
+    local leader_pid="$OWNED_GROUP_LEADER_PID"
+    local status
+
+    [[ -n "$leader_pid" ]] || return 0
+    if wait "$leader_pid"; then
+        status=0
+    else
+        status=$?
+    fi
+    # Clear immediately after the owned leader is reaped. Never retain a PID
+    # that the kernel is free to recycle.
+    OWNED_GROUP_LEADER_PID=""
+    return "$status"
+}
+
+_terminate_owned_group() {
+    local state_name="$1"
+    local leader_pid="${!state_name:-}"
+    local attempt
+
+    [[ -n "$leader_pid" ]] || return 0
+    if [[ "$leader_pid" =~ ^[1-9][0-9]*$ ]] && kill -0 "$leader_pid" 2>/dev/null; then
+        kill -TERM -- "-$leader_pid" 2>/dev/null || true
+        for attempt in {1..20}; do
+            kill -0 -- "-$leader_pid" 2>/dev/null || break
+            sleep 0.1
+        done
+        if kill -0 -- "-$leader_pid" 2>/dev/null; then
+            kill -KILL -- "-$leader_pid" 2>/dev/null || true
+        fi
+    fi
+    wait "$leader_pid" 2>/dev/null || true
+    printf -v "$state_name" '%s' ""
+}
+
+restore_source_application() {
+    if [[ "$APP_SERVICE_RESTORE_REQUIRED" != "true" || "$APP_SERVICE_STOPPED" != "true" ]]; then
+        return 0
+    fi
+
+    APP_SERVICE_STOPPED=false
+    if sudo systemctl start "${SERVICE_NAME}.service" >/dev/null 2>&1; then
+        APP_SERVICE_RESTORE_REQUIRED=false
+        return 0
+    fi
+    warn "Could not restore ${SERVICE_NAME}.service; start it manually after checking system logs."
+    return 1
+}
+
+# Best-effort, idempotent cleanup. The caller's status is always returned so a
+# cleanup problem cannot hide the primary command failure or signal.
+installer_cleanup() {
+    local primary_status="${1:-0}"
+
+    if [[ "$CLEANUP_RAN" == "true" ]]; then
+        return "$primary_status"
+    fi
+    CLEANUP_RAN=true
+
+    _terminate_owned_group OWNED_GROUP_LEADER_PID
+    restore_source_application || true
+    _terminate_owned_group SUDO_KEEPALIVE_GROUP_PID
+    rm -f "${SPINNER_LOG:-}" "${AGGREGATE_LOG:-}"
+    tui_cleanup
+    return "$primary_status"
+}
+
+_installer_exit_trap() {
+    local status=$?
+    trap - EXIT INT TERM HUP
+    installer_cleanup "$status" || true
+    exit "$status"
+}
+
+_installer_signal_trap() {
+    local signal_number="$1"
+    exit $((128 + signal_number))
+}
+
+install_lifecycle_traps() {
+    trap '_installer_exit_trap' EXIT
+    trap '_installer_signal_trap 2' INT
+    trap '_installer_signal_trap 15' TERM
+    trap '_installer_signal_trap 1' HUP
+}
+
+prepare_source_rebuild() {
+    if systemctl is-active --quiet "${SERVICE_NAME}.service"; then
+        info "Stopping ${SERVICE_NAME}.service for the in-place rebuild..."
+        # Set restoration intent before invoking stop so an interrupt in the
+        # narrow systemctl boundary still preserves the entry-active state.
+        APP_SERVICE_RESTORE_REQUIRED=true
+        APP_SERVICE_STOPPED=true
+        sudo systemctl stop "${SERVICE_NAME}.service"
+    fi
+}
 
 # Detect terminal capabilities and set layout
 detect_terminal() {
@@ -417,16 +627,20 @@ run_with_spinner() {
 
     if [[ "$VERBOSE" == "true" ]]; then
         info "$label"
-        "$@"
-        return $?
+        _start_owned_command "" "$@"
+        if _wait_owned_command; then
+            return 0
+        else
+            return $?
+        fi
     fi
 
     SPINNER_LOG=$(mktemp /tmp/oap-install-XXXXXX.log)
     local start_time=$SECONDS
     local char_count=${#SPINNER_CHARS}
 
-    "$@" > "$SPINNER_LOG" 2>&1 &
-    local cmd_pid=$!
+    _start_owned_command "$SPINNER_LOG" "$@"
+    local cmd_pid="$OWNED_GROUP_LEADER_PID"
 
     if [[ "$TUI_MODE" == "true" ]]; then
         tput civis 2>/dev/null || true
@@ -457,8 +671,12 @@ run_with_spinner() {
         done
     fi
 
-    wait "$cmd_pid"
-    local exit_code=$?
+    local exit_code
+    if _wait_owned_command; then
+        exit_code=0
+    else
+        exit_code=$?
+    fi
     local elapsed=$((SECONDS - start_time))
 
     # Append to aggregate log
@@ -496,8 +714,12 @@ build_with_progress() {
 
     if [[ "$VERBOSE" == "true" ]]; then
         info "$label"
-        "$@"
-        return $?
+        _start_owned_command "" "$@"
+        if _wait_owned_command; then
+            return 0
+        else
+            return $?
+        fi
     fi
 
     SPINNER_LOG=$(mktemp /tmp/oap-build-XXXXXX.log)
@@ -505,8 +727,8 @@ build_with_progress() {
     local char_count=${#SPINNER_CHARS}
     local last_pct=""
 
-    "$@" > "$SPINNER_LOG" 2>&1 &
-    local cmd_pid=$!
+    _start_owned_command "$SPINNER_LOG" "$@"
+    local cmd_pid="$OWNED_GROUP_LEADER_PID"
 
     if [[ "$TUI_MODE" == "true" ]]; then
         tput civis 2>/dev/null || true
@@ -543,8 +765,12 @@ build_with_progress() {
         done
     fi
 
-    wait "$cmd_pid"
-    local exit_code=$?
+    local exit_code
+    if _wait_owned_command; then
+        exit_code=0
+    else
+        exit_code=$?
+    fi
     local elapsed=$((SECONDS - start_time))
 
     # Append to aggregate log
@@ -582,9 +808,8 @@ prime_sudo() {
     echo -e "${BLUE}[sudo]${NC} This installer needs sudo for system configuration."
     sudo -v
     # Keepalive loop — refresh sudo every 50s until script exits
-    (while true; do sudo -n -v 2>/dev/null; sleep 50; done) &
-    SUDO_KEEPALIVE_PID=$!
-    trap 'kill $SUDO_KEEPALIVE_PID 2>/dev/null; rm -f "$SPINNER_LOG"; tui_cleanup' EXIT
+    setsid -- bash -c 'while true; do sudo -n -v 2>/dev/null; sleep 50; done' &
+    SUDO_KEEPALIVE_GROUP_PID=$!
 }
 
 fetch_prebuilt_release_rows() {
@@ -949,7 +1174,11 @@ setup_hardware() {
     for dev in /dev/input/event*; do
         if [[ -e "$dev" ]]; then
             local PROPS_PATH="/sys/class/input/$(basename "$dev")/device/properties"
-            if [[ -f "$PROPS_PATH" ]] && (( $(cat "$PROPS_PATH" 2>/dev/null || echo 0) & 2 )); then
+            local properties=""
+            if [[ -f "$PROPS_PATH" ]]; then
+                properties=$(cat "$PROPS_PATH" 2>/dev/null || true)
+            fi
+            if oap_input_properties_have_direct "$properties"; then
                 NAME=$(cat "/sys/class/input/$(basename "$dev")/device/name" 2>/dev/null || echo "unknown")
                 TOUCH_DEVS+=("$dev")
                 printf "  %-24s %s\n" "$dev" "$NAME"
@@ -1096,11 +1325,12 @@ setup_hardware() {
         fi
         read -p "Country code for 5GHz WiFi [$COUNTRY_CODE]: " USER_CC
         COUNTRY_CODE=${USER_CC:-$COUNTRY_CODE}
-        COUNTRY_CODE=$(echo "$COUNTRY_CODE" | tr '[:lower:]' '[:upper:]')
-        if [[ ! "$COUNTRY_CODE" =~ ^[A-Z]{2}$ ]]; then
-            warn "Invalid country code '$COUNTRY_CODE' — using US"
-            COUNTRY_CODE="US"
+        local normalized_country
+        if ! normalized_country=$(oap_normalize_country_code "$COUNTRY_CODE"); then
+            fail "Invalid country code '$COUNTRY_CODE'; enter exactly two ASCII letters."
+            return 1
         fi
+        COUNTRY_CODE="$normalized_country"
 
         sudo iw reg set "$COUNTRY_CODE" 2>/dev/null || true
         if [[ -f /etc/default/crda ]]; then
@@ -1210,98 +1440,62 @@ configure_hostapd_lifecycle() {
 configure_network() {
     enter_interactive
 
-    configure_hostapd_lifecycle
-
     if [[ -z "$WIFI_IFACE" ]]; then
+        configure_hostapd_lifecycle
         warn "Skipping network configuration (no wireless interface)"
         leave_interactive
         return
     fi
 
-    # rfkill unblock moved to pre-flight script (runs on every service start)
+    local normalized_country
+    if ! normalized_country=$(oap_normalize_country_code "$COUNTRY_CODE"); then
+        fail "Invalid country code '$COUNTRY_CODE'; network configuration was not changed."
+        return 1
+    fi
+    COUNTRY_CODE="$normalized_country"
 
-    # systemd-networkd config for static IP + built-in DHCP server
-    sudo mkdir -p /etc/systemd/network
-    sudo tee /etc/systemd/network/10-openauto-ap.network > /dev/null << NETCFG
-[Match]
-Name=$WIFI_IFACE
-
-[Network]
-Address=${AP_IP}/24
-DHCPServer=yes
-ConfigureWithoutCarrier=yes
-
-[DHCPServer]
-PoolOffset=10
-PoolSize=40
-EmitDNS=no
-NETCFG
-
-    # Detect WiFi hardware capabilities for hostapd
-    local phy_name
-    phy_name=$(cat "/sys/class/net/$WIFI_IFACE/phy80211/name" 2>/dev/null || echo "phy0")
-    local phy_info
-    phy_info=$(iw phy "$phy_name" info 2>/dev/null || true)
-
-    # Check for 5GHz support (Band 2)
-    local use_5ghz=false
-    local hw_mode="g"
-    local channel="6"
-    if echo "$phy_info" | grep -q "Band 2:"; then
-        use_5ghz=true
-        hw_mode="a"
-        channel="36"
+    if ! sudo "${OAP_IW_BIN:-iw}" reg set "$COUNTRY_CODE" 2>/dev/null; then
+        warn "Could not apply wireless regulatory domain $COUNTRY_CODE; probing current channel permissions."
+    fi
+    if ! oap_probe_wifi_contract "$WIFI_IFACE"; then
+        fail "No usable WiFi AP channel was reported for $WIFI_IFACE; network configuration was not changed."
+        return 1
     fi
 
-    # Build ht_capab from hardware capabilities
-    local ht_capab=""
-    if echo "$phy_info" | grep -q "HT20/HT40"; then
-        if [[ "$use_5ghz" == "true" ]]; then
-            ht_capab="${ht_capab}[HT40+]"
-        else
-            ht_capab="${ht_capab}[HT40-]"
-        fi
-    fi
-    if echo "$phy_info" | grep -q "RX HT20 SGI"; then
-        ht_capab="${ht_capab}[SHORT-GI-20]"
-    fi
-    if echo "$phy_info" | grep -q "RX HT40 SGI"; then
-        ht_capab="${ht_capab}[SHORT-GI-40]"
-    fi
+    local network_config hostapd_config
+    network_config=$(oap_render_networkd_config "$WIFI_IFACE" "$AP_IP") || {
+        fail "Could not render network configuration; no managed network file was changed."
+        return 1
+    }
+    hostapd_config=$(oap_render_hostapd_config \
+        "$WIFI_IFACE" "$WIFI_SSID" "$WIFI_PASS" "$COUNTRY_CODE") || {
+        fail "Could not render hostapd configuration; no managed network file was changed."
+        return 1
+    }
 
-    # Check for VHT (802.11ac) support
-    local use_vht=false
-    if echo "$phy_info" | grep -q "VHT Capabilities"; then
-        use_vht=true
-    fi
-
-    if [[ "$use_5ghz" == "true" ]]; then
-        ok "WiFi: 5GHz (802.11a/n${use_vht:+/ac}) HT caps: ${ht_capab:-[default]}"
+    if [[ "$OAP_WIFI_BAND" == "5" ]]; then
+        local wifi_standard="802.11a/n"
+        [[ "$OAP_WIFI_USE_VHT" == "true" ]] && wifi_standard+="/ac"
+        ok "WiFi: 5GHz ($wifi_standard), channel $OAP_WIFI_CHANNEL"
     else
-        ok "WiFi: 2.4GHz (802.11g/n) HT caps: ${ht_capab:-[default]}"
+        ok "WiFi: 2.4GHz (802.11g/n), channel $OAP_WIFI_CHANNEL"
     fi
 
-    # hostapd config
-    sudo tee /etc/hostapd/hostapd.conf > /dev/null << HOSTAPD
-interface=$WIFI_IFACE
-driver=nl80211
-ssid=$WIFI_SSID
-hw_mode=$hw_mode
-channel=$channel
-ieee80211n=1
-$(if [[ "$use_vht" == "true" && "$use_5ghz" == "true" ]]; then echo "ieee80211ac=1"; fi)
-wmm_enabled=1
-country_code=$COUNTRY_CODE
-ieee80211d=1
-macaddr_acl=0
-auth_algs=1
-ignore_broadcast_ssid=0
-wpa=2
-wpa_passphrase=$WIFI_PASS
-wpa_key_mgmt=WPA-PSK
-rsn_pairwise=CCMP
-$(if [[ -n "$ht_capab" ]]; then echo "ht_capab=$ht_capab"; fi)
-HOSTAPD
+    # Complete validation and rendering before the first managed network write.
+    configure_hostapd_lifecycle
+    local network_tmp hostapd_tmp install_status=0
+    network_tmp=$(mktemp)
+    hostapd_tmp=$(mktemp)
+    printf '%s\n' "$network_config" > "$network_tmp"
+    printf '%s\n' "$hostapd_config" > "$hostapd_tmp"
+    sudo install -D -m 0644 "$network_tmp" \
+        /etc/systemd/network/10-openauto-ap.network || install_status=$?
+    if [[ $install_status -eq 0 ]]; then
+        sudo install -D -m 0644 "$hostapd_tmp" \
+            /etc/hostapd/hostapd.conf || install_status=$?
+    fi
+    rm -f "$network_tmp" "$hostapd_tmp"
+    [[ $install_status -eq 0 ]] || return "$install_status"
 
     # Point hostapd at our config
     if [[ -f /etc/default/hostapd ]]; then
@@ -1391,6 +1585,11 @@ build_project() {
         fi
         leave_interactive
     fi
+
+    # Preserve the entry state across configure/link mutation. Cleanup holds
+    # the service stopped until the installer finishes and restores it on both
+    # success and every later failure path.
+    prepare_source_rebuild
     mkdir -p build
     cd build
 
@@ -1608,110 +1807,13 @@ clear_paired_phones() {
 # Step 6: Create pre-flight script and systemd service
 # ────────────────────────────────────────────────────
 create_preflight_script() {
-    sudo tee /usr/local/bin/openauto-preflight > /dev/null << 'PREFLIGHT'
-#!/bin/bash
-# OpenAuto Prodigy — Pre-flight checks
-# Runs as ExecStartPre before the main service.
-# Standalone usage: sudo openauto-preflight [--check-only]
-set -euo pipefail
+    local source="$INSTALL_DIR/config/installer/openauto-preflight"
 
-CHECK_ONLY=false
-if [[ "${1:-}" == "--check-only" ]]; then
-    CHECK_ONLY=true
-fi
-
-PASS=0
-FAIL=0
-
-pass() { echo "PASS: $1"; PASS=$((PASS + 1)); }
-fail() { echo "FAIL: $1"; FAIL=$((FAIL + 1)); }
-
-# 1. rfkill unblock (self-healing)
-if command -v rfkill &>/dev/null; then
-    if [[ "$CHECK_ONLY" == "true" ]]; then
-        if rfkill list wlan 2>/dev/null | grep -q "Soft blocked: yes"; then
-            fail "WiFi radio soft-blocked (run without --check-only to fix)"
-        else
-            pass "WiFi radio unblocked"
-        fi
-        if rfkill list bluetooth 2>/dev/null | grep -q "Soft blocked: yes"; then
-            fail "Bluetooth radio soft-blocked (run without --check-only to fix)"
-        else
-            pass "Bluetooth radio unblocked"
-        fi
-    else
-        if rfkill unblock wlan 2>/dev/null; then
-            pass "WiFi radio unblocked"
-        else
-            fail "Could not unblock WiFi radio"
-        fi
-        if rfkill unblock bluetooth 2>/dev/null; then
-            pass "Bluetooth radio unblocked"
-        else
-            fail "Could not unblock Bluetooth radio"
-        fi
+    if [[ ! -f "$source" ]]; then
+        fail "Canonical application preflight not found: $source"
+        return 1
     fi
-else
-    fail "rfkill not found"
-fi
-
-# 2. Wayland compositor check (wait for socket to appear)
-WAYLAND_SOCKET="${XDG_RUNTIME_DIR:-/run/user/1000}/${WAYLAND_DISPLAY:-wayland-0}"
-if [[ -e "$WAYLAND_SOCKET" ]]; then
-    pass "Wayland compositor ready (${WAYLAND_DISPLAY:-wayland-0})"
-elif command -v inotifywait &>/dev/null; then
-    # Block until socket appears (zero CPU, instant reaction, 15s timeout)
-    if inotifywait -t 15 -e create "$(dirname "$WAYLAND_SOCKET")" --include "$(basename "$WAYLAND_SOCKET")" &>/dev/null; then
-        pass "Wayland compositor ready (${WAYLAND_DISPLAY:-wayland-0})"
-    else
-        fail "Wayland socket not found at $WAYLAND_SOCKET after 15s"
-    fi
-else
-    # Fallback poll if inotifywait not available
-    for i in $(seq 1 20); do
-        if [[ -e "$WAYLAND_SOCKET" ]]; then break; fi
-        sleep 0.5
-    done
-    if [[ -e "$WAYLAND_SOCKET" ]]; then
-        pass "Wayland compositor ready (${WAYLAND_DISPLAY:-wayland-0})"
-    else
-        fail "Wayland socket not found at $WAYLAND_SOCKET after 10s"
-    fi
-fi
-
-# 3. SDP socket check (self-healing: fix permissions if wrong)
-SDP_SOCKET="/var/run/sdp"
-if [[ -e "$SDP_SOCKET" ]]; then
-    SDP_GROUP=$(stat -c '%G' "$SDP_SOCKET" 2>/dev/null || echo "unknown")
-    SDP_PERMS=$(stat -c '%a' "$SDP_SOCKET" 2>/dev/null || echo "000")
-    if [[ "$SDP_GROUP" == "bluetooth" ]] && [[ "${SDP_PERMS:1:1}" =~ [2367] ]]; then
-        pass "SDP socket ready (group=$SDP_GROUP perms=$SDP_PERMS)"
-    elif [[ "$CHECK_ONLY" == "true" ]]; then
-        fail "/var/run/sdp wrong permissions (group=$SDP_GROUP perms=$SDP_PERMS, need bluetooth group-writable)"
-    else
-        # Self-heal: fix permissions (we run as root via ExecStartPre=+)
-        chgrp bluetooth "$SDP_SOCKET" 2>/dev/null && chmod g+rw "$SDP_SOCKET" 2>/dev/null
-        if [[ $? -eq 0 ]]; then
-            pass "SDP socket fixed (was group=$SDP_GROUP, now bluetooth group-writable)"
-        else
-            fail "/var/run/sdp wrong permissions and could not fix (group=$SDP_GROUP perms=$SDP_PERMS)"
-        fi
-    fi
-else
-    fail "/var/run/sdp missing (is bluetooth.service running with --compat?)"
-fi
-
-# Summary
-echo "---"
-echo "Pre-flight: $PASS passed, $FAIL failed"
-
-if [[ "$FAIL" -gt 0 ]]; then
-    exit 1
-fi
-exit 0
-PREFLIGHT
-
-    sudo chmod +x /usr/local/bin/openauto-preflight
+    sudo install -D -m 0755 "$source" /usr/local/bin/openauto-preflight
     ok "Pre-flight script installed at /usr/local/bin/openauto-preflight"
 }
 
@@ -1730,38 +1832,95 @@ install_restart_helper() {
 }
 
 # ────────────────────────────────────────────────────
+systemd_escape_absolute_path() {
+    local path="$1"
+
+    [[ -n "$path" && "$path" == /* \
+        && "$path" != *$'\n'* && "$path" != *$'\r'* ]] || return 1
+    if LC_ALL=C printf '%s' "$path" | grep -q '[[:cntrl:]]'; then
+        return 1
+    fi
+
+    # These values are inserted inside a systemd double-quoted field. Protect
+    # its string syntax and both expansion forms used by ExecStart/systemd.
+    printf '%s' "$path" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' \
+        -e 's/%/%%/g' -e 's/\$/$$/g'
+}
+
+systemd_escape_path_field() {
+    local path="$1"
+
+    [[ -n "$path" && "$path" == /* \
+        && "$path" != *$'\n'* && "$path" != *$'\r'* ]] || return 1
+    if LC_ALL=C printf '%s' "$path" | grep -q '[[:cntrl:]]'; then
+        return 1
+    fi
+
+    # Path-valued directives consume the complete right-hand side, including
+    # spaces; surrounding quotes and C escapes would become literal path
+    # bytes. Only systemd's percent specifier needs doubling here.
+    printf '%s' "$path" | sed -e 's/%/%%/g'
+}
+
+render_application_unit() {
+    local template_path="$1"
+    local service_user="$2"
+    local user_id="$3"
+    local install_root="$4"
+    local escaped_user systemd_root systemd_working_root
+    local escaped_root escaped_working_root
+
+    [[ -f "$template_path" ]] || return 1
+    [[ -n "$service_user" && "$service_user" != *$'\n'* ]] || return 1
+    [[ "$user_id" =~ ^[0-9]+$ ]] || return 1
+    [[ -n "$install_root" && "$install_root" == /* && "$install_root" != *$'\n'* ]] || return 1
+
+    systemd_root=$(systemd_escape_absolute_path "$install_root") || return 1
+    systemd_working_root=$(systemd_escape_path_field "$install_root") || return 1
+    escaped_user=$(printf '%s' "$service_user" | sed 's/[\\&|]/\\&/g')
+    escaped_root=$(printf '%s' "$systemd_root" | sed 's/[\\&|]/\\&/g')
+    escaped_working_root=$(printf '%s' "$systemd_working_root" | sed 's/[\\&|]/\\&/g')
+    sed -e "s|@@USER@@|$escaped_user|g" \
+        -e "s|@@USER_ID@@|$user_id|g" \
+        -e "s|@@INSTALL_DIR@@|$escaped_root|g" \
+        -e "s|@@INSTALL_WORKING_DIR@@|$escaped_working_root|g" \
+        "$template_path"
+}
+
+render_system_service_unit() {
+    local template_path="$1"
+    local python_path="$2"
+    local system_service_root="$3"
+    local systemd_python systemd_root systemd_working_root
+    local sed_python sed_root sed_working_root
+
+    [[ -f "$template_path" ]] || return 1
+    systemd_python=$(systemd_escape_absolute_path "$python_path") || return 1
+    systemd_root=$(systemd_escape_absolute_path "$system_service_root") || return 1
+    systemd_working_root=$(systemd_escape_path_field "$system_service_root") || return 1
+    sed_python=$(printf '%s' "$systemd_python" | sed 's/[\\&|]/\\&/g')
+    sed_root=$(printf '%s' "$systemd_root" | sed 's/[\\&|]/\\&/g')
+    sed_working_root=$(printf '%s' "$systemd_working_root" | sed 's/[\\&|]/\\&/g')
+    sed -e "s|@@PYTHON_PATH@@|$sed_python|g" \
+        -e "s|@@SYS_DIR@@|$sed_root|g" \
+        -e "s|@@SYS_WORKING_DIR@@|$sed_working_root|g" \
+        "$template_path"
+}
+
 create_service() {
-    local USER_ID
+    local USER_ID template_path rendered_unit
     USER_ID=$(id -u)
-
-    sudo tee /etc/systemd/system/${SERVICE_NAME}.service > /dev/null << SERVICE
-[Unit]
-Description=OpenAuto Prodigy
-After=graphical.target bluetooth.target pipewire.service
-Wants=openauto-system.service
-StartLimitBurst=5
-StartLimitIntervalSec=60
-
-[Service]
-Type=notify
-User=$USER
-Environment=XDG_RUNTIME_DIR=/run/user/$USER_ID
-Environment=WAYLAND_DISPLAY=wayland-0
-Environment=QT_QPA_PLATFORM=wayland
-Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$USER_ID/bus
-WorkingDirectory=$INSTALL_DIR
-ExecStartPre=+/usr/local/bin/openauto-preflight
-ExecStartPre=-/bin/sh -c 'systemctl --user stop wf-panel-restore.service 2>/dev/null; pkill -f "lwrespawn.*wf-panel-pi"; pkill wf-panel-pi; true'
-ExecStart=$INSTALL_DIR/build/src/openauto-prodigy
-ExecStopPost=-/bin/sh -c '[ "\$SERVICE_RESULT" = "success" ] && systemd-run --user --unit=wf-panel-restore --setenv=WAYLAND_DISPLAY=wayland-0 /usr/bin/lwrespawn /usr/bin/wf-panel-pi || true'
-Restart=on-failure
-RestartSec=3
-WatchdogSec=30
-NotifyAccess=main
-
-[Install]
-WantedBy=graphical.target
-SERVICE
+    template_path="$INSTALL_DIR/config/systemd/openauto-prodigy.service.in"
+    rendered_unit=$(mktemp)
+    if ! render_application_unit "$template_path" "$USER" "$USER_ID" "$INSTALL_DIR" \
+        > "$rendered_unit"; then
+        rm -f "$rendered_unit"
+        fail "Could not render canonical application service template: $template_path"
+        return 1
+    fi
+    sudo install -D -m 0644 "$rendered_unit" \
+        "/etc/systemd/system/${SERVICE_NAME}.service"
+    rm -f "$rendered_unit"
 
     sudo systemctl daemon-reload
 
@@ -1777,6 +1936,13 @@ SERVICE
 # Step 6b: Create web config service
 # ────────────────────────────────────────────────────
 create_web_service() {
+    local systemd_root systemd_working_root
+
+    systemd_root=$(systemd_escape_absolute_path "$INSTALL_DIR") || {
+        fail "Install path cannot be represented safely in the web service unit: $INSTALL_DIR"
+        return 1
+    }
+    systemd_working_root=$(systemd_escape_path_field "$INSTALL_DIR") || return 1
 
     sudo tee /etc/systemd/system/${SERVICE_NAME}-web.service > /dev/null << SERVICE
 [Unit]
@@ -1786,8 +1952,8 @@ After=network.target ${SERVICE_NAME}.service
 [Service]
 Type=simple
 User=$USER
-WorkingDirectory=$INSTALL_DIR/web-config
-ExecStart=/usr/bin/python3 $INSTALL_DIR/web-config/server.py
+WorkingDirectory=$systemd_working_root/web-config
+ExecStart=/usr/bin/python3 "$systemd_root/web-config/server.py"
 Restart=on-failure
 RestartSec=5
 Environment=OAP_WEB_HOST=0.0.0.0
@@ -1879,6 +2045,17 @@ create_system_service() {
         warn "Could not create venv. Using system Python."
     fi
 
+    local systemd_python systemd_sys_dir systemd_working_sys_dir
+    systemd_python=$(systemd_escape_absolute_path "$PYTHON_PATH") || {
+        fail "Python path cannot be represented safely in the system service unit: $PYTHON_PATH"
+        return 1
+    }
+    systemd_sys_dir=$(systemd_escape_absolute_path "$SYS_DIR") || {
+        fail "Install path cannot be represented safely in the system service unit: $SYS_DIR"
+        return 1
+    }
+    systemd_working_sys_dir=$(systemd_escape_path_field "$SYS_DIR") || return 1
+
     # --- Template rendering ---
     # Render systemd unit from template (single source of truth)
     local TEMPLATE="$SYS_DIR/../system-service/openauto-system.service.in"
@@ -1900,11 +2077,11 @@ After=network.target bluetooth.target
 [Service]
 Type=notify
 User=root
-ExecStart=$PYTHON_PATH $SYS_DIR/openauto_system.py
+ExecStart=/usr/bin/env -- "$systemd_python" "$systemd_sys_dir/openauto_system.py"
 ExecStopPost=-/usr/sbin/iptables -t nat -D OUTPUT -p tcp -j OPENAUTO_PROXY
 ExecStopPost=-/usr/sbin/iptables -t nat -F OPENAUTO_PROXY
 ExecStopPost=-/usr/sbin/iptables -t nat -X OPENAUTO_PROXY
-WorkingDirectory=$SYS_DIR
+WorkingDirectory=$systemd_working_sys_dir
 RuntimeDirectory=openauto
 Restart=always
 RestartSec=2
@@ -1917,9 +2094,8 @@ LockPersonality=yes
 WantedBy=multi-user.target
 SERVICE
     else
-        sed -e "s|@@PYTHON_PATH@@|$PYTHON_PATH|g" \
-            -e "s|@@SYS_DIR@@|$SYS_DIR|g" \
-            "$TEMPLATE" | sudo tee "$UNIT_PATH" > /dev/null
+        render_system_service_unit "$TEMPLATE" "$PYTHON_PATH" "$SYS_DIR" \
+            | sudo tee "$UNIT_PATH" > /dev/null
     fi
 
     # --- Reload and enable ---
@@ -1995,7 +2171,11 @@ run_diagnostics() {
         for dev in /dev/input/event*; do
             if [[ -e "$dev" ]]; then
                 local PROPS_PATH="/sys/class/input/$(basename "$dev")/device/properties"
-                if [[ -f "$PROPS_PATH" ]] && (( $(cat "$PROPS_PATH" 2>/dev/null || echo 0) & 2 )); then
+                local properties=""
+                if [[ -f "$PROPS_PATH" ]]; then
+                    properties=$(cat "$PROPS_PATH" 2>/dev/null || true)
+                fi
+                if oap_input_properties_have_direct "$properties"; then
                     NAME=$(cat "/sys/class/input/$(basename "$dev")/device/name" 2>/dev/null || echo "unknown")
                     printf "  %-24s %s\n" "$dev" "$NAME"
                 fi
@@ -2133,6 +2313,9 @@ main() {
     fi
 
     # Source build flow — full TUI
+    resolve_source_checkout
+    load_hardware_contracts
+    install_lifecycle_traps
     detect_terminal
     trap 'handle_error $LINENO $?' ERR
 
@@ -2188,6 +2371,46 @@ main() {
     rm -f "$AGGREGATE_LOG"
 }
 
-main "$@"
+run_source_lifecycle_test_action() {
+    local action="$1"
+    shift
+
+    case "$action" in
+        resolve-source)
+            resolve_source_checkout
+            printf 'INSTALL_DIR=%s\n' "$INSTALL_DIR"
+            ;;
+        owned-command)
+            install_lifecycle_traps
+            VERBOSE=true
+            run_with_spinner "Lifecycle test command" "$@"
+            ;;
+        cleanup-idempotence)
+            local requested_status="$1"
+            install_lifecycle_traps
+            installer_cleanup "$requested_status" || true
+            installer_cleanup "$requested_status" || true
+            return "$requested_status"
+            ;;
+        service-rebuild)
+            install_lifecycle_traps
+            prepare_source_rebuild
+            "$@"
+            ;;
+        service-skip)
+            install_lifecycle_traps
+            ;;
+        *)
+            echo "Unknown source lifecycle test action: $action" >&2
+            return 2
+            ;;
+    esac
+}
+
+if [[ -n "${OAP_INSTALL_TEST_ACTION:-}" ]]; then
+    run_source_lifecycle_test_action "$OAP_INSTALL_TEST_ACTION" "$@"
+else
+    main "$@"
+fi
 exit
 }
