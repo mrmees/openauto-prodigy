@@ -4,6 +4,34 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — ALPHA-26-07-24-01 milestone release
+
+**What changed:** Matthew declared the completed audit-remediation campaign a
+milestone. Annotated tag `ALPHA-26-07-24-01` now points to `d6a92c1`, and the
+official Pi 4 aarch64 prerelease contains the tagged binary plus the required
+patched mSBC package.
+
+**Why:** PRs #26-#37 completed and live-validated the consolidated reliability
+campaign, leaving no active implementation wave. The tag gives that reviewed
+state a stable installable release boundary before wishlist promotion resumes.
+
+**Status:** RELEASED at
+`https://github.com/mrmees/openauto-prodigy/releases/tag/ALPHA-26-07-24-01`.
+The uploaded asset SHA-256 is
+`89e32d628e7d745cb0e0ea3635c7a5dc30ac4a3497d980e81351b5865c22dea9`.
+
+**Verification:** local build and explicit `openauto-prodigy` target passed;
+`QT_QPA_PLATFORM=offscreen ctest --output-on-failure` passed after the plain
+non-interactive invocation exposed the expected missing-X-display condition.
+`./cross-build.sh` embedded the exact tag, packaging passed, and the asset
+downloaded through GitHub's API matched the local SHA-256.
+
+**Next 1-3 steps:** (1) discuss and prioritize wishlist candidates; (2) promote
+only the selected scope into a new bounded design; (3) retain physical
+multi-touch, popup-switching, and navbar-boundary checks in the next live drive.
+
+---
+
 ## 2026-07-24 — PR #37 review follow-up
 
 **What changed:** the shared installer hardware contract now pins the Bash
