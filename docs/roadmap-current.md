@@ -14,8 +14,13 @@ Governance: capture new ideas in `docs/wishlist.md`; only promoted items should 
 
 ## Now
 
-No implementation tranche is active. The next consolidated audit wave must be
-revalidated and promoted through a bounded design and plan before activation.
+Media lifecycle and persistence remediation is **ACTIVE**. This consolidated
+wave corrects exact-track versus fallback restore positions, pending-restore
+ownership, seek and mode persistence, scanner cancellation, safe-eject and
+shutdown ordering, and media-test integrity without changing QML or consumer
+time contracts. Design and plan:
+`docs/plans/2026-07-24-media-lifecycle-persistence-remediation-design.md` and
+`docs/plans/2026-07-24-media-lifecycle-persistence-remediation-plan.md`.
 
 ## Done (recent)
 

@@ -2,7 +2,7 @@
 
 ## Active Plans
 
-No implementation plan is active.
+- [Media lifecycle and persistence remediation design](plans/2026-07-24-media-lifecycle-persistence-remediation-design.md) and [implementation plan](plans/2026-07-24-media-lifecycle-persistence-remediation-plan.md) — exact/fallback restore ownership, deterministic user persistence, scanner quiescence, safe-eject/shutdown ordering, and test integrity
 
 ## Start Here
 
@@ -54,7 +54,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- None.
+- [2026-07-24-media-lifecycle-persistence-remediation-design.md](plans/2026-07-24-media-lifecycle-persistence-remediation-design.md) and [implementation plan](plans/2026-07-24-media-lifecycle-persistence-remediation-plan.md) — ACTIVE
 
 Parked plans (not current guidance):
 
