@@ -427,22 +427,48 @@ Item {
         }
     ]
 
-    // Report geometry changes to NavbarController for zone registration
-    Component.onCompleted: Qt.callLater(registerZones)
-    onXChanged: Qt.callLater(registerZones)
-    onYChanged: Qt.callLater(registerZones)
-    onWidthChanged: Qt.callLater(registerZones)
-    onHeightChanged: Qt.callLater(registerZones)
-    onEdgeChanged: Qt.callLater(registerZones)
-    onVisibleChanged: Qt.callLater(registerZones)
+    // QML owns the rendered hit geometry. Beginning an update immediately
+    // invalidates the old report; only the newest deferred layout pass may
+    // publish replacement rectangles.
+    Component.onCompleted: scheduleNavbarGeometry()
+    Component.onDestruction: NavbarController.unregisterZones()
+    onXChanged: scheduleNavbarGeometry()
+    onYChanged: scheduleNavbarGeometry()
+    onWidthChanged: scheduleNavbarGeometry()
+    onHeightChanged: scheduleNavbarGeometry()
+    onEdgeChanged: scheduleNavbarGeometry()
+    onVisibleChanged: scheduleNavbarGeometry()
+    onParentChanged: scheduleNavbarGeometry()
 
-    function registerZones() {
-        if (!navbar.visible) {
-            NavbarController.unregisterZones()
+    function scheduleNavbarGeometry() {
+        var generation = NavbarController.beginNavbarGeometryUpdate()
+        Qt.callLater(function() { navbar.publishNavbarGeometry(generation) })
+    }
+
+    function publishNavbarGeometry(generation) {
+        if (!navbar.visible || !navbar.parent
+                || navbar.parent.width <= 0 || navbar.parent.height <= 0) {
+            NavbarController.setNavbarGeometry(generation, 0, 0, [])
             return
         }
-        if (navbar.parent && navbar.parent.width > 0 && navbar.parent.height > 0) {
-            NavbarController.registerZones(navbar.parent.width, navbar.parent.height)
+
+        var controls = navbar.isVertical
+            ? [vControl0, vControl1, vControl2]
+            : [hControl0, hControl1, hControl2]
+        var regions = []
+        for (var i = 0; i < controls.length; ++i) {
+            var control = controls[i]
+            var pos = control.mapToItem(navbar.parent, 0, 0)
+            regions.push({
+                x: pos.x,
+                y: pos.y,
+                w: control.width,
+                h: control.height
+            })
         }
+        NavbarController.setNavbarGeometry(generation,
+                                           navbar.parent.width,
+                                           navbar.parent.height,
+                                           regions)
     }
 }

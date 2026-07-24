@@ -145,6 +145,22 @@ in AA's full-pointer arrays, and same-report transitions are serialized in
 Android MotionEvent order. A 3-finger gesture suppresses AA forwarding and
 opens the system overlay.
 
+The QML navbar is authoritative for its three rendered rectangles. After an
+edge, scale, layout, size, or visibility transition it starts a generation and
+reports the actual 20/60/20 control geometry in shell coordinates;
+`NavbarController` does not reconstruct layout ratios or bar thickness.
+Starting a newer report removes the former claims, and invalid or hidden
+geometry leaves the navbar unregistered. `TouchRouter` continues to own
+coordinate conversion and sticky routing, so unclaimed projection touches are
+unchanged.
+
+An accepted evdev slot owns its navbar gesture until matching release or
+cancellation. Competing downs cannot replace that owner. Popup generations are
+published before QML visibility changes are observed, so cleanup from an
+outgoing slider or power menu cannot hide the incoming popup. Popup-button tap
+origins are fixed per region and touch slot for that generation; they are not
+shared between fingers or allocated on the reader-thread event path.
+
 ### Touch debug overlay
 
 **Decision:** Keep an optional QML overlay showing the AA-space touch points

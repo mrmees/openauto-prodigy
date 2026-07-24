@@ -1,5 +1,6 @@
 #include <QTest>
 #include <QSignalSpy>
+#include <limits>
 #include "ui/NavbarController.hpp"
 #include "core/aa/EvdevCoordBridge.hpp"
 #include "core/aa/TouchRouter.hpp"
@@ -21,6 +22,36 @@ private:
         ctrl->setTapMaxMs(tapMaxMs);
         ctrl->setShortHoldMaxMs(shortHoldMaxMs);
         return ctrl;
+    }
+
+    static QVariantMap rect(qreal x, qreal y, qreal w, qreal h)
+    {
+        return {{QStringLiteral("x"), x}, {QStringLiteral("y"), y},
+                {QStringLiteral("w"), w}, {QStringLiteral("h"), h}};
+    }
+
+    static qint64 publishNavbarGeometry(oap::NavbarController& controller,
+                                         int displayWidth, int displayHeight,
+                                         const QVariantList& regions)
+    {
+        const qint64 generation = controller.beginNavbarGeometryUpdate();
+        controller.setNavbarGeometry(generation, displayWidth, displayHeight, regions);
+        return generation;
+    }
+
+    static bool dispatchPixel(oap::aa::TouchRouter& router,
+                              const oap::aa::EvdevCoordBridge& bridge,
+                              int slot, qreal x, qreal y,
+                              oap::aa::TouchEvent event)
+    {
+        return router.dispatch(slot, bridge.pixelToEvdevX(x),
+                               bridge.pixelToEvdevY(y), event);
+    }
+
+    static qint64 showPopupSession(oap::NavbarController& controller, int controlIndex)
+    {
+        controller.showPopup(controlIndex);
+        return controller.beginPopupSession(controlIndex);
     }
 
 private slots:
@@ -263,95 +294,129 @@ private slots:
         QVERIFY(ctrl->popupVisible());  // still visible after 100ms
     }
 
-    // --- Zone registration (Task 2) ---
+    // --- Rendered navbar geometry ---
 
-    void testRegisterZonesBottomEdgeLhd()
+    void testRenderedNavbarGeometry_data()
     {
+        QTest::addColumn<QVariantList>("regions");
+        QTest::addColumn<QList<QPointF>>("controlPoints");
+        QTest::addColumn<QPointF>("scaledInnerPoint");
+        QTest::addColumn<QPointF>("outsidePoint");
+
+        QTest::newRow("bottom")
+            << QVariantList{rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                            rect(819.2, 516, 204.8, 84)}
+            << QList<QPointF>{{100, 558}, {220, 558}, {900, 558}}
+            << QPointF(512, 520)
+            << QPointF(512, 515);
+        QTest::newRow("top")
+            << QVariantList{rect(0, 0, 204.8, 72), rect(204.8, 0, 614.4, 72),
+                            rect(819.2, 0, 204.8, 72)}
+            << QList<QPointF>{{100, 36}, {800, 36}, {900, 36}}
+            << QPointF(512, 70)
+            << QPointF(512, 73);
+        QTest::newRow("left")
+            << QVariantList{rect(0, 0, 70, 120), rect(0, 120, 70, 360),
+                            rect(0, 480, 70, 120)}
+            << QList<QPointF>{{35, 60}, {35, 130}, {35, 540}}
+            << QPointF(68, 300)
+            << QPointF(71, 300);
+        QTest::newRow("right")
+            << QVariantList{rect(946, 0, 78, 120), rect(946, 120, 78, 360),
+                            rect(946, 480, 78, 120)}
+            << QList<QPointF>{{985, 60}, {985, 470}, {985, 540}}
+            << QPointF(948, 300)
+            << QPointF(945, 300);
+    }
+
+    void testRenderedNavbarGeometry()
+    {
+        QFETCH(QVariantList, regions);
+        QFETCH(QList<QPointF>, controlPoints);
+        QFETCH(QPointF, scaledInnerPoint);
+        QFETCH(QPointF, outsidePoint);
+
         oap::aa::TouchRouter router;
         oap::aa::EvdevCoordBridge bridge(&router);
         bridge.setDisplayMapping(1024, 600, 4095, 4095);
-
-        auto ctrl = makeController(true, "bottom");
+        auto ctrl = makeController();
         ctrl->setCoordBridge(&bridge);
-        ctrl->registerZones(1024, 600);
+        publishNavbarGeometry(*ctrl, 1024, 600, regions);
 
-        // Verify zones exist by dispatching touches in the expected regions
-        // Bottom edge: 56px tall bar at bottom (y=544-600)
-        // LHD: driver(volume)=left 1/4 (0-256), center(clock)=middle 1/2 (256-768), passenger(brightness)=right 1/4 (768-1024)
-
-        // Touch in volume zone (left quarter, bottom bar)
         QSignalSpy gestureSpy(ctrl.get(), &oap::NavbarController::gestureTriggered);
-        float volEvX = bridge.pixelToEvdevX(128);   // center of left quarter
-        float volEvY = bridge.pixelToEvdevY(572);   // center of bottom bar
-        bool claimed = router.dispatch(0, volEvX, volEvY, oap::aa::TouchEvent::Down);
-        QVERIFY(claimed);
-        router.resetClaims();
+        for (int control = 0; control < controlPoints.size(); ++control) {
+            const QPointF point = controlPoints.at(control);
+            QVERIFY(dispatchPixel(router, bridge, control, point.x(), point.y(),
+                                  oap::aa::TouchEvent::Down));
+            QVERIFY(dispatchPixel(router, bridge, control, point.x(), point.y(),
+                                  oap::aa::TouchEvent::Up));
+            QTRY_COMPARE(gestureSpy.count(), control + 1);
+            QCOMPARE(gestureSpy.at(control).at(0).toInt(), control);
+        }
+
+        QVERIFY(dispatchPixel(router, bridge, 3, scaledInnerPoint.x(), scaledInnerPoint.y(),
+                              oap::aa::TouchEvent::Down));
+        QVERIFY(dispatchPixel(router, bridge, 3, scaledInnerPoint.x(), scaledInnerPoint.y(),
+                              oap::aa::TouchEvent::Up));
+        QTRY_COMPARE(gestureSpy.count(), 4);
+        QCOMPARE(gestureSpy.at(3).at(0).toInt(), 1);
+
+        QVERIFY(!dispatchPixel(router, bridge, 4, outsidePoint.x(), outsidePoint.y(),
+                               oap::aa::TouchEvent::Down));
     }
 
-    void testRegisterZonesLeftEdge()
+    void testInvalidAndStaleGeometryCannotRestoreOldZones()
     {
         oap::aa::TouchRouter router;
         oap::aa::EvdevCoordBridge bridge(&router);
         bridge.setDisplayMapping(1024, 600, 4095, 4095);
-
-        auto ctrl = makeController(true, "left");
+        auto ctrl = makeController();
         ctrl->setCoordBridge(&bridge);
-        ctrl->registerZones(1024, 600);
 
-        // Left edge: 56px wide bar on left (x=0-56)
-        // Controls stacked vertically: driver=top 1/4, center=mid 1/2, passenger=bottom 1/4
-        float barEvX = bridge.pixelToEvdevX(28);  // center of left bar
-
-        // Top zone (driver)
-        float topEvY = bridge.pixelToEvdevY(75);  // in top quarter
-        bool claimed = router.dispatch(0, barEvX, topEvY, oap::aa::TouchEvent::Down);
-        QVERIFY(claimed);
+        const QVariantList valid{rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                                 rect(819.2, 516, 204.8, 84)};
+        const qint64 oldGeneration = publishNavbarGeometry(*ctrl, 1024, 600, valid);
+        QVERIFY(dispatchPixel(router, bridge, 0, 100, 558, oap::aa::TouchEvent::Down));
         router.resetClaims();
 
-        // Center zone
-        float midEvY = bridge.pixelToEvdevY(300);  // center
-        claimed = router.dispatch(1, barEvX, midEvY, oap::aa::TouchEvent::Down);
-        QVERIFY(claimed);
-        router.resetClaims();
+        const qint64 emptyGeneration = ctrl->beginNavbarGeometryUpdate();
+        QVERIFY(!dispatchPixel(router, bridge, 0, 100, 558, oap::aa::TouchEvent::Down));
+        ctrl->setNavbarGeometry(oldGeneration, 1024, 600, valid);
+        QVERIFY(!dispatchPixel(router, bridge, 0, 100, 558, oap::aa::TouchEvent::Down));
+        ctrl->setNavbarGeometry(emptyGeneration, 1024, 600, {});
+        QVERIFY(!dispatchPixel(router, bridge, 0, 100, 558, oap::aa::TouchEvent::Down));
+
+        QVariantList nonFinite = valid;
+        QVariantMap bad = nonFinite.at(1).toMap();
+        bad[QStringLiteral("w")] = std::numeric_limits<double>::infinity();
+        nonFinite[1] = bad;
+        publishNavbarGeometry(*ctrl, 1024, 600, nonFinite);
+        QVERIFY(!dispatchPixel(router, bridge, 0, 500, 558, oap::aa::TouchEvent::Down));
+
+        publishNavbarGeometry(*ctrl, 0, 600, valid);
+        QVERIFY(!dispatchPixel(router, bridge, 0, 100, 558, oap::aa::TouchEvent::Down));
     }
 
-    void testRegisterZonesRightEdge()
+    void testStaleGeometryCannotReplaceNewerRenderedZones()
     {
         oap::aa::TouchRouter router;
         oap::aa::EvdevCoordBridge bridge(&router);
         bridge.setDisplayMapping(1024, 600, 4095, 4095);
-
-        auto ctrl = makeController(true, "right");
+        auto ctrl = makeController();
         ctrl->setCoordBridge(&bridge);
-        ctrl->registerZones(1024, 600);
 
-        // Right edge: 56px wide bar on right (x=968-1024)
-        float barEvX = bridge.pixelToEvdevX(996);  // center of right bar
-        float midEvY = bridge.pixelToEvdevY(300);
-        bool claimed = router.dispatch(0, barEvX, midEvY, oap::aa::TouchEvent::Down);
-        QVERIFY(claimed);
+        const QVariantList bottom{rect(0, 516, 204.8, 84),
+                                  rect(204.8, 516, 614.4, 84),
+                                  rect(819.2, 516, 204.8, 84)};
+        const qint64 bottomGeneration = publishNavbarGeometry(*ctrl, 1024, 600, bottom);
+        const QVariantList top{rect(0, 0, 204.8, 72), rect(204.8, 0, 614.4, 72),
+                               rect(819.2, 0, 204.8, 72)};
+        publishNavbarGeometry(*ctrl, 1024, 600, top);
+
+        ctrl->setNavbarGeometry(bottomGeneration, 1024, 600, bottom);
+        QVERIFY(dispatchPixel(router, bridge, 0, 100, 36, oap::aa::TouchEvent::Down));
         router.resetClaims();
-    }
-
-    void testRegisterZonesRhdSwapsDriverPassenger()
-    {
-        oap::aa::TouchRouter router;
-        oap::aa::EvdevCoordBridge bridge(&router);
-        bridge.setDisplayMapping(1024, 600, 4095, 4095);
-
-        // RHD: driver side = right, passenger side = left
-        // For bottom edge: volume and brightness swap sides
-        auto ctrl = makeController(false, "bottom");  // RHD
-        ctrl->setCoordBridge(&bridge);
-        ctrl->registerZones(1024, 600);
-
-        // In RHD, controlRole(0)=brightness (left side), controlRole(2)=volume (right side)
-        // Zone 0 (left) should still be a zone that gets claimed
-        float leftEvX = bridge.pixelToEvdevX(128);
-        float barEvY = bridge.pixelToEvdevY(572);
-        bool claimed = router.dispatch(0, leftEvX, barEvY, oap::aa::TouchEvent::Down);
-        QVERIFY(claimed);
-        router.resetClaims();
+        QVERIFY(!dispatchPixel(router, bridge, 1, 100, 558, oap::aa::TouchEvent::Down));
     }
 
     void testUnregisterZones()
@@ -362,7 +427,9 @@ private slots:
 
         auto ctrl = makeController(true, "bottom");
         ctrl->setCoordBridge(&bridge);
-        ctrl->registerZones(1024, 600);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
         ctrl->unregisterZones();
 
         // After unregister, touch should not be claimed
@@ -372,7 +439,7 @@ private slots:
         QVERIFY(!claimed);
     }
 
-    void testEdgeChangeReregistersZones()
+    void testEdgeChangeInvalidatesReportedGeometry()
     {
         oap::aa::TouchRouter router;
         oap::aa::EvdevCoordBridge bridge(&router);
@@ -380,9 +447,11 @@ private slots:
 
         auto ctrl = makeController(true, "bottom");
         ctrl->setCoordBridge(&bridge);
-        ctrl->registerZones(1024, 600);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
 
-        // Change to left edge - zones should auto-update
+        // QML must publish the new rendered rectangles after the edge change.
         ctrl->setEdge("left");
 
         // Bottom zone should no longer claim (bar moved to left)
@@ -392,11 +461,56 @@ private slots:
         QVERIFY(!claimed);
         router.resetClaims();
 
-        // Left zone should now claim
-        float leftEvX = bridge.pixelToEvdevX(28);
-        float leftEvY = bridge.pixelToEvdevY(300);
-        claimed = router.dispatch(1, leftEvX, leftEvY, oap::aa::TouchEvent::Down);
-        QVERIFY(claimed);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 0, 70, 120), rect(0, 120, 70, 360),
+                               rect(0, 480, 70, 120)});
+        QVERIFY(dispatchPixel(router, bridge, 1, 35, 300, oap::aa::TouchEvent::Down));
+    }
+
+    void testDuplicateEvdevDownCannotReplaceAcceptedSlot()
+    {
+        oap::aa::TouchRouter router;
+        oap::aa::EvdevCoordBridge bridge(&router);
+        bridge.setDisplayMapping(1024, 600, 4095, 4095);
+        auto ctrl = makeController();
+        ctrl->setCoordBridge(&bridge);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
+        QSignalSpy gestureSpy(ctrl.get(), &oap::NavbarController::gestureTriggered);
+
+        QVERIFY(dispatchPixel(router, bridge, 0, 100, 558, oap::aa::TouchEvent::Down));
+        QCoreApplication::processEvents();
+        QVERIFY(dispatchPixel(router, bridge, 1, 110, 558, oap::aa::TouchEvent::Down));
+        QCoreApplication::processEvents();
+        QVERIFY(dispatchPixel(router, bridge, 1, 110, 558, oap::aa::TouchEvent::Up));
+        QCoreApplication::processEvents();
+        QCOMPARE(gestureSpy.count(), 0);
+
+        QVERIFY(dispatchPixel(router, bridge, 0, 100, 558, oap::aa::TouchEvent::Up));
+        QTRY_COMPARE(gestureSpy.count(), 1);
+        QCOMPARE(gestureSpy.at(0).at(0).toInt(), 0);
+    }
+
+    void testGeometryInvalidationCancelsAcceptedGesture()
+    {
+        oap::aa::TouchRouter router;
+        oap::aa::EvdevCoordBridge bridge(&router);
+        bridge.setDisplayMapping(1024, 600, 4095, 4095);
+        auto ctrl = makeController();
+        ctrl->setCoordBridge(&bridge);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
+        QSignalSpy gestureSpy(ctrl.get(), &oap::NavbarController::gestureTriggered);
+
+        QVERIFY(dispatchPixel(router, bridge, 0, 100, 558, oap::aa::TouchEvent::Down));
+        QCoreApplication::processEvents();
+        ctrl->beginNavbarGeometryUpdate();
+        QVERIFY(!dispatchPixel(router, bridge, 0, 100, 558, oap::aa::TouchEvent::Up));
+        QTest::qWait(700);
+
+        QCOMPARE(gestureSpy.count(), 0);
     }
 
     // --- Popup zone registration (Task 2) ---
@@ -409,10 +523,11 @@ private slots:
 
         auto ctrl = makeController(true, "bottom");
         ctrl->setCoordBridge(&bridge);
-        ctrl->registerZones(1024, 600);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
 
-        qint64 gen = ctrl->beginPopupSession(0);
-        ctrl->showPopup(0);
+        qint64 gen = showPopupSession(*ctrl, 0);
 
         // After showPopup alone, no popup zones exist yet (QML hasn't reported)
         float contentEvX = bridge.pixelToEvdevX(512);
@@ -445,7 +560,9 @@ private slots:
 
         auto ctrl = makeController(true, "bottom");
         ctrl->setCoordBridge(&bridge);
-        ctrl->registerZones(1024, 600);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
 
         ctrl->showPopup(0);
         ctrl->hidePopup();
@@ -563,24 +680,45 @@ private slots:
 
         auto ctrl = makeController(true, "bottom");
         ctrl->setCoordBridge(&bridge);
-        ctrl->registerZones(1024, 600);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
 
-        // Open popup, get generation
-        qint64 gen1 = ctrl->beginPopupSession(0);
-        ctrl->showPopup(0);
-
-        // Open a second popup (simulates quick close+reopen)
-        qint64 gen2 = ctrl->beginPopupSession(0);
-        ctrl->showPopup(0);
+        // Open a popup, then switch before the outgoing QML item clears.
+        qint64 gen1 = showPopupSession(*ctrl, 0);
+        qint64 gen2 = showPopupSession(*ctrl, 1);
 
         // Try to clear with stale generation — should be ignored
         ctrl->clearPopupRegions(0, gen1);
         QVERIFY(ctrl->popupVisible());  // still visible
 
         // Clear with current generation — should work
-        ctrl->clearPopupRegions(0, gen2);
+        ctrl->clearPopupRegions(1, gen2);
         QCoreApplication::processEvents();
         QVERIFY(!ctrl->popupVisible());
+    }
+
+    void testPopupSwitchingSurvivesOutgoingCleanupInBothDirections()
+    {
+        auto ctrl = makeController();
+
+        const qint64 sliderGeneration = showPopupSession(*ctrl, 0);
+        ctrl->showPopup(1);
+        ctrl->clearPopupRegions(0, sliderGeneration);
+        QVERIFY(ctrl->popupVisible());
+        QCOMPARE(ctrl->popupControlIndex(), 1);
+
+        const qint64 powerGeneration = ctrl->beginPopupSession(1);
+        ctrl->showPopup(2);
+        ctrl->clearPopupRegions(1, powerGeneration);
+        QVERIFY(ctrl->popupVisible());
+        QCOMPARE(ctrl->popupControlIndex(), 2);
+
+        const qint64 secondSliderGeneration = ctrl->beginPopupSession(2);
+        ctrl->showPopup(1);
+        ctrl->clearPopupRegions(2, secondSliderGeneration);
+        QVERIFY(ctrl->popupVisible());
+        QCOMPARE(ctrl->popupControlIndex(), 1);
     }
 
     void testBumpPopupDismissTimerResetsTimeout()
@@ -607,10 +745,11 @@ private slots:
 
         auto ctrl = makeController(true, "bottom");
         ctrl->setCoordBridge(&bridge);
-        ctrl->registerZones(1024, 600);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
 
-        qint64 gen = ctrl->beginPopupSession(0);
-        ctrl->showPopup(0);
+        qint64 gen = showPopupSession(*ctrl, 0);
 
         // Report a slider region covering left strip of screen
         QVariantList regions;
@@ -653,10 +792,11 @@ private slots:
 
         auto ctrl = makeController(true, "bottom");
         ctrl->setCoordBridge(&bridge);
-        ctrl->registerZones(1024, 600);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
 
-        qint64 gen = ctrl->beginPopupSession(1);
-        ctrl->showPopup(1);
+        qint64 gen = showPopupSession(*ctrl, 1);
 
         // Report 3 button regions
         QVariantList regions;
@@ -682,6 +822,43 @@ private slots:
         router.resetClaims();
     }
 
+    void testPopupButtonPressStateIsPerZoneAndSlot()
+    {
+        oap::aa::TouchRouter router;
+        oap::aa::EvdevCoordBridge bridge(&router);
+        bridge.setDisplayMapping(1024, 600, 4095, 4095);
+        auto ctrl = makeController();
+        ctrl->setCoordBridge(&bridge);
+
+        oap::ActionRegistry registry;
+        bool minimized = false;
+        registry.registerAction(QStringLiteral("app.minimize"),
+                                [&minimized](const QVariant&) { minimized = true; });
+        ctrl->setActionRegistry(&registry);
+
+        const qint64 generation = showPopupSession(*ctrl, 1);
+        QVariantList regions;
+        QVariantMap first = rect(400, 100, 160, 50);
+        first[QStringLiteral("id")] = QStringLiteral("btn-minimize");
+        first[QStringLiteral("type")] = 1;
+        first[QStringLiteral("action")] = QStringLiteral("minimize");
+        regions.append(first);
+        QVariantMap second = rect(400, 220, 160, 50);
+        second[QStringLiteral("id")] = QStringLiteral("btn-restart");
+        second[QStringLiteral("type")] = 1;
+        second[QStringLiteral("action")] = QStringLiteral("restart");
+        regions.append(second);
+        ctrl->setPopupRegions(1, generation, regions);
+
+        QVERIFY(dispatchPixel(router, bridge, 0, 410, 125, oap::aa::TouchEvent::Down));
+        QVERIFY(dispatchPixel(router, bridge, 1, 550, 245, oap::aa::TouchEvent::Down));
+        QVERIFY(dispatchPixel(router, bridge, 0, 410, 125, oap::aa::TouchEvent::Up));
+        QCoreApplication::processEvents();
+
+        QVERIFY(minimized);
+        QVERIFY(!ctrl->popupVisible());
+    }
+
     void testSetPopupRegionsReplacesOldZones()
     {
         oap::aa::TouchRouter router;
@@ -690,10 +867,11 @@ private slots:
 
         auto ctrl = makeController(true, "bottom");
         ctrl->setCoordBridge(&bridge);
-        ctrl->registerZones(1024, 600);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
 
-        qint64 gen = ctrl->beginPopupSession(0);
-        ctrl->showPopup(0);
+        qint64 gen = showPopupSession(*ctrl, 0);
 
         // First set: slider at x=0-100
         QVariantList regions1;
@@ -735,12 +913,12 @@ private slots:
 
         auto ctrl = makeController(true, "bottom");
         ctrl->setCoordBridge(&bridge);
-        ctrl->registerZones(1024, 600);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
 
-        qint64 gen1 = ctrl->beginPopupSession(0);
-        ctrl->showPopup(0);
-        qint64 gen2 = ctrl->beginPopupSession(0);
-        ctrl->showPopup(0);
+        qint64 gen1 = showPopupSession(*ctrl, 0);
+        qint64 gen2 = showPopupSession(*ctrl, 1);
 
         // Try to set regions with old generation — should be ignored
         QVariantList regions;
@@ -770,10 +948,11 @@ private slots:
 
         auto ctrl = makeController(true, "bottom");
         ctrl->setCoordBridge(&bridge);
-        ctrl->registerZones(1024, 600);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
 
-        qint64 gen = ctrl->beginPopupSession(0);
-        ctrl->showPopup(0);
+        qint64 gen = showPopupSession(*ctrl, 0);
 
         // Slider: y=0 to y=600, invertAxis=true (top=100, bottom=0)
         QVariantList regions;
@@ -946,10 +1125,11 @@ private slots:
 
         auto ctrl = makeController(true, "bottom");
         ctrl->setCoordBridge(&bridge);
-        ctrl->registerZones(1024, 600);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
 
-        qint64 gen = ctrl->beginPopupSession(0);
-        ctrl->showPopup(0);
+        qint64 gen = showPopupSession(*ctrl, 0);
 
         // Simulate QML reporting geometry (registers dismiss zone)
         QVariantList regions;
@@ -981,6 +1161,33 @@ private slots:
 
         // Now should be hidden
         QVERIFY(!ctrl->popupVisible());
+    }
+
+    void testQueuedOutgoingDismissCannotHideIncomingPopup()
+    {
+        oap::aa::TouchRouter router;
+        oap::aa::EvdevCoordBridge bridge(&router);
+        bridge.setDisplayMapping(1024, 600, 4095, 4095);
+        auto ctrl = makeController();
+        ctrl->setCoordBridge(&bridge);
+        publishNavbarGeometry(*ctrl, 1024, 600,
+                              {rect(0, 516, 204.8, 84), rect(204.8, 516, 614.4, 84),
+                               rect(819.2, 516, 204.8, 84)});
+
+        const qint64 generation = showPopupSession(*ctrl, 0);
+        QVariantMap slider = rect(0, 0, 100, 600);
+        slider[QStringLiteral("id")] = QStringLiteral("slider");
+        slider[QStringLiteral("type")] = 0;
+        slider[QStringLiteral("target")] = 0;
+        ctrl->setPopupRegions(0, generation, {slider});
+
+        QVERIFY(dispatchPixel(router, bridge, 0, 512, 200, oap::aa::TouchEvent::Down));
+        QVERIFY(dispatchPixel(router, bridge, 0, 512, 200, oap::aa::TouchEvent::Up));
+        ctrl->showPopup(1);
+        QCoreApplication::processEvents();
+
+        QVERIFY(ctrl->popupVisible());
+        QCOMPARE(ctrl->popupControlIndex(), 1);
     }
 };
 
