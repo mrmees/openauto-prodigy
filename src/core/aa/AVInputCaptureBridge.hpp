@@ -59,6 +59,7 @@ private:
     QTimer drainTimer_;
     Sender sender_;
     std::atomic<uint64_t> publishedGeneration_{0};
+    std::atomic<uint32_t> oversizedCallbacks_{0};
     uint64_t ownerGeneration_ = 0;
     double gain_ = 1.0;
     bool active_ = false;

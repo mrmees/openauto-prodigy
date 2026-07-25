@@ -3,6 +3,8 @@
 #include <QtEndian>
 #include <oaa/HU/Handlers/AVInputChannelHandler.hpp>
 #include <oaa/Channel/ChannelId.hpp>
+#include "oaa/av/AVChannelSetupRequestMessage.pb.h"
+#include "oaa/av/AVChannelSetupResponseMessage.pb.h"
 #include "oaa/av/AVInputOpenRequestMessage.pb.h"
 #include "oaa/av/AVInputOpenResponseMessage.pb.h"
 #include "oaa/av/AVMediaAckIndicationMessage.pb.h"
@@ -32,6 +34,43 @@ private slots:
     void testChannelId() {
         oaa::hu::AVInputChannelHandler handler;
         QCOMPARE(handler.channelId(), oaa::ChannelId::AVInput);
+    }
+
+    void testSetupOpenAndMediaSequence() {
+        oaa::hu::AVInputChannelHandler handler;
+        handler.setCaptureController([](bool) { return true; });
+        handler.onChannelOpened();
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        oaa::proto::messages::AVChannelSetupRequest setup;
+        setup.set_media_codec_type(
+            oaa::proto::enums::MediaCodecType::MEDIA_CODEC_AUDIO_PCM);
+        handler.onMessage(oaa::AVMessageId::SETUP_REQUEST, serialize(setup));
+
+        QCOMPARE(sendSpy.count(), 1);
+        QCOMPARE(sendSpy[0][1].value<uint16_t>(),
+                 static_cast<uint16_t>(oaa::AVMessageId::SETUP_RESPONSE));
+        oaa::proto::messages::AVChannelSetupResponse setupResponse;
+        const QByteArray setupPayload = sendSpy[0][2].toByteArray();
+        QVERIFY(setupResponse.ParseFromArray(
+            setupPayload.constData(), setupPayload.size()));
+        QCOMPARE(setupResponse.media_status(),
+                 oaa::proto::enums::AVChannelSetupStatus::OK);
+        QCOMPARE(setupResponse.max_unacked(), 1u);
+        QCOMPARE(setupResponse.configs_size(), 1);
+        QCOMPARE(setupResponse.configs(0), 0u);
+
+        oaa::proto::messages::AVInputOpenRequest open;
+        open.set_open(true);
+        open.set_max_unacked(1);
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, serialize(open));
+        QCOMPARE(sendSpy.count(), 2);
+        QCOMPARE(sendSpy[1][1].value<uint16_t>(),
+                 static_cast<uint16_t>(oaa::AVMessageId::INPUT_OPEN_RESPONSE));
+        QVERIFY(handler.sendMicData(QByteArray(320, '\x42'), 1));
+        QCOMPARE(sendSpy.count(), 3);
+        QCOMPARE(sendSpy[2][1].value<uint16_t>(),
+                 static_cast<uint16_t>(oaa::AVMessageId::AV_MEDIA_WITH_TIMESTAMP));
     }
 
     void testInputOpenRequestStartsCapture() {

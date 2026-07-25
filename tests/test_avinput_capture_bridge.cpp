@@ -190,6 +190,38 @@ private slots:
         QVERIFY(bridge.droppedFrames() > 0);
     }
 
+    void testOversizedCallbacksRetainNewestCompleteFrame() {
+        oap::aa::AVInputCaptureBridge bridge;
+        QList<qint16> sentSamples;
+        const uint64_t generation = bridge.start(1.0,
+            [&sentSamples](const QByteArray& frame, uint64_t) {
+                sentSamples.append(sampleAt(frame, 0));
+                return true;
+            });
+
+        QByteArray oversized(
+            oap::aa::AVInputCaptureBridge::RingCapacity
+                + oap::aa::AVInputCaptureBridge::FrameBytes,
+            '\x11');
+        const QByteArray newest = fullFrame(500);
+        oversized.replace(oversized.size() - newest.size(), newest.size(), newest);
+        bridge.pushPcm(generation,
+                       reinterpret_cast<const uint8_t*>(oversized.constData()),
+                       oversized.size());
+        QTRY_COMPARE(sentSamples.size(), 1);
+        QCOMPARE(sentSamples.front(), qint16(500));
+        QVERIFY(bridge.droppedFrames() > 0);
+
+        const QByteArray nextNewest = fullFrame(600);
+        oversized.replace(oversized.size() - nextNewest.size(),
+                          nextNewest.size(), nextNewest);
+        bridge.pushPcm(generation,
+                       reinterpret_cast<const uint8_t*>(oversized.constData()),
+                       oversized.size());
+        QTRY_COMPARE(sentSamples.size(), 2);
+        QCOMPARE(sentSamples.back(), qint16(600));
+    }
+
     void testStopAndGenerationRejectStaleProducer() {
         oap::aa::AVInputCaptureBridge bridge;
         QList<qint16> sentSamples;

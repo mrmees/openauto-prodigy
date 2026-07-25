@@ -41,6 +41,7 @@ signals:
     void sendWindowAvailable();
 
 private:
+    void handleSetupRequest(const QByteArray& payload);
     void handleInputOpenRequest(const QByteArray& payload);
     void handleAckIndication(const QByteArray& payload);
 

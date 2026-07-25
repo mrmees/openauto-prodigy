@@ -66,6 +66,24 @@ void AVInputCaptureBridge::pushPcm(uint64_t generation,
     // byte count. A capture callback is published atomically or dropped whole;
     // partial publication could cross an overflow purge and corrupt framing.
     const uint32_t evenSize = static_cast<uint32_t>(size) & ~uint32_t{1};
+
+    // PipeWire normally delivers a much smaller quantum, but negotiated input
+    // buffers are not contractually capped by this bridge. If an oversized
+    // callback arrives at an empty ring, retain its newest complete AA frame so
+    // repeated large callbacks cannot create permanent silence. If older PCM
+    // is still queued, record an ordinary overflow and let the consumer purge
+    // it first; the next callback can then publish from the live edge.
+    if (evenSize > RingCapacity) {
+        if (ring_.available() != 0) {
+            ring_.writeAllOrDrop(data, evenSize);
+            return;
+        }
+        const uint8_t* newestFrame = data + evenSize - FrameBytes;
+        if (ring_.writeAllOrDrop(newestFrame, FrameBytes) == FrameBytes) {
+            oversizedCallbacks_.fetch_add(1, std::memory_order_relaxed);
+        }
+        return;
+    }
     ring_.writeAllOrDrop(data, evenSize);
 }
 
@@ -77,6 +95,13 @@ void AVInputCaptureBridge::notifyWindowAvailable()
 
     // PCM accumulated while the phone withheld permits is stale voice. Resume
     // from the live edge rather than replaying delayed speech.
+    const uint32_t oversized = oversizedCallbacks_.exchange(
+        0, std::memory_order_relaxed);
+    if (oversized > 0) {
+        droppedFrames_ += oversized;
+        qCWarning(lcAA) << "AA microphone oversized capture buffers truncated"
+                        << "events=" << oversized;
+    }
     const uint32_t overflowDrops = ring_.resetDropCount();
     if (overflowDrops > 0) {
         droppedFrames_ += overflowDrops;
@@ -118,6 +143,13 @@ void AVInputCaptureBridge::drainOnce()
     if (!active_ || waitingForWindow_ || !sender_)
         return;
 
+    const uint32_t oversized = oversizedCallbacks_.exchange(
+        0, std::memory_order_relaxed);
+    if (oversized > 0) {
+        droppedFrames_ += oversized;
+        qCWarning(lcAA) << "AA microphone oversized capture buffers truncated"
+                        << "events=" << oversized;
+    }
     const uint32_t overflowDrops = ring_.resetDropCount();
     if (overflowDrops > 0) {
         droppedFrames_ += overflowDrops;
@@ -149,6 +181,7 @@ void AVInputCaptureBridge::purgeQueuedPcm()
 {
     ring_.drain();
     ring_.resetDropCount();
+    oversizedCallbacks_.store(0, std::memory_order_relaxed);
 }
 
 uint64_t AVInputCaptureBridge::monotonicTimestampUs()

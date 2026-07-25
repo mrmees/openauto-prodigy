@@ -7,6 +7,9 @@
 
 #include <utility>
 
+#include "oaa/av/AVChannelSetupRequestMessage.pb.h"
+#include "oaa/av/AVChannelSetupResponseMessage.pb.h"
+#include "oaa/av/AVChannelSetupStatusEnum.pb.h"
 #include "oaa/av/AVMediaAckIndicationMessage.pb.h"
 #include "oaa/av/AVInputOpenRequestMessage.pb.h"
 #include "oaa/av/AVInputOpenResponseMessage.pb.h"
@@ -53,6 +56,9 @@ void AVInputChannelHandler::onMessage(uint16_t messageId, const QByteArray& payl
         payload.constData() + dataOffset, payload.size() - dataOffset);
 
     switch (messageId) {
+    case oaa::AVMessageId::SETUP_REQUEST:
+        handleSetupRequest(data);
+        break;
     case oaa::AVMessageId::INPUT_OPEN_REQUEST:
         handleInputOpenRequest(data);
         break;
@@ -64,6 +70,29 @@ void AVInputChannelHandler::onMessage(uint16_t messageId, const QByteArray& payl
         emit unknownMessage(messageId, data);
         break;
     }
+}
+
+void AVInputChannelHandler::handleSetupRequest(const QByteArray& payload)
+{
+    Q_ASSERT(QThread::currentThread() == thread());
+
+    oaa::proto::messages::AVChannelSetupRequest request;
+    if (!request.ParseFromArray(payload.constData(), payload.size())) {
+        qWarning() << "[AVInputChannel] failed to parse SetupRequest";
+        return;
+    }
+
+    qInfo() << "[AVInputChannel] setup request, codec:"
+            << request.media_codec_type();
+
+    oaa::proto::messages::AVChannelSetupResponse response;
+    response.set_media_status(oaa::proto::enums::AVChannelSetupStatus::OK);
+    response.set_max_unacked(1);
+    response.add_configs(0);
+
+    QByteArray data(response.ByteSizeLong(), '\0');
+    response.SerializeToArray(data.data(), data.size());
+    emit sendRequested(channelId(), oaa::AVMessageId::SETUP_RESPONSE, data);
 }
 
 void AVInputChannelHandler::handleInputOpenRequest(const QByteArray& payload)
