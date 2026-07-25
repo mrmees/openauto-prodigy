@@ -19,8 +19,15 @@ spike, or research-first feasibility work.
 
 ## Now
 
-No capability is currently promoted. Select and re-research the next bounded
-wishlist item before implementation.
+- Android Auto projected CLUSTER dashboard widget — **ACTIVE EXPERIMENTAL
+  SPIKE**. Advertise one fixed H.264 800×480 CLUSTER endpoint beside the
+  existing MAIN display, render the independent phone-produced stream in one
+  fixed square dashboard widget, and capture whether current Android Auto
+  activates it without degrading MAIN. This promotes only the bounded
+  MAIN-plus-CLUSTER feasibility probe; arbitrary displays, alternate
+  resolutions, touch, second-monitor routing, and production enablement remain
+  unpromoted. Design:
+  `docs/plans/2026-07-24-aa-projected-cluster-widget-design.md`.
 
 ## Done (recent)
 

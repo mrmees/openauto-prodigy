@@ -102,6 +102,10 @@ all three when promoting an item; they are not estimates or approval.
   **Investigation:** Research first. Validate phone activation and per-display
   lifecycle with an isolated descriptor/capture spike before implementation.
   **Protocol baseline:** [projected multi-display](aa-protocol/wishlist-baselines/projected-multi-display.md).
+  **Promotion note:** the fixed MAIN-plus-one-CLUSTER dashboard experiment is
+  promoted in
+  [the active design](plans/2026-07-24-aa-projected-cluster-widget-design.md).
+  Generalized multi-display support remains a long-term wishlist item.
 
 ## Phone, Companion, and Connectivity
 

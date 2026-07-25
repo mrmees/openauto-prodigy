@@ -61,7 +61,9 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- None.
+- [Android Auto projected CLUSTER dashboard widget design](plans/2026-07-24-aa-projected-cluster-widget-design.md)
+  — active experimental MAIN-plus-CLUSTER activation, isolation, and square
+  dashboard rendering spike
 
 ## Pi Configuration (pi-config/)
 
