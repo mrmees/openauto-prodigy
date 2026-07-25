@@ -4,6 +4,74 @@ Newest entries first.
 
 ---
 
+## 2026-07-25 — Agentic workflow simplification COMPLETE
+
+**What changed:** the repository now uses a lean trivial/standard/major work
+classification instead of mandatory model tiers, per-task subagents, per-task
+full builds, and stacked review gates. `scripts/review-gate.sh` selects one
+independent reviewer from the author, records immutable SHAs and duration,
+pins `high` effort, permits one initial plus one remediation pass, rejects
+tracked dirty trees and duplicate/third passes, and requires an explicit
+user-authorized reset before changing feature bases. `codex-review.sh` is now a
+documented stateful legacy entry point rather than an extra review. The doc
+link checker gained its previously documented tracked-live mode so untracked
+user files can be excluded without moving or editing them.
+
+Matching global operating contracts were installed for Linux and Windows
+Codex and Claude. They explicitly prevent generic skills from multiplying
+specs, plans, worktrees, subagents, or reviews beyond user/repository policy.
+Both Codex environments now default to `high` reasoning, both Claude
+environments default to Opus, and Fable is reserved for major/multi-repository
+work. Credential values were not modified or printed again.
+
+**Why:** PR #40 spent nearly five hours and 22 automated verdicts optimizing
+for reviewer silence. The previous workflow was designed around a permanent
+Fable main session, then combined with Superpowers rules that independently
+required per-task and final reviews. Prose-only rerun limits did not stop a
+test-only reentrancy review loop. The replacement makes reviewer independence,
+production reachability, cost, and stopping conditions explicit and
+mechanically bounded.
+
+**Status:** COMPLETE on local `dev`; repository commits are not yet pushed.
+Global instruction/model changes are active immediately. The user-owned
+untracked AA display baseline remains untouched. Application build, ARM
+cross-build, deployment, and hardware testing were intentionally skipped
+because no application source, build definition, runtime configuration, or
+Pi artifact changed.
+
+**Review gate:** Opus pass 1 reviewed the immutable implementation range in
+257 seconds and returned zero blockers, five majors, and five minors. Eight
+findings were confirmed: missing `jq` preflight; silent base-reset bypass;
+tracked-dirty coverage; incomplete runtime-failure guidance; divergent Claude
+review instructions; doc-checker robustness; ambiguous legacy-wrapper
+semantics; and lack of a real Codex invocation smoke test. They were resolved
+in one remediation batch or, for the invocation gap, by a successful real
+Codex model/provider smoke run. Two findings were dismissed: the handoff/plan
+were intentionally awaiting final adjudication, and application CTest should
+not acquire host agent-tool dependencies.
+
+Opus pass 2 reviewed only the remediation delta in 198 seconds and returned
+zero blockers, zero majors, and five minors. Three maintenance notes were
+confirmed and deferred: remove the Claude-focus template coupling, improve the
+no-git doc-checker error, and clarify that exit 4 means no verdict was recorded
+rather than necessarily no model execution. Two were dismissed: base drift
+already stops until an explicit user-authorized reset, and an uncommitted
+submodule pointer cannot be pushed or enter either committed review range. The
+gate is now exhausted at pass 2; no third review was run.
+
+**Verification:** `bash tests/test_review_gate.sh`, Bash syntax checks,
+ShellCheck, Python byte-compilation, the tracked-live documentation link check,
+and `git diff --check` passed. The four global policy-file hashes match; both
+Codex effort keys report `high`, and both Claude model keys report `opus[1m]`.
+The real Codex smoke invocation resolved `gpt-5.6-sol` through the OpenAI
+provider in read-only mode at `high` effort and returned the required sentinel.
+
+**Next:** rotate the exposed Home Assistant and Namecheap credentials; use the
+new metrics/state record across the next five PRs; push/PR these repository
+changes when authorized.
+
+---
+
 ## 2026-07-25 — Android Auto CLUSTER square viewport COMPLETE
 
 **What changed:** the experimental projected CLUSTER path now asks Android

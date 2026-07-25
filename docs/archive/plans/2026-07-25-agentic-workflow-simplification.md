@@ -1,6 +1,6 @@
 # Agentic Workflow Simplification Plan
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-25
 
 **Goal:** Replace overlapping, unbounded agent workflows with one lean,
 author-aware execution and review policy that preserves technical verification.
