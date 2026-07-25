@@ -94,14 +94,26 @@ documented, its matching sink finding was fixed, and the verification-scope
 wording was confirmed for clarification after the final rerun. Both gates
 must rerun on this latest delta before publication.
 
+That rerun found the remaining defensive rollback could emit availability
+before a failed attachment unwound or leave a reentrant replacement sink in
+the decoder. Both were confirmed and fixed by suppressing the unpublished
+transition, deferring any published rollback notification, and clearing the
+decoder under a signal blocker. The broken AA-reference table placement,
+ambiguous final-cross-build wording, missing intentional-scope comment, and
+loose warning-test pattern were also confirmed and corrected. The request to
+implement all-channel close handling remained dismissed as the separately
+documented compatibility waiver. Publication still requires one clean
+incremental rerun on this final delta.
+
 **Verification:** the full native build, explicit `openauto-prodigy` target,
 `QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, `git diff --check`, and
 the frozen-proto boundary check passed. The tracked live-document link scope
 also passed; the repository-wide checker reported only the known external-tree
 references in the user-owned untracked wishlist baseline, which remained
 untouched. `./cross-build.sh` produced the deployed accepted aarch64
-application with compiled-in QML; each production review-fix delta receives a
-fresh cross-build before publication. For the accepted bench,
+application with compiled-in QML. The latest production review-fix delta and
+the final integrated tree were each cross-built successfully; any subsequent
+production change must repeat that final-tree gate. For the accepted bench,
 local, staged, and installed artifact hashes matched. The guarded config edit
 changed only `col_span` and `row_span`; the target 3×3 cells were
 collision-free. The service remained active with zero restarts and one

@@ -593,6 +593,9 @@ private slots:
     {
         auto display = enabledClusterDisplay();
         QVideoSink sink;
+        QSignalSpy availabilitySpy(
+            &display,
+            &oap::aa::ProjectedDisplaySession::videoSinkAvailabilityChanged);
         connect(
             display.decoder(),
             &oap::aa::VideoDecoder::videoSinkChanged,
@@ -606,6 +609,28 @@ private slots:
         QVERIFY(!display.attachVideoSink(&sink));
         QVERIFY(display.isVideoSinkAvailable());
         QCOMPARE(display.decoder()->videoSink(), nullptr);
+        QCOMPARE(availabilitySpy.count(), 0);
+    }
+
+    void directDecoderReplacementIsClearedOnRollback()
+    {
+        auto display = enabledClusterDisplay();
+        QVideoSink candidate;
+        auto replacement = std::make_unique<QVideoSink>();
+        connect(
+            display.decoder(),
+            &oap::aa::VideoDecoder::videoSinkChanged,
+            &display,
+            [&display, &candidate, &replacement]() {
+                if (display.decoder()->videoSink() == &candidate)
+                    display.decoder()->setVideoSink(replacement.get());
+            },
+            Qt::DirectConnection);
+
+        QVERIFY(!display.attachVideoSink(&candidate));
+        QVERIFY(display.isVideoSinkAvailable());
+        QCOMPARE(display.decoder()->videoSink(), nullptr);
+        replacement.reset();
     }
 };
 

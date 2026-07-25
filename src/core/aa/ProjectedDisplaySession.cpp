@@ -3,6 +3,7 @@
 #include "../Logging.hpp"
 #include "../YamlConfig.hpp"
 
+#include <QSignalBlocker>
 #include <QThread>
 #include <QVideoFrame>
 
@@ -398,22 +399,29 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
                                   << "sink released on destruction";
         });
 
-    const auto rollbackClaim = [this, claimedSink]() {
+    const auto rollbackClaim = [this, claimedSink](bool availabilityPublished) {
         if (sink_ != claimedSink)
             return;
         disconnect(sinkDestroyedConnection_);
-        if (decoder_ && decoder_->videoSink() == claimedSink)
+        if (decoder_) {
+            const QSignalBlocker blocker(decoder_.get());
             decoder_->setVideoSink(nullptr);
+        }
         if (sink_ != claimedSink)
             return;
         sink_.clear();
         sinkClaimRejectionLogged_ = false;
-        emit videoSinkAvailabilityChanged();
+        if (availabilityPublished) {
+            QMetaObject::invokeMethod(
+                this,
+                [this]() { emit videoSinkAvailabilityChanged(); },
+                Qt::QueuedConnection);
+        }
     };
 
     decoder_->setVideoSink(sink);
     if (sink_ != claimedSink || decoder_->videoSink() != claimedSink) {
-        rollbackClaim();
+        rollbackClaim(false);
         qCWarning(lcAA).noquote() << diagnosticPrefix_
                                  << "sink claim changed during attachment";
         return false;
@@ -421,7 +429,7 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
 
     emit videoSinkAvailabilityChanged();
     if (sink_ != claimedSink || decoder_->videoSink() != claimedSink) {
-        rollbackClaim();
+        rollbackClaim(true);
         qCWarning(lcAA).noquote() << diagnosticPrefix_
                                  << "sink claim changed during notification";
         return false;

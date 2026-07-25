@@ -450,6 +450,9 @@ void AndroidAutoOrchestrator::onNewConnection()
                     clusterDisplay_.noteChannelOpened(channelId);
                 }
             });
+    // AASession currently emits channelClosed only for the experimental
+    // explicit-lifecycle CLUSTER channels. Legacy MAIN close handling remains
+    // deferred with the documented compatibility passthrough.
     connect(session_, &oaa::AASession::channelClosed,
             this, [this](uint8_t channelId) {
                 if (projectedClusterConfig_.enabled

@@ -897,7 +897,8 @@ private slots:
             QCOMPARE(closedSpy.count(), 0);
 
             const QRegularExpression legacyCloseWarning(
-                QStringLiteral(".*legacy channel %1.*compatibility passthrough.*")
+                QStringLiteral(".*legacy channel %1 control close uses "
+                               "compatibility passthrough.*")
                     .arg(channelId));
             QTest::ignoreMessage(QtWarningMsg, legacyCloseWarning);
             session.messenger()->messageReceived(
