@@ -118,6 +118,7 @@ private:
 
     QPointer<QVideoSink> sink_;
     QMetaObject::Connection sinkDestroyedConnection_;
+    bool sinkClaimRejectionLogged_ = false;
     QElapsedTimer summaryTimer_;
 };
 

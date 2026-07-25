@@ -30,11 +30,6 @@ public:
         VideoDecoder::failCodecInitForTest_.store(true);
     }
 
-    static void failNextCodecInitialization(VideoDecoder& decoder)
-    {
-        Q_UNUSED(decoder);
-        VideoDecoder::failCodecInitForTest_.store(true);
-    }
 };
 
 } // namespace oap::aa
@@ -175,7 +170,7 @@ private slots:
         QSignalSpy errorSpy(&decoder, &oap::aa::VideoDecoder::streamError);
         ScopedMessageCapture messages;
 
-        oap::aa::VideoDecoderTestAccess::failNextCodecInitialization(decoder);
+        oap::aa::VideoDecoderTestAccess::failNextCodecInitialization();
         const quint64 generation = decoder.beginStream();
 
         QTRY_COMPARE(errorSpy.count(), 1);

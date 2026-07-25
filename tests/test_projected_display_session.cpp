@@ -18,12 +18,6 @@ public:
         VideoDecoder::failCodecInitForTest_.store(true);
     }
 
-    static void failNextCodecInitialization(VideoDecoder& decoder)
-    {
-        Q_UNUSED(decoder);
-        VideoDecoder::failCodecInitForTest_.store(true);
-    }
-
     static void publishFrame(
         VideoDecoder& decoder,
         quint64 generation,
@@ -151,8 +145,7 @@ private slots:
         display.beginProtocolSession();
         display.videoHandler()->onChannelOpened();
         display.noteChannelOpened(oaa::ChannelId::ClusterVideo);
-        oap::aa::VideoDecoderTestAccess::failNextCodecInitialization(
-            *display.decoder());
+        oap::aa::VideoDecoderTestAccess::failNextCodecInitialization();
         display.videoHandler()->onMessage(
             oaa::AVMessageId::START_INDICATION, startIndicationBytes());
         QTRY_COMPARE(resetSpy.count(), 1);
@@ -527,11 +520,16 @@ private slots:
         auto display = enabledClusterDisplay();
         QVideoSink first;
         QVideoSink second;
+        ScopedMessageCapture messages;
 
         QVERIFY(display.attachVideoSink(&first));
         QCOMPARE(display.decoder()->videoSink(), &first);
         QVERIFY(!display.attachVideoSink(&second));
+        QVERIFY(!display.attachVideoSink(&second));
         QCOMPARE(display.decoder()->videoSink(), &first);
+        QCOMPARE(messages.joined().count(
+                     QStringLiteral("sink claim rejected; already owned")),
+                 1);
 
         display.detachVideoSink(&second);
         QCOMPARE(display.decoder()->videoSink(), &first);
@@ -540,6 +538,10 @@ private slots:
 
         QVERIFY(display.attachVideoSink(&second));
         QCOMPARE(display.decoder()->videoSink(), &second);
+        QVERIFY(!display.attachVideoSink(&first));
+        QCOMPARE(messages.joined().count(
+                     QStringLiteral("sink claim rejected; already owned")),
+                 2);
     }
 };
 

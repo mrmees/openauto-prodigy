@@ -1025,6 +1025,44 @@ private slots:
         }
     }
 
+    void testRegisteredServiceChannelsRejectTrafficUntilOpen() {
+        for (uint8_t channelId = oaa::ChannelId::Input;
+             channelId <= oaa::ChannelId::WiFi; ++channelId) {
+            oaa::ReplayTransport transport;
+            oaa::SessionConfig config;
+            oaa::AASession session(&transport, config);
+            MockChannelHandler handler(channelId);
+            session.registerChannel(channelId, &handler);
+
+            transport.simulateConnect();
+            session.start();
+            advanceToActive(session);
+            transport.clearWritten();
+
+            session.messenger()->messageReceived(
+                channelId, 0x8123, QByteArrayLiteral("early"), 0,
+                oaa::MessageType::Specific);
+            QCOMPARE(handler.messageCount, 0);
+            QCOMPARE(transport.writtenData().size(), 0);
+
+            oaa::proto::messages::ChannelOpenRequest request;
+            request.set_channel_id(channelId);
+            request.set_priority(1);
+            QByteArray openPayload(request.ByteSizeLong(), '\0');
+            QVERIFY(request.SerializeToArray(
+                openPayload.data(), openPayload.size()));
+            session.messenger()->messageReceived(
+                channelId,
+                oaa::SessionMessageId::CHANNEL_OPEN_REQUEST,
+                openPayload, 0, oaa::MessageType::Control);
+            session.messenger()->messageReceived(
+                channelId, 0x8123, QByteArrayLiteral("opened"), 0,
+                oaa::MessageType::Specific);
+            QCOMPARE(handler.messageCount, 1);
+            QCOMPARE(handler.lastPayload, QByteArrayLiteral("opened"));
+        }
+    }
+
     void testUnregisteredChannelIsRejectedOnBothDispatchPaths() {
         for (const uint8_t incomingChannel : {uint8_t(0), uint8_t(9)}) {
             oaa::ReplayTransport transport;

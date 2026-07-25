@@ -275,6 +275,8 @@ void ProjectedDisplaySession::beginProtocolSession()
     summaryTimer_.start();
     qCInfo(lcAA).noquote() << diagnosticPrefix_
                           << "protocol begin generation=" << protocolGeneration_;
+    // A prior stream error is recoverable: beginStream() retries codec setup.
+    // Only construction-level worker availability is terminal here.
     if (!decoder_ || !decoder_->isAvailable()) {
         enterTerminalState(
             Error, QStringLiteral("Projected decoder unavailable"));
@@ -368,11 +370,15 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
     if (sink_ == sink)
         return true;
     if (sink_) {
-        qCWarning(lcAA).noquote() << diagnosticPrefix_
-                                 << "sink claim rejected; already owned";
+        if (!sinkClaimRejectionLogged_) {
+            qCWarning(lcAA).noquote() << diagnosticPrefix_
+                                     << "sink claim rejected; already owned";
+            sinkClaimRejectionLogged_ = true;
+        }
         return false;
     }
 
+    sinkClaimRejectionLogged_ = false;
     sink_ = sink;
     decoder_->setVideoSink(sink);
     QVideoSink* claimedSink = sink;
@@ -382,6 +388,7 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
                 return;
             decoder_->setVideoSink(nullptr);
             sink_.clear();
+            sinkClaimRejectionLogged_ = false;
             qCInfo(lcAA).noquote() << diagnosticPrefix_
                                   << "sink released on destruction";
         });
@@ -398,6 +405,7 @@ void ProjectedDisplaySession::detachVideoSink(QVideoSink* sink)
     disconnect(sinkDestroyedConnection_);
     decoder_->setVideoSink(nullptr);
     sink_.clear();
+    sinkClaimRejectionLogged_ = false;
     qCInfo(lcAA).noquote() << diagnosticPrefix_ << "sink released";
 }
 
