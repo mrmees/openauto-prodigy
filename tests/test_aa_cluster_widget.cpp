@@ -1,8 +1,62 @@
 #include <QFile>
+#include <QQmlComponent>
+#include <QQmlContext>
+#include <QQmlEngine>
+#include <QSaveFile>
+#include <QTemporaryDir>
 #include <QTest>
+#include <QVideoSink>
 
 #include "core/widget/WidgetRegistry.hpp"
 #include "plugins/android_auto/AAClusterWidgetRegistration.hpp"
+
+class FakeClusterDisplay : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(bool rendering READ rendering CONSTANT)
+    Q_PROPERTY(QString statusText READ statusText CONSTANT)
+
+public:
+    bool rendering() const { return false; }
+    QString statusText() const { return QStringLiteral("Waiting"); }
+    Q_INVOKABLE bool attachVideoSink(QVideoSink* sink)
+    {
+        if (!sink || (sink_ && sink_ != sink))
+            return false;
+        sink_ = sink;
+        return true;
+    }
+    Q_INVOKABLE void detachVideoSink(QVideoSink* sink)
+    {
+        if (sink_ == sink)
+            sink_.clear();
+    }
+    QVideoSink* sink() const { return sink_.data(); }
+
+private:
+    QPointer<QVideoSink> sink_;
+};
+
+class FakeWidgetContext : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(bool isCurrentPage READ isCurrentPage WRITE setIsCurrentPage
+                   NOTIFY isCurrentPageChanged)
+
+public:
+    bool isCurrentPage() const { return current_; }
+    void setIsCurrentPage(bool current)
+    {
+        if (current_ == current)
+            return;
+        current_ = current;
+        emit isCurrentPageChanged();
+    }
+
+signals:
+    void isCurrentPageChanged();
+
+private:
+    bool current_ = false;
+};
 
 class TestAAClusterWidget : public QObject {
     Q_OBJECT
@@ -91,6 +145,73 @@ private slots:
                      qPrintable(QStringLiteral("Forbidden QML token: %1")
                                     .arg(token)));
         }
+    }
+
+    void onlyCurrentDashboardCopyOwnsSinkAtRuntime()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const auto writeFile = [&dir](const QString& name,
+                                      const QByteArray& contents) {
+            QSaveFile file(dir.filePath(name));
+            if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+                return false;
+            if (file.write(contents) != contents.size())
+                return false;
+            return file.commit();
+        };
+        QVERIFY(writeFile(QStringLiteral("AAClusterWidget.qml"),
+                          qmlSource().toUtf8()));
+        QVERIFY(writeFile(
+            QStringLiteral("MaterialIcon.qml"),
+            QByteArrayLiteral(
+                "import QtQuick\nItem { property string icon; property real "
+                "size; property color color; implicitWidth: size; "
+                "implicitHeight: size }\n")));
+        QVERIFY(writeFile(QStringLiteral("NormalText.qml"),
+                          QByteArrayLiteral("import QtQuick\nText {}\n")));
+
+        FakeClusterDisplay display;
+        QQmlEngine engine;
+        engine.rootContext()->setContextProperty(
+            QStringLiteral("AAClusterDisplay"), &display);
+        engine.rootContext()->setContextProperty(
+            QStringLiteral("UiMetrics"),
+            QVariantMap{{QStringLiteral("spacing"), 8},
+                        {QStringLiteral("iconSize"), 24},
+                        {QStringLiteral("fontBody"), 16}});
+        engine.rootContext()->setContextProperty(
+            QStringLiteral("ThemeService"),
+            QVariantMap{{QStringLiteral("onSurfaceVariant"),
+                         QStringLiteral("#ffffff")}});
+
+        QQmlComponent component(
+            &engine, QUrl::fromLocalFile(
+                         dir.filePath(QStringLiteral("AAClusterWidget.qml"))));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        QScopedPointer<QObject> hidden(component.create());
+        QScopedPointer<QObject> current(component.create());
+        QVERIFY(hidden);
+        QVERIFY(current);
+
+        FakeWidgetContext hiddenContext;
+        FakeWidgetContext currentContext;
+        currentContext.setIsCurrentPage(true);
+        QVERIFY(hidden->setProperty(
+            "widgetContext", QVariant::fromValue<QObject*>(&hiddenContext)));
+        QVERIFY(current->setProperty(
+            "widgetContext", QVariant::fromValue<QObject*>(&currentContext)));
+        QTRY_VERIFY(current->property("ownsSink").toBool());
+        QVERIFY(!hidden->property("ownsSink").toBool());
+        QVERIFY(display.sink());
+
+        // Exercise the adverse ordering: the incoming page becomes current
+        // before the outgoing page releases the singleton sink.
+        hiddenContext.setIsCurrentPage(true);
+        currentContext.setIsCurrentPage(false);
+        QTRY_VERIFY_WITH_TIMEOUT(hidden->property("ownsSink").toBool(), 1000);
+        QVERIFY(!current->property("ownsSink").toBool());
+        QVERIFY(display.sink());
     }
 };
 

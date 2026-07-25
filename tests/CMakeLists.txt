@@ -206,6 +206,7 @@ oap_add_test(test_widget_instance_context SOURCES test_widget_instance_context.c
 oap_add_test(test_widget_plugin_integration SOURCES test_widget_plugin_integration.cpp)
 oap_add_test(test_aa_cluster_widget
     SOURCES test_aa_cluster_widget.cpp
+    EXTRA_LIBS Qt6::Qml Qt6::Quick Qt6::Multimedia
     DEFS TEST_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 set_tests_properties(test_aa_cluster_widget

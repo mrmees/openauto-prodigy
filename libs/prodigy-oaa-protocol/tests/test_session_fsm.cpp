@@ -800,6 +800,43 @@ private slots:
         QCOMPARE(transport.writtenData().size(), 0);
     }
 
+    void testServiceChannelCloseAndDuplicateOpenPublishLifecycle() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        oaa::AASession session(&transport, config);
+        MockChannelHandler handler(3);
+        session.registerChannel(3, &handler);
+
+        transport.simulateConnect();
+        session.start();
+        advanceToActive(session);
+
+        oaa::proto::messages::ChannelOpenRequest request;
+        request.set_channel_id(3);
+        request.set_priority(1);
+        QByteArray payload(request.ByteSizeLong(), '\0');
+        QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
+        QSignalSpy openedSpy(&session, &oaa::AASession::channelOpened);
+        QSignalSpy closedSpy(&session, &oaa::AASession::channelClosed);
+
+        session.messenger()->messageReceived(3, 0x0007, payload, 0);
+        QCOMPARE(handler.openCount, 1);
+        QCOMPARE(openedSpy.count(), 1);
+
+        session.messenger()->messageReceived(3, 0x0009, QByteArray(), 0);
+        QCOMPARE(handler.closeCount, 1);
+        QCOMPARE(closedSpy.count(), 1);
+        QCOMPARE(closedSpy[0][0].value<uint8_t>(), uint8_t(3));
+
+        session.messenger()->messageReceived(3, 0x0007, payload, 0);
+        QCOMPARE(handler.openCount, 2);
+        session.messenger()->messageReceived(3, 0x0007, payload, 0);
+        QCOMPARE(handler.closeCount, 2);
+        QCOMPARE(handler.openCount, 3);
+        QCOMPARE(closedSpy.count(), 2);
+        QCOMPARE(openedSpy.count(), 3);
+    }
+
     void testUnregisteredChannelIsRejectedOnBothDispatchPaths() {
         for (const uint8_t incomingChannel : {uint8_t(0), uint8_t(9)}) {
             oaa::ReplayTransport transport;

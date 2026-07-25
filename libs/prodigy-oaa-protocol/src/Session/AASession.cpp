@@ -248,6 +248,24 @@ void AASession::disconnectHandler(IChannelHandler* handler) {
                messenger_, &Messenger::sendMessage);
 }
 
+bool AASession::closeServiceChannel(uint8_t channelId) {
+    if (!openChannels_.contains(channelId))
+        return false;
+    auto it = channels_.find(channelId);
+    if (it == channels_.end()) {
+        openChannels_.remove(channelId);
+        return false;
+    }
+
+    IChannelHandler* handler = it.value();
+    openChannels_.remove(channelId);
+    disconnectHandler(handler);
+    handler->onChannelClosed();
+    if (!finalized_)
+        emit channelClosed(channelId);
+    return true;
+}
+
 void AASession::closeChannels() {
     stopStateTimer();
     stopLivenessTimers();
@@ -420,6 +438,12 @@ void AASession::onChannelOpenRequested(int32_t channelId, const QByteArray& /*pa
     if (channels_.contains(targetChannel)) {
         qDebug() << "[AASession] Opening channel" << targetChannel;
         IChannelHandler* handler = channels_.value(targetChannel);
+        if (openChannels_.contains(targetChannel)) {
+            closeServiceChannel(targetChannel);
+            if (finalized_ || state_ != SessionState::Active
+                || channels_.value(targetChannel, nullptr) != handler)
+                return;
+        }
         controlChannel_->sendChannelOpenResponse(targetChannel, true);
         if (finalized_ || state_ != SessionState::Active
             || channels_.value(targetChannel, nullptr) != handler)
@@ -452,6 +476,14 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
         return;
     }
 
+    // Service-channel close notifications carry their target in the frame's
+    // channel id. Retire the handler before accepting a later reopen.
+    if (messageId == 0x0009) {
+        if (state_ == SessionState::Active)
+            closeServiceChannel(channelId);
+        return;
+    }
+
     // CHANNEL_OPEN_REQUEST (0x0007) arrives on the TARGET channel, not ch0.
     // Handle it here and respond on the same channel.
     if (messageId == 0x0007) {
@@ -473,6 +505,12 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
             if (channels_.contains(targetCh)) {
                 qDebug() << "[AASession] Opening channel" << targetCh;
                 IChannelHandler* handler = channels_.value(targetCh);
+                if (openChannels_.contains(targetCh)) {
+                    closeServiceChannel(targetCh);
+                    if (finalized_ || state_ != SessionState::Active
+                        || channels_.value(targetCh, nullptr) != handler)
+                        return;
+                }
                 // Response goes on the target channel, not ch0
                 controlChannel_->sendChannelOpenResponse(targetCh, true);
                 if (finalized_ || state_ != SessionState::Active

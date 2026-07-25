@@ -450,6 +450,23 @@ void AndroidAutoOrchestrator::onNewConnection()
                     clusterDisplay_.noteChannelOpened(channelId);
                 }
             });
+    connect(session_, &oaa::AASession::channelClosed,
+            this, [this](uint8_t channelId) {
+                if (channelId == mainDisplay_.videoChannelId()
+                    || channelId == mainDisplay_.inputChannelId()) {
+                    lastProjectedActivityWasCluster_ = false;
+                    qCInfo(lcAA) << "Projected channel closed:"
+                                 << "role=MAIN display=0 wire=" << channelId;
+                    mainDisplay_.noteChannelClosed(channelId);
+                } else if (projectedClusterConfig_.enabled
+                           && (channelId == clusterDisplay_.videoChannelId()
+                               || channelId == clusterDisplay_.inputChannelId())) {
+                    lastProjectedActivityWasCluster_ = true;
+                    qCInfo(lcAA) << "Projected channel closed:"
+                                 << "role=CLUSTER display=1 wire=" << channelId;
+                    clusterDisplay_.noteChannelClosed(channelId);
+                }
+            });
     connect(session_, &oaa::AASession::channelOpenRejected,
             this, [this](int32_t channelId) {
                 if (channelId == mainDisplay_.videoChannelId()

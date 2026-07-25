@@ -66,6 +66,7 @@ public:
     void beginProtocolSession();
     void endProtocolSession();
     void noteChannelOpened(uint8_t channelId);
+    void noteChannelClosed(uint8_t channelId);
     void noteChannelRejected(int32_t channelId);
 
     Q_INVOKABLE bool attachVideoSink(QVideoSink* sink);

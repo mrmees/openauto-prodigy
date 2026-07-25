@@ -50,6 +50,18 @@ oap::aa::ProjectedDisplaySession enabledClusterDisplay()
         nullptr);
 }
 
+oap::aa::ProjectedDisplaySession enabledMainDisplay()
+{
+    return oap::aa::ProjectedDisplaySession(
+        oap::aa::ProjectedDisplayRole::Main,
+        oap::aa::kMainDisplayId,
+        oaa::ChannelId::Video,
+        oaa::ChannelId::Input,
+        true,
+        oap::aa::ProjectedSetupFocus::Projected,
+        nullptr);
+}
+
 void openAndStart(oap::aa::ProjectedDisplaySession& display,
                   QSignalSpy& resetSpy)
 {
@@ -189,6 +201,98 @@ private slots:
         QVERIFY(frameSpy[0][0].value<QVideoFrame>().isValid());
         QCOMPARE(display.state(),
                  static_cast<int>(oap::aa::ProjectedDisplaySession::Rendering));
+    }
+
+    void malformedSideMessageDoesNotTerminateLegacyMainRendering()
+    {
+        auto display = enabledMainDisplay();
+        display.beginProtocolSession();
+        display.videoHandler()->onChannelOpened();
+        display.noteChannelOpened(oaa::ChannelId::Video);
+        QSignalSpy resetSpy(display.decoder(),
+                            &oap::aa::VideoDecoder::streamResetCompleted);
+        display.videoHandler()->onMessage(
+            oaa::AVMessageId::START_INDICATION, startIndicationBytes());
+        QTRY_COMPARE(resetSpy.count(), 1);
+
+        display.videoHandler()->onMessage(
+            oaa::AVMessageId::VIDEO_FOCUS_REQUEST,
+            QByteArray(1, static_cast<char>(0xff)));
+        QCOMPARE(display.state(),
+                 static_cast<int>(
+                     oap::aa::ProjectedDisplaySession::WaitingForFrames));
+
+        QVideoSink sink;
+        QSignalSpy frameSpy(&sink, &QVideoSink::videoFrameChanged);
+        QSignalSpy sentSpy(display.videoHandler(),
+                           &oaa::IChannelHandler::sendRequested);
+        display.decoder()->setVideoSink(&sink);
+        display.videoHandler()->onMediaData(QByteArray(64, '\0'), 123);
+        QCOMPARE(display.videoHandler()->ackCount(), 1ULL);
+        QCOMPARE(sentSpy.count(), 1);
+        oap::aa::VideoDecoderTestAccess::publishFrame(
+            *display.decoder(), resetSpy[0][0].toULongLong());
+        QTRY_COMPARE(frameSpy.count(), 1);
+        QCOMPARE(display.state(),
+                 static_cast<int>(oap::aa::ProjectedDisplaySession::Rendering));
+    }
+
+    void videoCloseAndReopenInvalidateOldGeneration()
+    {
+        for (const auto role : {oap::aa::ProjectedDisplayRole::Main,
+                                oap::aa::ProjectedDisplayRole::Cluster}) {
+            const uint8_t videoChannel =
+                role == oap::aa::ProjectedDisplayRole::Main
+                ? oaa::ChannelId::Video : oaa::ChannelId::ClusterVideo;
+            const uint8_t inputChannel =
+                role == oap::aa::ProjectedDisplayRole::Main
+                ? oaa::ChannelId::Input : oaa::ChannelId::ClusterInput;
+            const uint8_t displayId =
+                role == oap::aa::ProjectedDisplayRole::Main
+                ? oap::aa::kMainDisplayId : oap::aa::kClusterDisplayId;
+            oap::aa::ProjectedDisplaySession display(
+                role, displayId, videoChannel, inputChannel, true,
+                role == oap::aa::ProjectedDisplayRole::Main
+                    ? oap::aa::ProjectedSetupFocus::Projected
+                    : oap::aa::ProjectedSetupFocus::ProjectedNoInput,
+                nullptr);
+            display.beginProtocolSession();
+            QSignalSpy resetSpy(display.decoder(),
+                                &oap::aa::VideoDecoder::streamResetCompleted);
+            display.videoHandler()->onChannelOpened();
+            display.noteChannelOpened(videoChannel);
+            display.videoHandler()->onMessage(
+                oaa::AVMessageId::START_INDICATION, startIndicationBytes());
+            QTRY_COMPARE(resetSpy.count(), 1);
+            const quint64 oldGeneration = resetSpy[0][0].toULongLong();
+            display.decoder()->frameReadyForGeneration(oldGeneration);
+            QCoreApplication::processEvents();
+            QCOMPARE(display.state(),
+                     static_cast<int>(
+                         oap::aa::ProjectedDisplaySession::Rendering));
+
+            display.videoHandler()->onChannelClosed();
+            display.noteChannelClosed(videoChannel);
+            QCOMPARE(display.state(),
+                     static_cast<int>(
+                         oap::aa::ProjectedDisplaySession::WaitingForChannel));
+            display.decoder()->frameReadyForGeneration(oldGeneration);
+            QCoreApplication::processEvents();
+            QCOMPARE(display.state(),
+                     static_cast<int>(
+                         oap::aa::ProjectedDisplaySession::WaitingForChannel));
+
+            display.videoHandler()->onChannelOpened();
+            display.noteChannelOpened(videoChannel);
+            display.videoHandler()->onMessage(
+                oaa::AVMessageId::START_INDICATION,
+                startIndicationBytes(2));
+            QTRY_COMPARE(resetSpy.count(), 2);
+            QVERIFY(resetSpy[1][0].toULongLong() != oldGeneration);
+            QCOMPARE(display.state(),
+                     static_cast<int>(
+                         oap::aa::ProjectedDisplaySession::WaitingForFrames));
+        }
     }
 
     void staleDecoderCallbacksCannotChangeNewGeneration()

@@ -36,6 +36,7 @@ public:
 signals:
     void stateChanged(oaa::SessionState newState);
     void channelOpened(uint8_t channelId);
+    void channelClosed(uint8_t channelId);
     void channelOpenRejected(int32_t channelId);
     void disconnected(oaa::DisconnectReason reason);
 
@@ -52,6 +53,7 @@ private:
     void setState(SessionState newState);
     void connectHandler(IChannelHandler* handler);
     void disconnectHandler(IChannelHandler* handler);
+    bool closeServiceChannel(uint8_t channelId);
     void closeChannels();
     void startStateTimer(int timeoutMs);
     void stopStateTimer();

@@ -75,7 +75,6 @@ ProjectedDisplaySession::ProjectedDisplaySession(
                 if (!protocolActive_ || terminalStateLatched_)
                     return;
                 qCWarning(lcAA).noquote() << diagnosticPrefix_ << message;
-                enterTerminalState(Error, message);
             });
     connect(&inputHandler_, &oaa::hu::InputChannelHandler::handlerError,
             this, [this](const QString& message) {
@@ -83,7 +82,6 @@ ProjectedDisplaySession::ProjectedDisplaySession(
                     return;
                 qCWarning(lcAA).noquote() << diagnosticPrefix_
                                          << "input:" << message;
-                enterTerminalState(Error, message);
             });
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::streamStarted,
             this, [this](int32_t session, uint32_t configIndex) {
@@ -247,6 +245,9 @@ void ProjectedDisplaySession::noteChannelOpened(uint8_t channelId)
     if (!enabled_ || !protocolActive_ || terminalStateLatched_)
         return;
     if (channelId == videoChannelId_) {
+        activeDecoderGeneration_ = 0;
+        if (decoder_)
+            decoder_->endStream();
         videoChannelOpen_ = true;
         qCInfo(lcAA).noquote() << diagnosticPrefix_
                               << "video channel opened";
@@ -255,6 +256,25 @@ void ProjectedDisplaySession::noteChannelOpened(uint8_t channelId)
     } else if (channelId == inputChannelId_) {
         qCInfo(lcAA).noquote() << diagnosticPrefix_
                               << "input channel opened";
+    }
+}
+
+void ProjectedDisplaySession::noteChannelClosed(uint8_t channelId)
+{
+    if (!enabled_ || !protocolActive_ || terminalStateLatched_)
+        return;
+    if (channelId == videoChannelId_) {
+        videoChannelOpen_ = false;
+        activeDecoderGeneration_ = 0;
+        if (decoder_)
+            decoder_->endStream();
+        qCInfo(lcAA).noquote() << diagnosticPrefix_
+                              << "video channel closed";
+        setState(WaitingForChannel,
+                 QStringLiteral("Waiting for projected channel"));
+    } else if (channelId == inputChannelId_) {
+        qCInfo(lcAA).noquote() << diagnosticPrefix_
+                              << "input channel closed";
     }
 }
 
