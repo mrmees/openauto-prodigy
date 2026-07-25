@@ -46,6 +46,9 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 - [aa-troubleshooting-runbook.md](aa-protocol/aa-troubleshooting-runbook.md) — troubleshooting guide
 - [apk-proto-reference.md](aa-protocol/apk-proto-reference.md) — dated APK v16.1 protobuf research snapshot
 - [apk-indexing.md](aa-protocol/apk-indexing.md) — APK indexing pipeline
+- [Android Auto wishlist research baselines](aa-protocol/wishlist-baselines/README.md)
+  — AA 17.3 handoffs for camera coexistence, broadcast radio, vehicle control,
+  local media, audio policy, display modes, sensors, and rotary input
 
 ## How-To (how-to/)
 

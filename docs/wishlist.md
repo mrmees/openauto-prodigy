@@ -30,6 +30,7 @@ all three when promoting an item; they are not estimates or approval.
   **Stack:** Current Prodigy audio-focus and per-stream PipeWire stack.
   **Hardware:** Existing Pi/phone/audio bench.
   **Investigation:** Normal design.
+  **Protocol baseline:** [AA audio focus and volume](aa-protocol/wishlist-baselines/audio-focus-and-volume.md).
 
 - **Per-AA-channel volume controls** — provide separate user levels for media,
   calls/voice, and notifications/guidance while retaining master volume and
@@ -37,6 +38,7 @@ all three when promoting an item; they are not estimates or approval.
   **Stack:** Current Prodigy audio, EQ, configuration, and QML stack.
   **Hardware:** Existing Pi/phone/audio bench.
   **Investigation:** Normal design with explicit focus and persistence rules.
+  **Protocol baseline:** [AA audio focus and volume](aa-protocol/wishlist-baselines/audio-focus-and-volume.md).
 
 - **Expose Prodigy local media inside Android Auto** — advertise the recovered
   CarLocalMedia service so USB/local playback metadata and controls can appear
@@ -48,6 +50,7 @@ all three when promoting an item; they are not estimates or approval.
   **Investigation:** Research first. Advertise only this service behind an
   experimental toggle and capture whether current Pixel/Moto phones activate
   service type 20 before designing the feature.
+  **Protocol baseline:** [CarLocalMedia](aa-protocol/wishlist-baselines/car-local-media.md).
 
 - **Long-term: native cluster-lite second display** — render Prodigy-owned turn data,
   calls, now-playing information, and later vehicle gauges in a separate QML
@@ -59,6 +62,7 @@ all three when promoting an item; they are not estimates or approval.
   and attach an existing monitor to the Pi's native HDMI output.
   **Investigation:** Targeted spike for Pi multi-screen/DRM placement; feature
   feasibility itself is established.
+  **Protocol baseline:** [native semantic secondary display](aa-protocol/wishlist-baselines/semantic-secondary-display.md).
 
 - **Long-term: AA/native blended dashboard** — keep the normal Prodigy
   dashboard visible while embedding the MAIN Android Auto surface in a smaller
@@ -74,6 +78,7 @@ all three when promoting an item; they are not estimates or approval.
   **Investigation:** Research first. Trace the newer AA APK's asymmetric insets,
   native-element rectangles/types, corner radii, and runtime resize behavior,
   then test a bounded embedded MAIN viewport on current phones.
+  **Protocol baseline:** [blended UI and live viewport](aa-protocol/wishlist-baselines/blended-ui-and-live-viewport.md).
 
 - **Long-term: live navbar viewport changes during projection** — renegotiate
   the AA content region and update touch/navbar mappings through one
@@ -81,8 +86,10 @@ all three when promoting an item; they are not estimates or approval.
   0x8012 is not the update mechanism.
   **Stack:** Substantial extension of the current AA display/input path.
   **Hardware:** Existing Pi touchscreen and phone bench.
-  **Investigation:** Research first because a supported live renegotiation
-  mechanism has not been established.
+  **Investigation:** Research first. AA 17.3 has a statically traced live
+  UI-config path, but HU-initiated runtime behavior and rollback have not been
+  capture-confirmed.
+  **Protocol baseline:** [blended UI and live viewport](aa-protocol/wishlist-baselines/blended-ui-and-live-viewport.md).
 
 - **Long-term: true projected multi-display Android Auto** — advertise and own
   separate MAIN/CLUSTER video channels, decoders, renderers, focus state,
@@ -94,6 +101,7 @@ all three when promoting an item; they are not estimates or approval.
   run beside the current USB display.
   **Investigation:** Research first. Validate phone activation and per-display
   lifecycle with an isolated descriptor/capture spike before implementation.
+  **Protocol baseline:** [projected multi-display](aa-protocol/wishlist-baselines/projected-multi-display.md).
 
 ## Phone, Companion, and Connectivity
 
@@ -188,6 +196,7 @@ all three when promoting an item; they are not estimates or approval.
   **Investigation:** Research first for the Companion-GPS-to-AA loop and whether
   location-with-speed or separate OBD/CAN speed changes Google Maps behavior;
   use targeted spikes for each physical adapter and sensor type.
+  **Protocol baseline:** [vehicle sensors](aa-protocol/wishlist-baselines/vehicle-sensors.md).
 
 - **Backup-camera integration** — provide a low-latency camera surface with an
   explicit activation action, safe projection/media interaction, and a clear
@@ -201,6 +210,7 @@ all three when promoting an item; they are not estimates or approval.
   prerequisites.
   **Investigation:** Targeted spike for the camera/capture hardware path before
   UI planning.
+  **Protocol baseline:** [backup camera and AA coexistence](aa-protocol/wishlist-baselines/backup-camera.md).
 
 - **Long-term: FM radio backend and optional native UI** — integrate RTL-SDR
   tuning, audio, and RDS station/track metadata behind a canonical radio
@@ -212,6 +222,7 @@ all three when promoting an item; they are not estimates or approval.
   driver/tuning setup must be verified when promoted.
   **Investigation:** Targeted spike for tuner support, RF quality, PipeWire
   routing, and RDS reliability.
+  **Protocol baseline:** [broadcast radio / FM](aa-protocol/wishlist-baselines/broadcast-radio.md).
 
 - **Long-term: expose broadcast radio inside Android Auto** — advertise the AA
   terrestrial-radio service so the Prodigy radio backend can be controlled
@@ -225,6 +236,7 @@ all three when promoting an item; they are not estimates or approval.
   **Investigation:** Research first. Isolate radio service discovery and capture
   current-phone activation before planning the backend or full control
   semantics.
+  **Protocol baseline:** [broadcast radio / FM](aa-protocol/wishlist-baselines/broadcast-radio.md).
 
 - **Key-event, rotary, and steering-wheel navigation map** — map keyboard, HID,
   rotary encoder, GPIO, or CAN buttons to native focus/back/media actions and AA
@@ -236,6 +248,7 @@ all three when promoting an item; they are not estimates or approval.
   the chosen encoder, GPIO, or CAN interface.
   **Investigation:** Targeted spike for AA rotary advertisement/event behavior;
   native action mapping is established.
+  **Protocol baseline:** [AA key and rotary input](aa-protocol/wishlist-baselines/input-key-rotary.md).
 
 - **Long-term: external device and vehicle-I/O integration** — keep pins,
   polarity, debounce, relays, timing, retries, and board/vehicle configuration
@@ -251,6 +264,7 @@ all three when promoting an item; they are not estimates or approval.
   **Investigation:** Research first for the semantic capability/state contract,
   disconnect behavior, authorization, electrical safety, and shutdown
   guarantees.
+  **Related protocol baseline:** [AA vehicle-control bridge](aa-protocol/wishlist-baselines/vehicle-control.md).
 
 - **Long-term: experimental AA vehicle-control bridge** — discover what the
   recovered AA car-control surface can present, then map supported semantic
@@ -266,3 +280,4 @@ all three when promoting an item; they are not estimates or approval.
   **Investigation:** Research first. Establish phone activation and UI/control
   behavior with a simulated backend before defining mappings, authorization,
   fail-safe behavior, or writes to real devices.
+  **Protocol baseline:** [AA vehicle-control bridge](aa-protocol/wishlist-baselines/vehicle-control.md).

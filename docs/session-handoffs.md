@@ -99,6 +99,64 @@ re-research the next qualified wishlist item before promotion.
 
 ---
 
+## 2026-07-24 — AA wishlist protocol research baselines
+
+**What changed:** added a durable, indexed AA 17.3 research collection under
+`docs/aa-protocol/wishlist-baselines/` and linked every affected wishlist item
+to its baseline. The collection covers backup-camera coexistence, terrestrial
+radio/FM, the experimental vehicle-control bridge, CarLocalMedia, AA audio
+focus/per-role volume, native semantic secondary displays, blended MAIN UI and
+live viewport changes, true projected multi-display, vehicle sensors, and
+key/rotary input. Each handoff separates confirmed protocol behavior, current
+Prodigy gaps, recommended ownership, and the smallest runtime/capture gate.
+
+The three requested priority findings are explicit. A backup camera is a
+Prodigy-native capture/surface coordinated with AA through
+`NATIVE_TRANSIENT`/`PROJECTED` video-focus indications; AA has no recovered
+HU-camera stream, and integrated overlays are not a camera transport. AA radio
+service type 15 is a phone-rendered control/state surface over a Prodigy-owned
+tuner, RDS pipeline, and local PipeWire audio. AA car control service type 19
+is a typed property/control-tree bridge whose writes must pass through an
+allowlisted external backend and return real acknowledgments/state, never raw
+CAN/GPIO access.
+
+The pass also records implementation hazards without changing behavior:
+Prodigy's boolean video-focus helper sends the sentinel `NONE` when leaving
+projection and ignores transient/no-input states; the sensor handler follows a
+superseded request-schema name; radio/car-control discovery and handlers are
+absent; CarLocalMedia is not registered; rotary relative input is not sent; and
+the AA video/input path remains singleton. The nested protocol definitions
+remain hands-off. Existing unrelated microphone/runtime edits and the untracked
+`aa-display-rendering.md` were not modified.
+
+**Why:** the wishlist mixed protocol-backed capabilities with local hardware
+features and schema presence with phone activation. These handoffs give the
+maintainer a stable architectural baseline and reproducible 17.3 evidence
+before any item is promoted into behavior-changing work.
+
+**Status:** COMPLETE as documentation/research only. No feature was promoted,
+no roadmap sequencing changed, no runtime source or protobuf was changed, and
+no live-phone activation is claimed. The preserved Android Auto artifact is
+`17.3.662804-release`; its APKM SHA-256 is
+`1db7ce995aa52b2cde47a01abfb0364220fb57fc60217de3ec714e3034795344`.
+
+**Verification:** `git diff --check` over the changed tracked docs and
+`git diff --no-index --check /dev/null <file>` over every new baseline passed.
+A scoped relative-link check over `docs/INDEX.md`, `docs/wishlist.md`,
+`docs/session-handoffs.md`, and all new baseline documents passed. The repository-wide
+`python3 scripts/check-doc-links.py` gate remains red only because the
+pre-existing untracked `docs/aa-protocol/wishlist-baselines/aa-display-rendering.md` contains
+14 links aimed at the sibling protocol-reference tree; none is introduced or
+modified by this work.
+
+**Next 1-3 steps:** (1) run the simulator-first service activation probes for
+radio type 15 and car control type 19; (2) prototype native backup-camera
+latency and capture the `NATIVE_TRANSIENT`/`PROJECTED` transition on current
+phones; (3) reconcile required schema/message-ID deltas in the upstream
+protocol-reference repository before changing the nested Prodigy submodule.
+
+---
+
 ## 2026-07-24 — AA Assistant microphone transport promoted
 
 **What changed:** the qualified Assistant microphone item was re-researched
