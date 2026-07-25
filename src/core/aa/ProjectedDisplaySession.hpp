@@ -25,6 +25,12 @@ class ProjectedDisplaySession : public QObject {
     Q_PROPERTY(int state READ state NOTIFY stateChanged)
     Q_PROPERTY(bool rendering READ isRendering NOTIFY stateChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY stateChanged)
+    Q_PROPERTY(int viewportEncodedWidth READ viewportEncodedWidth CONSTANT)
+    Q_PROPERTY(int viewportEncodedHeight READ viewportEncodedHeight CONSTANT)
+    Q_PROPERTY(int viewportContentX READ viewportContentX CONSTANT)
+    Q_PROPERTY(int viewportContentY READ viewportContentY CONSTANT)
+    Q_PROPERTY(int viewportContentWidth READ viewportContentWidth CONSTANT)
+    Q_PROPERTY(int viewportContentHeight READ viewportContentHeight CONSTANT)
 
 public:
     enum State {
@@ -51,6 +57,12 @@ public:
     int state() const { return static_cast<int>(state_); }
     bool isRendering() const { return state_ == Rendering; }
     QString statusText() const { return statusText_; }
+    int viewportEncodedWidth() const;
+    int viewportEncodedHeight() const;
+    int viewportContentX() const;
+    int viewportContentY() const;
+    int viewportContentWidth() const;
+    int viewportContentHeight() const;
 
     ProjectedDisplayRole role() const { return role_; }
     uint8_t displayId() const { return displayId_; }

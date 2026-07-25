@@ -1,4 +1,6 @@
 #include <QSignalSpy>
+#include <QMutex>
+#include <QStringList>
 #include <QTest>
 #include <QVideoFrame>
 #include <QVideoFrameFormat>
@@ -11,10 +13,14 @@ namespace oap::aa {
 
 class VideoDecoderTestAccess {
 public:
-    static void publishFrame(VideoDecoder& decoder, quint64 generation)
+    static void publishFrame(
+        VideoDecoder& decoder,
+        quint64 generation,
+        QSize size = QSize(kClusterViewportGeometry.encodedWidth,
+                           kClusterViewportGeometry.encodedHeight))
     {
-        const QVideoFrameFormat format(
-            QSize(2, 2), QVideoFrameFormat::Format_YUV420P);
+        const QVideoFrameFormat format(size,
+                                       QVideoFrameFormat::Format_YUV420P);
         {
             std::scoped_lock lock(decoder.latestFrameMutex_);
             decoder.latestFrame_ = QVideoFrame(format);
@@ -27,6 +33,39 @@ public:
 } // namespace oap::aa
 
 namespace {
+
+QMutex capturedMessageMutex;
+QStringList capturedMessages;
+
+void captureMessage(QtMsgType, const QMessageLogContext&, const QString& message)
+{
+    QMutexLocker locker(&capturedMessageMutex);
+    capturedMessages.append(message);
+}
+
+class ScopedMessageCapture {
+public:
+    ScopedMessageCapture()
+        : previous_(qInstallMessageHandler(captureMessage))
+    {
+        QMutexLocker locker(&capturedMessageMutex);
+        capturedMessages.clear();
+    }
+
+    ~ScopedMessageCapture()
+    {
+        qInstallMessageHandler(previous_);
+    }
+
+    QString joined() const
+    {
+        QMutexLocker locker(&capturedMessageMutex);
+        return capturedMessages.join('\n');
+    }
+
+private:
+    QtMessageHandler previous_ = nullptr;
+};
 
 QByteArray startIndicationBytes(int session = 1, uint32_t config = 0)
 {
@@ -90,6 +129,25 @@ private slots:
         display.noteChannelOpened(12);
         QCOMPARE(display.state(),
                  static_cast<int>(oap::aa::ProjectedDisplaySession::Disabled));
+    }
+
+    void geometryPropertiesAreRoleSafe()
+    {
+        auto cluster = enabledClusterDisplay();
+        QCOMPARE(cluster.viewportEncodedWidth(), 800);
+        QCOMPARE(cluster.viewportEncodedHeight(), 480);
+        QCOMPARE(cluster.viewportContentX(), 250);
+        QCOMPARE(cluster.viewportContentY(), 90);
+        QCOMPARE(cluster.viewportContentWidth(), 300);
+        QCOMPARE(cluster.viewportContentHeight(), 300);
+
+        auto main = enabledMainDisplay();
+        QCOMPARE(main.viewportEncodedWidth(), 0);
+        QCOMPARE(main.viewportEncodedHeight(), 0);
+        QCOMPARE(main.viewportContentX(), 0);
+        QCOMPARE(main.viewportContentY(), 0);
+        QCOMPARE(main.viewportContentWidth(), 0);
+        QCOMPARE(main.viewportContentHeight(), 0);
     }
 
     void clusterStateFollowsOnlyItsLifecycle()
@@ -194,13 +252,41 @@ private slots:
 
         QVideoSink sink;
         QSignalSpy frameSpy(&sink, &QVideoSink::videoFrameChanged);
-        display.decoder()->setVideoSink(&sink);
+        QVERIFY(display.attachVideoSink(&sink));
         oap::aa::VideoDecoderTestAccess::publishFrame(
             *display.decoder(), resetSpy[0][0].toULongLong());
         QTRY_COMPARE(frameSpy.count(), 1);
         QVERIFY(frameSpy[0][0].value<QVideoFrame>().isValid());
         QCOMPARE(display.state(),
                  static_cast<int>(oap::aa::ProjectedDisplaySession::Rendering));
+    }
+
+    void clusterRejectsMismatchedFrameBeforeSinkDelivery()
+    {
+        auto display = enabledClusterDisplay();
+        display.beginProtocolSession();
+        QSignalSpy resetSpy(display.decoder(),
+                            &oap::aa::VideoDecoder::streamResetCompleted);
+        openAndStart(display, resetSpy);
+
+        QVideoSink sink;
+        QSignalSpy frameSpy(&sink, &QVideoSink::videoFrameChanged);
+        QVERIFY(display.attachVideoSink(&sink));
+        ScopedMessageCapture capture;
+        const quint64 generation = resetSpy[0][0].toULongLong();
+        oap::aa::VideoDecoderTestAccess::publishFrame(
+            *display.decoder(), generation, QSize(640, 480));
+        oap::aa::VideoDecoderTestAccess::publishFrame(
+            *display.decoder(), generation, QSize(640, 480));
+
+        QCoreApplication::processEvents();
+        QCOMPARE(frameSpy.count(), 0);
+        QCOMPARE(display.state(),
+                 static_cast<int>(oap::aa::ProjectedDisplaySession::Error));
+        QVERIFY(display.statusText().contains(
+            QStringLiteral("geometry mismatch"), Qt::CaseInsensitive));
+        QCOMPARE(capture.joined().count(
+                     QStringLiteral("decoded frame geometry mismatch")), 1);
     }
 
     void malformedSideMessageDoesNotTerminateLegacyMainRendering()
@@ -231,7 +317,7 @@ private slots:
         QCOMPARE(display.videoHandler()->ackCount(), 1ULL);
         QCOMPARE(sentSpy.count(), 1);
         oap::aa::VideoDecoderTestAccess::publishFrame(
-            *display.decoder(), resetSpy[0][0].toULongLong());
+            *display.decoder(), resetSpy[0][0].toULongLong(), QSize(2, 2));
         QTRY_COMPARE(frameSpy.count(), 1);
         QCOMPARE(display.state(),
                  static_cast<int>(oap::aa::ProjectedDisplaySession::Rendering));

@@ -154,6 +154,24 @@ ProjectedDisplaySession::ProjectedDisplaySession(
 
                 QVideoFrame frame = decoder_->takeLatestFrame();
                 if (frame.isValid()) {
+                    if (role_ == ProjectedDisplayRole::Cluster
+                        && (frame.width()
+                                != kClusterViewportGeometry.encodedWidth
+                            || frame.height()
+                                != kClusterViewportGeometry.encodedHeight)) {
+                        qCWarning(lcAA).noquote()
+                            << diagnosticPrefix_
+                            << "decoded frame geometry mismatch expected="
+                            << kClusterViewportGeometry.encodedWidth << "x"
+                            << kClusterViewportGeometry.encodedHeight
+                            << "actual=" << frame.width() << "x"
+                            << frame.height();
+                        enterTerminalState(
+                            Error,
+                            QStringLiteral(
+                                "Projected frame geometry mismatch"));
+                        return;
+                    }
                     if (!firstDecodedLogged_) {
                         firstDecodedLogged_ = true;
                         qCInfo(lcAA).noquote()
@@ -194,6 +212,42 @@ ProjectedDisplaySession::~ProjectedDisplaySession()
     }
     disconnect(sinkDestroyedConnection_);
     qCInfo(lcAA).noquote() << diagnosticPrefix_ << "display session destroyed";
+}
+
+int ProjectedDisplaySession::viewportEncodedWidth() const
+{
+    return role_ == ProjectedDisplayRole::Cluster
+        ? kClusterViewportGeometry.encodedWidth : 0;
+}
+
+int ProjectedDisplaySession::viewportEncodedHeight() const
+{
+    return role_ == ProjectedDisplayRole::Cluster
+        ? kClusterViewportGeometry.encodedHeight : 0;
+}
+
+int ProjectedDisplaySession::viewportContentX() const
+{
+    return role_ == ProjectedDisplayRole::Cluster
+        ? kClusterViewportGeometry.contentX() : 0;
+}
+
+int ProjectedDisplaySession::viewportContentY() const
+{
+    return role_ == ProjectedDisplayRole::Cluster
+        ? kClusterViewportGeometry.contentY() : 0;
+}
+
+int ProjectedDisplaySession::viewportContentWidth() const
+{
+    return role_ == ProjectedDisplayRole::Cluster
+        ? kClusterViewportGeometry.contentWidth : 0;
+}
+
+int ProjectedDisplaySession::viewportContentHeight() const
+{
+    return role_ == ProjectedDisplayRole::Cluster
+        ? kClusterViewportGeometry.contentHeight : 0;
 }
 
 void ProjectedDisplaySession::setAdvertisedVideoConfigCount(uint32_t count)
