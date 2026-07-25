@@ -48,91 +48,102 @@ ssh matt@192.168.1.149 '~/openauto-prodigy/restart.sh --force-kill'   # stuck pr
 
 QML ships **inside the binary** (qt_add_qml_module + qmlcache) — UI changes require cross-build + binary rsync; a `git pull` on the Pi will NOT update the UI.
 
-## Project Management Loop
+## Lean Execution Workflow
 
-For behavior-changing work in this repository:
+This section overrides generic skills and plugins when they prescribe more
+specs, plans, worktrees, subagents, reviews, or verification than this
+repository requires. Skills are techniques, not permission to multiply gates.
 
-1. Check alignment with `docs/project-vision.md` before implementation.
-2. Update `docs/roadmap-current.md` when priorities or sequencing change.
-3. Before claiming completion, run the local build, the app-target build, and the test suite (commands above).
-4. Append a handoff entry to `docs/session-handoffs.md` including:
-   - what changed
-   - why
-   - status
-   - next 1-3 steps
-   - verification commands/results
+### Classify the work first
 
-## Tiered Execution Workflow
+| Class | Examples | Required process |
+|---|---|---|
+| `trivial` | Docs, comments, mechanical config, obvious single-file fix | Implement inline; focused verification; no spec, plan, worktree, subagent, or external review |
+| `standard` | Bounded single-repo behavior change | Confirm intent; TDD where behavior is testable; inline execution by default; one independent review |
+| `major` | Multi-repo, architectural, protocol-critical, threading, security-sensitive | Approved written spec/plan; optional bounded delegation; one Fable review when independent |
 
-Full design: `docs/archive/plans/2026-07-09-tiered-execution-codex-gate-design.md`.
-Planning stays interactive in the main (Fable) session via superpowers
-brainstorming + writing-plans; the conventions below govern how plans are
-tagged, executed, and reviewed.
+Direct answers, audits, diagnoses, and planning requests do not authorize code
+changes. A user-approved design does not need to be re-approved because a
+generic skill asks for another document gate.
 
-### Tier tags (plan time)
+### Planning and implementation
 
-Every task in a plan carries a `Tier:` field:
+- Check `docs/project-vision.md` before user-visible feature work. Update
+  `docs/roadmap-current.md` only when priority or sequencing actually changes.
+- New written specs/plans live in `docs/plans/`; use them for major work or when
+  the user asks, not as mandatory ceremony for small changes.
+- Execute inline by default. Use subagents only when the user requests them or
+  when tasks are genuinely independent, bounded, and non-overlapping. Do not
+  add per-task reviewer subagents.
+- Delegated tasks must name exact files, testable acceptance criteria, an
+  explicit out-of-scope line, and a test command. Workers report synthesized
+  results; the owning session verifies the diff.
+- Two failed remediation attempts in the same area trigger a stop. Re-evaluate
+  the premise and restore the last green/accepted design before doing more
+  work. Never optimize for reviewer silence.
+- Keep commits coherent and atomic. Do not split mechanical work merely to
+  manufacture task boundaries. Never push mid-execution.
 
-| Tier | Model | Used for |
-|------|-------|----------|
-| `opus` | Opus | Default for implementation: real code, logic, cross-module changes |
-| `sonnet` | Sonnet | Test scaffolding, mocks/fixtures, mechanical pattern-following edits, doc updates |
-| `main` | Fable (main session) | Protocol-critical or judgment-heavy work (AA protocol internals, threading) |
+### Verification by change type
 
-**Definition of Ready** — do not dispatch a task unless: exact files are
-named; acceptance criteria are testable ("returns 422 on empty id", not
-"works"); scope is bounded with an explicit out-of-scope line; a test command
-is given; no open questions remain. A task that fails this checklist goes back
-to the human as a question, not to a worker.
+| Changed surface | Required final verification |
+|---|---|
+| Docs/tooling only | Targeted tool tests, syntax/lint where available, doc-link check when docs changed, `git diff --check` |
+| C++/QML/CMake/runtime config | Native build, explicit `openauto-prodigy` app target, and `ctest --output-on-failure` |
+| Pi artifact, embedded QML, or target-only behavior | Above plus `./cross-build.sh` before deploy/publication |
+| Hardware behavior | Above plus the relevant live test when hardware is available |
 
-**Small-work bypass:** trivial single-file fixes skip tiering entirely; the
-main session just does them.
+Do not run application builds or Pi deployment for docs/tooling-only changes.
+Before claiming completion, append a concise entry to
+`docs/session-handoffs.md`: what changed, why, status, next 1–3 steps, and the
+commands/results that apply to the changed surface.
 
-### Dispatch (execution time)
+### Accepted-tree anchor
 
-Dispatch each task as a subagent with the tier's model pinned (Agent tool
-`model` parameter). Workers read this file and the nested AGENTS.md nearest
-their working files. Workers own the build/fix/test loop and report
-**synthesized results only**: files changed (one line each), test command +
-pass/fail counts, deviations. Raw logs stay out of the main session's context.
-Workers commit per task; nobody pushes mid-execution.
+Once the user accepts behavior on hardware, record the accepted SHA. After
+that point, only a demonstrated supported-production `BLOCKER` may churn the
+current PR. `MAJOR`, `MINOR`, speculative, and research findings go to a
+follow-up PR or `docs/engineering-backlog.md` after adjudication.
 
-### Escalation ladder: Opus → Codex (gpt-5.6-sol) → Fable
+### One bounded review gate
 
-1. **Opus worker** — owns the task. Two focused attempts at green, then
-   escalate instead of grinding.
-2. **Codex** — gets a prompt file containing the task (files, acceptance
-   criteria, test command) plus the worker's failure report, with write
-   access so it can apply the fix:
+Normal work gets one reviewer from a different model family than the author:
 
-   ```bash
-   codex exec -m gpt-5.6-sol -C <repo-abs-path> -s workspace-write -o <scratchpad>/codex-task-verdict.txt - < <scratchpad>/codex-task-prompt.txt
-   ```
+| Author | Standard review | Major review |
+|---|---|---|
+| Codex | Opus | Fable |
+| Claude/Opus/Fable | Codex | Codex |
 
-   Afterwards the main session reads the verdict file AND `git diff`, verifies
-   the result against the task's acceptance criteria, and commits if it
-   passes. Codex is trusted to write, not to self-certify.
-3. **Fable (main session)** — takes the task over directly if Codex also
-   fails.
+Run the provider-aware gate after the required verification is green:
 
-### Review gate (per feature, pre-push)
+```bash
+bash scripts/review-gate.sh --author codex --base <base-ref>
+bash scripts/review-gate.sh --author codex --major --base <base-ref>
+bash scripts/review-gate.sh --author claude --base <base-ref>
+# Add --accepted <sha> after hardware acceptance.
+```
 
-After a plan's tasks are done, **the `openauto-prodigy` app target builds**,
-and tests are green.
+The gate captures immutable SHAs, pins review effort to `high`, and stores its
+state and verdicts in gitignored `reviews/`. It permits exactly:
 
-1. Run `bash scripts/codex-review.sh` — reviews `@{upstream}..HEAD` in a
-   read-only sandbox and saves structured P1/P2/P3 findings to `reviews/`
-   (gitignored). Explicit range: `bash scripts/codex-review.sh <base-ref>`.
-   Exit codes: 0 ok/empty, 1 usage, 2 codex not installed, 4 codex failed.
-   On exit 2/4 the gate degrades to a Fable-only review — note that in the
-   session-handoffs entry; the gate never silently passes.
-2. The main Fable session adjudicates **every** finding: confirmed → fix
-   (inline if small, Opus worker if substantial); dismissed → stated reason.
-   No silent drops. Substantial fixes trigger one re-run of the gate on the
-   new range.
-3. Record the adjudication summary (confirmed/dismissed counts, blockers
-   fixed) in the session-handoffs entry. Only then push — with the user's
-   go-ahead.
+1. One initial review of `<base>..HEAD`.
+2. One remediation review of `<previous-reviewed-HEAD>..HEAD`.
+
+It refuses duplicate runs and pass three. A changed feature base starts a new
+gate. Do not reset the state unless the user explicitly authorizes another
+review cycle. Reviews run without a wall-clock autokill; scope and pass count,
+not premature termination, bound cost.
+
+Every finding is adjudicated explicitly. A `BLOCKER` must demonstrate a
+supported production entry point, reachable call chain, material impact, and
+concrete evidence. Public-but-unused internals, unsupported direct mutation,
+test-only observers, and hypothetical consumers are nonblocking research.
+After pass two, only a supported-production `BLOCKER` can stop publication;
+record other confirmed findings for follow-up. Never run concurrent independent
+reviewers unless the user explicitly requests the experiment.
+
+Record confirmed/dismissed/deferred counts in the handoff, then push only with
+the user's go-ahead.
 
 ## Nested Instructions
 
@@ -190,4 +201,6 @@ Not all tooling auto-loads nested files — read the nearest one before editing 
 
 ## Scope Note
 
-This file defines repo-specific workflow expectations. Platform-level safety and skill instructions still apply.
+This file defines repo-specific workflow expectations. Platform safety still
+applies. Where generic skill ceremony conflicts with the lean workflow above,
+this file is the explicit user-level override.

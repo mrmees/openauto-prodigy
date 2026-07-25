@@ -38,28 +38,28 @@ Precedence when they disagree: **AGENTS.md constraints > design doc > plan detai
 1. `git fetch` first, then check out the working branch (`dev` — single-branch workflow; PRs go to `main`).
 2. Confirm the plan's `Status:` is ACTIVE. Read its **Global Constraints** and its design doc's executor-guidance section. These are the invariants; the tasks are just the route.
 3. Design docs pin the commit they were grounded on. If `git log --oneline <pinned>..HEAD -- <files it cites>` shows changes, re-verify cited line numbers/signatures before editing — substrate drift is expected, silent misedits are not.
-4. Execute tasks in order with `superpowers:subagent-driven-development` or `superpowers:executing-plans`. One task = one commit. Don't batch.
+4. Execute tasks in order, inline by default. Use subagents only for genuinely
+   independent, non-overlapping work or when the user asks. Prefer one coherent
+   commit per task, but do not split mechanical edits merely to create commits.
 
-## Verification workflow (every task, no exceptions)
+## Verification workflow
 
-```bash
-cd ~/builds/openauto-prodigy && cmake --build . -j$(nproc)   # ext4 build dir — never in-repo build/ (9p IO, see AGENTS.md)
-ctest --output-on-failure                                     # full suite, all green
-```
+Run the narrow test that proves each task while iterating. Run the complete
+gate once on the final tree, selected by the changed surface:
 
-**ctest does NOT compile the app target** — always build `openauto-prodigy` too (`cmake --build . --target openauto-prodigy`) before claiming green; a broken `main.cpp` is invisible to the test suite.
+- Docs/tooling only: targeted tests, syntax/lint, relevant doc-link checks, and
+  `git diff --check`. Do not compile the application.
+- C++/QML/CMake/runtime config: native build, explicit `openauto-prodigy`
+  target, and `ctest --output-on-failure` from the Linux-filesystem build dir.
+- Pi artifact, embedded QML, or target-only behavior: add `./cross-build.sh`.
+- Hardware behavior: add the relevant live check when hardware is available.
 
-Per-task: run the plan's targeted `ctest -R <test>` red→green cycle first (TDD is the norm), then the full suite before committing.
+**ctest does NOT compile `main.cpp`**. Application changes always require the
+explicit `openauto-prodigy` target before claiming green.
 
-End of plan (or before any Pi deploy):
-
-```bash
-./cross-build.sh                              # Docker aarch64 cross-compile — NOT toolchain-pi4.cmake directly
-rsync -av build-pi/src/openauto-prodigy matt@192.168.1.149:~/openauto-prodigy/build/src/
-ssh matt@192.168.1.149 'sudo systemctl restart openauto-prodigy.service'
-```
-
-QML ships **inside the binary** (qt_add_qml_module + qmlcache) — QML/UI changes also require cross-build + binary rsync; a `git pull` on the Pi will NOT update the UI. Never claim a task done on a failing or skipped verification — report what actually happened (superpowers:verification-before-completion).
+QML ships **inside the binary** (qt_add_qml_module + qmlcache), so a Pi QML
+test requires cross-build and binary deployment. A `git pull` does not update
+the UI. Never claim completion from stale or inapplicable verification.
 
 ## Standing guardrails
 
@@ -67,7 +67,7 @@ The rails (frozen `proto/api/`, HF/AG roles, no-ofono, External-API rails, froze
 
 ## When things go sideways
 
-- Bug or unexpected test failure → `superpowers:systematic-debugging` before any fix.
+- Bug or unexpected test failure → investigate root cause before any fix.
 - A rail or invariant looks wrong for your case → stop, write the why in `docs/session-handoffs.md`, ask; don't silently deviate.
 - Hardware-dependent step with no hardware (phone for live checks, Pi offline) → complete everything else, record the pending checklist item in the handoff, and say so plainly in your completion report.
 - Finish a plan → append a handoff entry (what/why/status/verification results — match the existing format in `docs/session-handoffs.md`), flip the status header, and archive the plan.
