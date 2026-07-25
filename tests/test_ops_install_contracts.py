@@ -465,11 +465,16 @@ SERVICE_NAME=openauto-prodigy
 USER=test-user
 SYSTEMD_UNIT_DIR=/etc/systemd/system
 TEST_UNIT={shlex.quote(str(unit))}
+TEST_UNIT_PATH=/etc/systemd/system/openauto-prodigy-web.service
 info() {{ :; }}
 ok() {{ :; }}
 fail() {{ printf '%s\n' "$*" >&2; }}
 sudo() {{
     if [[ "$1" == tee ]]; then
+        [[ "$2" == "$TEST_UNIT_PATH" ]] || {{
+            printf 'unexpected web-service destination: %s\n' "$2" >&2
+            return 1
+        }}
         /usr/bin/tee "$TEST_UNIT"
     elif [[ "$1" == systemctl ]]; then
         return 0
@@ -603,6 +608,7 @@ render_application_unit {shlex.quote(str(APP_UNIT_TEMPLATE))} test-user 4242 {sh
         web_unit = materialize_web_service(script, pathlib.Path(install_root))
         rendered_web.append(web_unit)
         for required in (
+            "After=network.target",
             f"WorkingDirectory={escaped_working_root}/web-config",
             f'ExecStart=/usr/bin/python3 "{escaped_install_root}/web-config/server.py"',
         ):
@@ -653,20 +659,38 @@ render_system_service_unit {shlex.quote(str(SYSTEM_UNIT_TEMPLATE))} \
         (unit_dir / "openauto-prodigy-web.service").write_text(
             rendered_web[0].replace("User=test-user", "User=root")
         )
+        (unit_dir / "openauto-prodigy.service").write_text(
+            rendered[0].replace("User=test-user", "User=root")
+        )
         (unit_dir / "openauto-system.service").write_text(rendered_system[0])
         for name, body in (
             ("multi-user.target", "[Unit]\nDescription=Multi-user\n"),
+            (
+                "graphical.target",
+                "[Unit]\nDescription=Graphical\nRequires=multi-user.target\n"
+                "After=multi-user.target\n",
+            ),
             ("sysinit.target", "[Unit]\nDescription=Sysinit\n"),
             ("network.target", "[Unit]\nDescription=Network\n"),
             ("bluetooth.target", "[Unit]\nDescription=Bluetooth\n"),
-            ("openauto-prodigy.service", "[Service]\nExecStart=/bin/true\n"),
         ):
             (unit_dir / name).write_text(body)
+        for target, service in (
+            ("multi-user.target", "openauto-prodigy-web.service"),
+            ("multi-user.target", "openauto-system.service"),
+            ("graphical.target", "openauto-prodigy.service"),
+        ):
+            wants_dir = unit_dir / f"{target}.wants"
+            wants_dir.mkdir(exist_ok=True)
+            (wants_dir / service).symlink_to(pathlib.Path("..") / service)
         for executable in (
             root / "bin/true",
+            root / "bin/sh",
+            root / "usr/local/bin/openauto-preflight",
             root / "usr/bin/python3",
             root / "usr/bin/env",
             root / "usr/sbin/iptables",
+            root / install_root.removeprefix("/") / "build/src/openauto-prodigy",
             root / install_root.removeprefix("/") / "web-config/server.py",
             root
             / install_root.removeprefix("/")
@@ -681,14 +705,86 @@ render_system_service_unit {shlex.quote(str(SYSTEM_UNIT_TEMPLATE))} \
                 systemd_analyze,
                 "verify",
                 f"--root={root}",
-                "openauto-prodigy-web.service",
+                "graphical.target",
                 "openauto-system.service",
             ],
             capture_output=True,
             text=True,
         )
         if result.returncode != 0:
-            raise AssertionError(f"systemd rejected canonical auxiliary units:\n{result.stderr}")
+            raise AssertionError(
+                "systemd rejected the installed boot transaction:\n"
+                f"{result.stderr}"
+            )
+
+        systemd = next(
+            (
+                candidate
+                for candidate in (
+                    shutil.which("systemd"),
+                    "/usr/lib/systemd/systemd",
+                    "/lib/systemd/systemd",
+                )
+                if candidate is not None and pathlib.Path(candidate).is_file()
+            ),
+            None,
+        )
+        if systemd is None:
+            raise AssertionError("systemd is required for installer contract tests")
+        boot_user = None
+        boot_group = None
+        boot_extra_groups = None
+        boot_home = root / "home"
+        boot_home.mkdir()
+        if os.geteuid() == 0:
+            nobody = pwd.getpwnam("nobody")
+            for directory in (root, *(path for path in root.rglob("*") if path.is_dir())):
+                directory.chmod(0o755)
+            for unit_path in unit_dir.rglob("*"):
+                if unit_path.is_file():
+                    unit_path.chmod(0o644)
+            boot_user = nobody.pw_uid
+            boot_group = nobody.pw_gid
+            boot_extra_groups = []
+        boot_env = os.environ.copy()
+        boot_env.update(
+            {
+                "SYSTEMD_UNIT_PATH": str(unit_dir),
+                "SYSTEMD_GENERATOR_PATH": "",
+                "SYSTEMD_ENVIRONMENT_GENERATOR_PATH": "",
+                "SYSTEMD_LOG_LEVEL": "warning",
+                "SYSTEMD_LOG_TARGET": "console",
+                "HOME": str(boot_home),
+                "XDG_CONFIG_HOME": str(boot_home / ".config"),
+            }
+        )
+        boot_result = subprocess.run(
+            [
+                systemd,
+                "--test",
+                "--system",
+                "--unit=graphical.target",
+                "--no-pager",
+            ],
+            env=boot_env,
+            capture_output=True,
+            text=True,
+            user=boot_user,
+            group=boot_group,
+            extra_groups=boot_extra_groups,
+        )
+        boot_diagnostics = boot_result.stdout + boot_result.stderr
+        cycle_diagnostics = "\n".join(
+            line
+            for line in boot_diagnostics.splitlines()
+            if "ordering cycle" in line.lower()
+            or "job openauto-prodigy-web.service/start deleted" in line.lower()
+        )
+        if boot_result.returncode != 0 or cycle_diagnostics:
+            raise AssertionError(
+                "systemd found an ordering cycle in the installed boot transaction:\n"
+                f"{cycle_diagnostics or boot_diagnostics[-4000:]}"
+            )
 
 
 def assert_wayland_rechecks_after_missed_event() -> None:

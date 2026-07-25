@@ -4,6 +4,54 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — Web config boot ordering cycle COMPLETE
+
+**What changed:** both source and prebuilt installers now order the web config
+service after `network.target` only. The installer contract test renders the
+real application, system, and web units; recreates their enabled
+`multi-user.target`/`graphical.target` boot graph; and asks systemd to build the
+boot transaction so a reintroduced ordering cycle fails. The harness also
+checks the web-unit destination and drops privileges when a root-run test suite
+invokes systemd's unprivileged-only test mode.
+
+**Why:** the web service was enabled under `multi-user.target` but ordered after
+the application, while the application was enabled under and ordered after
+`graphical.target`. Because `graphical.target` follows `multi-user.target`, the
+four edges formed a boot cycle and systemd deleted the web-service start job.
+The Flask server does not need the application at startup; it opens the IPC
+socket per request and already reports the app-unavailable case.
+
+**Status:** COMPLETE on local `dev`; included as a separate commit in the
+Assistant microphone branch. The corrected unit is deployed on the Pi without
+a reboot or application-binary change. `openauto-prodigy-web.service` is
+enabled and active on port 8080; its live ordering no longer includes
+`openauto-prodigy.service`.
+
+**Review gate:** the concurrent Codex/Fable pass found three unique issues:
+root-run systemd test incompatibility, omission of the enabled system service
+from the simulated graph, and an unchecked unit destination. All three were
+confirmed and fixed. Following the review-policy change, Opus 5 performed the
+final single-repository pass and returned no P1/P2. Its three P3 suggestions
+were dismissed: the target placement is intentionally an explicit boot
+contract rather than derived from the unit under test; Debian Trixie supplies
+the `nobody` account used for the privilege drop; and a dedicated `--case boot`
+selector would change only test ergonomics.
+
+**Verification:** the focused restart installer contract passed both normally
+and with the Python suite launched through `sudo`. The full local build, the
+explicit `openauto-prodigy` app target, and `ctest --output-on-failure` passed.
+On the Pi, the web unit is enabled and active with one process and zero
+restarts; the listener binds `0.0.0.0:8080`, and `/api/status` succeeds locally
+and from the development workstation. The application, hostapd, and Bluetooth
+retained their original PIDs and zero-restart counts.
+
+**Next 1-3 steps:** (1) publish the combined Assistant microphone and web boot
+fix branch as the planned PR; (2) after its next natural reboot, confirm the
+web listener is active without a manual start; (3) continue wishlist triage
+from the clean merged baseline.
+
+---
+
 ## 2026-07-24 — AA Assistant microphone transport COMPLETE
 
 **What changed:** implemented the promoted Android Auto AVInput microphone
