@@ -19,8 +19,14 @@ spike, or research-first feasibility work.
 
 ## Now
 
-No promoted implementation is active. Select and re-research the next qualified
-wishlist item before adding work here.
+- Android Auto CLUSTER square-viewport follow-up — **ACTIVE 2026-07-25**.
+  Retain the protocol-required 800x480 encoded carrier while requesting a
+  centered 300x300 phone-rendered content rectangle through established video
+  margins, crop only those known borders locally, and upsize the result inside
+  a fixed 3x3 dashboard widget. This remains a bounded experimental follow-up;
+  it does not promote generalized multi-display or a public settings surface.
+  Design:
+  `docs/plans/2026-07-25-aa-cluster-square-viewport-design.md`.
 
 ## Done (recent)
 

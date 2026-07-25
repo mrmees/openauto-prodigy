@@ -2,8 +2,9 @@
 
 ## Active Plans
 
-No active implementation plan. Promote and re-research a qualified wishlist
-item before adding one here.
+- [AA CLUSTER square-viewport follow-up design](plans/2026-07-25-aa-cluster-square-viewport-design.md)
+  — active design for a centered 300x300 phone-rendered viewport inside the
+  required 800x480 carrier and a fixed 3x3 dashboard widget.
 
 ## Start Here
 
@@ -61,7 +62,8 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-No active plans.
+- [2026-07-25-aa-cluster-square-viewport-design.md](plans/2026-07-25-aa-cluster-square-viewport-design.md)
+  — ACTIVE; implementation plan pending reviewed-spec approval.
 
 ## Pi Configuration (pi-config/)
 
