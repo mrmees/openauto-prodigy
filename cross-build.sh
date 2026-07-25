@@ -39,8 +39,13 @@ if [[ -L "$CROSS_BUILD_LOCK_DIR" ]]; then
     echo "Cross-build lock directory must not be a symlink: $CROSS_BUILD_LOCK_DIR" >&2
     exit 1
 fi
-if [[ ! -e "$CROSS_BUILD_LOCK_DIR" ]]; then
-    (umask 077 && mkdir -- "$CROSS_BUILD_LOCK_DIR")
+# mkdir is the atomic first-use election. Concurrent starters may observe
+# EEXIST; both continue to the ownership/type validation and then flock.
+if ! (umask 077 && mkdir -- "$CROSS_BUILD_LOCK_DIR") 2>/dev/null; then
+    if [[ -L "$CROSS_BUILD_LOCK_DIR" || ! -d "$CROSS_BUILD_LOCK_DIR" ]]; then
+        echo "Failed to create a safe cross-build lock directory: $CROSS_BUILD_LOCK_DIR" >&2
+        exit 1
+    fi
 fi
 if [[ ! -d "$CROSS_BUILD_LOCK_DIR" ]]; then
     echo "Cross-build lock path is not a directory: $CROSS_BUILD_LOCK_DIR" >&2
