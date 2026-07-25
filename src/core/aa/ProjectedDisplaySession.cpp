@@ -65,29 +65,29 @@ ProjectedDisplaySession::ProjectedDisplaySession(
 
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::setupRequested,
             this, [this](int codec) {
-                if (!protocolActive_)
+                if (!protocolActive_ || terminalStateLatched_)
                     return;
                 qCInfo(lcAA).noquote() << diagnosticPrefix_
                                       << "setup requested codec=" << codec;
             });
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::handlerError,
             this, [this](const QString& message) {
-                if (!protocolActive_)
+                if (!protocolActive_ || terminalStateLatched_)
                     return;
                 qCWarning(lcAA).noquote() << diagnosticPrefix_ << message;
-                setState(Error, message);
+                enterTerminalState(Error, message);
             });
     connect(&inputHandler_, &oaa::hu::InputChannelHandler::handlerError,
             this, [this](const QString& message) {
-                if (!protocolActive_)
+                if (!protocolActive_ || terminalStateLatched_)
                     return;
                 qCWarning(lcAA).noquote() << diagnosticPrefix_
                                          << "input:" << message;
-                setState(Error, message);
+                enterTerminalState(Error, message);
             });
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::streamStarted,
             this, [this](int32_t session, uint32_t configIndex) {
-                if (!protocolActive_ || !decoder_)
+                if (!protocolActive_ || terminalStateLatched_ || !decoder_)
                     return;
                 activeDecoderGeneration_ = decoder_->beginStream();
                 firstDecodedLogged_ = false;
@@ -97,8 +97,8 @@ ProjectedDisplaySession::ProjectedDisplaySession(
                                       << "decoder_generation="
                                       << activeDecoderGeneration_;
                 if (activeDecoderGeneration_ == 0) {
-                    setState(Error,
-                             QStringLiteral("decoder worker unavailable"));
+                    enterTerminalState(
+                        Error, QStringLiteral("decoder worker unavailable"));
                     return;
                 }
                 setState(WaitingForFrames,
@@ -106,7 +106,7 @@ ProjectedDisplaySession::ProjectedDisplaySession(
             });
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::streamStopped,
             this, [this]() {
-                if (!protocolActive_ || !decoder_)
+                if (!protocolActive_ || terminalStateLatched_ || !decoder_)
                     return;
                 qCInfo(lcAA).noquote() << diagnosticPrefix_ << "stream stopped";
                 activeDecoderGeneration_ = 0;
@@ -119,7 +119,7 @@ ProjectedDisplaySession::ProjectedDisplaySession(
             });
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFocusChanged,
             this, [this](int mode, bool unrequested) {
-                if (!protocolActive_)
+                if (!protocolActive_ || terminalStateLatched_)
                     return;
                 focusMode_ = mode;
                 qCInfo(lcAA).noquote() << diagnosticPrefix_
@@ -130,7 +130,7 @@ ProjectedDisplaySession::ProjectedDisplaySession(
             this,
             [this](std::shared_ptr<const QByteArray> data,
                    qint64 enqueueTimeNs) {
-                if (!protocolActive_ || !decoder_
+                if (!protocolActive_ || terminalStateLatched_ || !decoder_
                     || activeDecoderGeneration_ == 0) {
                     return;
                 }
@@ -149,7 +149,7 @@ ProjectedDisplaySession::ProjectedDisplaySession(
 
     connect(decoder_.get(), &VideoDecoder::frameReadyForGeneration,
             this, [this](quint64 generation) {
-                if (!protocolActive_ || generation == 0
+                if (!protocolActive_ || terminalStateLatched_ || generation == 0
                     || generation != activeDecoderGeneration_) {
                     return;
                 }
@@ -162,20 +162,20 @@ ProjectedDisplaySession::ProjectedDisplaySession(
                             << diagnosticPrefix_ << "first decoded frame"
                             << frame.width() << "x" << frame.height();
                     }
-                    if (QVideoSink* sink = sink_.data())
+                    if (QVideoSink* sink = decoder_->videoSink())
                         sink->setVideoFrame(frame);
                 }
                 setState(Rendering, QStringLiteral("Rendering projected display"));
             });
     connect(decoder_.get(), &VideoDecoder::streamError,
             this, [this](quint64 generation, const QString& message) {
-                if (!protocolActive_ || generation == 0
+                if (!protocolActive_ || terminalStateLatched_ || generation == 0
                     || generation != activeDecoderGeneration_) {
                     return;
                 }
                 qCWarning(lcAA).noquote() << diagnosticPrefix_
                                          << "decoder error:" << message;
-                setState(Error, message);
+                enterTerminalState(Error, message);
             });
     connect(decoder_.get(), &VideoDecoder::streamEnded,
             this, [this](quint64 generation) {
@@ -211,6 +211,7 @@ void ProjectedDisplaySession::beginProtocolSession()
 
     ++protocolGeneration_;
     protocolActive_ = true;
+    terminalStateLatched_ = false;
     videoChannelOpen_ = false;
     firstMediaLogged_ = false;
     firstDecodedLogged_ = false;
@@ -230,6 +231,7 @@ void ProjectedDisplaySession::endProtocolSession()
 
     const quint64 endedProtocolGeneration = protocolGeneration_;
     protocolActive_ = false;
+    terminalStateLatched_ = false;
     videoChannelOpen_ = false;
     activeDecoderGeneration_ = 0;
     if (decoder_)
@@ -242,7 +244,7 @@ void ProjectedDisplaySession::endProtocolSession()
 
 void ProjectedDisplaySession::noteChannelOpened(uint8_t channelId)
 {
-    if (!enabled_ || !protocolActive_)
+    if (!enabled_ || !protocolActive_ || terminalStateLatched_)
         return;
     if (channelId == videoChannelId_) {
         videoChannelOpen_ = true;
@@ -258,18 +260,15 @@ void ProjectedDisplaySession::noteChannelOpened(uint8_t channelId)
 
 void ProjectedDisplaySession::noteChannelRejected(int32_t channelId)
 {
-    if (!enabled_ || !protocolActive_)
+    if (!enabled_ || !protocolActive_ || terminalStateLatched_)
         return;
     if (channelId != videoChannelId_ && channelId != inputChannelId_)
         return;
 
     qCWarning(lcAA).noquote() << diagnosticPrefix_
                              << "channel rejected id=" << channelId;
-    activeDecoderGeneration_ = 0;
-    if (decoder_)
-        decoder_->endStream();
-    setState(Rejected,
-             QStringLiteral("Phone rejected projected display"));
+    enterTerminalState(
+        Rejected, QStringLiteral("Phone rejected projected display"));
 }
 
 bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
@@ -323,6 +322,16 @@ void ProjectedDisplaySession::setState(State state, const QString& statusText)
                           << stateName(state_);
     logSummary("state");
     emit stateChanged();
+}
+
+void ProjectedDisplaySession::enterTerminalState(
+    State state, const QString& statusText)
+{
+    terminalStateLatched_ = true;
+    activeDecoderGeneration_ = 0;
+    if (decoder_)
+        decoder_->endStream();
+    setState(state, statusText);
 }
 
 void ProjectedDisplaySession::logSummary(const char* reason)

@@ -76,6 +76,7 @@ signals:
 
 private:
     void setState(State state, const QString& statusText);
+    void enterTerminalState(State state, const QString& statusText);
     void logSummary(const char* reason);
     void maybeLogFrameSummary();
     QString stateName(State state) const;
@@ -95,6 +96,7 @@ private:
     State state_ = Disabled;
     QString statusText_;
     bool protocolActive_ = false;
+    bool terminalStateLatched_ = false;
     bool videoChannelOpen_ = false;
     bool firstMediaLogged_ = false;
     bool firstDecodedLogged_ = false;
