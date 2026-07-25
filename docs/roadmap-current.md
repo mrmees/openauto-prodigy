@@ -19,17 +19,20 @@ spike, or research-first feasibility work.
 
 ## Now
 
-Android Auto Assistant microphone transport is promoted and ACTIVE. The
-bounded outcome is a 16 kHz mono PipeWire capture path that applies configured
-gain, crosses the real-time boundary through a bounded PCM bridge, obeys the
-phone's AVInput transmit window, reports immediate open failure honestly, and
-quiesces capture before session/transport teardown. Implementation and Pi/
-Pixel voice validation are defined in
-`docs/plans/2026-07-24-aa-assistant-microphone-transport-design.md` and
-`docs/plans/2026-07-24-aa-assistant-microphone-transport-plan.md`. No other
-wishlist item is part of this wave.
+No capability is currently promoted. Select and re-research the next bounded
+wishlist item before implementation.
 
 ## Done (recent)
+
+- Android Auto Assistant microphone transport — **COMPLETE 2026-07-24**
+  (Pi/Pixel live-validated). Prodigy now captures the configured Pi microphone
+  as bounded 16 kHz mono PCM, applies configured gain, obeys the phone's
+  AVInput transmit window, and quiesces capture before teardown. Live Assistant
+  recognition completed across repeated clean capture open/close cycles while
+  wireless H.265 projection remained healthy. Design and plan:
+  `docs/archive/plans/2026-07-24-aa-assistant-microphone-transport-design.md`
+  and
+  `docs/archive/plans/2026-07-24-aa-assistant-microphone-transport-plan.md`.
 
 - Installer and deployment lifecycle remediation — **COMPLETE 2026-07-24**
   (Pi-live-validated). Source installs now bind to their complete checkout and

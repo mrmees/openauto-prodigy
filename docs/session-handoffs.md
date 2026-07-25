@@ -4,6 +4,53 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — AA Assistant microphone transport COMPLETE
+
+**What changed:** implemented the promoted Android Auto AVInput microphone
+path from protocol request through Pi PipeWire capture to timestamped phone
+PCM. The handler now reports capture startup honestly, enforces a bounded
+phone transmit window, validates acknowledgements, and rejects unsupported
+input codecs. The orchestrator owns capture-first teardown; a generation-safe
+SPSC bridge keeps all Qt/socket work off the real-time callback, applies the
+configured gain, drops stale audio on overflow/window stalls, and recovers at
+the live edge. The fast Pi cross-build now keeps object churn in a persistent
+Docker volume with serialized, private locks and recoverable ownership.
+
+**Why:** the former AVInput surface advertised microphone capability but never
+connected the phone's request to capture. A direct signal connection would
+have crossed PipeWire's real-time thread into Qt transport state, while an
+unbounded or teardown-unsafe bridge could buffer delayed speech or outlive its
+AA session.
+
+**Status:** COMPLETE on local `dev` through `2118430`; not pushed. The reviewed
+aarch64 binary (SHA-256 `3feecbfde4b44c4a1a866831c8448d28ff4407cb1da3a73c21f036b31b5565bb`)
+is deployed on the Pi. The recoverable pre-feature binary remains at
+`~/openauto-prodigy/build/src/openauto-prodigy.rollback-pre-aa-mic-20260724`.
+
+**Review gate:** Codex and Fable ran concurrently through the implementation
+iterations. Across the gate, 19 unique actionable findings were confirmed and
+fixed; six residual findings were dismissed with explicit rationale (invalid
+ACKs remain fail-closed, cross-user cache sharing is unsupported, no test-only
+hook enters the RT path, aggregate drop diagnostics are intentionally coarse,
+one thread-affinity assert was cosmetic, and a bounded stale-session ACK case
+could not create credit). The final Fable pass was deploy-ready with no P1/P2;
+its one shared first-use lock race was reproduced and fixed before deployment.
+
+**Verification:** the full local build, explicit `openauto-prodigy` target, and
+`ctest --output-on-failure` passed with Qt's headless offscreen backend. The
+final fast aarch64 build completed in 93 seconds, left no owned container, and
+produced the deployed byte-identical binary. On the Pi, the Pixel completed two
+clean Assistant microphone open/close cycles at 16 kHz mono with configured
+gain 2.8 and recognized spoken input. No capture/overflow error or leaked mic
+stream appeared; wireless H.265 projection remained active. The application,
+hostapd, and Bluetooth retained one healthy process each with zero restarts.
+
+**Next 1-3 steps:** (1) push `dev` and open the feature PR with Matthew's
+go-ahead; (2) merge after the already-completed Fable gate; (3) select and
+re-research the next qualified wishlist item before promotion.
+
+---
+
 ## 2026-07-24 — AA Assistant microphone transport promoted
 
 **What changed:** the qualified Assistant microphone item was re-researched

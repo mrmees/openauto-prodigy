@@ -1,7 +1,7 @@
 # Android Auto Assistant Microphone Transport — Implementation Plan
 
 Date: 2026-07-24
-Status: ACTIVE
+Status: COMPLETED 2026-07-24
 Design: `docs/plans/2026-07-24-aa-assistant-microphone-transport-design.md`
 Base: `dev` at `975b3ef7c9e354d54e06cd90830068dbb30ec377`
 

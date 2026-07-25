@@ -1,7 +1,7 @@
 # Android Auto Assistant Microphone Transport — Design
 
 Date: 2026-07-24
-Status: ACTIVE
+Status: COMPLETED 2026-07-24
 Grounded against: `dev` at `975b3ef7c9e354d54e06cd90830068dbb30ec377`
 
 ## Goal
