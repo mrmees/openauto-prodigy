@@ -27,7 +27,7 @@ assert_contains()
     local file=$1
     local text=$2
     local label=$3
-    rg -Fq -- "$text" "$file" || fail "$label: missing '$text' in $file"
+    grep -Fq -- "$text" "$file" || fail "$label: missing '$text' in $file"
 }
 
 assert_exit()
@@ -122,8 +122,12 @@ head_three=$(commit_file speculative.txt speculative)
 assert_exit 5 bash "$GATE" --author claude --base "$base"
 assert_eq "$two_pass_calls" "$(wc -l <"$FAKE_REVIEW_LOG")" "third-pass reviewer calls"
 
-# Advancing the feature base starts a new gate. Codex-authored normal work
-# routes to Opus, not another Codex reviewer.
+# Changing the base never silently resets the budget. A deliberate reset is
+# required before the next feature. Codex-authored normal work then routes to
+# Opus, not another Codex reviewer.
+assert_exit 8 bash "$GATE" --author codex --base "$head_two"
+assert_eq "$two_pass_calls" "$(wc -l <"$FAKE_REVIEW_LOG")" "base-change reviewer calls"
+bash "$GATE" --reset
 bash "$GATE" --author codex --base "$head_two"
 assert_eq "1" "$(jq -r '.pass' "$state")" "advanced-base pass"
 assert_eq "$head_two" "$(jq -r '.base_sha' "$state")" "advanced feature base"
@@ -132,5 +136,11 @@ assert_eq "opus" "$(jq -r '.reviewer' "$state")" "Codex author reviewer"
 assert_contains "$FAKE_REVIEW_LOG" "--model opus" "Opus routing"
 assert_contains "$FAKE_REVIEW_LOG" "--effort high" "bounded review effort"
 assert_contains "$FAKE_REVIEW_LOG" "--no-timeout" "no wall-clock timeout"
+
+# Tracked dirty changes are outside the immutable commit range and are refused.
+printf '%s\n' dirty >>speculative.txt
+clean_calls=$(wc -l <"$FAKE_REVIEW_LOG")
+assert_exit 9 bash "$GATE" --author codex --base "$head_two"
+assert_eq "$clean_calls" "$(wc -l <"$FAKE_REVIEW_LOG")" "dirty-tree reviewer calls"
 
 echo "PASS: review gate enforces immutable author-aware two-pass reviews"

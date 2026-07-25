@@ -129,10 +129,10 @@ state and verdicts in gitignored `reviews/`. It permits exactly:
 1. One initial review of `<base>..HEAD`.
 2. One remediation review of `<previous-reviewed-HEAD>..HEAD`.
 
-It refuses duplicate runs and pass three. A changed feature base starts a new
-gate. Do not reset the state unless the user explicitly authorizes another
-review cycle. Reviews run without a wall-clock autokill; scope and pass count,
-not premature termination, bound cost.
+It refuses duplicate runs, pass three, and silent base changes. Starting a new
+feature requires an explicit user-authorized `review-gate.sh --reset`, after
+which the new base starts a fresh gate. Reviews run without a wall-clock
+autokill; scope and pass count, not premature termination, bound cost.
 
 Every finding is adjudicated explicitly. A `BLOCKER` must demonstrate a
 supported production entry point, reachable call chain, material impact, and
@@ -144,6 +144,10 @@ reviewers unless the user explicitly requests the experiment.
 
 Record confirmed/dismissed/deferred counts in the handoff, then push only with
 the user's go-ahead.
+
+Exit 2 or 4 means the review did not run. Fix the reviewer runtime or use one
+explicitly authorized independent fallback and record it in the handoff; a
+non-zero gate exit never silently passes.
 
 ## Nested Instructions
 

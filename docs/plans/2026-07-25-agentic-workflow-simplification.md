@@ -39,7 +39,8 @@ advisor runtime.
 - Pass two reviews only the first reviewed HEAD through the new HEAD.
 - Repeating an already reviewed HEAD fails without launching a reviewer.
 - Pass three fails without launching a reviewer.
-- A changed base SHA starts a fresh feature gate.
+- A changed base SHA is refused until an explicit user-authorized reset, after
+  which it starts a fresh feature gate.
 - The prompt requires a supported production entry point, reachable call chain,
   material impact, and evidence for blockers.
 - Reviewer selection is independent of the author.

@@ -24,6 +24,8 @@ Exit codes:
   5 third review pass refused
   6 current HEAD was already reviewed
   7 history or HEAD changed during review
+  8 feature base changed without an explicit reset
+  9 tracked worktree changes are outside the immutable range
 EOF
 }
 
@@ -103,6 +105,18 @@ if ((RESET)); then
     exit 0
 fi
 
+if ! command -v jq >/dev/null 2>&1; then
+    echo "ERROR: jq is required by the review gate" >&2
+    exit 2
+fi
+
+if ! git diff --quiet --ignore-submodules -- ||
+    ! git diff --cached --quiet --ignore-submodules --; then
+    echo "ERROR: tracked worktree changes are outside the immutable review range" >&2
+    echo "Commit or restore them before running the gate. Untracked user files are ignored." >&2
+    exit 9
+fi
+
 if [[ -z "$REVIEWER" ]]; then
     case "$AUTHOR" in
         codex)
@@ -162,7 +176,11 @@ if [[ -f "$STATE_FILE" ]]; then
     OLD_BASE=$(jq -r '.base_sha // empty' "$STATE_FILE")
     OLD_HEAD=$(jq -r '.reviewed_head // empty' "$STATE_FILE")
     OLD_PASS=$(jq -r '.pass // 0' "$STATE_FILE")
-    if [[ "$OLD_BASE" == "$BASE_SHA" ]]; then
+    if [[ "$OLD_BASE" != "$BASE_SHA" ]]; then
+        echo "ERROR: feature base changed from $OLD_BASE to $BASE_SHA" >&2
+        echo "An explicit user-authorized 'review-gate.sh --reset' is required for a new feature." >&2
+        exit 8
+    else
         if [[ "$OLD_HEAD" == "$HEAD_SHA" ]]; then
             echo "ERROR: HEAD $HEAD_SHA was already reviewed; refusing a duplicate pass" >&2
             exit 6
@@ -298,7 +316,7 @@ case "$REVIEWER" in
         fi
         # The advisor runtime already embeds the immutable git diff. Keep the
         # focus argument short so large reviews never hit argv size limits.
-        CLAUDE_FOCUS="Pass $PASS of 2 for immutable range $RANGE. $PASS_CONTEXT Only BLOCKER findings block publication. A BLOCKER requires a supported production entry point, reachable call chain, material impact, and concrete evidence. Unsupported direct mutation, test-only observers, and hypothetical future consumers are nonblocking research notes. Do not broaden into an unrelated repository audit."
+        CLAUDE_FOCUS=$(awk '/^Changed files:$/ {exit} {print}' "$PROMPT_FILE" | tr '\n' ' ')
         CLAUDE_ARGS+=("$CLAUDE_FOCUS")
 
         if [[ -n "${REVIEW_GATE_CLAUDE_RUNNER:-}" ]]; then
