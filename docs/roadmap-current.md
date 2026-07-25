@@ -3,7 +3,9 @@
 Governance: capture user-facing capability ideas in `docs/wishlist.md`, concrete
 technical findings in `docs/engineering-backlog.md`, and unconfirmed hardware
 observations in `docs/validation-current.md`. Only promoted work should appear
-in this roadmap.
+in this roadmap. Wishlist entries must state current-stack fit, required or
+unavailable hardware, and whether promotion needs normal design, a targeted
+spike, or research-first feasibility work.
 
 > **Parity program status (updated 2026-07-21):** the 2026-07-05 design sprint
 > (`docs/archive/plans/2026-07-05-fable-work-program-design.md`, phases A–F)
@@ -17,12 +19,20 @@ in this roadmap.
 
 ## Now
 
-No implementation wave is active. The consolidated audit-remediation campaign
-is complete; subsequent work must be promoted from the wishlist or engineering
-backlog, or begin with a newly approved design, rather than extending a closed
-plan.
+No capability is currently promoted. Select and re-research the next bounded
+wishlist item before implementation.
 
 ## Done (recent)
+
+- Android Auto Assistant microphone transport — **COMPLETE 2026-07-24**
+  (Pi/Pixel live-validated). Prodigy now captures the configured Pi microphone
+  as bounded 16 kHz mono PCM, applies configured gain, obeys the phone's
+  AVInput transmit window, and quiesces capture before teardown. Live Assistant
+  recognition completed across repeated clean capture open/close cycles while
+  wireless H.265 projection remained healthy. Design and plan:
+  `docs/archive/plans/2026-07-24-aa-assistant-microphone-transport-design.md`
+  and
+  `docs/archive/plans/2026-07-24-aa-assistant-microphone-transport-plan.md`.
 
 - Installer and deployment lifecycle remediation — **COMPLETE 2026-07-24**
   (Pi-live-validated). Source installs now bind to their complete checkout and

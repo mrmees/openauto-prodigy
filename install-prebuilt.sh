@@ -1097,7 +1097,7 @@ create_web_service() {
     sudo tee "$SYSTEMD_UNIT_DIR/${SERVICE_NAME}-web.service" > /dev/null << SERVICE
 [Unit]
 Description=OpenAuto Prodigy Web Config
-After=network.target ${SERVICE_NAME}.service
+After=network.target
 
 [Service]
 Type=simple

@@ -52,6 +52,44 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
     // Give VideoDecoder access to config for hw decoder selection
     videoDecoder_.setYamlConfig(yamlConfig_);
 
+    // AVInput requests are handled synchronously on this Qt owner thread so an
+    // immediate PipeWire failure can be reported honestly before the response.
+    avInputHandler_.setCaptureController([this](bool open) {
+        if (!open) {
+            stopAssistantMicCapture();
+            return true;
+        }
+        return startAssistantMicCapture();
+    });
+    connect(&avInputHandler_, &oaa::hu::AVInputChannelHandler::sendWindowAvailable,
+            &micCaptureBridge_, &AVInputCaptureBridge::notifyWindowAvailable,
+            Qt::DirectConnection);
+
+    micCaptureOpen_ = [this](const MicCaptureRequest& request) -> oap::AudioStreamHandle* {
+        if (!concreteAudio_)
+            return nullptr;
+
+        oap::AudioService::CaptureStreamOptions options;
+        options.name = request.name;
+        options.sampleRate = request.sampleRate;
+        options.channels = request.channels;
+        options.bitDepth = request.bitDepth;
+        options.autoconnect = true;
+        options.callback = request.callback;
+        options.onStreamError = request.onStreamError;
+        options.errorContext = this;
+        return concreteAudio_->openCaptureStreamWithOptions(options);
+    };
+    micCaptureClose_ = [this](oap::AudioStreamHandle* handle) {
+        if (concreteAudio_)
+            concreteAudio_->closeCaptureStreamHandle(handle);
+    };
+    if (concreteAudio_) {
+        connect(concreteAudio_, &oap::AudioService::aboutToDestroyPipeWire,
+                this, &AndroidAutoOrchestrator::onAudioServiceAboutToDestroy,
+                Qt::DirectConnection);
+    }
+
     // WiFi handler needs SSID/password from config
     if (yamlConfig_) {
         wifiHandler_ = std::make_unique<oaa::hu::WiFiChannelHandler>(
@@ -400,22 +438,28 @@ void AndroidAutoOrchestrator::onNewConnection()
         if (mediaStream_) {
             connect(&mediaAudioHandler_, &oaa::hu::AudioChannelHandler::audioDataReceived,
                     this, [this](const QByteArray& data, uint64_t) {
-                        audioService_->writeAudio(mediaStream_,
-                            reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+                        if (audioService_ && mediaStream_) {
+                            audioService_->writeAudio(mediaStream_,
+                                reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+                        }
                     }, Qt::QueuedConnection);
         }
         if (speechStream_) {
             connect(&speechAudioHandler_, &oaa::hu::AudioChannelHandler::audioDataReceived,
                     this, [this](const QByteArray& data, uint64_t) {
-                        audioService_->writeAudio(speechStream_,
-                            reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+                        if (audioService_ && speechStream_) {
+                            audioService_->writeAudio(speechStream_,
+                                reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+                        }
                     }, Qt::QueuedConnection);
         }
         if (systemStream_) {
             connect(&systemAudioHandler_, &oaa::hu::AudioChannelHandler::audioDataReceived,
                     this, [this](const QByteArray& data, uint64_t) {
-                        audioService_->writeAudio(systemStream_,
-                            reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+                        if (audioService_ && systemStream_) {
+                            audioService_->writeAudio(systemStream_,
+                                reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+                        }
                     }, Qt::QueuedConnection);
         }
     }
@@ -787,8 +831,103 @@ void AndroidAutoOrchestrator::stopProtocolCapture()
     protocolLogger_->close();
 }
 
+bool AndroidAutoOrchestrator::startAssistantMicCapture()
+{
+    Q_ASSERT(QThread::currentThread() == thread());
+
+    // Replacement OPEN is a fresh generation. The handler normally invokes
+    // the close controller first; keep this idempotent boundary self-contained.
+    stopAssistantMicCapture();
+
+    const double gain = yamlConfig_ ? yamlConfig_->microphoneGain() : 1.0;
+    const uint64_t generation = micCaptureBridge_.start(
+        gain,
+        [this](const QByteArray& pcm, uint64_t timestampUs) {
+            return avInputHandler_.sendMicData(pcm, timestampUs);
+        });
+    if (generation == 0)
+        return false;
+
+    MicCaptureRequest request;
+    request.name = QStringLiteral("AA Assistant Microphone");
+    request.sampleRate = 16000;
+    request.channels = 1;
+    request.bitDepth = 16;
+    request.callback = [this, generation](const uint8_t* data, int size) {
+        micCaptureBridge_.pushPcm(generation, data, size);
+    };
+    request.onStreamError = [this, generation]() {
+        onAssistantMicCaptureError(generation);
+    };
+
+    micCaptureHandle_ = micCaptureOpen_ ? micCaptureOpen_(request) : nullptr;
+    if (!micCaptureHandle_) {
+        micCaptureBridge_.stop();
+        qCWarning(lcAA) << "Failed to open AA Assistant microphone capture";
+        return false;
+    }
+
+    qCInfo(lcAA) << "AA Assistant microphone capture opened"
+                 << "gain=" << AVInputCaptureBridge::normalizedGain(gain);
+    return true;
+}
+
+void AndroidAutoOrchestrator::stopAssistantMicCapture()
+{
+    Q_ASSERT(QThread::currentThread() == thread());
+
+    // Capture first: closeCaptureStreamHandle disables and quiesces the PW RT
+    // callback before the bridge drops its generation and queued storage.
+    oap::AudioStreamHandle* handle = micCaptureHandle_;
+    micCaptureHandle_ = nullptr;
+    if (handle && micCaptureClose_)
+        micCaptureClose_(handle);
+    micCaptureBridge_.stop();
+}
+
+void AndroidAutoOrchestrator::onAssistantMicCaptureError(uint64_t generation)
+{
+    Q_ASSERT(QThread::currentThread() == thread());
+    if (!micCaptureBridge_.isActive()
+        || micCaptureBridge_.generation() != generation) {
+        return;
+    }
+
+    qCWarning(lcAA) << "AA Assistant microphone capture failed at runtime";
+    stopAssistantMicCapture();
+    avInputHandler_.abortCapture();
+}
+
+void AndroidAutoOrchestrator::onAudioServiceAboutToDestroy()
+{
+    Q_ASSERT(QThread::currentThread() == thread());
+
+    // AudioService emits this while its streams and capture handles are still
+    // valid. Quiesce our capture now, then invalidate every non-owning audio
+    // handle before AudioService destroys any remaining objects itself.
+    stopAssistantMicCapture();
+    avInputHandler_.abortCapture();
+    mediaAudioHandler_.disconnect(this);
+    speechAudioHandler_.disconnect(this);
+    systemAudioHandler_.disconnect(this);
+    mediaStream_ = nullptr;
+    speechStream_ = nullptr;
+    systemStream_ = nullptr;
+    mediaStreamActive_ = false;
+    speechStreamActive_ = false;
+    systemStreamActive_ = false;
+    micCaptureOpen_ = {};
+    micCaptureClose_ = {};
+    concreteAudio_ = nullptr;
+    audioService_ = nullptr;
+}
+
 void AndroidAutoOrchestrator::teardownSession(bool deferDeletion)
 {
+    // Stop the real-time producer before AASession::finalize() disconnects the
+    // persistent AVInput handler from its Messenger send edge.
+    stopAssistantMicCapture();
+    avInputHandler_.abortCapture();
     stopProtocolCapture();
 
     // Reset phone status properties (no stale data after disconnect)

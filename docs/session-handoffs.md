@@ -4,6 +4,207 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — Web config boot ordering cycle COMPLETE
+
+**What changed:** both source and prebuilt installers now order the web config
+service after `network.target` only. The installer contract test renders the
+real application, system, and web units; recreates their enabled
+`multi-user.target`/`graphical.target` boot graph; and asks systemd to build the
+boot transaction so a reintroduced ordering cycle fails. The harness also
+checks the web-unit destination and drops privileges when a root-run test suite
+invokes systemd's unprivileged-only test mode.
+
+**Why:** the web service was enabled under `multi-user.target` but ordered after
+the application, while the application was enabled under and ordered after
+`graphical.target`. Because `graphical.target` follows `multi-user.target`, the
+four edges formed a boot cycle and systemd deleted the web-service start job.
+The Flask server does not need the application at startup; it opens the IPC
+socket per request and already reports the app-unavailable case.
+
+**Status:** COMPLETE on local `dev`; included as a separate commit in the
+Assistant microphone branch. The corrected unit is deployed on the Pi without
+a reboot or application-binary change. `openauto-prodigy-web.service` is
+enabled and active on port 8080; its live ordering no longer includes
+`openauto-prodigy.service`.
+
+**Review gate:** the concurrent Codex/Fable pass found three unique issues:
+root-run systemd test incompatibility, omission of the enabled system service
+from the simulated graph, and an unchecked unit destination. All three were
+confirmed and fixed. Following the review-policy change, Opus 5 performed the
+final single-repository pass and returned no P1/P2. Its three P3 suggestions
+were dismissed: the target placement is intentionally an explicit boot
+contract rather than derived from the unit under test; Debian Trixie supplies
+the `nobody` account used for the privilege drop; and a dedicated `--case boot`
+selector would change only test ergonomics.
+
+**Verification:** the focused restart installer contract passed both normally
+and with the Python suite launched through `sudo`. The full local build, the
+explicit `openauto-prodigy` app target, and `ctest --output-on-failure` passed.
+On the Pi, the web unit is enabled and active with one process and zero
+restarts; the listener binds `0.0.0.0:8080`, and `/api/status` succeeds locally
+and from the development workstation. The application, hostapd, and Bluetooth
+retained their original PIDs and zero-restart counts.
+
+**Next 1-3 steps:** (1) publish the combined Assistant microphone and web boot
+fix branch as the planned PR; (2) after its next natural reboot, confirm the
+web listener is active without a manual start; (3) continue wishlist triage
+from the clean merged baseline.
+
+---
+
+## 2026-07-24 — AA Assistant microphone transport COMPLETE
+
+**What changed:** implemented the promoted Android Auto AVInput microphone
+path from protocol request through Pi PipeWire capture to timestamped phone
+PCM. The handler now reports capture startup honestly, enforces a bounded
+phone transmit window, validates acknowledgements, and rejects unsupported
+input codecs. The orchestrator owns capture-first teardown; a generation-safe
+SPSC bridge keeps all Qt/socket work off the real-time callback, applies the
+configured gain, drops stale audio on overflow/window stalls, and recovers at
+the live edge. The fast Pi cross-build now keeps object churn in a persistent
+Docker volume with serialized, private locks and recoverable ownership.
+
+**Why:** the former AVInput surface advertised microphone capability but never
+connected the phone's request to capture. A direct signal connection would
+have crossed PipeWire's real-time thread into Qt transport state, while an
+unbounded or teardown-unsafe bridge could buffer delayed speech or outlive its
+AA session.
+
+**Status:** COMPLETE on local `dev` through `2118430`; not pushed. The reviewed
+aarch64 binary (SHA-256 `3feecbfde4b44c4a1a866831c8448d28ff4407cb1da3a73c21f036b31b5565bb`)
+is deployed on the Pi. The recoverable pre-feature binary remains at
+`~/openauto-prodigy/build/src/openauto-prodigy.rollback-pre-aa-mic-20260724`.
+
+**Review gate:** Codex and Fable ran concurrently through the implementation
+iterations. Across the gate, 19 unique actionable findings were confirmed and
+fixed; six residual findings were dismissed with explicit rationale (invalid
+ACKs remain fail-closed, cross-user cache sharing is unsupported, no test-only
+hook enters the RT path, aggregate drop diagnostics are intentionally coarse,
+one thread-affinity assert was cosmetic, and a bounded stale-session ACK case
+could not create credit). The final Fable pass was deploy-ready with no P1/P2;
+its one shared first-use lock race was reproduced and fixed before deployment.
+
+**Verification:** the full local build, explicit `openauto-prodigy` target, and
+`ctest --output-on-failure` passed with Qt's headless offscreen backend. The
+final fast aarch64 build completed in 93 seconds, left no owned container, and
+produced the deployed byte-identical binary. On the Pi, the Pixel completed two
+clean Assistant microphone open/close cycles at 16 kHz mono with configured
+gain 2.8 and recognized spoken input. No capture/overflow error or leaked mic
+stream appeared; wireless H.265 projection remained active. The application,
+hostapd, and Bluetooth retained one healthy process each with zero restarts.
+
+**Next 1-3 steps:** (1) push `dev` and open the feature PR with Matthew's
+go-ahead; (2) merge after the already-completed Fable gate; (3) select and
+re-research the next qualified wishlist item before promotion.
+
+---
+
+## 2026-07-24 — AA Assistant microphone transport promoted
+
+**What changed:** the qualified Assistant microphone item was re-researched
+against the current AVInput handler, orchestrator, PipeWire capture service,
+audio ring, configuration, tests, recovered protocol evidence, and the
+established aasdk/OpenAuto source-channel implementation. It is removed from
+the unapproved wishlist and promoted into an ACTIVE design and implementation
+plan. Roadmap Now and the documentation index point to that bounded wave.
+
+The design keeps AVInput request/response and transmit permits in the protocol
+handler, owns PipeWire capture in the orchestrator, and crosses the real-time
+callback through a fixed SPSC PCM bridge drained only on the Qt owner thread.
+Immediate capture failure returns response value 1 rather than false success;
+valid captures return 0. The phone's `max_unacked`/ACK exchange bounds sends,
+configured gain is applied with S16 saturation, and capture-first teardown
+prevents callbacks or stale PCM from crossing a session generation.
+
+**Why:** the missing signal connection was real, but connecting it directly
+would have called Qt transport state from PipeWire's real-time thread, ignored
+phone flow control, claimed success before capture existed, left configured
+gain unused, and raced session finalization. The active design resolves those
+owners without changing protobuf definitions, playback/focus, HFP/SCO, or any
+other wishlist item.
+
+**Status:** ACTIVE as a planning package on local `dev`, grounded at
+`975b3ef7`. No runtime code has changed and no implementation has started.
+The attached Pi microphone is sufficient for the required live gate. Fable's
+initial planning review returned one P2 and two P3 findings; all three were
+confirmed and fixed. They pin fail-closed behavior without a capture
+controller, the config-schema range/consumer update, and accurate Tier-main
+review-gate wording. No finding was dismissed. The focused no-timeout Fable
+recheck returned LGTM with no remaining P1, P2, or P3 findings and a
+merge-safe verdict.
+
+**Verification:** `git diff --check` and
+`python3 scripts/check-doc-links.py` are the documentation gates. Full build,
+explicit app-target build, CTest, cross-build, and Pi/Pixel validation belong
+to implementation Tasks 2-5 and are not claimed by this planning commit.
+
+**Next 1-3 steps:** (1) commit the reviewed planning package locally; (2) begin
+Task 2 only with Matthew's implementation go-ahead; (3) retain Fable as the
+final pre-push review after implementation.
+
+---
+
+## 2026-07-24 — Future-item qualifiers and AA next-steps triage
+
+**What changed:** local and remote `dev` were fast-forwarded to the merged PR
+#38 commit before the next planning pass. Every wishlist entry now states
+current Prodigy/Companion stack fit, hardware needs, and whether promotion
+requires normal design, one targeted spike, or research-first feasibility work.
+The external `E:\tmp\Next Steps for AA in Prodigy.txt` intake was checked
+against the current Prodigy tree, the in-tree protocol definitions, the
+recovered display/channel reference, and current official Android for Cars
+documentation. The wishlist now contains 24 capabilities, 14 marked long-term,
+and all 24 carry all three qualifiers.
+
+The intake produced five net capabilities: CarLocalMedia exposure, native
+cluster-lite, AA/native blended UI, AA broadcast-radio exposure, and vehicle
+climate/control. Cluster-lite is separated from true projected multi-display;
+native FM is separated from uncertain AA radio activation. The former OBD item
+now describes a GPS/OBD/CAN/GPIO sensor-provider bridge, and the key-event item
+now includes rotary, D-pad, call, Assistant, and navigation input. Existing
+audio-policy items absorbed the remaining audio notes. The reusable probe
+harness remains a bounded research method inside activation-dependent items,
+not a product feature, and already-shipped AA/local media arbitration was not
+re-added.
+
+Matthew's clarification pass confirmed CarLocalMedia as research-first;
+cluster-lite as long-term with an available USB-display-plus-HDMI test setup;
+and blended MAIN-display embedding as long-term/research-first without new
+hardware. AA radio remains an experiment that may replace a native FM widget,
+backed by an available RTL-SDR Blog V4. USB webcams can prototype an API/
+ActionRegistry-driven camera. OBD-II and CAN are available; Companion GPS
+loopback and optional PL2303GL GNSS remain sensor experiments. GPIO and device
+variability move behind an external backend that registers actions, while an
+experimental AA vehicle-control bridge maps semantic controls to that backend.
+An attached microphone makes Assistant transport the first likely promotion
+candidate.
+
+**Why:** “future” previously mixed software-ready work, hardware-bound work,
+and protocol ideas whose phone-side activation is still unknown. The three
+qualifiers make those constraints visible before prioritization and prevent a
+plausible recovered schema from being mistaken for an implementation-ready
+feature.
+
+**Status:** COMPLETE as a documentation-only intake and triage on local `dev`.
+No feature was promoted; Matthew selected microphone transport as the first
+likely promotion candidate rather than automatically accepting the source
+document's full priority order. Fable found two P3 terminology inconsistencies
+in the initial qualifier pass; both were
+confirmed and fixed. The focused Fable recheck returned LGTM with no remaining
+P1, P2, or P3 findings and a merge-safe verdict. Fable clarification review:
+LGTM with no P1, P2, or P3 findings and a merge-safe verdict.
+
+**Verification:** each of the 24 capability bullets has exactly one Stack,
+Hardware, and Investigation qualifier. `python3 scripts/check-doc-links.py`
+and `git diff --check` are the local documentation gates. Build, app-target
+build, and CTest are not required because only planning documentation changed.
+
+**Next 1-3 steps:** (1) re-research and bound Assistant microphone transport
+for promotion; (2) discuss additional wishlist ideas; (3) promote other
+capabilities only when their hardware and investigation gates are understood.
+
+---
+
 ## 2026-07-24 — Post-milestone planning cleanup review
 
 **What changed:** the `dev` planning-documentation range received its final
