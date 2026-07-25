@@ -56,6 +56,14 @@
 | 0x0012 | AUDIO_FOCUS_REQUEST | Phone→HU | |
 | 0x0013 | AUDIO_FOCUS_RESPONSE | HU→Phone | |
 | 0x0018 | CALL_AVAILABILITY_STATUS | HU→Phone | Commercial HUs send this |
+
+Prodigy's experimental explicit close/reopen lifecycle is currently limited
+to CLUSTER channels 12/13. For compatibility with the pre-CLUSTER MAIN and
+service-channel behavior, a control-typed `0x0009` on a legacy channel is
+passed through once-warned rather than changing that channel's lifecycle in
+this feature. Correct all-channel close handling requires separate protocol
+research and hardware regression coverage; the compatibility behavior is not
+the desired long-term transport contract.
 | 0x001a | SERVICE_DISCOVERY_UPDATE | Phone→HU | Service list update |
 | 0x00ff | (special) | — | Present in APK map |
 | 0x0fff | (special) | — | Present in APK map |

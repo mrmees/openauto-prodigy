@@ -164,6 +164,7 @@ void AASession::start() {
     messenger_->start();
     channelsClosed_ = false;
     warnedNonControlOpenChannels_.clear();
+    warnedLegacyCloseChannels_.clear();
     setState(SessionState::Connecting);
 
     if (transport_->isConnected()) {
@@ -499,11 +500,18 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
     // channel id. Only the experimental CLUSTER channels opt into this
     // explicit lifecycle; preserve established legacy dispatch semantics.
     if (messageId == SessionMessageId::CHANNEL_CLOSE_NOTIFICATION
-        && messageType == MessageType::Control
-        && supportsExplicitReopenLifecycle(channelId)) {
-        if (state_ == SessionState::Active)
-            closeServiceChannel(channelId);
-        return;
+        && messageType == MessageType::Control) {
+        if (supportsExplicitReopenLifecycle(channelId)) {
+            if (state_ == SessionState::Active)
+                closeServiceChannel(channelId);
+            return;
+        }
+        if (channels_.contains(channelId)
+            && !warnedLegacyCloseChannels_.contains(channelId)) {
+            warnedLegacyCloseChannels_.insert(channelId);
+            qWarning() << "[AASession] legacy channel" << channelId
+                       << "control close uses compatibility passthrough";
+        }
     }
 
     // CHANNEL_OPEN_REQUEST (0x0007) arrives on the TARGET channel, not ch0.

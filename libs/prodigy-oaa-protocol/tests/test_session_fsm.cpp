@@ -896,6 +896,10 @@ private slots:
             QCOMPARE(openedSpy.count(), 2);
             QCOMPARE(closedSpy.count(), 0);
 
+            const QRegularExpression legacyCloseWarning(
+                QStringLiteral(".*legacy channel %1.*compatibility passthrough.*")
+                    .arg(channelId));
+            QTest::ignoreMessage(QtWarningMsg, legacyCloseWarning);
             session.messenger()->messageReceived(
                 channelId, 0x0009, QByteArray(), 0,
                 oaa::MessageType::Control);
@@ -904,10 +908,16 @@ private slots:
             QCOMPARE(handler.messageCount, 1);
             QCOMPARE(handler.lastMessageId, uint16_t(0x0009));
 
+            QTest::failOnWarning(legacyCloseWarning);
+            session.messenger()->messageReceived(
+                channelId, 0x0009, QByteArray(), 0,
+                oaa::MessageType::Control);
+            QCOMPARE(handler.messageCount, 2);
+
             session.messenger()->messageReceived(
                 channelId, oaa::AVMessageId::START_INDICATION,
                 QByteArray(), 0, oaa::MessageType::Specific);
-            QCOMPARE(handler.messageCount, 2);
+            QCOMPARE(handler.messageCount, 3);
 
             session.messenger()->messageReceived(
                 channelId, 0x0007, payload, 0,
@@ -922,14 +932,14 @@ private slots:
                 oaa::MessageType::Specific);
             QCOMPARE(handler.closeCount, 0);
             QCOMPARE(closedSpy.count(), 0);
-            QCOMPARE(handler.messageCount, 3);
+            QCOMPARE(handler.messageCount, 4);
             QCOMPARE(handler.lastMessageId, uint16_t(0x0009));
 
             session.messenger()->messageReceived(
                 channelId, 0x0007, QByteArrayLiteral("service payload"), 0,
                 oaa::MessageType::Specific);
             QCOMPARE(handler.openCount, 3);
-            QCOMPARE(handler.messageCount, 4);
+            QCOMPARE(handler.messageCount, 5);
             QCOMPARE(handler.lastMessageId, uint16_t(0x0007));
         }
     }

@@ -588,6 +588,25 @@ private slots:
         QVERIFY(display.isVideoSinkAvailable());
         QCOMPARE(display.decoder()->videoSink(), nullptr);
     }
+
+    void directDecoderObserverCannotLeavePhantomClaim()
+    {
+        auto display = enabledClusterDisplay();
+        QVideoSink sink;
+        connect(
+            display.decoder(),
+            &oap::aa::VideoDecoder::videoSinkChanged,
+            &display,
+            [&display, &sink]() {
+                if (display.decoder()->videoSink() == &sink)
+                    display.decoder()->setVideoSink(nullptr);
+            },
+            Qt::DirectConnection);
+
+        QVERIFY(!display.attachVideoSink(&sink));
+        QVERIFY(display.isVideoSinkAvailable());
+        QCOMPARE(display.decoder()->videoSink(), nullptr);
+    }
 };
 
 QTEST_MAIN(TestProjectedDisplaySession)

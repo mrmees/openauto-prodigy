@@ -452,15 +452,9 @@ void AndroidAutoOrchestrator::onNewConnection()
             });
     connect(session_, &oaa::AASession::channelClosed,
             this, [this](uint8_t channelId) {
-                if (channelId == mainDisplay_.videoChannelId()
-                    || channelId == mainDisplay_.inputChannelId()) {
-                    lastProjectedActivityWasCluster_ = false;
-                    qCInfo(lcAA) << "Projected channel closed:"
-                                 << "role=MAIN display=0 wire=" << channelId;
-                    mainDisplay_.noteChannelClosed(channelId);
-                } else if (projectedClusterConfig_.enabled
-                           && (channelId == clusterDisplay_.videoChannelId()
-                               || channelId == clusterDisplay_.inputChannelId())) {
+                if (projectedClusterConfig_.enabled
+                    && (channelId == clusterDisplay_.videoChannelId()
+                        || channelId == clusterDisplay_.inputChannelId())) {
                     lastProjectedActivityWasCluster_ = true;
                     qCInfo(lcAA) << "Projected channel closed:"
                                  << "role=CLUSTER display=1 wire=" << channelId;

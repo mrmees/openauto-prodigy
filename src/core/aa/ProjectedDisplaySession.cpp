@@ -398,13 +398,34 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
                                   << "sink released on destruction";
         });
 
+    const auto rollbackClaim = [this, claimedSink]() {
+        if (sink_ != claimedSink)
+            return;
+        disconnect(sinkDestroyedConnection_);
+        if (decoder_ && decoder_->videoSink() == claimedSink)
+            decoder_->setVideoSink(nullptr);
+        if (sink_ != claimedSink)
+            return;
+        sink_.clear();
+        sinkClaimRejectionLogged_ = false;
+        emit videoSinkAvailabilityChanged();
+    };
+
     decoder_->setVideoSink(sink);
-    if (sink_ != claimedSink || decoder_->videoSink() != claimedSink)
+    if (sink_ != claimedSink || decoder_->videoSink() != claimedSink) {
+        rollbackClaim();
+        qCWarning(lcAA).noquote() << diagnosticPrefix_
+                                 << "sink claim changed during attachment";
         return false;
+    }
 
     emit videoSinkAvailabilityChanged();
-    if (sink_ != claimedSink || decoder_->videoSink() != claimedSink)
+    if (sink_ != claimedSink || decoder_->videoSink() != claimedSink) {
+        rollbackClaim();
+        qCWarning(lcAA).noquote() << diagnosticPrefix_
+                                 << "sink claim changed during notification";
         return false;
+    }
 
     qCInfo(lcAA).noquote() << diagnosticPrefix_ << "sink claimed";
     return true;

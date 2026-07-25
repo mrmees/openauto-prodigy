@@ -96,6 +96,7 @@ private:
     int64_t lastPingTimestamp_ = 0;
     QSet<int64_t> outstandingPingTimestamps_;
     QSet<uint8_t> warnedNonControlOpenChannels_;
+    QSet<uint8_t> warnedLegacyCloseChannels_;
     bool channelsClosed_ = true;
     bool finalized_ = false;
 };

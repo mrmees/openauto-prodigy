@@ -80,8 +80,19 @@ hardware range and later repository-only hardening are already disclosed; a
 geometry mismatch intentionally terminates the affected display generation as
 required by the completed fixed-geometry design; and the dormant private codec
 failure seam predates this feature, cannot be armed by production code, and
-its friend definitions live in separate test executables. Both gates must
-rerun on these fixes before publication.
+its friend definitions live in separate test executables.
+
+The incremental rerun on those fixes produced two Codex P2s and four Opus
+findings. The sink rollback issue was confirmed and fixed with centralized
+claim rollback plus a direct-decoder-observer regression. The legacy close
+request was dismissed for this PR because adopting it would restore the
+shared-channel lifecycle expansion that the whole-range Opus blocker required
+us to remove; the compatibility waiver is now one-shot warned and documented
+in the live AA reference for separate research. Opus's unreachable MAIN close
+branch and missing compatibility diagnostics were confirmed and removed or
+documented, its matching sink finding was fixed, and the verification-scope
+wording was confirmed for clarification after the final rerun. Both gates
+must rerun on this latest delta before publication.
 
 **Verification:** the full native build, explicit `openauto-prodigy` target,
 `QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, `git diff --check`, and
@@ -89,8 +100,8 @@ the frozen-proto boundary check passed. The tracked live-document link scope
 also passed; the repository-wide checker reported only the known external-tree
 references in the user-owned untracked wishlist baseline, which remained
 untouched. `./cross-build.sh` produced the deployed accepted aarch64
-application with compiled-in QML; a fresh cross-build of the final
-review-hardening tree is part of the publication gate. For the accepted bench,
+application with compiled-in QML; each production review-fix delta receives a
+fresh cross-build before publication. For the accepted bench,
 local, staged, and installed artifact hashes matched. The guarded config edit
 changed only `col_span` and `row_span`; the target 3×3 cells were
 collision-free. The service remained active with zero restarts and one
