@@ -19,17 +19,22 @@ spike, or research-first feasibility work.
 
 ## Now
 
-- Android Auto CLUSTER square-viewport follow-up — **ACTIVE 2026-07-25**.
-  Retain the protocol-required 800x480 encoded carrier while requesting a
-  centered 300x300 phone-rendered content rectangle through established video
-  margins, crop only those known borders locally, and upsize the result inside
-  a fixed 3x3 dashboard widget. This remains a bounded experimental follow-up;
-  it does not promote generalized multi-display or a public settings surface.
-  Design and plan:
-  `docs/plans/2026-07-25-aa-cluster-square-viewport-design.md` and
-  `docs/plans/2026-07-25-aa-cluster-square-viewport-plan.md`.
+- No promoted work is currently active.
 
 ## Done (recent)
+
+- Android Auto CLUSTER square viewport — **COMPLETE 2026-07-25**
+  (Pi/Pixel live-validated). Prodigy retains the protocol-required 800×480
+  H.264 carrier while requesting a centered 300×300 phone-rendered CLUSTER
+  region through total margins of 500×180. One fixed 3×3 dashboard widget
+  clips and uniformly upsizes that region without a second decoder, frame
+  rewrite, shader, stretch, or projected input. The Pixel opened CLUSTER
+  channels 12/13, delivered an exact 800×480 decoded carrier, and reached
+  Rendering without a geometry mismatch; Matthew accepted the visible basic
+  implementation. MAIN behavior, default-off policy, and the experimental
+  scope remain unchanged. Design and plan:
+  `docs/archive/plans/2026-07-25-aa-cluster-square-viewport-design.md` and
+  `docs/archive/plans/2026-07-25-aa-cluster-square-viewport-plan.md`.
 
 - Android Auto projected CLUSTER dashboard widget feasibility spike —
   **COMPLETE 2026-07-24** (Pi/Pixel positive result). Behind a default-off

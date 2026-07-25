@@ -1,6 +1,6 @@
 # Android Auto CLUSTER Square Viewport Follow-up
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-25
 
 Date: 2026-07-25
 

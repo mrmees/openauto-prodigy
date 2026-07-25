@@ -1,7 +1,7 @@
 # Android Auto CLUSTER Square Viewport Implementation Plan
 
 Date: 2026-07-25
-Status: ACTIVE
+Status: COMPLETED 2026-07-25
 Design: `docs/plans/2026-07-25-aa-cluster-square-viewport-design.md`
 Implementation/review base: `b7f6451` (initial reviewed-plan commit; the
 plan-review amendment itself is intentionally included in the final range)
