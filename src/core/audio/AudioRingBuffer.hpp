@@ -46,8 +46,10 @@ public:
             ? 0u : std::min(static_cast<uint32_t>(fill), capacity_);
         const uint32_t free = capacity_ - used;
         const uint32_t toWrite = std::min(size, free);
-        if (toWrite < size)
+        if (toWrite < size) {
             dropCount_.fetch_add(1, std::memory_order_relaxed);
+            dropEpoch_.fetch_add(1, std::memory_order_release);
+        }
 
         if (toWrite == 0) return 0;
 
@@ -73,7 +75,8 @@ public:
         const uint32_t used = (fill <= 0)
             ? 0u : std::min(static_cast<uint32_t>(fill), capacity_);
         if (size > capacity_ - used) {
-            dropCount_.fetch_add(1, std::memory_order_release);
+            dropCount_.fetch_add(1, std::memory_order_relaxed);
+            dropEpoch_.fetch_add(1, std::memory_order_release);
             return 0;
         }
 
@@ -139,11 +142,20 @@ public:
         return dropCount_.exchange(0, std::memory_order_acq_rel);
     }
 
+    // Monotonic overflow generation for consumers that must not lose a drop
+    // event when the diagnostic counter is reset independently. Unsigned
+    // subtraction by the consumer remains valid across wraparound.
+    uint32_t dropEpoch() const
+    {
+        return dropEpoch_.load(std::memory_order_acquire);
+    }
+
 private:
     uint32_t capacity_;
     std::vector<uint8_t> data_;
     struct spa_ringbuffer ring_{};
     std::atomic<uint32_t> dropCount_{0};
+    std::atomic<uint32_t> dropEpoch_{0};
 };
 
 } // namespace oap

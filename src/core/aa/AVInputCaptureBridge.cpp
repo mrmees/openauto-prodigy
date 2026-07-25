@@ -52,6 +52,9 @@ void AVInputCaptureBridge::stop()
     waitingForWindow_ = false;
     sender_ = {};
     purgeQueuedPcm();
+    ring_.resetDropCount();
+    oversizedCallbacks_.store(0, std::memory_order_relaxed);
+    observedDropEpoch_ = ring_.dropEpoch();
 }
 
 void AVInputCaptureBridge::pushPcm(uint64_t generation,
@@ -102,12 +105,8 @@ void AVInputCaptureBridge::notifyWindowAvailable()
         qCWarning(lcAA) << "AA microphone oversized capture buffers truncated"
                         << "events=" << oversized;
     }
-    const uint32_t overflowDrops = ring_.resetDropCount();
-    if (overflowDrops > 0) {
-        droppedFrames_ += overflowDrops;
-        qCWarning(lcAA) << "AA microphone PCM overflow while waiting for ACK"
-                        << "events=" << overflowDrops;
-    }
+    recordOverflowEvents(ring_.dropEpoch(),
+                         "AA microphone PCM overflow while waiting for ACK");
     purgeQueuedPcm();
     waitingForWindow_ = false;
     drainTimer_.start();
@@ -150,11 +149,10 @@ void AVInputCaptureBridge::drainOnce()
         qCWarning(lcAA) << "AA microphone oversized capture buffers truncated"
                         << "events=" << oversized;
     }
-    const uint32_t overflowDrops = ring_.resetDropCount();
-    if (overflowDrops > 0) {
-        droppedFrames_ += overflowDrops;
-        qCWarning(lcAA) << "AA microphone PCM ring overflow; purging stale audio"
-                        << "events=" << overflowDrops;
+    const uint32_t overflowBeforeRead = ring_.dropEpoch();
+    if (recordOverflowEvents(
+            overflowBeforeRead,
+            "AA microphone PCM ring overflow; purging stale audio")) {
         ring_.drain();
         return;
     }
@@ -165,6 +163,18 @@ void AVInputCaptureBridge::drainOnce()
     QByteArray frame(static_cast<qsizetype>(FrameBytes), '\0');
     if (ring_.read(reinterpret_cast<uint8_t*>(frame.data()), FrameBytes)
         != FrameBytes) {
+        return;
+    }
+
+    // A producer can report overflow after the first epoch check but before
+    // this read completes. Do not transmit the now-stale frame; purge from the
+    // live edge and let the next callback resume with fresh speech.
+    const uint32_t overflowAfterRead = ring_.dropEpoch();
+    if (overflowAfterRead != overflowBeforeRead) {
+        recordOverflowEvents(
+            overflowAfterRead,
+            "AA microphone PCM overflow raced frame read; purging stale audio");
+        ring_.drain();
         return;
     }
     applyGainS16Le(frame, gain_);
@@ -180,8 +190,19 @@ void AVInputCaptureBridge::drainOnce()
 void AVInputCaptureBridge::purgeQueuedPcm()
 {
     ring_.drain();
-    ring_.resetDropCount();
-    oversizedCallbacks_.store(0, std::memory_order_relaxed);
+}
+
+bool AVInputCaptureBridge::recordOverflowEvents(uint32_t currentEpoch,
+                                                const char* context)
+{
+    const uint32_t events = currentEpoch - observedDropEpoch_;
+    observedDropEpoch_ = currentEpoch;
+    if (events == 0)
+        return false;
+
+    droppedFrames_ += events;
+    qCWarning(lcAA) << context << "events=" << events;
+    return true;
 }
 
 uint64_t AVInputCaptureBridge::monotonicTimestampUs()

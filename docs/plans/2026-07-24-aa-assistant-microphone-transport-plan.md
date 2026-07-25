@@ -70,8 +70,8 @@ or any other wishlist promotion.
 - A replacement open and every close/channel-close reset outstanding permits
   and capture state without duplicating stop side effects.
 - Missing or non-positive `max_unacked` permits one outstanding frame. A
-  positive value is enforced exactly; `sendMicData()` returns false instead of
-  emitting beyond it.
+  positive value is capped at 24; `sendMicData()` returns false instead of
+  emitting beyond the bounded window.
 - Valid same-session ACK timestamps/counts release at most the outstanding
   total and signal a newly available window. Malformed, zero, stale-session,
   and over-count ACKs cannot create or underflow permits.

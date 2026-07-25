@@ -29,9 +29,27 @@ BUILD_JOBS="${CROSS_BUILD_JOBS:-$(nproc)}"
 HOST_UID="$(id -u)"
 HOST_GID="$(id -g)"
 REPO_CACHE_KEY="$(printf '%s' "$SCRIPT_DIR" | sha256sum | cut -c1-12)"
-CROSS_BUILD_LOCK_DIR="${XDG_RUNTIME_DIR:-/tmp}"
+LOCK_BASE_DIR="${XDG_RUNTIME_DIR:-/tmp}"
+if [[ ! -d "$LOCK_BASE_DIR" ]]; then
+    echo "Cross-build lock base directory does not exist: $LOCK_BASE_DIR" >&2
+    exit 1
+fi
+CROSS_BUILD_LOCK_DIR="$LOCK_BASE_DIR/openauto-prodigy-cross-build-$HOST_UID"
+if [[ -L "$CROSS_BUILD_LOCK_DIR" ]]; then
+    echo "Cross-build lock directory must not be a symlink: $CROSS_BUILD_LOCK_DIR" >&2
+    exit 1
+fi
+if [[ ! -e "$CROSS_BUILD_LOCK_DIR" ]]; then
+    (umask 077 && mkdir -- "$CROSS_BUILD_LOCK_DIR")
+fi
 if [[ ! -d "$CROSS_BUILD_LOCK_DIR" ]]; then
-    echo "Cross-build lock directory does not exist: $CROSS_BUILD_LOCK_DIR" >&2
+    echo "Cross-build lock path is not a directory: $CROSS_BUILD_LOCK_DIR" >&2
+    exit 1
+fi
+LOCK_DIR_UID="$(stat -c '%u' -- "$CROSS_BUILD_LOCK_DIR")"
+LOCK_DIR_MODE="$(stat -c '%a' -- "$CROSS_BUILD_LOCK_DIR")"
+if [[ "$LOCK_DIR_UID" != "$HOST_UID" || "$LOCK_DIR_MODE" != "700" ]]; then
+    echo "Cross-build lock directory must be owned by UID $HOST_UID with mode 700: $CROSS_BUILD_LOCK_DIR" >&2
     exit 1
 fi
 
@@ -117,11 +135,14 @@ else
     fi
     if ! docker volume inspect "$BUILD_VOLUME" &>/dev/null; then
         docker volume create "$BUILD_VOLUME" >/dev/null
-        run_owned_container "$CACHE_CONTAINER_PREFIX-chown" \
-            -v "$BUILD_VOLUME:/build" \
-            "$IMAGE_NAME" \
-            chown "$HOST_UID:$HOST_GID" /build
     fi
+    # Repair interrupted/legacy cache initialization on every run. Docker can
+    # leave a newly created volume root-owned if the first chown container is
+    # interrupted; the idempotent repair avoids a permanently wedged cache.
+    run_owned_container "$CACHE_CONTAINER_PREFIX-chown" \
+        -v "$BUILD_VOLUME:/build" \
+        "$IMAGE_NAME" \
+        chown "$HOST_UID:$HOST_GID" /build
 
     run_owned_container "$CACHE_CONTAINER_PREFIX-configure" \
         -u "$HOST_UID:$HOST_GID" \

@@ -458,6 +458,21 @@ private slots:
         }
     }
 
+    void testOversizedTransmitWindowIsCapped() {
+        oaa::hu::AVInputChannelHandler handler;
+        handler.setCaptureController([](bool) { return true; });
+        handler.onChannelOpened();
+
+        oaa::proto::messages::AVInputOpenRequest request;
+        request.set_open(true);
+        request.set_max_unacked(std::numeric_limits<int32_t>::max());
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, serialize(request));
+
+        for (uint64_t timestamp = 1; timestamp <= 24; ++timestamp)
+            QVERIFY(handler.sendMicData(QByteArray(320, '\x01'), timestamp));
+        QVERIFY(!handler.sendMicData(QByteArray(320, '\x02'), 25));
+    }
+
     void testChannelCloseStopsCapture() {
         oaa::hu::AVInputChannelHandler handler;
         QList<bool> controllerCalls;

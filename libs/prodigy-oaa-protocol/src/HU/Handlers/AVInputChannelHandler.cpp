@@ -5,6 +5,7 @@
 
 #include <QtEndian>
 
+#include <algorithm>
 #include <utility>
 
 #include "oaa/av/AVChannelSetupRequestMessage.pb.h"
@@ -16,6 +17,10 @@
 
 namespace oaa {
 namespace hu {
+
+namespace {
+constexpr int32_t kMaxTransmitWindow = 24;
+}
 
 AVInputChannelHandler::AVInputChannelHandler(QObject* parent)
     : oaa::IChannelHandler(parent)
@@ -132,7 +137,7 @@ void AVInputChannelHandler::handleInputOpenRequest(const QByteArray& payload)
     // A repeated OPEN starts a fresh generation. Stop the prior capture before
     // asking the application to create its replacement, and reset all permits.
     stopCapture();
-    maxUnacked_ = requestedWindow > 0 ? requestedWindow : 1;
+    maxUnacked_ = std::clamp(requestedWindow, int32_t{1}, kMaxTransmitWindow);
     unacked_ = 0;
 
     bool success = false;

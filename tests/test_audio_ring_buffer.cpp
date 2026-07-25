@@ -90,6 +90,22 @@ private slots:
         QCOMPARE(std::memcmp(out, first, sizeof(out)), 0);
     }
 
+    void overflowEpochSurvivesDiagnosticCounterReset()
+    {
+        oap::AudioRingBuffer rb(8);
+        const uint8_t full[] = {1, 2, 3, 4, 5, 6, 7, 8};
+        const uint8_t overflow[] = {9, 10};
+
+        QCOMPARE(rb.writeAllOrDrop(full, sizeof(full)), 8u);
+        QCOMPARE(rb.writeAllOrDrop(overflow, sizeof(overflow)), 0u);
+        QCOMPARE(rb.dropEpoch(), uint32_t(1));
+        QCOMPARE(rb.resetDropCount(), uint32_t(1));
+        QCOMPARE(rb.dropEpoch(), uint32_t(1));
+
+        QCOMPARE(rb.writeAllOrDrop(overflow, sizeof(overflow)), 0u);
+        QCOMPARE(rb.dropEpoch(), uint32_t(2));
+    }
+
     void resetClearsBuffer()
     {
         oap::AudioRingBuffer rb(1024);

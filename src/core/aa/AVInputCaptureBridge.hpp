@@ -53,6 +53,7 @@ public:
 private:
     void drainOnce();
     void purgeQueuedPcm();
+    bool recordOverflowEvents(uint32_t currentEpoch, const char* context);
     static uint64_t monotonicTimestampUs();
 
     oap::AudioRingBuffer ring_{RingCapacity};
@@ -64,6 +65,7 @@ private:
     double gain_ = 1.0;
     bool active_ = false;
     bool waitingForWindow_ = false;
+    uint32_t observedDropEpoch_ = 0;
     uint64_t droppedFrames_ = 0;
 };
 

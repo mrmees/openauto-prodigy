@@ -73,7 +73,8 @@ session teardown use the same idempotent stop path.
 ### 2. Enforce the phone's AVInput transmit window
 
 For each successful open, the handler resets outstanding sends and adopts a
-positive `max_unacked`; a missing or non-positive value falls back to one.
+positive `max_unacked` capped at 24, the recovered protocol's established
+upper bound; a missing or non-positive value falls back to one.
 `sendMicData()` runs only on the Qt owner thread, returns whether it accepted a
 frame, and refuses to emit after close or once outstanding frames reach the
 negotiated window.
