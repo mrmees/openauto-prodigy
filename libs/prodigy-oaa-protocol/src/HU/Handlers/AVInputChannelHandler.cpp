@@ -82,13 +82,18 @@ void AVInputChannelHandler::handleSetupRequest(const QByteArray& payload)
         return;
     }
 
+    const bool supported = request.media_codec_type()
+        == oaa::proto::enums::MediaCodecType::MEDIA_CODEC_AUDIO_PCM;
     qInfo() << "[AVInputChannel] setup request, codec:"
-            << request.media_codec_type();
+            << request.media_codec_type() << "supported:" << supported;
 
     oaa::proto::messages::AVChannelSetupResponse response;
-    response.set_media_status(oaa::proto::enums::AVChannelSetupStatus::OK);
+    response.set_media_status(supported
+        ? oaa::proto::enums::AVChannelSetupStatus::OK
+        : oaa::proto::enums::AVChannelSetupStatus::FAIL);
     response.set_max_unacked(1);
-    response.add_configs(0);
+    if (supported)
+        response.add_configs(0);
 
     QByteArray data(response.ByteSizeLong(), '\0');
     response.SerializeToArray(data.data(), data.size());

@@ -147,9 +147,11 @@ lives in a persistent Docker volume keyed by the host UID and canonical checkout
 path; builds using the same cache are serialized. Only the final binary is
 copied to `build-pi/src/openauto-prodigy`. This avoids writing the cross-build
 tree through the Windows/9p source mount without sharing stale objects across
-clones or worktrees. Use `--reset-cache` to recreate that app-only cache. Pass
-`--full` to retain the legacy host-visible build tree and also build the ARM test
-binaries (~20 min).
+clones or worktrees. Fast and full modes share a checkout publication lock;
+deterministically named containers are cleaned up after an interrupted build so
+an orphan cannot keep mutating the cache. Use `--reset-cache` to recreate that
+app-only cache. Pass `--full` to retain the legacy host-visible build tree and
+also build the ARM test binaries (~20 min).
 
 Prebuilt release convention:
 - Asset: `openauto-prodigy-prebuilt-<tag>-pi4-aarch64.tar.gz`

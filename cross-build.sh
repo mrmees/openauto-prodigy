@@ -25,6 +25,43 @@ for arg in "$@"; do
     fi
 done
 
+BUILD_JOBS="${CROSS_BUILD_JOBS:-$(nproc)}"
+HOST_UID="$(id -u)"
+HOST_GID="$(id -g)"
+REPO_CACHE_KEY="$(printf '%s' "$SCRIPT_DIR" | sha256sum | cut -c1-12)"
+CROSS_BUILD_LOCK_DIR="${XDG_RUNTIME_DIR:-/tmp}"
+if [[ ! -d "$CROSS_BUILD_LOCK_DIR" ]]; then
+    echo "Cross-build lock directory does not exist: $CROSS_BUILD_LOCK_DIR" >&2
+    exit 1
+fi
+
+# Fast and full modes both publish build-pi/src/openauto-prodigy. Serialize the
+# entire checkout workflow so they cannot race while replacing that artifact.
+exec 9>"$CROSS_BUILD_LOCK_DIR/openauto-prodigy-cross-checkout-$REPO_CACHE_KEY.lock"
+flock 9
+
+ACTIVE_CONTAINER=""
+cleanup_active_container() {
+    if [[ -n "$ACTIVE_CONTAINER" ]]; then
+        docker rm -f "$ACTIVE_CONTAINER" >/dev/null 2>&1 || true
+    fi
+}
+trap cleanup_active_container EXIT
+trap 'exit 130' HUP INT TERM
+
+remove_stale_container() {
+    docker rm -f "$1" >/dev/null 2>&1 || true
+}
+
+run_owned_container() {
+    local container_name="$1"
+    shift
+    remove_stale_container "$container_name"
+    ACTIVE_CONTAINER="$container_name"
+    docker run --name "$container_name" --rm "$@"
+    ACTIVE_CONTAINER=""
+}
+
 # Build Docker image if it doesn't exist
 DOCKERFILE="$SCRIPT_DIR/docker/Dockerfile.cross-pi4"
 if ! docker image inspect "$IMAGE_NAME" &>/dev/null; then
@@ -33,9 +70,10 @@ if ! docker image inspect "$IMAGE_NAME" &>/dev/null; then
 fi
 
 echo "==> Cross-compiling for Pi 4 (aarch64)..."
-BUILD_JOBS="${CROSS_BUILD_JOBS:-$(nproc)}"
-HOST_UID="$(id -u)"
-HOST_GID="$(id -g)"
+CHECKOUT_CONTAINER_PREFIX="openauto-prodigy-pi4-$HOST_UID-$REPO_CACHE_KEY"
+remove_stale_container "$CHECKOUT_CONTAINER_PREFIX-full-configure"
+remove_stale_container "$CHECKOUT_CONTAINER_PREFIX-full-build"
+remove_stale_container "$CHECKOUT_CONTAINER_PREFIX-publish"
 
 if [[ "$FULL_BUILD" -eq 1 ]]; then
     if [[ "$RESET_CACHE" -eq 1 ]]; then
@@ -45,14 +83,14 @@ if [[ "$FULL_BUILD" -eq 1 ]]; then
 
     echo "Full mode: host-visible ARM test binaries; intermediates remain in build-pi"
     mkdir -p "$SCRIPT_DIR/build-pi"
-    docker run --rm \
+    run_owned_container "$CHECKOUT_CONTAINER_PREFIX-full-configure" \
         -u "$HOST_UID:$HOST_GID" \
         -v "$SCRIPT_DIR:/src:rw" \
         "$IMAGE_NAME" \
         cmake -S /src -B /src/build-pi \
             -DCMAKE_TOOLCHAIN_FILE=/src/docker/toolchain-pi4-docker.cmake \
             "${CMAKE_ARGS[@]}"
-    docker run --rm \
+    run_owned_container "$CHECKOUT_CONTAINER_PREFIX-full-build" \
         -u "$HOST_UID:$HOST_GID" \
         -v "$SCRIPT_DIR:/src:rw" \
         "$IMAGE_NAME" \
@@ -61,29 +99,31 @@ else
     # Docker named volumes live on the Linux filesystem inside Docker's WSL2
     # VM. Keep high-churn CMake/object files there; the Windows/9p source mount
     # stays read-only and receives only the final deploy/package binary.
-    REPO_CACHE_KEY="$(printf '%s' "$SCRIPT_DIR" | sha256sum | cut -c1-12)"
     BUILD_VOLUME="${CROSS_BUILD_VOLUME:-openauto-prodigy-pi4-build-$HOST_UID-$REPO_CACHE_KEY}"
     echo "Fast mode: app target only; cache volume: $BUILD_VOLUME"
 
     # A named volume is a single mutable CMake tree. Serialize users of the
-    # same volume so concurrent shells cannot configure/build it at once.
+    # same volume even when an override shares it across checkouts.
     VOLUME_LOCK_KEY="$(printf '%s' "$BUILD_VOLUME" | sha256sum | cut -c1-12)"
-    CROSS_BUILD_LOCK_DIR="${XDG_RUNTIME_DIR:-/tmp}"
-    exec 9>"$CROSS_BUILD_LOCK_DIR/openauto-prodigy-cross-$VOLUME_LOCK_KEY.lock"
-    flock 9
+    exec 8>"$CROSS_BUILD_LOCK_DIR/openauto-prodigy-cross-volume-$VOLUME_LOCK_KEY.lock"
+    flock 8
+    CACHE_CONTAINER_PREFIX="openauto-prodigy-pi4-cache-$HOST_UID-$VOLUME_LOCK_KEY"
+    remove_stale_container "$CACHE_CONTAINER_PREFIX-chown"
+    remove_stale_container "$CACHE_CONTAINER_PREFIX-configure"
+    remove_stale_container "$CACHE_CONTAINER_PREFIX-build"
 
     if [[ "$RESET_CACHE" -eq 1 ]] && docker volume inspect "$BUILD_VOLUME" &>/dev/null; then
         docker volume rm "$BUILD_VOLUME" >/dev/null
     fi
     if ! docker volume inspect "$BUILD_VOLUME" &>/dev/null; then
         docker volume create "$BUILD_VOLUME" >/dev/null
-        docker run --rm \
+        run_owned_container "$CACHE_CONTAINER_PREFIX-chown" \
             -v "$BUILD_VOLUME:/build" \
             "$IMAGE_NAME" \
             chown "$HOST_UID:$HOST_GID" /build
     fi
 
-    docker run --rm \
+    run_owned_container "$CACHE_CONTAINER_PREFIX-configure" \
         -u "$HOST_UID:$HOST_GID" \
         -v "$SCRIPT_DIR:/src:ro" \
         -v "$BUILD_VOLUME:/build:rw" \
@@ -91,7 +131,7 @@ else
         cmake -S /src -B /build \
             -DCMAKE_TOOLCHAIN_FILE=/src/docker/toolchain-pi4-docker.cmake \
             "${CMAKE_ARGS[@]}"
-    docker run --rm \
+    run_owned_container "$CACHE_CONTAINER_PREFIX-build" \
         -u "$HOST_UID:$HOST_GID" \
         -v "$SCRIPT_DIR:/src:ro" \
         -v "$BUILD_VOLUME:/build:rw" \
@@ -99,7 +139,7 @@ else
         cmake --build /build "-j$BUILD_JOBS" --target openauto-prodigy
 
     mkdir -p "$SCRIPT_DIR/build-pi/src"
-    docker run --rm \
+    run_owned_container "$CHECKOUT_CONTAINER_PREFIX-publish" \
         -u "$HOST_UID:$HOST_GID" \
         -v "$BUILD_VOLUME:/build:ro" \
         -v "$SCRIPT_DIR/build-pi:/out:rw" \

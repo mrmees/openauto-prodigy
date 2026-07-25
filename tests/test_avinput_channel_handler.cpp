@@ -73,6 +73,28 @@ private slots:
                  static_cast<uint16_t>(oaa::AVMessageId::AV_MEDIA_WITH_TIMESTAMP));
     }
 
+    void testSetupRejectsUnsupportedCodec() {
+        oaa::hu::AVInputChannelHandler handler;
+        handler.onChannelOpened();
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        oaa::proto::messages::AVChannelSetupRequest setup;
+        setup.set_media_codec_type(
+            oaa::proto::enums::MediaCodecType::MEDIA_CODEC_AUDIO_AAC_LC);
+        handler.onMessage(oaa::AVMessageId::SETUP_REQUEST, serialize(setup));
+
+        QCOMPARE(sendSpy.count(), 1);
+        QCOMPARE(sendSpy[0][1].value<uint16_t>(),
+                 static_cast<uint16_t>(oaa::AVMessageId::SETUP_RESPONSE));
+        oaa::proto::messages::AVChannelSetupResponse response;
+        const QByteArray payload = sendSpy[0][2].toByteArray();
+        QVERIFY(response.ParseFromArray(payload.constData(), payload.size()));
+        QCOMPARE(response.media_status(),
+                 oaa::proto::enums::AVChannelSetupStatus::FAIL);
+        QCOMPARE(response.max_unacked(), 1u);
+        QCOMPARE(response.configs_size(), 0);
+    }
+
     void testInputOpenRequestStartsCapture() {
         oaa::hu::AVInputChannelHandler handler;
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
