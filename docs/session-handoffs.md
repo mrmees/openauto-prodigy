@@ -82,50 +82,24 @@ required by the completed fixed-geometry design; and the dormant private codec
 failure seam predates this feature, cannot be armed by production code, and
 its friend definitions live in separate test executables.
 
-The incremental rerun on those fixes produced two Codex P2s and four Opus
-findings. The sink rollback issue was confirmed and fixed with centralized
-claim rollback plus a direct-decoder-observer regression. The legacy close
-request was dismissed for this PR because adopting it would restore the
-shared-channel lifecycle expansion that the whole-range Opus blocker required
-us to remove; the compatibility waiver is now one-shot warned and documented
-in the live AA reference for separate research. Opus's unreachable MAIN close
-branch and missing compatibility diagnostics were confirmed and removed or
-documented, its matching sink finding was fixed, and the verification-scope
-wording was confirmed for clarification after the final rerun. Both gates
-must rerun on this latest delta before publication.
+The incremental reruns also confirmed and corrected the broken AA-reference
+table placement, missing compatibility diagnostics, and verification wording.
+The legacy all-channel close request remained dismissed because it would
+restore the shared lifecycle expansion the whole-range blocker required us to
+remove; the temporary compatibility waiver is one-shot warned and documented
+for separate protocol research.
 
-That rerun found the remaining defensive rollback could emit availability
-before a failed attachment unwound or leave a reentrant replacement sink in
-the decoder. Both were confirmed and fixed by suppressing the unpublished
-transition and deferring any published rollback notification. The broken
-AA-reference table placement, ambiguous final-cross-build wording, missing
-intentional-scope comment, and loose warning-test pattern were also confirmed
-and corrected. The request to implement all-channel close handling remained
-dismissed as the separately documented compatibility waiver.
-
-The next incremental pair confirmed that the decoder-wide signal blocker used
-for rollback could race with worker-thread stream signals, suppress the final
-`videoSinkChanged` notification, and left the deferred rollback branch
-untested. The blocker and dead guard were removed: rollback now publishes
-session ownership first, clears the decoder without suppressing signals, and
-queues availability only while the sink remains free. Regression coverage now
-observes the decoder's final null state, exercises the deferred notification,
-and prevents a stale notification after an intervening claim. No findings
-were dismissed from this pair. Publication requires a clean rerun after the
-full native and aarch64 gates on this production delta.
-
-That rerun found one supported reentrancy hole: a decoder notification could
-reclaim the same session sink during rollback, leaving the outer caller with a
-false ownership result. It was confirmed and fixed with a narrow session-owned
-rollback guard and a regression test. Opus's ambiguous cross-build record was
-also confirmed and corrected. Its direct decoder re-install concern was
-dismissed because setting a non-null decoder sink outside the session is not a
-supported ownership path and has no production consumer; the fault-injection
-test was renamed to state its narrower invariant. Its exact signal-count
-clarity issue was fixed with an enumerating comment. A redundant deferred
-NOTIFY after an unrelated claim/detach cycle was dismissed as harmless: Qt
-consumers must re-read the property, and the QML handler already does so.
-Publication still requires one clean incremental rerun on this final delta.
+The remaining review loop focused on hypothetical synchronous observers of
+`VideoDecoder::videoSinkChanged`. A repository-wide search found no production
+consumer of that signal, and direct non-null decoder sink mutation is outside
+the ownership contract: production consumers use
+`ProjectedDisplaySession::attachVideoSink` and `detachVideoSink`. Defensive
+changes for the unsupported path repeatedly created new callback-order cases,
+so they and their fault-injection tests were removed. The retained code covers
+the supported public contract, including an observer that releases through
+`detachVideoSink` during the availability notification. Publication requires
+one bounded final review against that explicit production contract after the
+full native and aarch64 gates.
 
 **Verification:** the full native build, explicit `openauto-prodigy` target,
 `QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, `git diff --check`, and
@@ -134,10 +108,10 @@ also passed; the repository-wide checker reported only the known external-tree
 references in the user-owned untracked wishlist baseline, which remained
 untouched. `./cross-build.sh` produced the deployed accepted aarch64
 application with compiled-in QML. The latest production review-fix delta and
-the final signal-safe production tree were each cross-built successfully;
-subsequent edits only record those verification and review results. Any future
-production change must repeat the final-tree native and aarch64 gates. For the
-accepted bench,
+the last committed production tree were each cross-built successfully. The
+contract-bounding cleanup must repeat the final-tree native and aarch64 gates
+before publication; any future production change carries the same requirement.
+For the accepted bench,
 local, staged, and installed artifact hashes matched. The guarded config edit
 changed only `col_span` and `row_span`; the target 3×3 cells were
 collision-free. The service remained active with zero restarts and one
@@ -145,9 +119,9 @@ systemd-owned executable. Live journal evidence recorded both CLUSTER channel
 opens, an exact 800×480 first decoded frame, Rendering state, and no geometry
 mismatch.
 
-**Next 1-3 steps:** (1) publish and merge PR #40 after the unbounded Opus rerun
-and CI are green; (2) verify the CLUSTER-only review-hardening lifecycle changes during the
-next routine Pi/Pixel session; (3) choose and promote the next bounded item
+**Next 1-3 steps:** (1) publish and merge PR #40 after the bounded final review
+and CI are green; (2) verify the CLUSTER-only lifecycle changes during the next
+routine Pi/Pixel session; (3) choose and promote the next bounded item
 from the qualified wishlist rather than extending this completed experiment in
 place.
 

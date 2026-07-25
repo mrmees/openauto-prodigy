@@ -3,7 +3,6 @@
 #include "../Logging.hpp"
 #include "../YamlConfig.hpp"
 
-#include <QScopedValueRollback>
 #include <QThread>
 #include <QVideoFrame>
 
@@ -373,8 +372,6 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
     Q_ASSERT(QThread::currentThread() == thread());
     if (!sink || !decoder_)
         return false;
-    if (sinkRollbackActive_)
-        return false;
     if (sink_ == sink)
         return true;
     if (sink_) {
@@ -401,46 +398,16 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
                                   << "sink released on destruction";
         });
 
-    const auto rollbackClaim = [this, claimedSink](bool availabilityPublished) {
-        if (sink_ != claimedSink)
-            return;
-        QScopedValueRollback<bool> rollbackGuard(sinkRollbackActive_, true);
-        disconnect(sinkDestroyedConnection_);
-        sink_.clear();
-        sinkClaimRejectionLogged_ = false;
-        // Clear ownership before changing the decoder so a videoSinkChanged
-        // observer sees the stable session state and may safely claim a new
-        // sink. Do not block decoder signals: its stream lifecycle signals can
-        // be emitted concurrently by the decode worker.
-        if (decoder_)
-            decoder_->setVideoSink(nullptr);
-        if (availabilityPublished) {
-            QMetaObject::invokeMethod(
-                this,
-                [this]() {
-                    // A new claim may land before this reentrancy escape runs.
-                    if (isVideoSinkAvailable())
-                        emit videoSinkAvailabilityChanged();
-                },
-                Qt::QueuedConnection);
-        }
-    };
-
+    // ProjectedDisplaySession exclusively owns non-null decoder sink changes.
+    // Production consumers claim and release through this API, never through
+    // VideoDecoder::setVideoSink().
     decoder_->setVideoSink(sink);
-    if (sink_ != claimedSink || decoder_->videoSink() != claimedSink) {
-        rollbackClaim(false);
-        qCWarning(lcAA).noquote() << diagnosticPrefix_
-                                 << "sink claim changed during attachment";
+    if (sink_ != claimedSink || decoder_->videoSink() != claimedSink)
         return false;
-    }
 
     emit videoSinkAvailabilityChanged();
-    if (sink_ != claimedSink || decoder_->videoSink() != claimedSink) {
-        rollbackClaim(true);
-        qCWarning(lcAA).noquote() << diagnosticPrefix_
-                                 << "sink claim changed during notification";
+    if (sink_ != claimedSink || decoder_->videoSink() != claimedSink)
         return false;
-    }
 
     qCInfo(lcAA).noquote() << diagnosticPrefix_ << "sink claimed";
     return true;
