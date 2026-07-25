@@ -91,15 +91,24 @@ for separate protocol research.
 
 The remaining review loop focused on hypothetical synchronous observers of
 `VideoDecoder::videoSinkChanged`. A repository-wide search found no production
-consumer of that signal, and direct non-null decoder sink mutation is outside
-the ownership contract: production consumers use
-`ProjectedDisplaySession::attachVideoSink` and `detachVideoSink`. Defensive
-changes for the unsupported path repeatedly created new callback-order cases,
-so they and their fault-injection tests were removed. The retained code covers
-the supported public contract, including an observer that releases through
-`detachVideoSink` during the availability notification. Publication requires
-one bounded final review against that explicit production contract after the
-full native and aarch64 gates.
+consumer that directly mutates the CLUSTER decoder sink: the cluster widget
+uses `ProjectedDisplaySession::attachVideoSink` and `detachVideoSink`. The MAIN
+display remains a separate exception that binds its own decoder sink directly
+and never calls this ownership API. Defensive changes for unsupported direct
+CLUSTER mutation repeatedly created new callback-order cases, so they and their
+fault-injection tests were removed. The retained code covers the supported
+public contract, including an observer that releases through `detachVideoSink`
+during the availability notification.
+
+The final bounded Codex and Opus reviews reported no supported production P1.
+Their duplicate phantom-claim findings, plus derivative diagnostics and test
+coverage findings, were dismissed because each requires unsupported direct
+mutation of the CLUSTER decoder during a synchronous ownership callback. Their
+shared finding that the ownership wording incorrectly included the MAIN
+display was confirmed and corrected. Opus also correctly identified stale
+verification wording below; the exact final production tree had already passed
+the required gates, so that record is corrected here. No behavior changed in
+this adjudication.
 
 **Verification:** the full native build, explicit `openauto-prodigy` target,
 `QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, `git diff --check`, and
@@ -108,9 +117,8 @@ also passed; the repository-wide checker reported only the known external-tree
 references in the user-owned untracked wishlist baseline, which remained
 untouched. `./cross-build.sh` produced the deployed accepted aarch64
 application with compiled-in QML. The latest production review-fix delta and
-the last committed production tree were each cross-built successfully. The
-contract-bounding cleanup must repeat the final-tree native and aarch64 gates
-before publication; any future production change carries the same requirement.
+the final contract-bounded production tree were each cross-built successfully.
+Any future production change carries the same verification requirement.
 For the accepted bench,
 local, staged, and installed artifact hashes matched. The guarded config edit
 changed only `col_span` and `row_span`; the target 3×3 cells were

@@ -398,9 +398,9 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
                                   << "sink released on destruction";
         });
 
-    // ProjectedDisplaySession exclusively owns non-null decoder sink changes.
-    // Production consumers claim and release through this API, never through
-    // VideoDecoder::setVideoSink().
+    // The CLUSTER widget exclusively changes this session's non-null decoder
+    // sink through attach/detach. The MAIN session still binds its separate
+    // decoder sink directly and does not call this ownership API.
     decoder_->setVideoSink(sink);
     if (sink_ != claimedSink || decoder_->videoSink() != claimedSink)
         return false;
