@@ -50,10 +50,10 @@ ProjectedDisplaySession::ProjectedDisplaySession(
     , videoHandler_(videoChannelId, focusModeFor(setupFocus))
     , inputHandler_(inputChannelId)
 {
-    decoder_.setYamlConfig(yamlConfig);
-    decoder_.setDiagnosticLabel(diagnosticPrefix_);
-
     if (enabled_) {
+        decoder_ = std::make_unique<VideoDecoder>();
+        decoder_->setYamlConfig(yamlConfig);
+        decoder_->setDiagnosticLabel(diagnosticPrefix_);
         state_ = Disconnected;
         statusText_ = QStringLiteral("Android Auto disconnected");
     } else {
@@ -87,9 +87,9 @@ ProjectedDisplaySession::ProjectedDisplaySession(
             });
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::streamStarted,
             this, [this](int32_t session, uint32_t configIndex) {
-                if (!protocolActive_)
+                if (!protocolActive_ || !decoder_)
                     return;
-                activeDecoderGeneration_ = decoder_.beginStream();
+                activeDecoderGeneration_ = decoder_->beginStream();
                 firstDecodedLogged_ = false;
                 qCInfo(lcAA).noquote() << diagnosticPrefix_
                                       << "stream started session=" << session
@@ -106,11 +106,11 @@ ProjectedDisplaySession::ProjectedDisplaySession(
             });
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::streamStopped,
             this, [this]() {
-                if (!protocolActive_)
+                if (!protocolActive_ || !decoder_)
                     return;
                 qCInfo(lcAA).noquote() << diagnosticPrefix_ << "stream stopped";
                 activeDecoderGeneration_ = 0;
-                decoder_.endStream();
+                decoder_->endStream();
                 setState(videoChannelOpen_ ? WaitingForFrames
                                            : WaitingForChannel,
                          videoChannelOpen_
@@ -130,8 +130,10 @@ ProjectedDisplaySession::ProjectedDisplaySession(
             this,
             [this](std::shared_ptr<const QByteArray> data,
                    qint64 enqueueTimeNs) {
-                if (!protocolActive_ || activeDecoderGeneration_ == 0)
+                if (!protocolActive_ || !decoder_
+                    || activeDecoderGeneration_ == 0) {
                     return;
+                }
                 if (!firstMediaLogged_) {
                     firstMediaLogged_ = true;
                     qCInfo(lcAA).noquote() << diagnosticPrefix_
@@ -139,17 +141,20 @@ ProjectedDisplaySession::ProjectedDisplaySession(
                                           << (data ? data->size() : 0);
                 }
                 maybeLogFrameSummary();
-                decoder_.decodeFrame(std::move(data), enqueueTimeNs);
+                decoder_->decodeFrame(std::move(data), enqueueTimeNs);
             },
             Qt::DirectConnection);
-    connect(&decoder_, &VideoDecoder::frameReadyForGeneration,
+    if (!decoder_)
+        return;
+
+    connect(decoder_.get(), &VideoDecoder::frameReadyForGeneration,
             this, [this](quint64 generation) {
                 if (!protocolActive_ || generation == 0
                     || generation != activeDecoderGeneration_) {
                     return;
                 }
 
-                QVideoFrame frame = decoder_.takeLatestFrame();
+                QVideoFrame frame = decoder_->takeLatestFrame();
                 if (frame.isValid()) {
                     if (!firstDecodedLogged_) {
                         firstDecodedLogged_ = true;
@@ -162,7 +167,7 @@ ProjectedDisplaySession::ProjectedDisplaySession(
                 }
                 setState(Rendering, QStringLiteral("Rendering projected display"));
             });
-    connect(&decoder_, &VideoDecoder::streamError,
+    connect(decoder_.get(), &VideoDecoder::streamError,
             this, [this](quint64 generation, const QString& message) {
                 if (!protocolActive_ || generation == 0
                     || generation != activeDecoderGeneration_) {
@@ -172,7 +177,7 @@ ProjectedDisplaySession::ProjectedDisplaySession(
                                          << "decoder error:" << message;
                 setState(Error, message);
             });
-    connect(&decoder_, &VideoDecoder::streamEnded,
+    connect(decoder_.get(), &VideoDecoder::streamEnded,
             this, [this](quint64 generation) {
                 qCInfo(lcAA).noquote() << diagnosticPrefix_
                                       << "decoder ended generation="
@@ -184,9 +189,11 @@ ProjectedDisplaySession::~ProjectedDisplaySession()
 {
     protocolActive_ = false;
     activeDecoderGeneration_ = 0;
-    decoder_.endStream();
-    if (decoder_.videoSink())
-        decoder_.setVideoSink(nullptr);
+    if (decoder_) {
+        decoder_->endStream();
+        if (decoder_->videoSink())
+            decoder_->setVideoSink(nullptr);
+    }
     disconnect(sinkDestroyedConnection_);
     qCInfo(lcAA).noquote() << diagnosticPrefix_ << "display session destroyed";
 }
@@ -225,7 +232,8 @@ void ProjectedDisplaySession::endProtocolSession()
     protocolActive_ = false;
     videoChannelOpen_ = false;
     activeDecoderGeneration_ = 0;
-    decoder_.endStream();
+    if (decoder_)
+        decoder_->endStream();
     qCInfo(lcAA).noquote() << diagnosticPrefix_
                           << "protocol end generation="
                           << endedProtocolGeneration;
@@ -258,7 +266,8 @@ void ProjectedDisplaySession::noteChannelRejected(int32_t channelId)
     qCWarning(lcAA).noquote() << diagnosticPrefix_
                              << "channel rejected id=" << channelId;
     activeDecoderGeneration_ = 0;
-    decoder_.endStream();
+    if (decoder_)
+        decoder_->endStream();
     setState(Rejected,
              QStringLiteral("Phone rejected projected display"));
 }
@@ -266,7 +275,7 @@ void ProjectedDisplaySession::noteChannelRejected(int32_t channelId)
 bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
 {
     Q_ASSERT(QThread::currentThread() == thread());
-    if (!sink)
+    if (!sink || !decoder_)
         return false;
     if (sink_ == sink)
         return true;
@@ -277,13 +286,13 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
     }
 
     sink_ = sink;
-    decoder_.setVideoSink(sink);
+    decoder_->setVideoSink(sink);
     QVideoSink* claimedSink = sink;
     sinkDestroyedConnection_ = connect(
         sink, &QObject::destroyed, this, [this, claimedSink]() {
-            if (decoder_.videoSink() != claimedSink)
+            if (!decoder_ || decoder_->videoSink() != claimedSink)
                 return;
-            decoder_.setVideoSink(nullptr);
+            decoder_->setVideoSink(nullptr);
             sink_.clear();
             qCInfo(lcAA).noquote() << diagnosticPrefix_
                                   << "sink released on destruction";
@@ -299,7 +308,7 @@ void ProjectedDisplaySession::detachVideoSink(QVideoSink* sink)
         return;
 
     disconnect(sinkDestroyedConnection_);
-    decoder_.setVideoSink(nullptr);
+    decoder_->setVideoSink(nullptr);
     sink_.clear();
     qCInfo(lcAA).noquote() << diagnosticPrefix_ << "sink released";
 }

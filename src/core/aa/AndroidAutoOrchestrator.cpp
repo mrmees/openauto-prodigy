@@ -38,6 +38,20 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
     oap::IEventBus* eventBus,
     oap::EqualizerService* eqService,
     QObject* parent)
+    : AndroidAutoOrchestrator(configService, audioService, yamlConfig,
+                              ProjectedClusterConfig{}, eventBus, eqService,
+                              parent)
+{
+}
+
+AndroidAutoOrchestrator::AndroidAutoOrchestrator(
+    oap::IConfigService* configService,
+    oap::IAudioService* audioService,
+    oap::YamlConfig* yamlConfig,
+    const ProjectedClusterConfig& clusterConfig,
+    oap::IEventBus* eventBus,
+    oap::EqualizerService* eqService,
+    QObject* parent)
     : QObject(parent)
     , configService_(configService)
     , audioService_(audioService)
@@ -45,12 +59,56 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
     , yamlConfig_(yamlConfig)
     , eventBus_(eventBus)
     , eqService_(eqService)
+    , projectedClusterConfig_(clusterConfig)
+    , mainDisplay_(ProjectedDisplayRole::Main,
+                   kMainDisplayId,
+                   oaa::ChannelId::Video,
+                   oaa::ChannelId::Input,
+                   true,
+                   ProjectedSetupFocus::Projected,
+                   yamlConfig)
+    , clusterDisplay_(ProjectedDisplayRole::Cluster,
+                      kClusterDisplayId,
+                      oaa::ChannelId::ClusterVideo,
+                      oaa::ChannelId::ClusterInput,
+                      clusterConfig.enabled,
+                      clusterConfig.setupFocus,
+                      yamlConfig)
 {
     // Wire TouchHandler to InputChannelHandler
-    touchHandler_.setHandler(&inputHandler_);
+    touchHandler_.setHandler(mainDisplay_.inputHandler());
 
-    // Give VideoDecoder access to config for hw decoder selection
-    videoDecoder_.setYamlConfig(yamlConfig_);
+    // MAIN alone owns application-wide projected/native focus transitions.
+    connect(mainDisplay_.videoHandler(),
+            &oaa::hu::VideoChannelHandler::videoFocusChanged,
+            this, [this](int focusMode, bool) {
+                // 1=PROJECTED, 2=NATIVE, 3=NATIVE_TRANSIENT,
+                // 4=PROJECTED_NO_INPUT_FOCUS.
+                if (focusMode == 2 && state_ == Connected) {
+                    qCInfo(lcAA) << "Video focus lost — exit to car";
+                    setState(Backgrounded,
+                             "Android Auto running in background");
+                } else if (focusMode == 1 && state_ == Backgrounded) {
+                    qCInfo(lcAA) << "Video focus gained — returning to projection";
+                    setState(Connected, "Android Auto active");
+                }
+            });
+    connect(mainDisplay_.videoHandler(),
+            &oaa::hu::VideoChannelHandler::setupRequested,
+            this, [this](int) { lastProjectedActivityWasCluster_ = false; });
+    connect(clusterDisplay_.videoHandler(),
+            &oaa::hu::VideoChannelHandler::setupRequested,
+            this, [this](int) { lastProjectedActivityWasCluster_ = true; });
+    connect(mainDisplay_.videoHandler(),
+            &oaa::hu::VideoChannelHandler::videoFrameData,
+            this, [this](const auto&, qint64) {
+                lastProjectedActivityWasCluster_ = false;
+            }, Qt::DirectConnection);
+    connect(clusterDisplay_.videoHandler(),
+            &oaa::hu::VideoChannelHandler::videoFrameData,
+            this, [this](const auto&, qint64) {
+                lastProjectedActivityWasCluster_ = true;
+            }, Qt::DirectConnection);
 
     // AVInput requests are handled synchronously on this Qt owner thread so an
     // immediate PipeWire failure can be reported honestly before the response.
@@ -292,6 +350,7 @@ void AndroidAutoOrchestrator::onNewConnection()
     }
 
     activeSocket_ = socket;
+    lastProjectedActivityWasCluster_ = false;
 
     // Create transport
     transport_ = new oaa::TCPTransport(this);
@@ -318,6 +377,7 @@ void AndroidAutoOrchestrator::onNewConnection()
                                      yamlConfig_ ? yamlConfig_->wifiSsid() : QString(),
                                      yamlConfig_ ? yamlConfig_->wifiPassword() : QString(),
                                      wifiBssid);
+    builder.setProjectedClusterConfig(projectedClusterConfig_);
     if (displayW_ > 0 && displayH_ > 0)
         builder.setDisplayDimensions(displayW_, displayH_);
     builder.setNavbarThickness(navbarThickness_);
@@ -326,8 +386,20 @@ void AndroidAutoOrchestrator::onNewConnection()
     // Create session
     session_ = new oaa::AASession(transport_, config, this);
 
-    // Setup response must enumerate exactly the configs in this descriptor.
-    videoHandler_.setNumVideoConfigs(builder.videoConfigCount());
+    // Setup responses must enumerate exactly the configs in each descriptor.
+    mainDisplay_.setAdvertisedVideoConfigCount(
+        builder.videoConfigCount(ProjectedDisplayRole::Main));
+    clusterDisplay_.setAdvertisedVideoConfigCount(
+        builder.videoConfigCount(ProjectedDisplayRole::Cluster));
+
+    qCInfo(lcAA) << "Projected display descriptor:"
+                 << "role=MAIN display=0 video_ch=3 input_ch=1 configs="
+                 << builder.videoConfigCount(ProjectedDisplayRole::Main);
+    if (projectedClusterConfig_.enabled) {
+        qCInfo(lcAA) << "Projected display descriptor:"
+                     << "role=CLUSTER display=1 video_ch=12 input_ch=13 configs="
+                     << builder.videoConfigCount(ProjectedDisplayRole::Cluster);
+    }
 
     // Register all known channel handlers.
     //
@@ -335,15 +407,13 @@ void AndroidAutoOrchestrator::onNewConnection()
     //   SpeechAudio(5), SystemAudio(6), AVInput(7), Bluetooth(8),
     //   Navigation(9), MediaStatus(10), PhoneStatus(11), WiFi(14)
     //
-    // Intentionally unregistered (no handler yet):
-    //   Channel 12, 13 — purpose unknown; any messages on these channels
-    //   will be logged by AASession with [AA:unhandled] prefix + hex payload
-    //   for future protocol discovery.
-    session_->registerChannel(oaa::ChannelId::Video, &videoHandler_);
+    session_->registerChannel(oaa::ChannelId::Video,
+                              mainDisplay_.videoHandler());
     session_->registerChannel(oaa::ChannelId::MediaAudio, &mediaAudioHandler_);
     session_->registerChannel(oaa::ChannelId::SpeechAudio, &speechAudioHandler_);
     session_->registerChannel(oaa::ChannelId::SystemAudio, &systemAudioHandler_);
-    session_->registerChannel(oaa::ChannelId::Input, &inputHandler_);
+    session_->registerChannel(oaa::ChannelId::Input,
+                              mainDisplay_.inputHandler());
     session_->registerChannel(oaa::ChannelId::Sensor, &sensorHandler_);
     session_->registerChannel(oaa::ChannelId::Bluetooth, &btHandler_);
     session_->registerChannel(oaa::ChannelId::WiFi, wifiHandler_.get());
@@ -351,43 +421,58 @@ void AndroidAutoOrchestrator::onNewConnection()
     session_->registerChannel(oaa::ChannelId::Navigation, &navHandler_);
     session_->registerChannel(oaa::ChannelId::MediaStatus, &mediaStatusHandler_);
     session_->registerChannel(oaa::ChannelId::PhoneStatus, &phoneStatusHandler_);
+    if (projectedClusterConfig_.enabled) {
+        session_->registerChannel(oaa::ChannelId::ClusterVideo,
+                                  clusterDisplay_.videoHandler());
+        session_->registerChannel(oaa::ChannelId::ClusterInput,
+                                  clusterDisplay_.inputHandler());
+    }
 
     // Connect session signals
     connect(session_, &oaa::AASession::stateChanged,
             this, &AndroidAutoOrchestrator::onSessionStateChanged);
     connect(session_, &oaa::AASession::disconnected,
             this, &AndroidAutoOrchestrator::onSessionDisconnected);
+    connect(session_, &oaa::AASession::channelOpened,
+            this, [this](uint8_t channelId) {
+                if (channelId == mainDisplay_.videoChannelId()
+                    || channelId == mainDisplay_.inputChannelId()) {
+                    lastProjectedActivityWasCluster_ = false;
+                    qCInfo(lcAA) << "Projected channel opened:"
+                                 << "role=MAIN display=0 wire=" << channelId;
+                    mainDisplay_.noteChannelOpened(channelId);
+                } else if (projectedClusterConfig_.enabled
+                           && (channelId == clusterDisplay_.videoChannelId()
+                               || channelId == clusterDisplay_.inputChannelId())) {
+                    lastProjectedActivityWasCluster_ = true;
+                    qCInfo(lcAA) << "Projected channel opened:"
+                                 << "role=CLUSTER display=1 wire=" << channelId;
+                    clusterDisplay_.noteChannelOpened(channelId);
+                }
+            });
+    connect(session_, &oaa::AASession::channelOpenRejected,
+            this, [this](int32_t channelId) {
+                if (channelId == mainDisplay_.videoChannelId()
+                    || channelId == mainDisplay_.inputChannelId()) {
+                    lastProjectedActivityWasCluster_ = false;
+                    qCWarning(lcAA) << "Projected channel rejected:"
+                                    << "role=MAIN display=0 wire=" << channelId;
+                    mainDisplay_.noteChannelRejected(channelId);
+                } else if (projectedClusterConfig_.enabled
+                           && (channelId == clusterDisplay_.videoChannelId()
+                               || channelId == clusterDisplay_.inputChannelId())) {
+                    lastProjectedActivityWasCluster_ = true;
+                    qCWarning(lcAA) << "Projected channel rejected:"
+                                    << "role=CLUSTER display=1 wire=" << channelId;
+                    clusterDisplay_.noteChannelRejected(channelId);
+                }
+            });
     startProtocolCapture();
 
-    // Disconnect handler signals from previous session (prevents duplicates on reconnect)
-    videoHandler_.disconnect(&videoDecoder_);
-    videoHandler_.disconnect(this);
+    // Disconnect per-session audio signals from the previous session.
     mediaAudioHandler_.disconnect(this);
     speechAudioHandler_.disconnect(this);
     systemAudioHandler_.disconnect(this);
-
-    // Wire video frames to decoder
-    qRegisterMetaType<std::shared_ptr<const QByteArray>>();
-    connect(&videoHandler_, &oaa::hu::VideoChannelHandler::streamStarted,
-            &videoDecoder_, [this](int32_t, uint32_t) {
-                videoDecoder_.beginStream();
-            });
-    connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFrameData,
-            &videoDecoder_, &VideoDecoder::decodeFrame, Qt::DirectConnection);
-
-    // Push decoded frames to the sink as soon as they're ready (signal-driven).
-    // The signal is emitted from the decode worker thread; Qt auto-queues it to
-    // the main thread, so setVideoFrame() runs in the GUI thread as required.
-    // This replaces the old 16ms polling timer, eliminating 0-16ms of display jitter.
-    videoDecoder_.disconnect(this);  // prevent duplicate connections on reconnect
-    connect(&videoDecoder_, &VideoDecoder::frameReady, this, [this]() {
-        QVideoFrame frame = videoDecoder_.takeLatestFrame();
-        if (frame.isValid()) {
-            QVideoSink* sink = videoDecoder_.videoSink();
-            if (sink)
-                sink->setVideoFrame(frame);
-        }
-    });
 
     // Create PipeWire audio streams with per-stream buffer sizing from config
     if (audioService_) {
@@ -538,26 +623,14 @@ void AndroidAutoOrchestrator::onNewConnection()
     }
 
     // AA wire theming disabled — companion app is sole theme source (Phase 03.2)
-    // connect(&videoHandler_, &oaa::hu::VideoChannelHandler::uiConfigTokensReceived,
+    // connect(mainDisplay_.videoHandler(),
+    //         &oaa::hu::VideoChannelHandler::uiConfigTokensReceived,
     //         this, [this](const QMap<QString, uint32_t>& dayTokens,
     //                      const QMap<QString, uint32_t>& nightTokens) {
     //     if (themeService_) {
     //         themeService_->applyAATokens(dayTokens, nightTokens);
     //     }
     // });
-
-    // Wire video focus changes
-    connect(&videoHandler_, &oaa::hu::VideoChannelHandler::videoFocusChanged,
-            this, [this](int focusMode, bool) {
-                // Focus mode 1 = PROJECTED, 2 = NATIVE, 3 = NATIVE_TRANSIENT, 4 = PROJECTED_NO_INPUT_FOCUS
-                if (focusMode == 2 && state_ == Connected) {
-                    qCInfo(lcAA) << "Video focus lost — exit to car";
-                    setState(Backgrounded, "Android Auto running in background");
-                } else if (focusMode == 1 && state_ == Backgrounded) {
-                    qCInfo(lcAA) << "Video focus gained — returning to projection";
-                    setState(Connected, "Android Auto active");
-                }
-            });
 
     // Publish AA events to plugin event bus
     if (eventBus_) {
@@ -651,7 +724,8 @@ void AndroidAutoOrchestrator::onNewConnection()
         });
 
         // Input haptic feedback (debug logging only — Pi has no haptic motor)
-        connect(&inputHandler_, &oaa::hu::InputChannelHandler::hapticFeedbackRequested,
+        connect(mainDisplay_.inputHandler(),
+                &oaa::hu::InputChannelHandler::hapticFeedbackRequested,
                 this, [](int feedbackType) {
             qCDebug(lcAA) << "[Input] haptic feedback requested, type:" << feedbackType;
         });
@@ -680,6 +754,11 @@ void AndroidAutoOrchestrator::onNewConnection()
             emit phoneSignalChanged();
         }
     });
+
+    // Activate display generations before any channel can open.
+    mainDisplay_.beginProtocolSession();
+    if (projectedClusterConfig_.enabled)
+        clusterDisplay_.beginProtocolSession();
 
     // Start protocol handshake
     session_->start();
@@ -737,7 +816,9 @@ void AndroidAutoOrchestrator::onSessionStateChanged(oaa::SessionState state)
 
 void AndroidAutoOrchestrator::onSessionDisconnected(oaa::DisconnectReason reason)
 {
-    qCInfo(lcAA) << "Disconnected, reason:" << static_cast<int>(reason);
+    qCInfo(lcAA) << "Disconnected, reason:" << static_cast<int>(reason)
+                 << "last_projected_role="
+                 << (lastProjectedActivityWasCluster_ ? "CLUSTER" : "MAIN");
     stopConnectionWatchdog();
 
     teardownSession();
@@ -940,19 +1021,20 @@ void AndroidAutoOrchestrator::teardownSession(bool deferDeletion)
         emit phoneSignalChanged();
     }
 
-    // Disconnect frame-ready signal to stop pushing frames during teardown
-    videoDecoder_.disconnect(this);
-
     if (session_) {
+        // Invalidate queued display callbacks and order decoder end barriers
+        // before finalize disconnects the persistent channel handlers.
+        mainDisplay_.endProtocolSession();
+        if (projectedClusterConfig_.enabled)
+            clusterDisplay_.endProtocolSession();
+
         // Disconnect all signals from session_ to us BEFORE scheduling deletion.
         // This prevents onSessionDisconnected from being called a second time if
         // the 'disconnected' signal is also queued.
         session_->disconnect(this);
-        videoHandler_.disconnect(this);
         mediaAudioHandler_.disconnect(this);
         speechAudioHandler_.disconnect(this);
         systemAudioHandler_.disconnect(this);
-        videoHandler_.disconnect(&videoDecoder_);
         phoneStatusHandler_.disconnect(this);
 
         // Persistent handlers are value members and outlive each individual
@@ -1000,7 +1082,7 @@ void AndroidAutoOrchestrator::requestVideoFocus()
 {
     if (state_ == Backgrounded) {
         qCInfo(lcAA) << "Requesting video focus (returning from background)";
-        videoHandler_.requestVideoFocus(true);
+        mainDisplay_.videoHandler()->requestVideoFocus(true);
         setState(Connected, "Android Auto active");
     }
 }
@@ -1009,7 +1091,7 @@ void AndroidAutoOrchestrator::requestExitToCar()
 {
     if (state_ == Connected) {
         qCInfo(lcAA) << "Requesting exit to car";
-        videoHandler_.requestVideoFocus(false);
+        mainDisplay_.videoHandler()->requestVideoFocus(false);
         setState(Backgrounded, "Exited to car");
     }
 }
@@ -1020,8 +1102,10 @@ void AndroidAutoOrchestrator::sendButtonPress(int keycode)
     auto ts = static_cast<uint64_t>(
         std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now().time_since_epoch()).count());
-    inputHandler_.sendButtonEvent(static_cast<uint32_t>(keycode), true, ts);
-    inputHandler_.sendButtonEvent(static_cast<uint32_t>(keycode), false, ts + 50000);
+    mainDisplay_.inputHandler()->sendButtonEvent(
+        static_cast<uint32_t>(keycode), true, ts);
+    mainDisplay_.inputHandler()->sendButtonEvent(
+        static_cast<uint32_t>(keycode), false, ts + 50000);
 }
 
 void AndroidAutoOrchestrator::setState(ConnectionState state, const QString& message)

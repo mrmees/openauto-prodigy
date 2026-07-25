@@ -2,6 +2,7 @@
 
 #include "core/plugin/IPlugin.hpp"
 #include "core/plugin/PluginDiscovery.hpp"
+#include "core/aa/ProjectedDisplayConfig.hpp"
 #include <QObject>
 #include <memory>
 
@@ -38,6 +39,9 @@ class AndroidAutoPlugin : public QObject, public IPlugin {
 public:
     explicit AndroidAutoPlugin(oap::YamlConfig* yamlConfig = nullptr,
                                QObject* parent = nullptr);
+    AndroidAutoPlugin(oap::YamlConfig* yamlConfig,
+                      const oap::aa::ProjectedClusterConfig& clusterConfig,
+                      QObject* parent = nullptr);
     ~AndroidAutoPlugin() override;
 
     // IPlugin — Identity
@@ -89,6 +93,7 @@ signals:
 
 private:
     oap::YamlConfig* yamlConfig_ = nullptr;
+    oap::aa::ProjectedClusterConfig clusterConfig_;
     IHostContext* hostContext_ = nullptr;
 
     oap::DisplayInfo* displayInfo_ = nullptr;

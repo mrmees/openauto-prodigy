@@ -52,6 +52,7 @@ private slots:
             oap::aa::ProjectedSetupFocus::ProjectedNoInput, nullptr);
         QCOMPARE(display.state(),
                  static_cast<int>(oap::aa::ProjectedDisplaySession::Disabled));
+        QCOMPARE(display.decoder(), nullptr);
         display.beginProtocolSession();
         display.noteChannelOpened(12);
         QCOMPARE(display.state(),

@@ -19,6 +19,13 @@
 #include "oaa/sensor/SensorTypeEnum.pb.h"
 #include "oaa/av/AVInputOpenRequestMessage.pb.h"
 #include "oaa/av/AVInputOpenResponseMessage.pb.h"
+#include "oaa/av/AVChannelSetupRequestMessage.pb.h"
+#include "oaa/av/AVChannelSetupResponseMessage.pb.h"
+#include "oaa/av/AVChannelStartIndicationMessage.pb.h"
+#include "oaa/av/MediaCodecTypeEnum.pb.h"
+#include "oaa/control/ChannelOpenRequestMessage.pb.h"
+#include "oaa/control/ServiceDiscoveryResponseMessage.pb.h"
+#include "oaa/video/VideoFocusModeEnum.pb.h"
 
 namespace oap::aa {
 
@@ -99,12 +106,30 @@ public:
 
     static oaa::hu::VideoChannelHandler& videoHandler(AndroidAutoOrchestrator& orchestrator)
     {
-        return orchestrator.videoHandler_;
+        return *orchestrator.mainDisplay_.videoHandler();
     }
 
     static VideoDecoder& videoDecoder(AndroidAutoOrchestrator& orchestrator)
     {
-        return orchestrator.videoDecoder_;
+        return *orchestrator.mainDisplay_.decoder();
+    }
+
+    static ProjectedDisplaySession& mainDisplay(
+        AndroidAutoOrchestrator& orchestrator)
+    {
+        return orchestrator.mainDisplay_;
+    }
+
+    static ProjectedDisplaySession& clusterDisplay(
+        AndroidAutoOrchestrator& orchestrator)
+    {
+        return orchestrator.clusterDisplay_;
+    }
+
+    static void setConnectedForFocusTest(AndroidAutoOrchestrator& orchestrator)
+    {
+        orchestrator.setState(AndroidAutoOrchestrator::Connected,
+                              QStringLiteral("test connected"));
     }
 
     static oaa::hu::AVInputChannelHandler& avInputHandler(
@@ -304,6 +329,181 @@ private slots:
                  static_cast<int>(oap::aa::AndroidAutoOrchestrator::Disconnected));
         QVERIFY(orch.videoDecoder() != nullptr);
         QVERIFY(orch.inputHandler() != nullptr);
+    }
+
+    void testLegacyConstructorKeepsMainCompatibilityAndDisablesCluster() {
+        StubConfigService cfg;
+        oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, nullptr);
+
+        QCOMPARE(orch.videoDecoder(),
+                 oap::aa::AndroidAutoOrchestratorTestAccess::mainDisplay(orch).decoder());
+        QCOMPARE(orch.inputHandler()->channelId(), oaa::ChannelId::Input);
+        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::videoHandler(orch).channelId(),
+                 oaa::ChannelId::Video);
+        QVERIFY(orch.clusterDisplay() != nullptr);
+        QCOMPARE(orch.clusterDisplay()->state(),
+                 static_cast<int>(oap::aa::ProjectedDisplaySession::Disabled));
+        QCOMPARE(orch.clusterDisplay()->decoder(), nullptr);
+    }
+
+    void testEnabledClusterRegistrationAndGlobalIsolation() {
+        StubConfigService cfg;
+        cfg.values["connection.tcp_port"] = 0;
+        const oap::aa::ProjectedClusterConfig clusterConfig{
+            true, oap::aa::ProjectedSetupFocus::ProjectedNoInput};
+        oap::aa::AndroidAutoOrchestrator orch(
+            &cfg, nullptr, nullptr, clusterConfig);
+        orch.start();
+        oap::aa::AndroidAutoOrchestratorTestAccess::disableAutomaticAccept(orch);
+
+        QTcpSocket socket;
+        socket.connectToHost(
+            QHostAddress::LocalHost,
+            oap::aa::AndroidAutoOrchestratorTestAccess::listenerPort(orch));
+        QVERIFY(socket.waitForConnected());
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::acceptNextConnection(orch));
+        auto* session = oap::aa::AndroidAutoOrchestratorTestAccess::session(orch);
+        QVERIFY(session);
+        QSignalSpy sentSpy(session->messenger(), &oaa::Messenger::messageSent);
+
+        QByteArray versionResponse(6, '\0');
+        qToBigEndian<uint16_t>(1, reinterpret_cast<uchar*>(versionResponse.data()));
+        qToBigEndian<uint16_t>(7, reinterpret_cast<uchar*>(versionResponse.data() + 2));
+        qToBigEndian<uint16_t>(0, reinterpret_cast<uchar*>(versionResponse.data() + 4));
+        session->messenger()->messageReceived(0, 0x0002, versionResponse, 0);
+        session->messenger()->handshakeComplete();
+        session->messenger()->messageReceived(0, 0x0005, QByteArray(), 0);
+        QCOMPARE(session->state(), oaa::SessionState::Active);
+
+        QByteArray discoveryPayload;
+        for (const auto& emission : sentSpy) {
+            if (emission[0].value<uint8_t>() == oaa::ChannelId::Control
+                && emission[1].value<uint16_t>() == 0x0006) {
+                discoveryPayload = emission[2].toByteArray();
+            }
+        }
+        QVERIFY(!discoveryPayload.isEmpty());
+        oaa::proto::messages::ServiceDiscoveryResponse discovery;
+        QVERIFY(discovery.ParseFromArray(discoveryPayload.constData(),
+                                         discoveryPayload.size()));
+        QList<int> channelIds;
+        for (const auto& channel : discovery.channels())
+            channelIds.append(channel.channel_id());
+        QVERIFY(channelIds.contains(oaa::ChannelId::ClusterVideo));
+        QVERIFY(channelIds.contains(oaa::ChannelId::ClusterInput));
+
+        QSignalSpy openedSpy(session, &oaa::AASession::channelOpened);
+        for (uint8_t channelId : {oaa::ChannelId::ClusterVideo,
+                                  oaa::ChannelId::ClusterInput}) {
+            oaa::proto::messages::ChannelOpenRequest request;
+            request.set_channel_id(channelId);
+            request.set_priority(1);
+            QByteArray payload(request.ByteSizeLong(), '\0');
+            QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
+            session->messenger()->messageReceived(channelId, 0x0007, payload, 0);
+        }
+        QCOMPARE(openedSpy.count(), 2);
+        QCOMPARE(orch.clusterDisplay()->state(),
+                 static_cast<int>(oap::aa::ProjectedDisplaySession::WaitingForFrames));
+
+        auto* clusterHandler = orch.clusterDisplay()->videoHandler();
+        QSignalSpy clusterSentSpy(clusterHandler,
+                                  &oaa::IChannelHandler::sendRequested);
+        oaa::proto::messages::AVChannelSetupRequest setup;
+        setup.set_media_codec_type(
+            oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+        QByteArray setupPayload(setup.ByteSizeLong(), '\0');
+        QVERIFY(setup.SerializeToArray(setupPayload.data(), setupPayload.size()));
+        clusterHandler->onMessage(oaa::AVMessageId::SETUP_REQUEST, setupPayload);
+        QCOMPARE(clusterSentSpy.count(), 2);
+        oaa::proto::messages::AVChannelSetupResponse setupResponse;
+        const QByteArray responsePayload = clusterSentSpy[0][2].toByteArray();
+        QVERIFY(setupResponse.ParseFromArray(responsePayload.constData(),
+                                             responsePayload.size()));
+        QCOMPARE(setupResponse.configs_size(), 1);
+
+        oap::aa::AndroidAutoOrchestratorTestAccess::setConnectedForFocusTest(orch);
+        const int connectedState = orch.connectionState();
+        orch.clusterDisplay()->videoHandler()->videoFocusChanged(
+            oaa::proto::enums::VideoFocusMode::NATIVE, false);
+        QCOMPARE(orch.connectionState(), connectedState);
+
+        session->channelOpenRejected(oaa::ChannelId::ClusterVideo);
+        QCOMPARE(orch.clusterDisplay()->state(),
+                 static_cast<int>(oap::aa::ProjectedDisplaySession::Rejected));
+        QCOMPARE(orch.connectionState(), connectedState);
+
+        oap::aa::AndroidAutoOrchestratorTestAccess::mainDisplay(orch)
+            .videoHandler()->videoFocusChanged(
+                oaa::proto::enums::VideoFocusMode::NATIVE, false);
+        QCOMPARE(orch.connectionState(),
+                 static_cast<int>(oap::aa::AndroidAutoOrchestrator::Backgrounded));
+
+        orch.stop();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
+
+    void testTeardownEndsBothDisplaysAndNextMainGenerationStarts() {
+        StubConfigService cfg;
+        cfg.values["connection.tcp_port"] = 0;
+        const oap::aa::ProjectedClusterConfig clusterConfig{
+            true, oap::aa::ProjectedSetupFocus::ProjectedNoInput};
+        oap::aa::AndroidAutoOrchestrator orch(
+            &cfg, nullptr, nullptr, clusterConfig);
+        orch.start();
+        oap::aa::AndroidAutoOrchestratorTestAccess::disableAutomaticAccept(orch);
+
+        auto connectOne = [&orch](QTcpSocket& socket) {
+            socket.connectToHost(
+                QHostAddress::LocalHost,
+                oap::aa::AndroidAutoOrchestratorTestAccess::listenerPort(orch));
+            QVERIFY(socket.waitForConnected());
+            QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::acceptNextConnection(orch));
+        };
+
+        QTcpSocket firstSocket;
+        connectOne(firstSocket);
+        auto& mainDisplay =
+            oap::aa::AndroidAutoOrchestratorTestAccess::mainDisplay(orch);
+        auto& clusterDisplay =
+            oap::aa::AndroidAutoOrchestratorTestAccess::clusterDisplay(orch);
+        QSignalSpy mainReset(mainDisplay.decoder(),
+                             &oap::aa::VideoDecoder::streamResetCompleted);
+        QSignalSpy clusterReset(clusterDisplay.decoder(),
+                                &oap::aa::VideoDecoder::streamResetCompleted);
+        QSignalSpy mainEnded(mainDisplay.decoder(),
+                             &oap::aa::VideoDecoder::streamEnded);
+        QSignalSpy clusterEnded(clusterDisplay.decoder(),
+                                &oap::aa::VideoDecoder::streamEnded);
+
+        mainDisplay.videoHandler()->streamStarted(1, 0);
+        clusterDisplay.videoHandler()->streamStarted(2, 0);
+        QTRY_COMPARE(mainReset.count(), 1);
+        QTRY_COMPARE(clusterReset.count(), 1);
+        const quint64 oldMainGeneration = mainReset[0][0].toULongLong();
+        const quint64 oldClusterGeneration = clusterReset[0][0].toULongLong();
+
+        orch.stop();
+        QTRY_VERIFY(mainEnded.count() >= 1);
+        QTRY_VERIFY(clusterEnded.count() >= 1);
+        mainDisplay.decoder()->frameReadyForGeneration(oldMainGeneration);
+        clusterDisplay.decoder()->frameReadyForGeneration(oldClusterGeneration);
+        QCoreApplication::processEvents();
+        QCOMPARE(mainDisplay.state(),
+                 static_cast<int>(oap::aa::ProjectedDisplaySession::Disconnected));
+        QCOMPARE(clusterDisplay.state(),
+                 static_cast<int>(oap::aa::ProjectedDisplaySession::Disconnected));
+
+        orch.start();
+        oap::aa::AndroidAutoOrchestratorTestAccess::disableAutomaticAccept(orch);
+        QTcpSocket secondSocket;
+        connectOne(secondSocket);
+        mainDisplay.videoHandler()->streamStarted(3, 0);
+        QTRY_COMPARE(mainReset.count(), 2);
+        QVERIFY(mainReset[1][0].toULongLong() > oldMainGeneration);
+
+        orch.stop();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     }
 
     void testStartListens() {

@@ -8,6 +8,7 @@
 #include <QVideoSink>
 
 #include <cstdint>
+#include <memory>
 
 #include <oaa/HU/Handlers/InputChannelHandler.hpp>
 #include <oaa/HU/Handlers/VideoChannelHandler.hpp>
@@ -59,7 +60,7 @@ public:
 
     oaa::hu::VideoChannelHandler* videoHandler() { return &videoHandler_; }
     oaa::hu::InputChannelHandler* inputHandler() { return &inputHandler_; }
-    VideoDecoder* decoder() { return &decoder_; }
+    VideoDecoder* decoder() { return decoder_.get(); }
 
     void setAdvertisedVideoConfigCount(uint32_t count);
     void beginProtocolSession();
@@ -89,7 +90,7 @@ private:
 
     oaa::hu::VideoChannelHandler videoHandler_;
     oaa::hu::InputChannelHandler inputHandler_;
-    VideoDecoder decoder_;
+    std::unique_ptr<VideoDecoder> decoder_;
 
     State state_ = Disabled;
     QString statusText_;
