@@ -74,8 +74,9 @@ boundary are fixed by the reviewed design. No open decision remains.
 - Disabled discovery serializes to the checked-in pre-feature golden bytes for
   the MAIN video/input descriptors, not merely the same parsed field set.
 - Enabled discovery contains exactly one explicit MAIN and one CLUSTER plus one
-  matching input descriptor each; CLUSTER has exactly the fixed video config
-  and no input capabilities.
+  matching input descriptor each; MAIN input and touch identities are both
+  explicit; CLUSTER has exactly the fixed video config and no input
+  capabilities.
 - No protobuf source changes.
 
 **Out of Scope:** Handler construction, decoders, session registration, QML,
@@ -219,6 +220,9 @@ void enabledClusterAdvertisesPairedFixedTopology()
     QCOMPARE(mainVideo.display_type(),
              oaa::proto::enums::DisplayType::MAIN);
     QCOMPARE(descriptor(config, 1).input_channel().display_id(), 0u);
+    QCOMPARE(descriptor(config, 1).input_channel()
+                 .touch_screen_configs(0).display_type(),
+             oaa::proto::enums::DisplayType::MAIN);
 
     const auto clusterVideo = descriptor(config, 12).av_channel();
     QCOMPARE(clusterVideo.channel_id(), 1u);
@@ -369,7 +373,7 @@ malformed binding messages.
 `oaa/video/VideoFocusModeEnum.pb.h`; its nested proto enum cannot be
 forward-declared.
 
-- Produces fixed application channel constants:
+- Consumes the fixed application channel constants added in Task 1:
 
 ```cpp
 constexpr uint8_t ClusterVideo = 12;
@@ -712,7 +716,12 @@ void clusterStateFollowsOnlyItsLifecycle()
     QCOMPARE(display.state(), display.WaitingForChannel);
     display.noteChannelOpened(12);
     QCOMPARE(display.state(), display.WaitingForFrames);
-    display.decoder()->frameReadyForGeneration(1);
+    QSignalSpy reset(display.decoder(),
+                     &oap::aa::VideoDecoder::streamResetCompleted);
+    display.videoHandler()->onMessage(
+        oaa::AVMessageId::START_INDICATION, startIndicationBytes());
+    QTRY_COMPARE(reset.count(), 1);
+    display.decoder()->frameReadyForGeneration(reset[0][0].toULongLong());
     QCoreApplication::processEvents();
     QCOMPARE(display.state(), display.Rendering);
     display.endProtocolSession();
@@ -739,8 +748,10 @@ compares every generation-bearing decoder callback against it.
 
 Add a no-sink flow test: begin/open the CLUSTER display, drive a video start and
 media indication, assert received/ACK counters advance with no sink attached,
-then attach a sink and verify the display remains in the same protocol
-generation. Sink absence must never stop or renegotiate the handler.
+capture the generation from `streamResetCompleted`, emit
+`frameReadyForGeneration(generation)`, and assert the display reaches
+Rendering. Then attach a sink and verify the display remains in the same
+protocol generation. Sink absence must never stop or renegotiate the handler.
 
 - [ ] **Step 2: Add failing single-sink tests**
 
@@ -762,7 +773,13 @@ the existing orchestrator test, because it constructs `QVideoSink`s.
 
 - [ ] **Step 4: Implement the bounded session owner**
 
-Connect handler/decoder signals once in the constructor. Preserve the current
+Connect handler/decoder signals once in the constructor. The display session
+owns the AV decoder boundary: `beginProtocolSession()` activates/increments the
+protocol generation and enters `WaitingForChannel` but does not begin decoder
+acceptance; `streamStarted` calls `decoder.beginStream()` and overwrites the
+recorded active decoder generation with its return value; `streamStopped` and
+`endProtocolSession()` call `decoder.endStream()` and clear the recorded
+decoder generation. Preserve the current
 `Qt::DirectConnection` from `videoFrameData` to `VideoDecoder::decodeFrame` so
 MAIN does not gain an event-loop hop. Maintain a monotonically increasing
 protocol generation and an active flag checked by every queued slot. On end,
@@ -1281,9 +1298,9 @@ review adjudication, cross-build result, Pi rollback path, capture path, exact
 live outcome, service health, and config restoration hash.
 
 On a completed experiment, change both plan headers to
-`Status: COMPLETED 2026-07-24` and move them to `docs/archive/plans/` in the
-same commit. Preserve a negative activation result as completed research and
-leave generalized multi-display in the wishlist.
+`Status: COMPLETED 2026-07-24` and use `git mv` to move them to
+`docs/archive/plans/` in the same commit. Preserve a negative activation result
+as completed research and leave generalized multi-display in the wishlist.
 
 - [ ] **Step 9: Verify docs and commit Task 7**
 
@@ -1291,6 +1308,10 @@ leave generalized multi-display in the wishlist.
 cd /mnt/e/claude/personal/openautopro/openauto-prodigy
 git diff --check
 python3 scripts/check-doc-links.py
+git mv docs/plans/2026-07-24-aa-projected-cluster-widget-design.md \
+       docs/archive/plans/2026-07-24-aa-projected-cluster-widget-design.md
+git mv docs/plans/2026-07-24-aa-projected-cluster-widget-plan.md \
+       docs/archive/plans/2026-07-24-aa-projected-cluster-widget-plan.md
 git add docs/roadmap-current.md docs/wishlist.md docs/INDEX.md \
         docs/session-handoffs.md docs/archive/plans/2026-07-24-aa-projected-cluster-widget-design.md \
         docs/archive/plans/2026-07-24-aa-projected-cluster-widget-plan.md
