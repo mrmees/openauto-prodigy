@@ -9,6 +9,7 @@
 #include <QMutex>
 #include <QWaitCondition>
 #include <QAtomicPointer>
+#include <QString>
 #include <atomic>
 #include <memory>
 #include <mutex>
@@ -30,6 +31,8 @@ namespace oap { class YamlConfig; }
 namespace oap {
 namespace aa {
 
+class VideoDecoderTestAccess;
+
 class VideoDecoder : public QObject
 {
     Q_OBJECT
@@ -42,22 +45,29 @@ public:
     QVideoSink* videoSink() const { return videoSink_.loadRelaxed(); }
     void setVideoSink(QVideoSink* sink);
     void setYamlConfig(oap::YamlConfig* config) { yamlConfig_ = config; }
+    bool isOperational() const { return operational_.load(); }
+    void setDiagnosticLabel(const QString& label) { diagnosticLabel_ = label; }
 
     /// Returns the latest decoded frame if available, otherwise invalid QVideoFrame
     QVideoFrame takeLatestFrame();
 
     /// Order a fresh codec/parser boundary before any subsequently queued frames.
     /// Safe to call from the owning Qt thread while the decode worker is running.
-    void beginStream();
+    quint64 beginStream();
+    /// Stop accepting frames and order a purge after any in-flight decode.
+    void endStream();
 
 signals:
     void videoSinkChanged();
     /// Emitted from the decode worker thread after a new frame is stored.
     /// Connect with Qt::AutoConnection — Qt will auto-queue to the main thread.
     void frameReady();
+    void frameReadyForGeneration(quint64 generation);
     /// Worker-thread lifecycle diagnostics used by focused regression tests.
     void streamResetCompleted(quint64 generation);
     void streamCodecDetected(quint64 generation, int codecId);
+    void streamEnded(quint64 generation);
+    void streamError(quint64 generation, const QString& message);
 
 public slots:
     void decodeFrame(std::shared_ptr<const QByteArray> h264Data, qint64 enqueueTimeNs = 0);
@@ -69,14 +79,15 @@ private:
         explicit DecodeWorker(VideoDecoder* decoder) : decoder_(decoder) {}
         void run() override;
         void enqueue(std::shared_ptr<const QByteArray> data, qint64 enqueueTimeNs);
-        void beginStream();
+        quint64 beginStream();
+        void endStream();
         void requestStop();
         int queueDepth() const { QMutexLocker lock(&mutex_); return static_cast<int>(queue_.size()); }
     private:
         VideoDecoder* decoder_;
         mutable QMutex mutex_;
         QWaitCondition condition_;
-        enum class WorkKind { Frame, BeginStream };
+        enum class WorkKind { Frame, BeginStream, EndStream };
         struct WorkItem {
             WorkKind kind = WorkKind::Frame;
             std::shared_ptr<const QByteArray> data;
@@ -95,6 +106,9 @@ private:
     DecodeWorker* worker_ = nullptr;
     void processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs);
     void resetForNewStream(quint64 generation);
+    void finishStream(quint64 generation);
+    void clearBufferedFrames();
+    void reportStreamError(quint64 generation, const QString& message);
 
     void cleanup();
 
@@ -122,6 +136,7 @@ private:
     oap::YamlConfig* yamlConfig_ = nullptr;
 
     bool initCodec(AVCodecID codecId);
+    bool initializeCodec(AVCodecID codecId);
     bool tryOpenCodec(const AVCodec* codec, AVCodecID codecId);
     void cleanupCodec();
     AVCodecID detectCodec(const QByteArray& data) const;
@@ -132,6 +147,10 @@ private:
     static enum AVPixelFormat getHwFormat(AVCodecContext* ctx, const enum AVPixelFormat* pix_fmts);
 
     uint64_t frameCount_ = 0;
+    std::atomic<bool> acceptingFrames_{false};
+    std::atomic<bool> operational_{false};
+    std::atomic<bool> failCodecInitForTest_{false};
+    QString diagnosticLabel_;
 
     // Performance instrumentation
     PerfStats::Metric metricQueue_;    // signal emit → decode start
@@ -144,6 +163,8 @@ private:
 
     // Frame pool — owns the cached format and allocates QVideoFrames
     std::unique_ptr<VideoFramePool> framePool_;
+
+    friend class VideoDecoderTestAccess;
 };
 
 } // namespace aa
