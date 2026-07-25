@@ -69,6 +69,20 @@ generalized channel-policy API would expand the completed feature without
 changing its behavior. A final unbounded Opus rerun remains the publication
 gate.
 
+The final pre-publication pair then reported one Codex P2 and five Opus
+findings. Codex's sink-claim reentrancy issue was confirmed and fixed by
+installing destruction tracking before observer-visible state and returning
+failure if a synchronous observer releases the claim. Opus's blocker and its
+documentation consequence were confirmed and fixed by limiting control-typed
+close notifications to CLUSTER and locking legacy dispatch behavior in a
+regression test. Three Opus findings were dismissed: the exact accepted
+hardware range and later repository-only hardening are already disclosed; a
+geometry mismatch intentionally terminates the affected display generation as
+required by the completed fixed-geometry design; and the dormant private codec
+failure seam predates this feature, cannot be armed by production code, and
+its friend definitions live in separate test executables. Both gates must
+rerun on these fixes before publication.
+
 **Verification:** the full native build, explicit `openauto-prodigy` target,
 `QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, `git diff --check`, and
 the frozen-proto boundary check passed. The tracked live-document link scope

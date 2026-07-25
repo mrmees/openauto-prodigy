@@ -569,6 +569,25 @@ private slots:
         QCOMPARE(display.isVideoSinkAvailable(), true);
         QCOMPARE(availabilitySpy.count(), 4);
     }
+
+    void reentrantAvailabilityObserverCannotLeaveFalseOwnership()
+    {
+        auto display = enabledClusterDisplay();
+        QVideoSink sink;
+        connect(
+            &display,
+            &oap::aa::ProjectedDisplaySession::videoSinkAvailabilityChanged,
+            &display,
+            [&display, &sink]() {
+                if (!display.isVideoSinkAvailable())
+                    display.detachVideoSink(&sink);
+            },
+            Qt::DirectConnection);
+
+        QVERIFY(!display.attachVideoSink(&sink));
+        QVERIFY(display.isVideoSinkAvailable());
+        QCOMPARE(display.decoder()->videoSink(), nullptr);
+    }
 };
 
 QTEST_MAIN(TestProjectedDisplaySession)

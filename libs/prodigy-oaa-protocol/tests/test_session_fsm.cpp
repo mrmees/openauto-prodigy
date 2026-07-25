@@ -899,13 +899,15 @@ private slots:
             session.messenger()->messageReceived(
                 channelId, 0x0009, QByteArray(), 0,
                 oaa::MessageType::Control);
-            QCOMPARE(handler.closeCount, 1);
-            QCOMPARE(closedSpy.count(), 1);
+            QCOMPARE(handler.closeCount, 0);
+            QCOMPARE(closedSpy.count(), 0);
+            QCOMPARE(handler.messageCount, 1);
+            QCOMPARE(handler.lastMessageId, uint16_t(0x0009));
 
             session.messenger()->messageReceived(
                 channelId, oaa::AVMessageId::START_INDICATION,
                 QByteArray(), 0, oaa::MessageType::Specific);
-            QCOMPARE(handler.messageCount, 1);
+            QCOMPARE(handler.messageCount, 2);
 
             session.messenger()->messageReceived(
                 channelId, 0x0007, payload, 0,
@@ -918,16 +920,16 @@ private slots:
             session.messenger()->messageReceived(
                 channelId, 0x0009, QByteArray(), 0,
                 oaa::MessageType::Specific);
-            QCOMPARE(handler.closeCount, 1);
-            QCOMPARE(closedSpy.count(), 1);
-            QCOMPARE(handler.messageCount, 2);
+            QCOMPARE(handler.closeCount, 0);
+            QCOMPARE(closedSpy.count(), 0);
+            QCOMPARE(handler.messageCount, 3);
             QCOMPARE(handler.lastMessageId, uint16_t(0x0009));
 
             session.messenger()->messageReceived(
                 channelId, 0x0007, QByteArrayLiteral("service payload"), 0,
                 oaa::MessageType::Specific);
             QCOMPARE(handler.openCount, 3);
-            QCOMPARE(handler.messageCount, 3);
+            QCOMPARE(handler.messageCount, 4);
             QCOMPARE(handler.lastMessageId, uint16_t(0x0007));
         }
     }

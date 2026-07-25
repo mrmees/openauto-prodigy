@@ -385,8 +385,6 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
 
     sinkClaimRejectionLogged_ = false;
     sink_ = sink;
-    decoder_->setVideoSink(sink);
-    emit videoSinkAvailabilityChanged();
     QVideoSink* claimedSink = sink;
     sinkDestroyedConnection_ = connect(
         sink, &QObject::destroyed, this, [this, claimedSink]() {
@@ -399,6 +397,15 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
             qCInfo(lcAA).noquote() << diagnosticPrefix_
                                   << "sink released on destruction";
         });
+
+    decoder_->setVideoSink(sink);
+    if (sink_ != claimedSink || decoder_->videoSink() != claimedSink)
+        return false;
+
+    emit videoSinkAvailabilityChanged();
+    if (sink_ != claimedSink || decoder_->videoSink() != claimedSink)
+        return false;
+
     qCInfo(lcAA).noquote() << diagnosticPrefix_ << "sink claimed";
     return true;
 }

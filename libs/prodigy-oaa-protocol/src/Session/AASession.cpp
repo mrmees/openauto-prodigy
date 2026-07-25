@@ -496,9 +496,11 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
     }
 
     // Service-channel close notifications carry their target in the frame's
-    // channel id. Retire the handler before accepting a later reopen.
+    // channel id. Only the experimental CLUSTER channels opt into this
+    // explicit lifecycle; preserve established legacy dispatch semantics.
     if (messageId == SessionMessageId::CHANNEL_CLOSE_NOTIFICATION
-        && messageType == MessageType::Control) {
+        && messageType == MessageType::Control
+        && supportsExplicitReopenLifecycle(channelId)) {
         if (state_ == SessionState::Active)
             closeServiceChannel(channelId);
         return;
