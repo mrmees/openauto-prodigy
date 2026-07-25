@@ -2,7 +2,8 @@
 
 Date: 2026-07-24
 Status: ACTIVE
-Grounded against: `dev` at `3766d4f`
+Code substrate grounded against: `dev` at `3766d4f`
+Initial design commit reviewed by Opus: `29ddb7d`
 
 ## Goal
 
@@ -27,10 +28,12 @@ AA session:
 
 1. The experimental flag is enabled before connection.
 2. Google Maps is actively navigating on the phone.
-3. Prodigy's dashboard displays phone-rendered CLUSTER content inside the
-   square widget.
-4. The existing MAIN projection can be reopened and remains usable.
-5. The captured wire lifecycle shows separate MAIN and CLUSTER descriptors,
+3. Prodigy requests exit-to-car so MAIN moves to `NATIVE`/`Backgrounded` and
+   the dashboard becomes visible.
+4. The dashboard displays phone-rendered CLUSTER content inside the square
+   widget while CLUSTER frames continue with MAIN native.
+5. The existing MAIN projection can be reopened and remains usable.
+6. The captured wire lifecycle shows separate MAIN and CLUSTER descriptors,
    channels, setup/start traffic, media frames, acknowledgements, focus, and
    teardown.
 
@@ -61,6 +64,13 @@ projection display:
   already ships in the application binary.
 - Wire channel IDs 12 and 13 are currently unregistered. They are multiplexed
   head-unit-selected identifiers, not protocol schema numerics.
+- `ProtocolLogger` currently recognizes only the existing AV channels. Without
+  an update, channel 12 media bypasses normal media suppression and floods the
+  capture as an unknown channel.
+- `FrameAssembler` keeps partials per channel but treats any malformed
+  fragment sequence as a session-global protocol failure. This experiment can
+  isolate validly assembled CLUSTER traffic at the handler/decoder layer; it
+  cannot promise that malformed transport framing leaves MAIN alive.
 
 The AA 17.3 static research in
 `docs/aa-protocol/wishlist-baselines/projected-multi-display.md` establishes
@@ -112,19 +122,43 @@ Service discovery uses this fixed matrix:
 | MAIN | 3 | 1 | 0 | `MAIN` | Existing configured resolution/codecs/FPS/DPI and margins | Existing touch and key capabilities |
 | CLUSTER | 12 | 13 | 1 | `CLUSTER` | H.264, 800×480, 30 FPS, 140 DPI, zero margins | Matching input descriptor only; no touch, keys, touchpad, or haptics |
 
-MAIN's AV field 6, AV display type, input display ID, and touch display type are
-set explicitly. CLUSTER's AV field 6 is logical display ID 1; it is not wire
+When CLUSTER is enabled, MAIN's AV field 6, AV display type, input display ID,
+and touch display type are set explicitly so the two-display topology has an
+unambiguous join. CLUSTER's AV field 6 is logical display ID 1; it is not wire
 channel 12. Its input descriptor carries display ID 1 so the phone can satisfy
 its per-display topology rule even though the dashboard surface accepts no AA
-input.
+input. MAIN reports the existing builder-derived config count; CLUSTER reports
+exactly one advertised config.
 
-The feature flag is
-`plugin_config.org.openauto.android-auto.experimental_cluster_display`.
-Missing or false means no CLUSTER descriptors, handlers, widget registration,
-or runtime behavior. The flag is startup-scoped for this experiment: changing
-it requires restarting Prodigy and reconnecting AA because both the widget
-catalog and AA topology are established before the session starts. There is no
-settings UI in this pass.
+The in-tree field-6 name remains historically ambiguous, and a stale comment
+beside `TouchScreenConfig.display_type` uses one-based labels. The generated
+`DisplayType` enum (`MAIN=0`, `CLUSTER=1`, `AUXILIARY=2`) is authoritative for
+serialization, while the AA 17.3 static trace establishes field 6 as the
+logical `CarDisplayId`. The first live capture must assert the serialized
+field values before a nonactivation result is interpreted as phone behavior.
+
+The feature flag is stored at
+`plugin_config["org.openauto.android-auto"]["experimental_cluster_display"]`
+and read through
+`YamlConfig::pluginValue("org.openauto.android-auto",
+"experimental_cluster_display")`; it is not read through dotted
+`valueByPath()`. One immutable startup snapshot is shared by widget
+registration, the orchestrator, and `ServiceDiscoveryBuilder` so those owners
+cannot advertise different topologies. Missing or false means no CLUSTER
+descriptors, handlers, widget registration, or runtime behavior. It also means
+the existing MAIN descriptors remain byte-for-byte unchanged; explicit MAIN
+display identity is emitted only as part of the enabled two-display topology.
+
+The flag is startup-scoped for this experiment: changing it requires restarting
+Prodigy and reconnecting AA because both the widget catalog and AA topology are
+established before the session starts. There is no settings UI in this pass.
+
+A second hidden diagnostic value,
+`plugin_config["org.openauto.android-auto"]["experimental_cluster_setup_focus"]`,
+accepts `projected_no_input` (default) or `projected`. It exists only to prevent
+one unvalidated focus guess from producing a false nonactivation verdict. A
+phone is classified as not activating CLUSTER only after both startup modes
+have been captured with otherwise identical topology.
 
 ### 3. Keep MAIN and CLUSTER lifecycles isolated
 
@@ -135,9 +169,14 @@ focus state, and teardown.
 
 `ProjectedDisplaySession` connects its handler and decoder once for the
 application lifetime rather than reconnecting the same signals on every phone
-session. Channel open/close and stream start/stop reset only that display's
-state. A fresh stream boundary calls only that display's decoder
-`beginStream()`.
+session. It replaces the current per-session `disconnect()` guard with explicit
+`beginProtocolSession()` and `endProtocolSession()` boundaries. The end boundary
+first marks the display generation inactive, suppresses any queued frame push,
+detaches the owned sink where required, and orders a decoder `endStream()` that
+purges queued/latest frames. A later begin starts a new generation before
+accepting frames. Channel open/close and stream start/stop reset only that
+display's app-layer state. A fresh stream boundary calls only that display's
+decoder `beginStream()`.
 
 MAIN continues to own these existing product effects:
 
@@ -147,8 +186,10 @@ MAIN continues to own these existing product effects:
   `Backgrounded`; and
 - the `aa.requestFocus` and exit-to-car actions.
 
-CLUSTER focus never changes those global effects. Its unsolicited setup focus
-indication is `PROJECTED_NO_INPUT_FOCUS`, matching its lack of advertised input.
+CLUSTER focus never changes those global effects. Its default unsolicited setup
+focus indication is `PROJECTED_NO_INPUT_FOCUS`, matching its lack of advertised
+input. The hidden diagnostic setting can repeat the activation attempt with
+the existing `PROJECTED` setup indication before nonactivation is concluded.
 If the phone sends a later endpoint-local focus request, the handler preserves
 the existing request/indication exchange on the CLUSTER wire channel and logs
 the resulting mode without mutating MAIN.
@@ -194,6 +235,7 @@ objects. Its presentation states are:
 - `Disabled` — experimental flag is false;
 - `Disconnected` — no active AA session;
 - `WaitingForChannel` — AA is connected but the phone has not opened CLUSTER;
+- `Rejected` — the phone explicitly rejected either CLUSTER wire channel;
 - `WaitingForFrames` — channel/stream setup exists but no decoded frame is
   available;
 - `Rendering` — at least one valid decoded CLUSTER frame is available; and
@@ -207,17 +249,34 @@ The QML-facing object exposes only state, status text, and controlled sink
 attachment. It does not expose `AASession`, channel IDs, protobufs, or a general
 video-focus mutation surface.
 
+`Rejected` is driven by `AASession::channelOpenRejected` for channels 12/13.
+`Error` is not inferred from silence: `VideoDecoder` gains an operational check
+and an additive terminal decoder-error signal for worker/codec initialization
+failures, and the display session maps that signal plus explicit local handler
+errors into `Error`.
+
 ### 6. Fail locally and log enough to decide feasibility
 
-With the feature disabled, serialized discovery and runtime behavior must match
-the current single-display topology except for making MAIN's already-defaulted
-identity fields explicit.
+With the feature disabled, serialized discovery must remain byte-for-byte
+equivalent to the current single-display topology. Because the refactor still
+changes MAIN's C++ ownership, the reviewed implementation must first be
+deployed and live-validated in flag-off MAIN-only mode before CLUSTER is
+enabled.
 
-After the phone accepts service discovery, a CLUSTER channel, handler, decoder,
-or sink failure must not close the transport, tear down MAIN, clear MAIN's
-decoder, alter MAIN focus, or change global projection state. The widget moves
-to its local error/unavailable presentation and the experiment remains
-observable.
+After the phone accepts service discovery and delivers valid transport frames,
+a Prodigy-local CLUSTER handler, decoder, or sink failure must not close the
+transport, tear down MAIN, clear MAIN's decoder, alter MAIN focus, or change
+global projection state. The widget moves to its local error/unavailable
+presentation and the experiment remains observable.
+
+That guarantee ends below the shared messenger/session boundary. A malformed
+CLUSTER fragment currently triggers `FrameAssembler::assemblyFailed`, which is
+a session-global protocol error and disconnects MAIN as well. Likewise, the
+phone can terminate the session after otherwise valid CLUSTER activity. Both
+are recorded as distinct experimental outcomes rather than mislabeled as local
+CLUSTER isolation or ordinary phone nonactivation. Per-channel fragment-failure
+recovery is a separate protocol-hardening design, not scope silently added to
+this spike.
 
 AA service discovery is one phone-level transaction. A phone may reject the
 entire experimental topology before either display starts; Prodigy cannot
@@ -228,8 +287,11 @@ because doing so would obscure the activation evidence this experiment exists
 to collect.
 
 Use the existing `lcAA` category for app-side logs and retain the protocol
-capture. Diagnostics must distinguish display role, logical display ID, and
-wire channel ID at:
+capture. `ProtocolLogger` must be told that enabled channel 12 is an AV video
+channel so `include_media=false` suppresses its media payloads and message names
+remain useful; the fixed channel may not fall through to full unknown-payload
+JSONL logging. Diagnostics must distinguish display role, logical display ID,
+and wire channel ID at:
 
 - descriptor construction;
 - channel open/close;
@@ -239,22 +301,29 @@ wire channel ID at:
 - first media frame and first decoded frame, including decoded dimensions; and
 - sink attach/detach, decoder failure, and session teardown.
 
-Do not log every video frame. First-frame and state-transition diagnostics are
-sufficient; protocol capture retains the wire sequence.
+Do not log every video frame. First-frame/state-transition diagnostics plus
+periodic aggregate received/ACKed-frame counts and the existing decoder queue,
+decode, copy, and total-latency summaries are sufficient. The live run compares
+MAIN latency and ACK cadence before and during CLUSTER activity.
 
 ## Failure Semantics
 
-- Flag absent or false: MAIN-only discovery; no CLUSTER widget or handlers are
-  registered with the phone session.
+- Flag absent or false: byte-equivalent MAIN-only discovery; no CLUSTER widget
+  or handlers are registered with the phone session.
 - Phone ignores CLUSTER but accepts MAIN: MAIN remains usable; widget stays in
   `WaitingForChannel`.
+- Phone explicitly rejects channel 12 or 13: MAIN remains usable if the phone
+  keeps the session; widget moves to `Rejected` and records the channel.
 - Phone opens CLUSTER but sends no frames: MAIN remains usable; widget stays in
   `WaitingForFrames`.
 - CLUSTER decode or sink failure: only CLUSTER enters `Error`; MAIN continues.
-- CLUSTER channel closes: clear only CLUSTER stream state and decoded-frame
-  availability; accept a later reopen without rebuilding MAIN.
+- A normal CLUSTER handler close/reset clears only CLUSTER app-layer state and
+  decoded-frame availability. Reopen is accepted only if the shared messenger
+  remains healthy and has no transport-level assembly failure.
 - MAIN channel/focus behavior: unchanged and still authoritative for global
   projection state.
+- Malformed CLUSTER framing or phone termination after CLUSTER traffic: record
+  a transport/session-level experimental failure; do not claim local isolation.
 - Whole-topology rejection: record the evidence, stop claiming live
   feasibility, and restore the proven topology by disabling the flag before
   the next connection.
@@ -274,6 +343,8 @@ sufficient; protocol capture retains the wire sequence.
   or stretching.
 - A polished settings UI, automatic feature fallback, phone compatibility
   matrix, or production enablement.
+- Per-channel recovery from malformed transport fragments or a change to the
+  session-global protocol-failure policy.
 - Physical second-monitor/DRM routing, native semantic cluster widgets,
   blended MAIN projection, or generalized multi-display hardware policy.
 - Changes to AA audio, Assistant microphone, HFP, Bluetooth, WiFi transport,
@@ -283,19 +354,21 @@ sufficient; protocol capture retains the wire sequence.
 
 | Check | Level | Acceptance |
 |---|---|---|
-| Disabled discovery | Required local | Flag absent/false emits no channels 12/13 and preserves the current MAIN video/input capabilities with explicit display identity |
-| Enabled topology | Required local | Exactly one MAIN ID 0 and one CLUSTER ID 1 exist; video/input IDs match; all four wire IDs are unique; CLUSTER is H.264 800×480 at 30 FPS and has no input capabilities |
+| Disabled discovery | Required local | Flag absent/false emits the same serialized MAIN-only descriptors as the pinned baseline and no channels 12/13 |
+| Enabled topology | Required local | Exactly one explicit MAIN ID 0 and one CLUSTER ID 1 exist; video/input IDs match; all four wire IDs are unique; CLUSTER is H.264 800×480 at 30 FPS, reports exactly one config, and has no input capabilities |
 | Handler configurability | Required local | Default handlers retain channels 3/1; injected handlers send responses, focus, media ACKs, and binding replies only on channels 12/13 |
-| Display isolation | Required local | Interleaved MAIN/CLUSTER start, frame, ACK, focus, close, and reopen events mutate only the target session and decoder |
+| Display isolation | Required local | Validly assembled interleaved MAIN/CLUSTER start, frame, ACK, focus, close, and reopen events mutate only the target app-layer session and decoder; a separate test documents the existing session-global malformed-fragment failure |
 | Widget ownership | Required local | The enabled widget is fixed at 2×2, attaches one CLUSTER sink, rejects a competing sink, preserves aspect ratio, and detaches safely |
-| Presentation state | Required local | Disabled, disconnected, waiting-channel, waiting-frame, rendering, duplicate-sink, error, teardown, and reconnect transitions are deterministic |
+| Presentation state | Required local | Disabled, disconnected, waiting-channel, rejected, waiting-frame, rendering, duplicate-sink, decoder error, teardown, and reconnect transitions are deterministic |
 | Repository gates | Required local | Focused tests, local build, explicit `openauto-prodigy` target, full CTest, documentation links apart from explicitly preserved unrelated artifacts, and diff checks pass |
 | Review gates | Required before execution/push | Opus reviews this design and its plan; implementation completes the repository Codex review gate and every finding is adjudicated |
 | aarch64 application | Required before deploy | `./cross-build.sh` succeeds from the reviewed implementation |
-| Live CLUSTER activation | Required live | With the flag enabled and Google Maps actively navigating, the square dashboard widget shows phone-rendered CLUSTER content |
-| MAIN coexistence | Required live | MAIN projection remains healthy, can be reopened normally, and retains existing touch/focus behavior |
-| Wire evidence | Required live | Capture records separate descriptor IDs, wire channels, setup/start, frames/ACKs, focus, and teardown, or clearly records phone rejection/nonactivation |
-| Pi budget | Required live | Record application CPU and memory plus active decoder/codec diagnostics during simultaneous MAIN and CLUSTER; no production capacity claim is inferred from one run |
+| MAIN-only regression | Required live before enabling CLUSTER | Deploy the refactored app with the flag false; wireless MAIN reconnects, renders, accepts touch/focus, backgrounds, reopens, and disconnects normally with the pinned descriptor bytes |
+| Live CLUSTER activation | Required live | With the flag enabled and Google Maps navigating, request exit-to-car; MAIN reaches `NATIVE`/`Backgrounded`, CLUSTER frames continue, and the square dashboard widget shows phone-rendered CLUSTER content |
+| MAIN coexistence | Required live | Reopen MAIN after observing the widget; projection remains healthy and retains existing touch/focus behavior |
+| Focus activation probe | Required on nonactivation | Capture default `PROJECTED_NO_INPUT_FOCUS`, then repeat with diagnostic `PROJECTED` before concluding that the phone does not activate CLUSTER |
+| Wire evidence | Required live | Capture asserts serialized display fields, separate descriptor IDs, wire channels, setup/start, frames/ACKs, focus, rejection, and teardown, or distinctly records topology rejection, silence, malformed-fragment disconnect, or phone-initiated session termination |
+| Pi budget | Required live | Record application CPU/memory, both decoder/codec diagnostics, periodic received/ACKed counts, and MAIN queue/decode latency before and during CLUSTER; no production capacity claim is inferred from one run |
 | Pi health | Required live | One responsive Prodigy process remains and wireless AA can disconnect/reconnect without restarting hostapd or Bluetooth |
 
 The user's standing Pi authorization covers the scoped binary deployment,
@@ -319,3 +392,22 @@ or hostapd and preserves unrelated Pi and repository state.
 - Treat the live phone capture as the feasibility verdict. Static schema
   support or a compiling second handler is not proof that Android Auto exposes
   CLUSTER content.
+
+## Opus Design Review Adjudication
+
+The review of initial design commit `29ddb7d` returned 2 P1, 8 P2, and 4 P3
+findings. All 14 were confirmed as specification gaps; none were dismissed.
+
+- The two P1 corrections make flag-off discovery byte-equivalent and require
+  live MAIN-only validation before enablement, while limiting isolation claims
+  to valid transport/app-layer failures and classifying the shared assembler's
+  session-global failure separately.
+- The P2 corrections document the field/enum evidence boundary, use one
+  `pluginValue()` startup snapshot, replace implicit disconnect guards with
+  explicit stream generations and purge, give `Error` an observable decoder
+  source, scope phone/session termination honestly, make initial focus an A/B
+  activation probe, state the MAIN-native dashboard sequence, and classify
+  CLUSTER media correctly in protocol capture.
+- The P3 corrections add MAIN latency/ACK evidence, pin CLUSTER's one-config
+  response, expose explicit channel rejection, and distinguish the code
+  substrate commit from the reviewed design commit.
