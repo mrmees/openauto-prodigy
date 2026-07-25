@@ -914,9 +914,14 @@ match, and the service starts.
 
 ```bash
 ssh matt@192.168.1.149 '
+set -eu
 systemctl is-active openauto-prodigy.service
 systemctl show openauto-prodigy.service -p MainPID -p NRestarts --no-pager
-pgrep -a -x openauto-prodigy
+bin="$HOME/openauto-prodigy/build/src/openauto-prodigy"
+main_pid=$(systemctl show openauto-prodigy.service -p MainPID --value)
+test "$main_pid" -gt 0
+test "$(readlink -f "/proc/$main_pid/exe")" = "$bin"
+ps -p "$main_pid" -o pid=,comm=,args=
 sed -n "/org.openauto.aa-cluster-16/,+7p" "$HOME/.openauto/config.yaml"
 journalctl -u openauto-prodigy.service -b --no-pager | \
   grep -E "CLUSTER|geometry mismatch|first decoded frame" | tail -n 80
