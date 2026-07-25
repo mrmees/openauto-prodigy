@@ -825,9 +825,13 @@ and the reboot-durable staged hash matches locally and remotely.
 
 ```bash
 ssh matt@192.168.1.149 '
+set -eu
 sudo systemctl stop openauto-prodigy.service
-systemctl is-active openauto-prodigy.service || true
-sed -n "/org.openauto.aa-cluster-16/,+8p" "$HOME/.openauto/config.yaml"
+if systemctl is-active --quiet openauto-prodigy.service; then
+  echo "openauto-prodigy.service is still running" >&2
+  exit 1
+fi
+sed -n "/org.openauto.aa-cluster-16/,+7p" "$HOME/.openauto/config.yaml"
 '
 ```
 
@@ -836,7 +840,7 @@ picker to create a 3x3 instance; do not synthesize an ID or change
 `next_instance_id`. If present, proceed only when its exact identity/origin/
 page/span match the Definition of Ready and a fresh placement scan confirms
 cols 0-2 and rows 0-2 on page 1 remain collision-free. Any mismatch restores
-the backup and stops this task. The nine printed lines must match the exact
+the backup and stops this task. The eight printed lines must match the exact
 `old` block in Step 4 byte-for-byte; a visually similar block is not approval
 to continue.
 
@@ -849,6 +853,10 @@ stopped:
 ```bash
 ssh matt@192.168.1.149 '
 set -eu
+if systemctl is-active --quiet openauto-prodigy.service; then
+  echo "openauto-prodigy.service is still running" >&2
+  exit 1
+fi
 bin="$HOME/openauto-prodigy/build/src/openauto-prodigy"
 cfg="$HOME/.openauto/config.yaml"
 stage="$HOME/openauto-prodigy/build/src/openauto-prodigy.square-viewport-stage"
@@ -897,7 +905,7 @@ ssh matt@192.168.1.149 '
 systemctl is-active openauto-prodigy.service
 systemctl show openauto-prodigy.service -p MainPID -p NRestarts --no-pager
 pgrep -a -x openauto-prodigy
-sed -n "/org.openauto.aa-cluster-16/,+8p" "$HOME/.openauto/config.yaml"
+sed -n "/org.openauto.aa-cluster-16/,+7p" "$HOME/.openauto/config.yaml"
 journalctl -u openauto-prodigy.service -b --no-pager | \
   grep -E "CLUSTER|geometry mismatch|first decoded frame" | tail -n 80
 '
@@ -967,6 +975,10 @@ Only after Matthew accepts the live result:
 Then commit the completion record:
 
 ```bash
+git mv docs/plans/2026-07-25-aa-cluster-square-viewport-design.md \
+       docs/archive/plans/2026-07-25-aa-cluster-square-viewport-design.md
+git mv docs/plans/2026-07-25-aa-cluster-square-viewport-plan.md \
+       docs/archive/plans/2026-07-25-aa-cluster-square-viewport-plan.md
 git add docs/archive/plans/2026-07-25-aa-cluster-square-viewport-design.md \
         docs/archive/plans/2026-07-25-aa-cluster-square-viewport-plan.md \
         docs/archive/session-handoffs/2026-07-24-handoffs.md \
@@ -998,7 +1010,7 @@ untracked, and the branch remains unpushed pending Matthew's instruction.
 ## Opus Plan Review Adjudication
 
 Opus reviewed commit `b7f6451` and returned `NEEDS_CHANGES` with two blockers,
-five major findings, and ten minor findings. All were confirmed and
+five major findings, and a set of minor findings. All were confirmed and
 incorporated:
 
 - the Pi stamp and staged binary are now reboot-durable, and the guarded
@@ -1018,5 +1030,10 @@ incorporated:
 
 The binding `VideoDecoderTestAccess` sizing note was already fully covered.
 The binding INDEX/roadmap archival note was partially covered initially and is
-fully covered after the amendments above. A final Opus pass is required before
-execution.
+fully covered after the amendments above.
+
+The final Opus pass reviewed commit `f28cf9a` and returned `PASS` with no
+blocker or major findings, explicitly confirming both binding notes. Its three
+nonblocking minor observations were incorporated mechanically: archive steps
+now use `git mv`, the placement print range is exactly eight lines, and the
+guarded edit reasserts that the service is stopped immediately before mutation.
