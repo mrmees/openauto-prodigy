@@ -145,6 +145,7 @@ oap_add_test(test_focus_gain SOURCES test_focus_gain.cpp)
 
 # --- AA protocol tests ---
 
+oap_add_test(test_projected_display_config SOURCES test_projected_display_config.cpp)
 oap_add_test(test_service_discovery_builder SOURCES test_service_discovery_builder.cpp)
 oap_add_test(test_sensor_channel_handler SOURCES test_sensor_channel_handler.cpp)
 oap_add_test(test_input_channel_handler SOURCES test_input_channel_handler.cpp)

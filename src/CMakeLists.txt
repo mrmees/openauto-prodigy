@@ -28,6 +28,7 @@ add_library(openauto-core STATIC
     core/aa/GpioNightMode.cpp
     core/aa/CodecCapability.cpp
     core/aa/WirelessAaConfig.cpp
+    core/aa/ProjectedDisplayConfig.cpp
     core/aa/ServiceDiscoveryBuilder.cpp
     core/aa/AVInputCaptureBridge.cpp
     core/aa/AndroidAutoOrchestrator.cpp
