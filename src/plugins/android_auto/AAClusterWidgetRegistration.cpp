@@ -20,12 +20,12 @@ bool registerAAClusterWidget(
         QStringLiteral("Projected Android Auto cluster display");
     descriptor.qmlComponent = QUrl(
         QStringLiteral("qrc:/OpenAutoProdigy/AAClusterWidget.qml"));
-    descriptor.minCols = 2;
-    descriptor.maxCols = 2;
-    descriptor.defaultCols = 2;
-    descriptor.minRows = 2;
-    descriptor.maxRows = 2;
-    descriptor.defaultRows = 2;
+    descriptor.minCols = 3;
+    descriptor.maxCols = 3;
+    descriptor.defaultCols = 3;
+    descriptor.minRows = 3;
+    descriptor.maxRows = 3;
+    descriptor.defaultRows = 3;
     return registry.registerWidget(descriptor);
 }
 

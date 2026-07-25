@@ -28,18 +28,38 @@ Item {
         localStatusText = ownsSink ? "" : "Cluster display already in use"
     }
 
-    VideoOutput {
-        id: videoOutput
-        anchors.fill: parent
-        fillMode: VideoOutput.PreserveAspectFit
+    Item {
+        id: cropViewport
+        objectName: "clusterCropViewport"
+        width: Math.min(root.width, root.height)
+        height: AAClusterDisplay.viewportContentWidth > 0
+                ? width * AAClusterDisplay.viewportContentHeight
+                    / AAClusterDisplay.viewportContentWidth
+                : 0
+        anchors.centerIn: parent
+        clip: true
         visible: root.ownsSink && AAClusterDisplay.rendering
+
+        VideoOutput {
+            id: videoOutput
+            objectName: "clusterVideoOutput"
+            readonly property real viewportScale:
+                AAClusterDisplay.viewportContentWidth > 0
+                ? cropViewport.width / AAClusterDisplay.viewportContentWidth
+                : 0
+            width: AAClusterDisplay.viewportEncodedWidth * viewportScale
+            height: AAClusterDisplay.viewportEncodedHeight * viewportScale
+            x: -AAClusterDisplay.viewportContentX * viewportScale
+            y: -AAClusterDisplay.viewportContentY * viewportScale
+            fillMode: VideoOutput.PreserveAspectFit
+        }
     }
 
     ColumnLayout {
         anchors.centerIn: parent
         width: Math.max(0, parent.width - UiMetrics.spacing * 2)
         spacing: UiMetrics.spacing
-        visible: !videoOutput.visible
+        visible: !cropViewport.visible
         opacity: 0.6
 
         MaterialIcon {

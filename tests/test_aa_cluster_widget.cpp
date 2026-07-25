@@ -2,11 +2,13 @@
 #include <QQmlComponent>
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QQuickItem>
 #include <QSaveFile>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QVideoSink>
 
+#include "core/aa/ProjectedDisplayConfig.hpp"
 #include "core/widget/WidgetRegistry.hpp"
 #include "plugins/android_auto/AAClusterWidgetRegistration.hpp"
 
@@ -14,10 +16,28 @@ class FakeClusterDisplay : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool rendering READ rendering CONSTANT)
     Q_PROPERTY(QString statusText READ statusText CONSTANT)
+    Q_PROPERTY(int viewportEncodedWidth READ viewportEncodedWidth CONSTANT)
+    Q_PROPERTY(int viewportEncodedHeight READ viewportEncodedHeight CONSTANT)
+    Q_PROPERTY(int viewportContentX READ viewportContentX CONSTANT)
+    Q_PROPERTY(int viewportContentY READ viewportContentY CONSTANT)
+    Q_PROPERTY(int viewportContentWidth READ viewportContentWidth CONSTANT)
+    Q_PROPERTY(int viewportContentHeight READ viewportContentHeight CONSTANT)
 
 public:
     bool rendering() const { return false; }
     QString statusText() const { return QStringLiteral("Waiting"); }
+    int viewportEncodedWidth() const
+    { return oap::aa::kClusterViewportGeometry.encodedWidth; }
+    int viewportEncodedHeight() const
+    { return oap::aa::kClusterViewportGeometry.encodedHeight; }
+    int viewportContentX() const
+    { return oap::aa::kClusterViewportGeometry.contentX(); }
+    int viewportContentY() const
+    { return oap::aa::kClusterViewportGeometry.contentY(); }
+    int viewportContentWidth() const
+    { return oap::aa::kClusterViewportGeometry.contentWidth; }
+    int viewportContentHeight() const
+    { return oap::aa::kClusterViewportGeometry.contentHeight; }
     Q_INVOKABLE bool attachVideoSink(QVideoSink* sink)
     {
         if (!sink || (sink_ && sink_ != sink))
@@ -90,18 +110,19 @@ private slots:
         const auto descriptor =
             registry.descriptor(QStringLiteral("org.openauto.aa-cluster"));
         QVERIFY(descriptor.has_value());
-        QCOMPARE(descriptor->minCols, 2);
-        QCOMPARE(descriptor->maxCols, 2);
-        QCOMPARE(descriptor->minRows, 2);
-        QCOMPARE(descriptor->maxRows, 2);
-        QCOMPARE(descriptor->defaultCols, 2);
-        QCOMPARE(descriptor->defaultRows, 2);
+        QCOMPARE(descriptor->minCols, 3);
+        QCOMPARE(descriptor->maxCols, 3);
+        QCOMPARE(descriptor->minRows, 3);
+        QCOMPARE(descriptor->maxRows, 3);
+        QCOMPARE(descriptor->defaultCols, 3);
+        QCOMPARE(descriptor->defaultRows, 3);
         QCOMPARE(descriptor->category, QStringLiteral("navigation"));
         QCOMPARE(descriptor->qmlComponent,
                  QUrl(QStringLiteral(
                      "qrc:/OpenAutoProdigy/AAClusterWidget.qml")));
         QCOMPARE(registry.allDescriptors().size(), 1);
-        const auto pickerEntries = registry.widgetsFittingSpace(2, 2);
+        QVERIFY(registry.widgetsFittingSpace(2, 2).isEmpty());
+        const auto pickerEntries = registry.widgetsFittingSpace(3, 3);
         QCOMPARE(pickerEntries.size(), 1);
         QCOMPARE(pickerEntries.first().id,
                  QStringLiteral("org.openauto.aa-cluster"));
@@ -131,6 +152,22 @@ private slots:
             "onTriggered: root.syncSinkClaim()")));
         QVERIFY(source.contains(QStringLiteral("already in use"),
                                 Qt::CaseInsensitive));
+        QVERIFY(source.contains(
+            QStringLiteral("objectName: \"clusterCropViewport\"")));
+        QVERIFY(source.contains(
+            QStringLiteral("objectName: \"clusterVideoOutput\"")));
+        for (const QString& property : {
+                 QStringLiteral("viewportEncodedWidth"),
+                 QStringLiteral("viewportEncodedHeight"),
+                 QStringLiteral("viewportContentX"),
+                 QStringLiteral("viewportContentY"),
+                 QStringLiteral("viewportContentWidth"),
+                 QStringLiteral("viewportContentHeight")}) {
+            QVERIFY2(source.contains(
+                         QStringLiteral("AAClusterDisplay.%1").arg(property)),
+                     qPrintable(QStringLiteral("Missing geometry property: %1")
+                                    .arg(property)));
+        }
 
         const QStringList forbidden = {
             QStringLiteral("MouseArea"),
@@ -212,6 +249,38 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(hidden->property("ownsSink").toBool(), 1000);
         QVERIFY(!current->property("ownsSink").toBool());
         QVERIFY(display.sink());
+
+        auto* crop = hidden->findChild<QQuickItem*>("clusterCropViewport");
+        auto* video = hidden->findChild<QQuickItem*>("clusterVideoOutput");
+        QVERIFY(crop);
+        QVERIFY(video);
+        QVERIFY(crop->clip());
+
+        for (const qreal side : {300.0, 450.0}) {
+            hidden->setProperty("width", side);
+            hidden->setProperty("height", side);
+            QCoreApplication::processEvents();
+            const qreal scale = side / 300.0;
+            QCOMPARE(crop->width(), side);
+            QCOMPARE(crop->height(), side);
+            QCOMPARE(video->width(), 800.0 * scale);
+            QCOMPARE(video->height(), 480.0 * scale);
+            QCOMPARE(video->x(), -250.0 * scale);
+            QCOMPARE(video->y(), -90.0 * scale);
+        }
+
+        hidden->setProperty("width", 600.0);
+        hidden->setProperty("height", 400.0);
+        QCoreApplication::processEvents();
+        const qreal scale = 400.0 / 300.0;
+        QCOMPARE(crop->width(), 400.0);
+        QCOMPARE(crop->height(), 400.0);
+        QCOMPARE(crop->x(), 100.0);
+        QCOMPARE(crop->y(), 0.0);
+        QCOMPARE(video->width(), 800.0 * scale);
+        QCOMPARE(video->height(), 480.0 * scale);
+        QCOMPARE(video->x(), -250.0 * scale);
+        QCOMPARE(video->y(), -90.0 * scale);
     }
 };
 
