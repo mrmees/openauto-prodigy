@@ -22,10 +22,9 @@ namespace {
 bool supportsExplicitReopenLifecycle(uint8_t channelId)
 {
     // CLUSTER channels use replacement opens as an observed renegotiation
-    // boundary. For established legacy channels, treat an already-open request
-    // as a retransmission: acknowledging it without resetting live media avoids
-    // disrupting projection when the original response was lost. A transport
-    // CHANNEL_CLOSE_NOTIFICATION remains the explicit reset boundary.
+    // boundary and must not receive traffic before that boundary. Preserve the
+    // established open/dispatch behavior of every legacy channel; this
+    // experimental path must not redefine their lifecycle contract.
     return channelId == ChannelId::ClusterVideo
         || channelId == ChannelId::ClusterInput;
 }
@@ -164,6 +163,7 @@ void AASession::start() {
 
     messenger_->start();
     channelsClosed_ = false;
+    warnedNonControlOpenChannels_.clear();
     setState(SessionState::Connecting);
 
     if (transport_->isConnected()) {
@@ -455,11 +455,8 @@ void AASession::onChannelOpenRequested(int32_t channelId, const QByteArray& /*pa
     if (channels_.contains(targetChannel)) {
         qDebug() << "[AASession] Opening channel" << targetChannel;
         IChannelHandler* handler = channels_.value(targetChannel);
-        if (openChannels_.contains(targetChannel)) {
-            if (!supportsExplicitReopenLifecycle(targetChannel)) {
-                controlChannel_->sendChannelOpenResponse(targetChannel, true);
-                return;
-            }
+        if (openChannels_.contains(targetChannel)
+            && supportsExplicitReopenLifecycle(targetChannel)) {
             closeServiceChannel(targetChannel);
             if (finalized_ || state_ != SessionState::Active
                 || channels_.value(targetChannel, nullptr) != handler)
@@ -529,11 +526,8 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
             if (channels_.contains(targetCh)) {
                 qDebug() << "[AASession] Opening channel" << targetCh;
                 IChannelHandler* handler = channels_.value(targetCh);
-                if (openChannels_.contains(targetCh)) {
-                    if (!supportsExplicitReopenLifecycle(targetCh)) {
-                        controlChannel_->sendChannelOpenResponse(targetCh, true);
-                        return;
-                    }
+                if (openChannels_.contains(targetCh)
+                    && supportsExplicitReopenLifecycle(targetCh)) {
                     closeServiceChannel(targetCh);
                     if (finalized_ || state_ != SessionState::Active
                         || channels_.value(targetCh, nullptr) != handler)
@@ -562,14 +556,24 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
     }
 
     if (!openChannels_.contains(channelId)
-        && channels_.contains(channelId)
-        && messageId == SessionMessageId::CHANNEL_OPEN_REQUEST) {
-        qWarning() << "[AASession] Ignoring non-control channel-open request on"
-                   << channelId << "message type"
-                   << static_cast<int>(messageType);
-    }
+        && supportsExplicitReopenLifecycle(channelId)) {
+        if (channels_.contains(channelId)
+            && messageId == SessionMessageId::CHANNEL_OPEN_REQUEST) {
+            proto::messages::ChannelOpenRequest request;
+            const bool isMatchingOpenRequest =
+                request.ParseFromArray(
+                    payload.constData() + dataOffset, dataSize)
+                && request.channel_id() == channelId;
+            if (isMatchingOpenRequest
+                && !warnedNonControlOpenChannels_.contains(channelId)) {
+                warnedNonControlOpenChannels_.insert(channelId);
+                qWarning()
+                    << "[AASession] Ignoring non-control channel-open request on"
+                    << channelId << "message type"
+                    << static_cast<int>(messageType);
+            }
+        }
 
-    if (!openChannels_.contains(channelId)) {
         qDebug() << "[AASession] Dropping traffic for closed channel"
                  << channelId << "msgId" << Qt::hex << messageId;
         return;

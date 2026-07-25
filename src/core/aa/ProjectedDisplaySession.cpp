@@ -132,6 +132,11 @@ ProjectedDisplaySession::ProjectedDisplaySession(
             this,
             [this](std::shared_ptr<const QByteArray> data,
                    qint64 enqueueTimeNs) {
+                // AASession, the channel handler, and this display session
+                // share one Qt event-loop thread. Direct delivery avoids a
+                // frame copy but must remain owner-thread-only because this
+                // path updates generation and summary state.
+                Q_ASSERT(QThread::currentThread() == thread());
                 if (!protocolActive_ || terminalStateLatched_ || !decoder_
                     || activeDecoderGeneration_ == 0) {
                     return;
@@ -381,6 +386,7 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
     sinkClaimRejectionLogged_ = false;
     sink_ = sink;
     decoder_->setVideoSink(sink);
+    emit videoSinkAvailabilityChanged();
     QVideoSink* claimedSink = sink;
     sinkDestroyedConnection_ = connect(
         sink, &QObject::destroyed, this, [this, claimedSink]() {
@@ -389,6 +395,7 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
             decoder_->setVideoSink(nullptr);
             sink_.clear();
             sinkClaimRejectionLogged_ = false;
+            emit videoSinkAvailabilityChanged();
             qCInfo(lcAA).noquote() << diagnosticPrefix_
                                   << "sink released on destruction";
         });
@@ -406,6 +413,7 @@ void ProjectedDisplaySession::detachVideoSink(QVideoSink* sink)
     decoder_->setVideoSink(nullptr);
     sink_.clear();
     sinkClaimRejectionLogged_ = false;
+    emit videoSinkAvailabilityChanged();
     qCInfo(lcAA).noquote() << diagnosticPrefix_ << "sink released";
 }
 

@@ -36,9 +36,11 @@ spike, or research-first feasibility work.
   `docs/archive/plans/2026-07-25-aa-cluster-square-viewport-design.md` and
   `docs/archive/plans/2026-07-25-aa-cluster-square-viewport-plan.md`. The live
   Pi/Pixel result corresponds to the accepted implementation through
-  `7ccdfc4`; subsequent pre-publication lifecycle hardening is covered by the
-  repository build, test, and ARM cross-build gates but is not described as a
-  separate hardware-validation pass.
+  `7ccdfc4`; subsequent pre-publication CLUSTER-only lifecycle hardening is
+  covered by the repository build, test, and ARM cross-build gates but remains
+  pending the next routine hardware regression and is not described as a
+  separate hardware-validation pass. Established legacy-channel behavior is
+  unchanged.
 
 - Android Auto projected CLUSTER dashboard widget feasibility spike —
   **COMPLETE 2026-07-24** (Pi/Pixel positive result). Behind a default-off

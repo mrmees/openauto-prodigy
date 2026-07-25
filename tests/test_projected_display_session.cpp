@@ -543,6 +543,32 @@ private slots:
                      QStringLiteral("sink claim rejected; already owned")),
                  2);
     }
+
+    void videoSinkAvailabilityTracksClaimDetachAndDestruction()
+    {
+        auto display = enabledClusterDisplay();
+        QSignalSpy availabilitySpy(
+            &display,
+            &oap::aa::ProjectedDisplaySession::videoSinkAvailabilityChanged);
+        QCOMPARE(display.isVideoSinkAvailable(), true);
+
+        QVideoSink first;
+        QVERIFY(display.attachVideoSink(&first));
+        QCOMPARE(display.isVideoSinkAvailable(), false);
+        QCOMPARE(availabilitySpy.count(), 1);
+
+        display.detachVideoSink(&first);
+        QCOMPARE(display.isVideoSinkAvailable(), true);
+        QCOMPARE(availabilitySpy.count(), 2);
+
+        auto second = std::make_unique<QVideoSink>();
+        QVERIFY(display.attachVideoSink(second.get()));
+        QCOMPARE(display.isVideoSinkAvailable(), false);
+        QCOMPARE(availabilitySpy.count(), 3);
+        second.reset();
+        QCOMPARE(display.isVideoSinkAvailable(), true);
+        QCOMPARE(availabilitySpy.count(), 4);
+    }
 };
 
 QTEST_MAIN(TestProjectedDisplaySession)

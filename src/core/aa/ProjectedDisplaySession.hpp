@@ -31,6 +31,8 @@ class ProjectedDisplaySession : public QObject {
     Q_PROPERTY(int viewportContentY READ viewportContentY CONSTANT)
     Q_PROPERTY(int viewportContentWidth READ viewportContentWidth CONSTANT)
     Q_PROPERTY(int viewportContentHeight READ viewportContentHeight CONSTANT)
+    Q_PROPERTY(bool videoSinkAvailable READ isVideoSinkAvailable
+                   NOTIFY videoSinkAvailabilityChanged)
 
 public:
     enum State {
@@ -63,6 +65,7 @@ public:
     int viewportContentY() const;
     int viewportContentWidth() const;
     int viewportContentHeight() const;
+    bool isVideoSinkAvailable() const { return sink_.isNull(); }
 
     ProjectedDisplayRole role() const { return role_; }
     uint8_t displayId() const { return displayId_; }
@@ -86,6 +89,7 @@ public:
 
 signals:
     void stateChanged();
+    void videoSinkAvailabilityChanged();
 
 private:
     void setState(State state, const QString& statusText);

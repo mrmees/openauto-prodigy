@@ -22,6 +22,8 @@ class FakeClusterDisplay : public QObject {
     Q_PROPERTY(int viewportContentY READ viewportContentY CONSTANT)
     Q_PROPERTY(int viewportContentWidth READ viewportContentWidth CONSTANT)
     Q_PROPERTY(int viewportContentHeight READ viewportContentHeight CONSTANT)
+    Q_PROPERTY(bool videoSinkAvailable READ videoSinkAvailable
+                   NOTIFY videoSinkAvailabilityChanged)
 
 public:
     bool rendering() const { return false; }
@@ -38,21 +40,28 @@ public:
     { return oap::aa::kClusterViewportGeometry.contentWidth; }
     int viewportContentHeight() const
     { return oap::aa::kClusterViewportGeometry.contentHeight; }
+    bool videoSinkAvailable() const { return sink_.isNull(); }
     Q_INVOKABLE bool attachVideoSink(QVideoSink* sink)
     {
         ++attachAttempts_;
         if (!sink || (sink_ && sink_ != sink))
             return false;
         sink_ = sink;
+        emit videoSinkAvailabilityChanged();
         return true;
     }
     Q_INVOKABLE void detachVideoSink(QVideoSink* sink)
     {
-        if (sink_ == sink)
+        if (sink_ == sink) {
             sink_.clear();
+            emit videoSinkAvailabilityChanged();
+        }
     }
     QVideoSink* sink() const { return sink_.data(); }
     int attachAttempts() const { return attachAttempts_; }
+
+signals:
+    void videoSinkAvailabilityChanged();
 
 private:
     QPointer<QVideoSink> sink_;
@@ -158,6 +167,8 @@ private slots:
             "detachVideoSink(videoOutput.videoSink)")));
         QVERIFY(source.contains(QStringLiteral("widgetContext.isCurrentPage")));
         QVERIFY(source.contains(QStringLiteral("onIsCurrentPageChanged")));
+        QVERIFY(source.contains(
+            QStringLiteral("onVideoSinkAvailabilityChanged")));
         QVERIFY(source.contains(QStringLiteral("if (!isCurrentPage)")));
         QVERIFY(source.contains(QStringLiteral(
             "root.sinkClaimAttempts < root.maxSinkClaimAttempts")));
@@ -297,7 +308,7 @@ private slots:
         QCOMPARE(video->y(), -90.0 * scale);
     }
 
-    void failedSinkClaimStopsAfterBoundAndRearmsOnPageTransition()
+    void failedSinkClaimStopsAfterBoundAndRearmsWhenOwnerReleases()
     {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
@@ -364,9 +375,9 @@ private slots:
         QTest::qWait(500);
         QCOMPARE(display.attachAttempts(), attemptsAtBound);
 
-        blockedContext.setIsCurrentPage(false);
-        blockedContext.setIsCurrentPage(true);
-        QTRY_VERIFY(display.attachAttempts() > attemptsAtBound);
+        owner.reset();
+        QTRY_VERIFY(blocked->property("ownsSink").toBool());
+        QVERIFY(display.attachAttempts() > attemptsAtBound);
     }
 };
 

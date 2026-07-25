@@ -95,6 +95,7 @@ private:
     QTimer pongDeadlineTimer_;
     int64_t lastPingTimestamp_ = 0;
     QSet<int64_t> outstandingPingTimestamps_;
+    QSet<uint8_t> warnedNonControlOpenChannels_;
     bool channelsClosed_ = true;
     bool finalized_ = false;
 };

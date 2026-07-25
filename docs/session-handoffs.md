@@ -31,9 +31,11 @@ implementation range `b7f6451..7ccdfc4`; it keeps
 on dashboard page 1. The Pixel opened CLUSTER channels 12/13, decoded the
 required 800×480 carrier, reached Rendering, and produced no geometry-mismatch
 terminal error. Matthew accepted the visible basic square implementation.
-Later review-hardening commits cover shared AA channel and decoder lifecycles;
-they have repository and ARM cross-build coverage but are not claimed as an
-additional Pi/Pixel bench pass. The pre-deploy binary and configuration remain
+Later review-hardening commits keep the stricter reopen and closed-channel
+lifecycle rules confined to CLUSTER channels 12/13; established legacy-channel
+behavior is unchanged. Those commits have repository and ARM cross-build
+coverage but are not claimed as an additional Pi/Pixel bench pass. The
+pre-deploy binary and configuration remain
 recoverable under stamp `20260725-103337`; the installed and staged binary
 SHA-256 is
 `f2d3f6765f741014e25a43bd1a6475f382202b7586075e6af68dca60ad15dd03`.
@@ -51,16 +53,21 @@ rerun returned `LGTM — no issues found.` A later live verification command
 exposed Linux's 15-character `pgrep -x` comm-name limit; the runbook now checks
 systemd's MainPID and exact executable path instead.
 
-The later whole-range Opus publication review ran with read-only repository
-tools and no turn or wall-clock limit. Its latest pass produced five findings:
-four were confirmed and addressed by separating live-bench claims from later
-hardening, warning on non-control channel-open traffic, validating live-doc
-links, and bounding/rearming widget sink-claim retries. The remaining minor
-request to replace the fixed CLUSTER channel IDs with registration-time policy
-was dismissed for this experiment: IDs 12/13 are the explicit frozen
-`ChannelId` contract, the library is an in-tree static target, and a generalized
-channel-policy API would expand the completed feature without changing its
-current behavior. A final unbounded Opus rerun remains the publication gate.
+The later whole-range Opus publication reviews ran with read-only repository
+tools and no turn or wall-clock limit. Across the latest passes, confirmed
+findings were addressed by separating live-bench claims from later hardening,
+validating live-doc links, confining new reopen and closed-channel rules to
+CLUSTER, adding event-driven sink recovery, rate-limiting only validated
+CLUSTER reopen warnings, and documenting/asserting the direct frame callback's
+thread contract. The request to treat an internal Messenger signal change as
+an out-of-tree compatibility break was dismissed: the library is an in-tree
+static target, all repository consumers were migrated, and the frozen
+community proto submodule remained untouched. The earlier request to replace
+fixed CLUSTER channel IDs with registration-time policy was also dismissed for
+this experiment: IDs 12/13 are the explicit frozen `ChannelId` contract and a
+generalized channel-policy API would expand the completed feature without
+changing its behavior. A final unbounded Opus rerun remains the publication
+gate.
 
 **Verification:** the full native build, explicit `openauto-prodigy` target,
 `QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, `git diff --check`, and
@@ -78,7 +85,7 @@ opens, an exact 800×480 first decoded frame, Rendering state, and no geometry
 mismatch.
 
 **Next 1-3 steps:** (1) publish and merge PR #40 after the unbounded Opus rerun
-and CI are green; (2) verify the review-hardening lifecycle changes during the
+and CI are green; (2) verify the CLUSTER-only review-hardening lifecycle changes during the
 next routine Pi/Pixel session; (3) choose and promote the next bounded item
 from the qualified wishlist rather than extending this completed experiment in
 place.

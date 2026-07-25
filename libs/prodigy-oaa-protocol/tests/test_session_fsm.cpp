@@ -861,7 +861,7 @@ private slots:
         QCOMPARE(openedSpy.count(), 3);
     }
 
-    void testLegacyServiceChannelCloseThenReopenAndDuplicateOpenIsIdempotent() {
+    void testLegacyServiceChannelDuplicateOpenPreservesEstablishedReopenPath() {
         for (const uint8_t channelId : {
                  oaa::ChannelId::Video,
                  oaa::ChannelId::MediaAudio,
@@ -891,9 +891,9 @@ private slots:
                 channelId, 0x0007, payload, 0,
                 oaa::MessageType::Control);
 
-            QCOMPARE(handler.openCount, 1);
+            QCOMPARE(handler.openCount, 2);
             QCOMPARE(handler.closeCount, 0);
-            QCOMPARE(openedSpy.count(), 1);
+            QCOMPARE(openedSpy.count(), 2);
             QCOMPARE(closedSpy.count(), 0);
 
             session.messenger()->messageReceived(
@@ -905,13 +905,13 @@ private slots:
             session.messenger()->messageReceived(
                 channelId, oaa::AVMessageId::START_INDICATION,
                 QByteArray(), 0, oaa::MessageType::Specific);
-            QCOMPARE(handler.messageCount, 0);
+            QCOMPARE(handler.messageCount, 1);
 
             session.messenger()->messageReceived(
                 channelId, 0x0007, payload, 0,
                 oaa::MessageType::Control);
-            QCOMPARE(handler.openCount, 2);
-            QCOMPARE(openedSpy.count(), 2);
+            QCOMPARE(handler.openCount, 3);
+            QCOMPARE(openedSpy.count(), 3);
 
             // The same numeric ID in a service-specific frame is handler data,
             // not a transport close notification.
@@ -920,19 +920,19 @@ private slots:
                 oaa::MessageType::Specific);
             QCOMPARE(handler.closeCount, 1);
             QCOMPARE(closedSpy.count(), 1);
-            QCOMPARE(handler.messageCount, 1);
+            QCOMPARE(handler.messageCount, 2);
             QCOMPARE(handler.lastMessageId, uint16_t(0x0009));
 
             session.messenger()->messageReceived(
                 channelId, 0x0007, QByteArrayLiteral("service payload"), 0,
                 oaa::MessageType::Specific);
-            QCOMPARE(handler.openCount, 2);
-            QCOMPARE(handler.messageCount, 2);
+            QCOMPARE(handler.openCount, 3);
+            QCOMPARE(handler.messageCount, 3);
             QCOMPARE(handler.lastMessageId, uint16_t(0x0007));
         }
     }
 
-    void testLegacyDuplicateOpenDoesNotLeaveStaleVideoAckSession() {
+    void testLegacyDuplicateOpenRestartsEstablishedVideoHandlerPath() {
         for (const uint8_t incomingChannel : {
                  uint8_t(0), oaa::ChannelId::Video}) {
             oaa::ReplayTransport transport;
@@ -988,7 +988,7 @@ private slots:
                 oaa::SessionMessageId::CHANNEL_OPEN_REQUEST,
                 openPayload, 0, oaa::MessageType::Control);
 
-            QCOMPARE(handler.canAcceptMedia(), true);
+            QCOMPARE(handler.canAcceptMedia(), false);
             QCOMPARE(transport.writtenData().size(), 1);
             const QByteArray responseFrame = transport.writtenData().first();
             QVERIFY(responseFrame.size() >= 7);
@@ -1005,19 +1005,13 @@ private slots:
             QCOMPARE(response.status(), oaa::proto::enums::Status::OK);
 
             sendMedia();
-            QCOMPARE(sendSpy.count(), 1);
-            oaa::proto::messages::AVMediaAckIndication preservedAck;
-            const QByteArray preservedAckPayload = ackPayloadAt(0);
-            QVERIFY(preservedAck.ParseFromArray(
-                preservedAckPayload.constData(), preservedAckPayload.size()));
-            QCOMPARE(preservedAck.session_id(), 41);
-            QCOMPARE(preservedAck.ack_count(), 1u);
+            QCOMPARE(sendSpy.count(), 0);
 
             startStream(42);
             sendMedia();
-            QCOMPARE(sendSpy.count(), 2);
+            QCOMPARE(sendSpy.count(), 1);
             oaa::proto::messages::AVMediaAckIndication replacementAck;
-            const QByteArray replacementAckPayload = ackPayloadAt(1);
+            const QByteArray replacementAckPayload = ackPayloadAt(0);
             QVERIFY(replacementAck.ParseFromArray(
                 replacementAckPayload.constData(), replacementAckPayload.size()));
             QCOMPARE(replacementAck.session_id(), 42);
@@ -1025,9 +1019,10 @@ private slots:
         }
     }
 
-    void testRegisteredServiceChannelsRejectTrafficUntilOpen() {
-        for (uint8_t channelId = oaa::ChannelId::Input;
-             channelId <= oaa::ChannelId::WiFi; ++channelId) {
+    void testClusterServiceChannelsRejectTrafficUntilOpen() {
+        for (const uint8_t channelId : {
+                 oaa::ChannelId::ClusterVideo,
+                 oaa::ChannelId::ClusterInput}) {
             oaa::ReplayTransport transport;
             oaa::SessionConfig config;
             oaa::AASession session(&transport, config);
@@ -1063,31 +1058,78 @@ private slots:
         }
     }
 
+    void testLegacyRegisteredChannelsPreservePreOpenDispatch() {
+        for (uint8_t channelId = oaa::ChannelId::Input;
+             channelId <= oaa::ChannelId::WiFi; ++channelId) {
+            if (channelId == oaa::ChannelId::ClusterVideo
+                || channelId == oaa::ChannelId::ClusterInput) {
+                continue;
+            }
+
+            oaa::ReplayTransport transport;
+            oaa::SessionConfig config;
+            oaa::AASession session(&transport, config);
+            MockChannelHandler handler(channelId);
+            session.registerChannel(channelId, &handler);
+
+            transport.simulateConnect();
+            session.start();
+            advanceToActive(session);
+            transport.clearWritten();
+
+            session.messenger()->messageReceived(
+                channelId, 0x8123, QByteArrayLiteral("legacy"), 0,
+                oaa::MessageType::Specific);
+            QCOMPARE(handler.messageCount, 1);
+            QCOMPARE(handler.lastPayload, QByteArrayLiteral("legacy"));
+            QCOMPARE(transport.writtenData().size(), 0);
+        }
+    }
+
     void testClosedServiceChannelWarnsOnNonControlOpenMessage() {
         oaa::ReplayTransport transport;
         oaa::SessionConfig config;
         oaa::AASession session(&transport, config);
-        MockChannelHandler handler(oaa::ChannelId::Video);
-        session.registerChannel(oaa::ChannelId::Video, &handler);
+        MockChannelHandler handler(oaa::ChannelId::ClusterVideo);
+        session.registerChannel(oaa::ChannelId::ClusterVideo, &handler);
 
         transport.simulateConnect();
         session.start();
         advanceToActive(session);
         transport.clearWritten();
 
+        oaa::proto::messages::ChannelOpenRequest request;
+        request.set_channel_id(oaa::ChannelId::ClusterVideo);
+        request.set_priority(1);
+        QByteArray payload(request.ByteSizeLong(), '\0');
+        QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
+
+        const QRegularExpression warningPattern(
+            ".*Ignoring non-control channel-open request on 12.*");
         QTest::ignoreMessage(
             QtWarningMsg,
-            QRegularExpression(
-                ".*Ignoring non-control channel-open request on 3.*"));
+            warningPattern);
         session.messenger()->messageReceived(
-            oaa::ChannelId::Video,
+            oaa::ChannelId::ClusterVideo,
             oaa::SessionMessageId::CHANNEL_OPEN_REQUEST,
-            QByteArrayLiteral("not control"), 0,
+            payload, 0,
             oaa::MessageType::Specific);
 
         QCOMPARE(handler.openCount, 0);
         QCOMPARE(handler.messageCount, 0);
         QCOMPARE(transport.writtenData().size(), 0);
+
+        QTest::failOnWarning(warningPattern);
+        session.messenger()->messageReceived(
+            oaa::ChannelId::ClusterVideo,
+            oaa::SessionMessageId::CHANNEL_OPEN_REQUEST,
+            payload, 0,
+            oaa::MessageType::Specific);
+        session.messenger()->messageReceived(
+            oaa::ChannelId::ClusterVideo,
+            oaa::SessionMessageId::CHANNEL_OPEN_REQUEST,
+            QByteArrayLiteral("service payload"), 0,
+            oaa::MessageType::Specific);
     }
 
     void testUnregisteredChannelIsRejectedOnBothDispatchPaths() {

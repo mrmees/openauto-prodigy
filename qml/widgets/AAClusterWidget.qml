@@ -95,6 +95,17 @@ Item {
         onTriggered: root.syncSinkClaim()
     }
 
+    Connections {
+        target: AAClusterDisplay
+        function onVideoSinkAvailabilityChanged() {
+            if (AAClusterDisplay.videoSinkAvailable
+                    && root.isCurrentPage && !root.ownsSink) {
+                root.sinkClaimAttempts = 0
+                root.syncSinkClaim()
+            }
+        }
+    }
+
     onIsCurrentPageChanged: {
         sinkClaimAttempts = 0
         syncSinkClaim()
