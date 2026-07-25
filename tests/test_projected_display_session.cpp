@@ -617,6 +617,8 @@ private slots:
         auto display = enabledClusterDisplay();
         QVideoSink candidate;
         auto replacement = std::make_unique<QVideoSink>();
+        QSignalSpy decoderSinkSpy(
+            display.decoder(), &oap::aa::VideoDecoder::videoSinkChanged);
         connect(
             display.decoder(),
             &oap::aa::VideoDecoder::videoSinkChanged,
@@ -630,7 +632,72 @@ private slots:
         QVERIFY(!display.attachVideoSink(&candidate));
         QVERIFY(display.isVideoSinkAvailable());
         QCOMPARE(display.decoder()->videoSink(), nullptr);
+        QCOMPARE(decoderSinkSpy.count(), 3);
         replacement.reset();
+        QCOMPARE(display.decoder()->videoSink(), nullptr);
+    }
+
+    void publishedRollbackNotifiesAvailabilityAfterUnwinding()
+    {
+        auto display = enabledClusterDisplay();
+        QVideoSink candidate;
+        bool decoderCleared = false;
+        QSignalSpy availabilitySpy(
+            &display,
+            &oap::aa::ProjectedDisplaySession::videoSinkAvailabilityChanged);
+        connect(
+            &display,
+            &oap::aa::ProjectedDisplaySession::videoSinkAvailabilityChanged,
+            &display,
+            [&display, &decoderCleared]() {
+                if (!decoderCleared && !display.isVideoSinkAvailable()) {
+                    decoderCleared = true;
+                    display.decoder()->setVideoSink(nullptr);
+                }
+            },
+            Qt::DirectConnection);
+
+        QVERIFY(!display.attachVideoSink(&candidate));
+        QVERIFY(display.isVideoSinkAvailable());
+        QCOMPARE(display.decoder()->videoSink(), nullptr);
+        QCOMPARE(availabilitySpy.count(), 1);
+
+        QCoreApplication::processEvents();
+        QCOMPARE(availabilitySpy.count(), 2);
+        QVERIFY(display.isVideoSinkAvailable());
+    }
+
+    void publishedRollbackDoesNotEmitStaleAvailabilityAfterNewClaim()
+    {
+        auto display = enabledClusterDisplay();
+        QVideoSink candidate;
+        QVideoSink replacement;
+        bool decoderCleared = false;
+        QSignalSpy availabilitySpy(
+            &display,
+            &oap::aa::ProjectedDisplaySession::videoSinkAvailabilityChanged);
+        connect(
+            &display,
+            &oap::aa::ProjectedDisplaySession::videoSinkAvailabilityChanged,
+            &display,
+            [&display, &decoderCleared]() {
+                if (!decoderCleared && !display.isVideoSinkAvailable()) {
+                    decoderCleared = true;
+                    display.decoder()->setVideoSink(nullptr);
+                }
+            },
+            Qt::DirectConnection);
+
+        QVERIFY(!display.attachVideoSink(&candidate));
+        QVERIFY(display.isVideoSinkAvailable());
+        QCOMPARE(availabilitySpy.count(), 1);
+
+        QVERIFY(display.attachVideoSink(&replacement));
+        QCOMPARE(availabilitySpy.count(), 2);
+        QCoreApplication::processEvents();
+        QCOMPARE(availabilitySpy.count(), 2);
+        QVERIFY(!display.isVideoSinkAvailable());
+        QCOMPARE(display.decoder()->videoSink(), &replacement);
     }
 };
 

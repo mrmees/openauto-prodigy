@@ -3,7 +3,6 @@
 #include "../Logging.hpp"
 #include "../YamlConfig.hpp"
 
-#include <QSignalBlocker>
 #include <QThread>
 #include <QVideoFrame>
 
@@ -403,18 +402,22 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
         if (sink_ != claimedSink)
             return;
         disconnect(sinkDestroyedConnection_);
-        if (decoder_) {
-            const QSignalBlocker blocker(decoder_.get());
-            decoder_->setVideoSink(nullptr);
-        }
-        if (sink_ != claimedSink)
-            return;
         sink_.clear();
         sinkClaimRejectionLogged_ = false;
+        // Clear ownership before changing the decoder so a videoSinkChanged
+        // observer sees the stable session state and may safely claim a new
+        // sink. Do not block decoder signals: its stream lifecycle signals can
+        // be emitted concurrently by the decode worker.
+        if (decoder_)
+            decoder_->setVideoSink(nullptr);
         if (availabilityPublished) {
             QMetaObject::invokeMethod(
                 this,
-                [this]() { emit videoSinkAvailabilityChanged(); },
+                [this]() {
+                    // A new claim may land before this reentrancy escape runs.
+                    if (isVideoSinkAvailable())
+                        emit videoSinkAvailabilityChanged();
+                },
                 Qt::QueuedConnection);
         }
     };
