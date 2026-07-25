@@ -204,6 +204,12 @@ oap_add_test(test_widget_types SOURCES test_widget_types.cpp)
 oap_add_test(test_widget_registry SOURCES test_widget_registry.cpp)
 oap_add_test(test_widget_instance_context SOURCES test_widget_instance_context.cpp)
 oap_add_test(test_widget_plugin_integration SOURCES test_widget_plugin_integration.cpp)
+oap_add_test(test_aa_cluster_widget
+    SOURCES test_aa_cluster_widget.cpp
+    DEFS TEST_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+set_tests_properties(test_aa_cluster_widget
+    PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
 configure_file(data/test_widget_config.yaml ${CMAKE_CURRENT_BINARY_DIR}/data/test_widget_config.yaml COPYONLY)
 oap_add_test(test_widget_placement_model SOURCES test_widget_placement_model.cpp)
