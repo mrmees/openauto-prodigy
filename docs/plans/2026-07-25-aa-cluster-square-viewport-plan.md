@@ -3,7 +3,8 @@
 Date: 2026-07-25
 Status: ACTIVE
 Design: `docs/plans/2026-07-25-aa-cluster-square-viewport-design.md`
-Implementation base: `0ff45eb`
+Implementation/review base: `b7f6451` (initial reviewed-plan commit; the
+plan-review amendment itself is intentionally included in the final range)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use
 > superpowers:subagent-driven-development (recommended) or
@@ -100,6 +101,15 @@ struct ProjectedViewportGeometry {
     constexpr int marginHeight() const { return encodedHeight - contentHeight; }
     constexpr int contentX() const { return marginWidth() / 2; }
     constexpr int contentY() const { return marginHeight() / 2; }
+    constexpr bool isValid() const
+    {
+        return encodedWidth > 0 && encodedHeight > 0
+            && contentWidth > 0 && contentHeight > 0
+            && contentWidth == contentHeight
+            && contentWidth <= encodedWidth
+            && contentHeight <= encodedHeight
+            && marginWidth() % 2 == 0 && marginHeight() % 2 == 0;
+    }
 };
 
 inline constexpr ProjectedViewportGeometry kClusterViewportGeometry{
@@ -132,14 +142,26 @@ void clusterViewportGeometryIsCenteredAndInternallyValid()
     oap::YamlConfig yaml;
     QVERIFY(!oap::aa::resolveProjectedClusterConfig(yaml).enabled);
     QCOMPARE(oap::aa::kClusterViewportGeometry.contentWidth, 300);
+
+    yaml.setPluginValue("org.openauto.android-auto",
+                        "experimental_cluster_display", true);
+    QVERIFY(oap::aa::resolveProjectedClusterConfig(yaml).enabled);
+    QCOMPARE(oap::aa::kClusterViewportGeometry.encodedWidth, 800);
+    QCOMPARE(oap::aa::kClusterViewportGeometry.encodedHeight, 480);
+    QCOMPARE(oap::aa::kClusterViewportGeometry.contentWidth, 300);
+    QCOMPARE(oap::aa::kClusterViewportGeometry.contentHeight, 300);
+    QCOMPARE(oap::aa::kClusterViewportGeometry.contentX(), 250);
+    QCOMPARE(oap::aa::kClusterViewportGeometry.contentY(), 90);
 }
 ```
 
 Update the enabled CLUSTER assertions in
 `tests/test_service_discovery_builder.cpp` to compare the serialized margins
-to `kClusterViewportGeometry.marginWidth()` and `.marginHeight()` rather than
-independent literals. Retain the existing implicit-default and explicit-false
-golden-byte checks unchanged.
+to `static_cast<uint32_t>(kClusterViewportGeometry.marginWidth())` and the
+equivalent height expression rather than independent literals. Retain the
+existing implicit-default and explicit-false golden-byte checks unchanged.
+Add these test functions as `private slots:` members of the existing Qt Test
+classes, not as free functions.
 
 - [ ] **Step 2: Run the focused tests to prove RED**
 
@@ -158,24 +180,26 @@ Add the interface above beside `ProjectedClusterConfig`, then add these exact
 class-of-invariant checks:
 
 ```cpp
-static_assert(kClusterViewportGeometry.encodedWidth > 0);
-static_assert(kClusterViewportGeometry.encodedHeight > 0);
-static_assert(kClusterViewportGeometry.contentWidth > 0);
-static_assert(kClusterViewportGeometry.contentHeight > 0);
-static_assert(kClusterViewportGeometry.contentWidth
-              == kClusterViewportGeometry.contentHeight);
-static_assert(kClusterViewportGeometry.contentWidth
-              <= kClusterViewportGeometry.encodedWidth);
-static_assert(kClusterViewportGeometry.contentHeight
-              <= kClusterViewportGeometry.encodedHeight);
-static_assert(kClusterViewportGeometry.marginWidth() % 2 == 0);
-static_assert(kClusterViewportGeometry.marginHeight() % 2 == 0);
+static_assert(kClusterViewportGeometry.isValid());
 ```
 
-Do not add setters, YAML keys, duplicated margin members, or a protocol-library
-type.
+The constexpr `isValid()` function makes the constraint reusable for any
+future value of this application-owned type; the `static_assert` applies it to
+the only value in this plan. Do not add setters, YAML keys, duplicated margin
+members, or a protocol-library type.
 
-- [ ] **Step 4: Consume the shared margins in CLUSTER discovery**
+- [ ] **Step 4: Re-run focused tests to expose the behavioral RED**
+
+```bash
+cd ~/builds/openauto-prodigy
+cmake --build . --target test_projected_display_config test_service_discovery_builder -j$(nproc)
+ctest --output-on-failure -R '^(test_projected_display_config|test_service_discovery_builder)$'
+```
+
+Expected: the config test compiles and passes, while discovery fails because
+the implementation still serializes zero margins instead of 500/180.
+
+- [ ] **Step 5: Consume the shared margins in CLUSTER discovery**
 
 Keep the existing resolution/FPS/DPI/codec assignments and replace only the
 two zero-margin assignments:
@@ -185,7 +209,7 @@ config->set_margin_width(kClusterViewportGeometry.marginWidth());
 config->set_margin_height(kClusterViewportGeometry.marginHeight());
 ```
 
-- [ ] **Step 5: Run focused tests and commit Task 1**
+- [ ] **Step 6: Run focused tests and commit Task 1**
 
 ```bash
 cd ~/builds/openauto-prodigy
@@ -313,9 +337,18 @@ void geometryPropertiesAreRoleSafe()
 
 - [ ] **Step 2: Add failing CLUSTER mismatch-isolation tests**
 
-Add two focused cases. The matching case attaches through the public session
-API, publishes the default 800x480 frame, and expects one sink delivery plus
-Rendering. The mismatch case follows this structure:
+Update `legacyDecoderSinkReceivesSessionFrames()` to attach through the public
+session API, publish the default 800x480 frame, and expect one sink delivery
+plus Rendering. Keep
+`malformedSideMessageDoesNotTerminateLegacyMainRendering()` as the MAIN proof,
+but make its existing publish call explicitly pass `QSize(2, 2)`; do not call
+the CLUSTER-specific `openAndStart()` helper for MAIN.
+
+Add `QMutex`, `QStringList`, and a scoped `qInstallMessageHandler` capture using
+the same bounded ownership pattern as `tests/test_video_decoder.cpp`. Its
+`joined()` accessor returns the captured messages under the mutex. Add the
+mismatch case as a `private slots:` member and publish the same bad frame twice
+to prove the terminal latch emits one warning for the generation:
 
 ```cpp
 void clusterRejectsMismatchedFrameBeforeSinkDelivery()
@@ -329,8 +362,12 @@ void clusterRejectsMismatchedFrameBeforeSinkDelivery()
     QVideoSink sink;
     QSignalSpy frameSpy(&sink, &QVideoSink::videoFrameChanged);
     QVERIFY(display.attachVideoSink(&sink));
+    ScopedMessageCapture capture;
+    const quint64 generation = resetSpy[0][0].toULongLong();
     oap::aa::VideoDecoderTestAccess::publishFrame(
-        *display.decoder(), resetSpy[0][0].toULongLong(), QSize(640, 480));
+        *display.decoder(), generation, QSize(640, 480));
+    oap::aa::VideoDecoderTestAccess::publishFrame(
+        *display.decoder(), generation, QSize(640, 480));
 
     QCoreApplication::processEvents();
     QCOMPARE(frameSpy.count(), 0);
@@ -338,11 +375,10 @@ void clusterRejectsMismatchedFrameBeforeSinkDelivery()
              static_cast<int>(oap::aa::ProjectedDisplaySession::Error));
     QVERIFY(display.statusText().contains(QStringLiteral("geometry mismatch"),
                                           Qt::CaseInsensitive));
+    QCOMPARE(capture.joined().count(
+                 QStringLiteral("decoded frame geometry mismatch")), 1);
 }
 ```
-
-Add a MAIN case that publishes `QSize(2, 2)` and still reaches its sink and
-Rendering state, proving the check is role-scoped.
 
 - [ ] **Step 3: Run the session test to prove RED**
 
@@ -428,9 +464,10 @@ offset `VideoOutput`, and one current-page sink claim.
 - The picker omits the widget for 2x2 space and includes it for 3x3 space.
 - The QML fake reads its geometry from the same C++ shared value used by
   discovery and session code.
-- At root sizes 300x300 and 450x450, the crop item fills the root and the
-  source rectangle `(250,90,300,300)` maps exactly onto it at uniform scales
-  1.0 and 1.5.
+- At square root sizes 300x300 and 450x450, the crop item fills the root and
+  the source rectangle `(250,90,300,300)` maps exactly onto it at uniform
+  scales 1.0 and 1.5. At 600x400 it selects the 400-pixel minimum dimension,
+  centers at x=100/y=0, and maps the same source rectangle at scale 4/3.
 - QML retains exactly one `VideoOutput`, `PreserveAspectFit`, current-page
   ownership, retry behavior, and visible loading/error/duplicate-sink status.
 - QML contains no `MouseArea`, `TapHandler`, `ShaderEffect`, `sourceRect`, or
@@ -497,14 +534,15 @@ int viewportContentHeight() const
 { return oap::aa::kClusterViewportGeometry.contentHeight; }
 ```
 
-After creating a current widget instance, locate the two named objects and
-check both scales:
+After creating a current widget instance, locate the two named objects, assert
+the crop object itself has `clip == true`, and check the two square scales:
 
 ```cpp
 auto* crop = current->findChild<QQuickItem*>("clusterCropViewport");
 auto* video = current->findChild<QQuickItem*>("clusterVideoOutput");
 QVERIFY(crop);
 QVERIFY(video);
+QVERIFY(crop->clip());
 
 for (const qreal side : {300.0, 450.0}) {
     current->setProperty("width", side);
@@ -520,15 +558,34 @@ for (const qreal side : {300.0, 450.0}) {
 }
 ```
 
+Then exercise the production-shaped nonsquare path:
+
+```cpp
+current->setProperty("width", 600.0);
+current->setProperty("height", 400.0);
+QCoreApplication::processEvents();
+const qreal scale = 400.0 / 300.0;
+QCOMPARE(crop->width(), 400.0);
+QCOMPARE(crop->height(), 400.0);
+QCOMPARE(crop->x(), 100.0);
+QCOMPARE(crop->y(), 0.0);
+QCOMPARE(video->width(), 800.0 * scale);
+QCOMPARE(video->height(), 480.0 * scale);
+QCOMPARE(video->x(), -250.0 * scale);
+QCOMPARE(video->y(), -90.0 * scale);
+```
+
 Retain the source-token checks and add checks for both object names,
-`clip: true`, and all six `AAClusterDisplay.viewport...` properties.
+the crop subtree, and all six `AAClusterDisplay.viewport...` properties. Do
+not use a bare source-wide `clip: true` assertion because the root already has
+that token; the runtime `crop->clip()` assertion owns the new requirement.
 
 - [ ] **Step 2: Run the widget test to prove RED**
 
 ```bash
 cd ~/builds/openauto-prodigy
 cmake --build . --target test_aa_cluster_widget -j$(nproc)
-QT_QPA_PLATFORM=offscreen ctest --output-on-failure -R '^test_aa_cluster_widget$'
+ctest --output-on-failure -R '^test_aa_cluster_widget$'
 ```
 
 Expected: descriptor assertions still see 2x2 and the crop/video named objects
@@ -560,7 +617,9 @@ Item {
         id: videoOutput
         objectName: "clusterVideoOutput"
         readonly property real viewportScale:
-            cropViewport.width / AAClusterDisplay.viewportContentWidth
+            AAClusterDisplay.viewportContentWidth > 0
+            ? cropViewport.width / AAClusterDisplay.viewportContentWidth
+            : 0
         width: AAClusterDisplay.viewportEncodedWidth * viewportScale
         height: AAClusterDisplay.viewportEncodedHeight * viewportScale
         x: -AAClusterDisplay.viewportContentX * viewportScale
@@ -597,7 +656,7 @@ their CLUSTER roles.
 ```bash
 cd ~/builds/openauto-prodigy
 cmake --build . --target test_aa_cluster_widget test_service_discovery_builder test_projected_display_session -j$(nproc)
-QT_QPA_PLATFORM=offscreen ctest --output-on-failure -R '^(test_aa_cluster_widget|test_service_discovery_builder|test_projected_display_session)$'
+ctest --output-on-failure -R '^(test_aa_cluster_widget|test_service_discovery_builder|test_projected_display_session)$'
 cd /mnt/e/claude/personal/openautopro/openauto-prodigy
 git add src/plugins/android_auto/AAClusterWidgetRegistration.cpp \
         qml/widgets/AAClusterWidget.qml \
@@ -606,8 +665,8 @@ git add src/plugins/android_auto/AAClusterWidgetRegistration.cpp \
 git commit -m "feat: render AA cluster in square widget"
 ```
 
-Expected: all three focused suites pass; the QML test proves two uniform
-scales and the static forbidden-token checks remain green.
+Expected: all three focused suites pass; the QML test proves two square scales,
+the nonsquare min-and-center path, and the static forbidden-token checks.
 
 ---
 
@@ -635,7 +694,7 @@ tagging, and release packaging.
 
 **Files:**
 
-- Inspect: `@{upstream}..HEAD`
+- Inspect: `b7f6451..HEAD`
 - Do not modify unless a confirmed review finding requires a bounded fix.
 
 - [ ] **Step 1: Run the mandatory local verification gate**
@@ -647,7 +706,7 @@ cmake --build . --target openauto-prodigy -j$(nproc)
 ctest --output-on-failure
 cd /mnt/e/claude/personal/openautopro/openauto-prodigy
 git diff --check
-git diff --name-only 0ff45eb..HEAD -- libs/prodigy-oaa-protocol/proto proto/api
+git diff --name-only b7f6451..HEAD -- libs/prodigy-oaa-protocol/proto proto/api
 ```
 
 Expected: all builds/tests pass, `git diff --check` prints nothing, and the
@@ -657,7 +716,7 @@ protocol-boundary diff prints nothing.
 
 ```bash
 cd /mnt/e/claude/personal/openautopro/openauto-prodigy
-bash scripts/codex-review.sh 0ff45eb
+bash scripts/codex-review.sh b7f6451
 ```
 
 Read the resulting file under `reviews/`. For each P1/P2/P3 finding, record
@@ -670,7 +729,7 @@ and rerun the review once if the fix was substantial. If the script exits 2 or
 
 ```bash
 git status --short --branch
-git log --oneline --decorate 0ff45eb..HEAD
+git log --oneline --decorate b7f6451..HEAD
 ```
 
 Expected: only the user's pre-existing untracked wishlist baseline remains
@@ -718,19 +777,22 @@ migration, default-on behavior, settings UI, and generalized display support.
 - Guarded runtime edit: `matt@192.168.1.149:~/.openauto/config.yaml`
 - Modify after accepted live result:
   `docs/roadmap-current.md`, `docs/INDEX.md`, `docs/session-handoffs.md`,
-  this plan, and its design.
+  `docs/archive/session-handoffs/2026-07-24-handoffs.md`, this plan, and its
+  design.
 
 - [ ] **Step 1: Record and preserve the known-good Pi state**
 
-Run one remote shell so the unique backup stamp is retained on the Pi:
+Run one remote shell so the unique backup stamp is retained in persistent Pi
+storage rather than `/tmp`:
 
 ```bash
 ssh matt@192.168.1.149 '
 set -eu
 stamp=$(date +%Y%m%d-%H%M%S)
-printf "%s\n" "$stamp" > /tmp/oap-square-viewport-backup-stamp
 bin="$HOME/openauto-prodigy/build/src/openauto-prodigy"
 cfg="$HOME/.openauto/config.yaml"
+stamp_file="$HOME/.openauto/oap-square-viewport-backup-stamp"
+printf "%s\n" "$stamp" > "$stamp_file"
 cp -a "$bin" "$bin.pre-square-viewport-$stamp"
 cp -a "$cfg" "$cfg.pre-square-viewport-$stamp"
 sha256sum "$bin" "$bin.pre-square-viewport-$stamp" \
@@ -751,13 +813,13 @@ cd /mnt/e/claude/personal/openautopro/openauto-prodigy
 file build-pi/src/openauto-prodigy
 sha256sum build-pi/src/openauto-prodigy
 rsync -av build-pi/src/openauto-prodigy \
-  matt@192.168.1.149:/tmp/openauto-prodigy.square-viewport
+  matt@192.168.1.149:~/openauto-prodigy/build/src/openauto-prodigy.square-viewport-stage
 ssh matt@192.168.1.149 \
-  'sha256sum /tmp/openauto-prodigy.square-viewport'
+  'sha256sum "$HOME/openauto-prodigy/build/src/openauto-prodigy.square-viewport-stage"'
 ```
 
 Expected: the cross-build passes, `file` reports an aarch64 ELF executable,
-and the staged hash matches locally and remotely.
+and the reboot-durable staged hash matches locally and remotely.
 
 - [ ] **Step 3: Stop Prodigy and revalidate the exact placement branch**
 
@@ -774,7 +836,9 @@ picker to create a 3x3 instance; do not synthesize an ID or change
 `next_instance_id`. If present, proceed only when its exact identity/origin/
 page/span match the Definition of Ready and a fresh placement scan confirms
 cols 0-2 and rows 0-2 on page 1 remain collision-free. Any mismatch restores
-the backup and stops this task.
+the backup and stops this task. The nine printed lines must match the exact
+`old` block in Step 4 byte-for-byte; a visually similar block is not approval
+to continue.
 
 - [ ] **Step 4: Apply the exact guarded 2x2-to-3x3 edit and install**
 
@@ -783,7 +847,20 @@ replacement that preserves every unrelated byte. Run while the service is
 stopped:
 
 ```bash
-ssh matt@192.168.1.149 'python3 - <<"PY"
+ssh matt@192.168.1.149 '
+set -eu
+bin="$HOME/openauto-prodigy/build/src/openauto-prodigy"
+cfg="$HOME/.openauto/config.yaml"
+stage="$HOME/openauto-prodigy/build/src/openauto-prodigy.square-viewport-stage"
+stamp_file="$HOME/.openauto/oap-square-viewport-backup-stamp"
+stamp=$(cat "$stamp_file")
+restore_on_error() {
+  cp -a "$bin.pre-square-viewport-$stamp" "$bin"
+  cp -a "$cfg.pre-square-viewport-$stamp" "$cfg"
+  sudo systemctl start openauto-prodigy.service
+}
+trap restore_on_error ERR INT TERM
+python3 - <<"PY"
 from pathlib import Path
 
 path = Path.home() / ".openauto/config.yaml"
@@ -802,14 +879,12 @@ if text.count(old) != 1:
     raise SystemExit("expected exact cluster placement block not found once")
 path.write_text(text.replace(old, new))
 PY
-install -m 0755 /tmp/openauto-prodigy.square-viewport \
-  "$HOME/openauto-prodigy/build/src/openauto-prodigy"
-stamp=$(cat /tmp/oap-square-viewport-backup-stamp)
-diff -u "$HOME/.openauto/config.yaml.pre-square-viewport-$stamp" \
-        "$HOME/.openauto/config.yaml" || true
-sha256sum /tmp/openauto-prodigy.square-viewport \
-  "$HOME/openauto-prodigy/build/src/openauto-prodigy"
-sudo systemctl start openauto-prodigy.service'
+install -m 0755 "$stage" "$bin"
+diff -u "$cfg.pre-square-viewport-$stamp" "$cfg" || true
+sha256sum "$stage" "$bin"
+sudo systemctl start openauto-prodigy.service
+trap - ERR INT TERM
+'
 ```
 
 Expected: the config diff contains only the two span changes, binary hashes
@@ -848,17 +923,24 @@ If any item fails or Matthew rejects the presentation, restore both files:
 ```bash
 ssh matt@192.168.1.149 '
 set -eu
-stamp=$(cat /tmp/oap-square-viewport-backup-stamp)
+bin="$HOME/openauto-prodigy/build/src/openauto-prodigy"
+cfg="$HOME/.openauto/config.yaml"
+stamp_file="$HOME/.openauto/oap-square-viewport-backup-stamp"
+if [ -r "$stamp_file" ]; then
+  stamp=$(cat "$stamp_file")
+else
+  newest=$(ls -1t "$bin".pre-square-viewport-* 2>/dev/null | head -n 1)
+  [ -n "$newest" ]
+  stamp=${newest##*.pre-square-viewport-}
+fi
+[ -f "$bin.pre-square-viewport-$stamp" ]
+[ -f "$cfg.pre-square-viewport-$stamp" ]
 sudo systemctl stop openauto-prodigy.service
-cp -a "$HOME/openauto-prodigy/build/src/openauto-prodigy.pre-square-viewport-$stamp" \
-      "$HOME/openauto-prodigy/build/src/openauto-prodigy"
-cp -a "$HOME/.openauto/config.yaml.pre-square-viewport-$stamp" \
-      "$HOME/.openauto/config.yaml"
+cp -a "$bin.pre-square-viewport-$stamp" "$bin"
+cp -a "$cfg.pre-square-viewport-$stamp" "$cfg"
 sudo systemctl start openauto-prodigy.service
-sha256sum "$HOME/openauto-prodigy/build/src/openauto-prodigy" \
-  "$HOME/openauto-prodigy/build/src/openauto-prodigy.pre-square-viewport-$stamp" \
-  "$HOME/.openauto/config.yaml" \
-  "$HOME/.openauto/config.yaml.pre-square-viewport-$stamp"
+sha256sum "$bin" "$bin.pre-square-viewport-$stamp" \
+  "$cfg" "$cfg.pre-square-viewport-$stamp"
 '
 ```
 
@@ -869,10 +951,17 @@ Only after Matthew accepts the live result:
 - change both design and plan status to `COMPLETED 2026-07-25` and move them
   together to `docs/archive/plans/`;
 - move the roadmap item from Now to Done with the actual Pixel/Pi outcome;
-- remove both active links from `docs/INDEX.md` and add archive links;
+- remove the design and plan entries from both `## Active Plans` and
+  `## Plans (plans/)` in `docs/INDEX.md`, remove the empty active list/section
+  if appropriate, and add one paired design/plan entry under
+  `## Archive (archive/)` following the existing projected-CLUSTER entry;
 - append `docs/session-handoffs.md` with what/why/status, next 1-3 steps, local
   build/app/CTest/cross-build/live results, review confirmed/dismissed counts,
   backup paths, and rollback disposition; and
+- because `docs/session-handoffs.md` already exceeds 300 lines and contains
+  only 2026-07-24 entries, rotate those entries into
+  `docs/archive/session-handoffs/2026-07-24-handoffs.md` before adding the new
+  2026-07-25 entry, retaining the title/preamble in the current file; and
 - leave `docs/aa-protocol/wishlist-baselines/aa-display-rendering.md` untouched.
 
 Then commit the completion record:
@@ -880,6 +969,7 @@ Then commit the completion record:
 ```bash
 git add docs/archive/plans/2026-07-25-aa-cluster-square-viewport-design.md \
         docs/archive/plans/2026-07-25-aa-cluster-square-viewport-plan.md \
+        docs/archive/session-handoffs/2026-07-24-handoffs.md \
         docs/roadmap-current.md docs/INDEX.md docs/session-handoffs.md
 git commit -m "docs: complete AA cluster square viewport"
 git status --short --branch
@@ -904,3 +994,29 @@ untracked, and the branch remains unpushed pending Matthew's instruction.
   `kClusterViewportGeometry`, the six `viewport...` getters/properties, the
   QML property reads, fake-object properties, and test names are identical
   across producer and consumer tasks.
+
+## Opus Plan Review Adjudication
+
+Opus reviewed commit `b7f6451` and returned `NEEDS_CHANGES` with two blockers,
+five major findings, and ten minor findings. All were confirmed and
+incorporated:
+
+- the Pi stamp and staged binary are now reboot-durable, and the guarded
+  install uses `set -eu` plus an error trap that restores both files and
+  restarts the known-good service before exiting;
+- widget tests now exercise a production-shaped nonsquare root as well as two
+  square scales;
+- MAIN validation reuses its existing correct channel-open sequence rather
+  than the CLUSTER-only helper;
+- both active-link sections and the archive destination in `docs/INDEX.md` are
+  explicit, and the oversized handoff file receives a concrete rotation;
+- the feature review base is pinned consistently to `b7f6451`;
+- flag independence, reusable constexpr validity, signed protobuf comparisons,
+  behavioral RED, one-warning latching, zero-safe QML division, crop-scoped
+  clipping, exact placement matching, Qt `private slots:`, and existing CTest
+  environment ownership are now explicit.
+
+The binding `VideoDecoderTestAccess` sizing note was already fully covered.
+The binding INDEX/roadmap archival note was partially covered initially and is
+fully covered after the amendments above. A final Opus pass is required before
+execution.
