@@ -19,17 +19,26 @@ spike, or research-first feasibility work.
 
 ## Now
 
-- Android Auto projected CLUSTER dashboard widget — **ACTIVE EXPERIMENTAL
-  SPIKE**. Advertise one fixed H.264 800×480 CLUSTER endpoint beside the
-  existing MAIN display, render the independent phone-produced stream in one
-  fixed square dashboard widget, and capture whether current Android Auto
-  activates it without degrading MAIN. This promotes only the bounded
-  MAIN-plus-CLUSTER feasibility probe; arbitrary displays, alternate
-  resolutions, touch, second-monitor routing, and production enablement remain
-  unpromoted. Design:
-  `docs/plans/2026-07-24-aa-projected-cluster-widget-design.md`.
+No promoted implementation is active. Select and re-research the next qualified
+wishlist item before adding work here.
 
 ## Done (recent)
+
+- Android Auto projected CLUSTER dashboard widget feasibility spike —
+  **COMPLETE 2026-07-24** (Pi/Pixel positive result). Behind a default-off
+  startup flag, Prodigy advertises one fixed H.264 800×480 CLUSTER display on
+  independent video/input channels and renders the phone-produced stream in a
+  fixed 2×2 dashboard widget. The Pixel 8 accepted both descriptors, opened
+  channels 12/13, streamed and decoded an independent Maps surface, kept it
+  flowing on the native dashboard after MAIN exited, and returned to healthy
+  MAIN projection afterward. The flag-off path retained the legacy MAIN-only
+  descriptor and reconnect behavior. The bench did not have an active Maps
+  route during capture, so route-specific maneuver presentation remains a
+  follow-up rather than an inferred result. Generalized multi-display,
+  alternate resolutions, second-monitor routing, and production enablement
+  remain unpromoted. Design and plan:
+  `docs/archive/plans/2026-07-24-aa-projected-cluster-widget-design.md` and
+  `docs/archive/plans/2026-07-24-aa-projected-cluster-widget-plan.md`.
 
 - Android Auto Assistant microphone transport — **COMPLETE 2026-07-24**
   (Pi/Pixel live-validated). Prodigy now captures the configured Pi microphone

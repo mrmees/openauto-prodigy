@@ -4,6 +4,73 @@ Newest entries first.
 
 ---
 
+## 2026-07-24 — Android Auto projected CLUSTER widget spike COMPLETE
+
+**What changed:** Prodigy now has a default-off experimental projected-display
+path that preserves legacy MAIN discovery byte-for-byte when disabled and adds
+one explicit CLUSTER display when enabled. MAIN and CLUSTER own separate video
+and input handlers, decoders, stream generations, sink ownership, lifecycle
+state, diagnostics, and ACK counters. CLUSTER uses display ID 1 and wire
+channels 12/13 with one H.264 800×480/30 configuration. A fixed 2×2,
+noninteractive dashboard widget renders the phone-produced surface with
+`PreserveAspectFit`; only the visible dashboard page can claim its sink.
+
+**Why:** static AA 17.3 research showed a real projected CLUSTER topology, but
+could not establish whether a current phone would activate it or whether the Pi
+could render it beside healthy MAIN projection. This bounded spike answers that
+feasibility question without promoting a generalized multi-display product.
+
+**Status:** COMPLETE on local `dev`, with a positive Pi 4/Pixel 8 result. The
+default `projected_no_input` focus variant was sufficient; no fallback to
+`projected` was needed. The phone accepted both descriptors, opened CLUSTER
+channels 12/13, selected its only H.264 configuration, and streamed an
+independent 800×480 Maps surface. With the widget temporarily placed in an
+empty 2×2 dashboard slot, both displays reached `Rendering`; the square widget
+visibly showed the live map with preserved aspect. An HU-initiated
+`aa.exitToCar` left CLUSTER streaming on the dashboard, and `aa.requestFocus`
+restored full MAIN projection and touch ownership. Maps was idle and displayed
+"Searching for GPS" during the capture, so active-route maneuver presentation
+was not validated or inferred. The experimental flag remains off by default.
+
+**Review gate:** Opus reviewed the design before planning; all 14 initial
+specification findings were confirmed and incorporated, and the amended design
+received a final PASS. Successive Opus plan reviews tightened legacy golden
+bytes, channel ownership, generation boundaries, QML/runtime checks, and the Pi
+rollback matrix; the final plan received PASS. The repository Codex gate found
+one P1 and one P2 initially, both confirmed and fixed. Its mandated single
+rerun found one P1 and two P2 issues; all three were confirmed and fixed, none
+were dismissed, and no third pass was run under the one-rerun policy. The fixes
+preserve MAIN direct-sink delivery and terminal boundaries, bind the CLUSTER
+sink to the current dashboard page, keep optional handler parse failures
+nonterminal, and invalidate decoder generations on channel close/reopen.
+
+**Verification:** focused projected-display config, service-discovery,
+protocol logger, handler, session, decoder, orchestrator, and runtime QML tests
+passed. A fresh local configure, full build, explicit `openauto-prodigy` target,
+`ctest --output-on-failure`, and `git diff --check 9062d66..HEAD` passed.
+`./cross-build.sh` produced the deployed aarch64 application. Flag-off live
+validation reconnected the Pixel over wireless AA, opened legacy MAIN channels
+3/1, rendered 800×480, grabbed touch, and created no capture file. Flag-on
+capture at `/tmp/oaa-protocol-capture.jsonl` recorded distinct descriptors,
+channel opens, setup/start/focus traffic, input binding, and per-frame ACKs;
+both streams sustained approximately 30 fps with the current frame outstanding.
+The dashboard/native-return/MAIN-return screenshots and protocol capture were
+retained under gitignored `reviews/aa-cluster-live-20260724/`. A runtime sample
+showed the dual stream at 35.9% CPU and 357328 KiB RSS. The original Pi config
+was restored to SHA-256 `be403b23c24147b152a3622ae2fe3bb05829c1354d88ebdf93640de66fd43319`;
+the temporary placement, capture, screenshots, and backup were removed from the
+Pi. One responsive app process reconnected MAIN and rendered; web PID `961`,
+hostapd PID `984`, and Bluetooth PID `671` retained their original lifetimes
+with zero restarts.
+
+**Next 1-3 steps:** (1) publish this completed branch as a draft PR targeting
+`main` after Matthew's go-ahead; (2) if the capability is promoted beyond the
+spike, capture an active navigation route and a second phone before choosing
+production UX; (3) research configurable resolutions, output routing, and
+dual-decoder resource budgets before generalizing multi-display.
+
+---
+
 ## 2026-07-24 — Web config boot ordering cycle COMPLETE
 
 **What changed:** both source and prebuilt installers now order the web config

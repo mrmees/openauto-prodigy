@@ -1,8 +1,8 @@
 # Android Auto Projected CLUSTER Dashboard Widget Implementation Plan
 
 Date: 2026-07-24
-Status: ACTIVE
-Design: `docs/plans/2026-07-24-aa-projected-cluster-widget-design.md`
+Status: COMPLETED 2026-07-24
+Design: `docs/archive/plans/2026-07-24-aa-projected-cluster-widget-design.md`
 Implementation base: `9062d66` (the design was first grounded at `3766d4f`,
 then amended and re-reviewed at `9062d66`; this plan was first reviewed at
 `d5a8282`). All implementation and final review ranges intentionally use
@@ -24,6 +24,17 @@ channel 12, input wire channel 13, and one H.264 800×480/30 configuration.
 **Tech Stack:** C++17, Qt 6.8 Core/Multimedia/QML, protobuf-generated AA types,
 Qt Test, CMake, Docker aarch64 cross-build, Raspberry Pi 4 wireless Android
 Auto bench.
+
+## Completion Result
+
+Implemented and live-validated as a positive experimental result on the Pi 4
+and Pixel 8. The phone activated both fixed displays, streamed CLUSTER over
+channels 12/13, and Prodigy rendered the independent 800×480 Maps surface in
+the 2×2 widget while preserving legacy MAIN behavior when disabled. Exit-to-car
+and MAIN focus return passed with CLUSTER continuing in the dashboard. An
+active route was not available during capture, so route-specific content stays
+unvalidated. The feature remains default-off and generalized multi-display is
+still outside this completed plan.
 
 ## Global Constraints
 

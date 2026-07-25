@@ -95,16 +95,23 @@ all three when promoting an item; they are not estimates or approval.
   separate MAIN/CLUSTER video channels, decoders, renderers, focus state,
   configuration, and input associations, initially for navigation-focused
   secondary content and additional resolutions.
-  **Stack:** Substantial multi-instance refactor of the current singleton AA
-  video path, using protocol definitions already present in the stack.
+  **Stack:** The current stack now contains a guarded, fixed MAIN-plus-CLUSTER
+  two-instance substrate and square dashboard renderer. Generalization still
+  needs a display registry, configurable resolutions/outputs, broader focus
+  policy, settings, and lifecycle support.
   **Hardware:** Available without new purchases: an existing HDMI monitor can
   run beside the current USB display.
-  **Investigation:** Research first. Validate phone activation and per-display
-  lifecycle with an isolated descriptor/capture spike before implementation.
+  **Investigation:** Research first for production scope. The completed bounded
+  spike proved that the current Pixel 8 accepts channels 12/13 and streams an
+  independent 800×480 Maps surface, but route-specific presentation, other
+  phones, alternate resolutions, and physical second-output ownership remain
+  unvalidated.
   **Protocol baseline:** [projected multi-display](aa-protocol/wishlist-baselines/projected-multi-display.md).
   **Promotion note:** the fixed MAIN-plus-one-CLUSTER dashboard experiment is
-  promoted in
-  [the active design](plans/2026-07-24-aa-projected-cluster-widget-design.md).
+  complete; see
+  [the archived design](archive/plans/2026-07-24-aa-projected-cluster-widget-design.md)
+  and
+  [implementation plan](archive/plans/2026-07-24-aa-projected-cluster-widget-plan.md).
   Generalized multi-display support remains a long-term wishlist item.
 
 ## Phone, Companion, and Connectivity

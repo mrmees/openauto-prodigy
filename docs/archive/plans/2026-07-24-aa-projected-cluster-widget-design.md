@@ -1,9 +1,26 @@
 # Android Auto Projected CLUSTER Dashboard Widget — Design
 
 Date: 2026-07-24
-Status: ACTIVE
+Status: COMPLETED 2026-07-24
 Code substrate grounded against: `dev` at `3766d4f`
 Initial design commit reviewed by Opus: `29ddb7d`
+
+## Completion Result
+
+The bounded experiment produced a positive Pixel 8 result. With the default-off
+flag enabled, the phone accepted the explicit MAIN and CLUSTER topology, opened
+CLUSTER video/input channels 12/13, negotiated H.264, and continuously streamed
+an independent 800×480 Maps surface. A placed 2×2 dashboard widget claimed its
+own sink, decoded the stream, and rendered it with aspect preservation while
+MAIN remained healthy. The dashboard stayed live after an HU-initiated
+exit-to-car, and MAIN projection reopened through the normal focus action.
+
+The capture was made while Maps was idle and reporting that it was searching
+for GPS, not during an active route. The experiment therefore proves phone
+activation, independent transport/decode/rendering, focus continuity, and MAIN
+re-entry, but does not claim a route-specific maneuver layout. The original Pi
+configuration was restored byte-for-byte after the experiment; generalized
+multi-display remains a research-first wishlist item.
 
 ## Goal
 
