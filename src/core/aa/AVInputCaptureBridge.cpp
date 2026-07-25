@@ -25,12 +25,12 @@ AVInputCaptureBridge::AVInputCaptureBridge(QObject* parent)
 uint64_t AVInputCaptureBridge::start(double gain, Sender sender)
 {
     Q_ASSERT(QThread::currentThread() == thread());
-    if (!sender)
-        return 0;
 
     // The capture owner quiesces the prior producer before starting a new
     // generation. Purge anything left by the old reader/writer pair.
     stop();
+    if (!sender)
+        return 0;
     if (++ownerGeneration_ == 0)
         ++ownerGeneration_;
 

@@ -198,8 +198,24 @@ private slots:
 
     void testEmptySenderFailsClosed() {
         oap::aa::AVInputCaptureBridge bridge;
+        QList<QByteArray> frames;
+        const uint64_t generation = bridge.start(1.0,
+            [&frames](const QByteArray& frame, uint64_t) {
+                frames.append(frame);
+                return true;
+            });
+        QVERIFY(generation != 0);
+        QVERIFY(bridge.isActive());
+
         QCOMPARE(bridge.start(1.0, {}), uint64_t(0));
         QVERIFY(!bridge.isActive());
+
+        const QByteArray frame = fullFrame(100);
+        bridge.pushPcm(generation,
+                       reinterpret_cast<const uint8_t*>(frame.constData()),
+                       frame.size());
+        QTest::qWait(oap::aa::AVInputCaptureBridge::DrainIntervalMs * 2);
+        QCOMPARE(frames.size(), 0);
     }
 };
 

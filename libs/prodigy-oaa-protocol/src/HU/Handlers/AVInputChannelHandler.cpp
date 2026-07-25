@@ -104,8 +104,9 @@ void AVInputChannelHandler::handleInputOpenRequest(const QByteArray& payload)
 
     bool success = false;
     if (captureController_) {
-        emit micCaptureRequested(true);
         success = captureController_(true);
+        if (success)
+            emit micCaptureRequested(true);
     } else {
         qWarning() << "[AVInputChannel] no capture controller; failing open request";
     }

@@ -146,6 +146,8 @@ private slots:
     void testControllerFailurePrecedesFailureResponse() {
         oaa::hu::AVInputChannelHandler handler;
         QStringList order;
+        QSignalSpy captureSpy(&handler,
+            &oaa::hu::AVInputChannelHandler::micCaptureRequested);
         handler.setCaptureController([&order](bool) {
             order.append(QStringLiteral("controller"));
             return false;
@@ -162,6 +164,7 @@ private slots:
 
         QCOMPARE(order, QStringList({QStringLiteral("controller"),
                                      QStringLiteral("response")}));
+        QCOMPARE(captureSpy.count(), 0);
     }
 
     void testRepeatedOpenStartsFreshCaptureGeneration() {
