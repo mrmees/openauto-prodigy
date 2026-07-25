@@ -144,6 +144,27 @@ private slots:
         QCOMPARE(sentSamples.back(), qint16(300));
     }
 
+    void testAckStallOverflowRemainsObservable() {
+        oap::aa::AVInputCaptureBridge bridge;
+        const uint64_t generation = bridge.start(1.0,
+            [](const QByteArray&, uint64_t) { return false; });
+
+        QByteArray frame = fullFrame(100);
+        bridge.pushPcm(generation,
+                       reinterpret_cast<const uint8_t*>(frame.constData()), frame.size());
+        QTRY_VERIFY(bridge.droppedFrames() > 0);
+        const uint64_t beforeOverflow = bridge.droppedFrames();
+
+        const QByteArray stale(oap::aa::AVInputCaptureBridge::RingCapacity, '\x11');
+        bridge.pushPcm(generation,
+                       reinterpret_cast<const uint8_t*>(stale.constData()), stale.size());
+        const std::array<uint8_t, 2> overflow{{0x22, 0x22}};
+        bridge.pushPcm(generation, overflow.data(), overflow.size());
+        bridge.notifyWindowAvailable();
+
+        QVERIFY(bridge.droppedFrames() > beforeOverflow);
+    }
+
     void testOverflowPurgesStaleAudio() {
         oap::aa::AVInputCaptureBridge bridge;
         QList<qint16> sentSamples;

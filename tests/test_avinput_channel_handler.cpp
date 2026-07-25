@@ -300,7 +300,7 @@ private slots:
         QVERIFY(handler.sendMicData(QByteArray(320, '\x05'), 5));
     }
 
-    void testAckTimestampsTakePrecedenceAndOvercountIsBounded() {
+    void testAckTimestampsTakePrecedenceAndOvercountIsRejected() {
         oaa::hu::AVInputChannelHandler handler;
         handler.setCaptureController([](bool) { return true; });
         handler.onChannelOpened();
@@ -324,9 +324,38 @@ private slots:
         overcount.set_session_id(0);
         overcount.set_ack_count(99);
         handler.onMessage(oaa::AVMessageId::ACK_INDICATION, serialize(overcount));
-        QVERIFY(handler.sendMicData(QByteArray(320, '\x05'), 5));
+        QVERIFY(!handler.sendMicData(QByteArray(320, '\x05'), 5));
+
+        oaa::proto::messages::AVMediaAckIndication valid;
+        valid.set_session_id(0);
+        valid.set_ack_count(2);
+        handler.onMessage(oaa::AVMessageId::ACK_INDICATION, serialize(valid));
         QVERIFY(handler.sendMicData(QByteArray(320, '\x06'), 6));
-        QVERIFY(!handler.sendMicData(QByteArray(320, '\x07'), 7));
+        QVERIFY(handler.sendMicData(QByteArray(320, '\x07'), 7));
+        QVERIFY(!handler.sendMicData(QByteArray(320, '\x08'), 8));
+    }
+
+    void testCaptureObserverSeesPublishedStateAndCanAbort() {
+        oaa::hu::AVInputChannelHandler handler;
+        handler.setCaptureController([](bool) { return true; });
+        handler.onChannelOpened();
+
+        bool observerCouldSend = false;
+        connect(&handler, &oaa::hu::AVInputChannelHandler::micCaptureRequested,
+                &handler, [&handler, &observerCouldSend](bool capturing) {
+            if (!capturing)
+                return;
+            observerCouldSend = handler.sendMicData(QByteArray(320, '\x42'), 1);
+            handler.abortCapture();
+        }, Qt::DirectConnection);
+
+        oaa::proto::messages::AVInputOpenRequest request;
+        request.set_open(true);
+        request.set_max_unacked(1);
+        handler.onMessage(oaa::AVMessageId::INPUT_OPEN_REQUEST, serialize(request));
+
+        QVERIFY(observerCouldSend);
+        QVERIFY(!handler.sendMicData(QByteArray(320, '\x43'), 2));
     }
 
     void testMalformedAndZeroAckDoNotReleaseWindow() {

@@ -5,7 +5,6 @@
 
 #include <QtEndian>
 
-#include <algorithm>
 #include <utility>
 
 #include "oaa/av/AVMediaAckIndicationMessage.pb.h"
@@ -105,8 +104,6 @@ void AVInputChannelHandler::handleInputOpenRequest(const QByteArray& payload)
     bool success = false;
     if (captureController_) {
         success = captureController_(true);
-        if (success)
-            emit micCaptureRequested(true);
     } else {
         qWarning() << "[AVInputChannel] no capture controller; failing open request";
     }
@@ -117,6 +114,8 @@ void AVInputChannelHandler::handleInputOpenRequest(const QByteArray& payload)
         unacked_ = 0;
     }
     sendInputOpenResponse(success);
+    if (capturing_)
+        emit micCaptureRequested(true);
 }
 
 void AVInputChannelHandler::handleAckIndication(const QByteArray& payload)
@@ -137,11 +136,11 @@ void AVInputChannelHandler::handleAckIndication(const QByteArray& payload)
     } else if (ack.has_ack_count()) {
         count = ack.ack_count();
     }
-    if (count == 0 || unacked_ == 0)
+    if (count == 0 || unacked_ == 0 || count > unacked_)
         return;
 
     const bool wasFull = unacked_ >= static_cast<uint32_t>(maxUnacked_);
-    unacked_ -= std::min(count, unacked_);
+    unacked_ -= count;
     if (wasFull && unacked_ < static_cast<uint32_t>(maxUnacked_))
         emit sendWindowAvailable();
 }

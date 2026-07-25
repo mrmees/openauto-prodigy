@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 IMAGE_NAME="openauto-cross-pi4"
 
 FULL_BUILD=0
@@ -61,8 +61,16 @@ else
     # Docker named volumes live on the Linux filesystem inside Docker's WSL2
     # VM. Keep high-churn CMake/object files there; the Windows/9p source mount
     # stays read-only and receives only the final deploy/package binary.
-    BUILD_VOLUME="${CROSS_BUILD_VOLUME:-openauto-prodigy-pi4-build-$HOST_UID}"
+    REPO_CACHE_KEY="$(printf '%s' "$SCRIPT_DIR" | sha256sum | cut -c1-12)"
+    BUILD_VOLUME="${CROSS_BUILD_VOLUME:-openauto-prodigy-pi4-build-$HOST_UID-$REPO_CACHE_KEY}"
     echo "Fast mode: app target only; cache volume: $BUILD_VOLUME"
+
+    # A named volume is a single mutable CMake tree. Serialize users of the
+    # same volume so concurrent shells cannot configure/build it at once.
+    VOLUME_LOCK_KEY="$(printf '%s' "$BUILD_VOLUME" | sha256sum | cut -c1-12)"
+    CROSS_BUILD_LOCK_DIR="${XDG_RUNTIME_DIR:-/tmp}"
+    exec 9>"$CROSS_BUILD_LOCK_DIR/openauto-prodigy-cross-$VOLUME_LOCK_KEY.lock"
+    flock 9
 
     if [[ "$RESET_CACHE" -eq 1 ]] && docker volume inspect "$BUILD_VOLUME" &>/dev/null; then
         docker volume rm "$BUILD_VOLUME" >/dev/null

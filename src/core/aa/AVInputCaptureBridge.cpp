@@ -76,6 +76,12 @@ void AVInputCaptureBridge::notifyWindowAvailable()
 
     // PCM accumulated while the phone withheld permits is stale voice. Resume
     // from the live edge rather than replaying delayed speech.
+    const uint32_t overflowDrops = ring_.resetDropCount();
+    if (overflowDrops > 0) {
+        droppedFrames_ += overflowDrops;
+        qCWarning(lcAA) << "AA microphone PCM overflow while waiting for ACK"
+                        << "events=" << overflowDrops;
+    }
     purgeQueuedPcm();
     waitingForWindow_ = false;
     drainTimer_.start();
@@ -113,7 +119,7 @@ void AVInputCaptureBridge::drainOnce()
 
     const uint32_t overflowDrops = ring_.resetDropCount();
     if (overflowDrops > 0) {
-        ++droppedFrames_;
+        droppedFrames_ += overflowDrops;
         qCWarning(lcAA) << "AA microphone PCM ring overflow; purging stale audio"
                         << "events=" << overflowDrops;
         ring_.drain();

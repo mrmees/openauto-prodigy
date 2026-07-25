@@ -143,11 +143,13 @@ To create a prebuilt package from this repo:
 
 `cross-build.sh` defaults to building only the app target (`openauto-prodigy`),
 which is all a Pi deploy or package needs. Its high-churn CMake and object cache
-lives in the persistent Docker volume `openauto-prodigy-pi4-build-<uid>`; only
-the final binary is copied to `build-pi/src/openauto-prodigy`. This avoids
-writing the cross-build tree through the Windows/9p source mount. Use
-`--reset-cache` to recreate that app-only cache. Pass `--full` to retain the
-legacy host-visible build tree and also build the ARM test binaries (~20 min).
+lives in a persistent Docker volume keyed by the host UID and canonical checkout
+path; builds using the same cache are serialized. Only the final binary is
+copied to `build-pi/src/openauto-prodigy`. This avoids writing the cross-build
+tree through the Windows/9p source mount without sharing stale objects across
+clones or worktrees. Use `--reset-cache` to recreate that app-only cache. Pass
+`--full` to retain the legacy host-visible build tree and also build the ARM test
+binaries (~20 min).
 
 Prebuilt release convention:
 - Asset: `openauto-prodigy-prebuilt-<tag>-pi4-aarch64.tar.gz`
