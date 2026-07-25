@@ -933,56 +933,96 @@ private slots:
     }
 
     void testLegacyDuplicateOpenDoesNotLeaveStaleVideoAckSession() {
-        oaa::ReplayTransport transport;
-        oaa::SessionConfig config;
-        oaa::AASession session(&transport, config);
-        oaa::hu::VideoChannelHandler handler;
-        session.registerChannel(oaa::ChannelId::Video, &handler);
+        for (const uint8_t incomingChannel : {
+                 uint8_t(0), oaa::ChannelId::Video}) {
+            oaa::ReplayTransport transport;
+            oaa::SessionConfig config;
+            oaa::AASession session(&transport, config);
+            oaa::hu::VideoChannelHandler handler;
+            session.registerChannel(oaa::ChannelId::Video, &handler);
 
-        transport.simulateConnect();
-        session.start();
-        advanceToActive(session);
+            transport.simulateConnect();
+            session.start();
+            advanceToActive(session);
 
-        oaa::proto::messages::ChannelOpenRequest request;
-        request.set_channel_id(oaa::ChannelId::Video);
-        request.set_priority(1);
-        QByteArray openPayload(request.ByteSizeLong(), '\0');
-        QVERIFY(request.SerializeToArray(openPayload.data(), openPayload.size()));
-        session.messenger()->messageReceived(
-            oaa::ChannelId::Video, oaa::SessionMessageId::CHANNEL_OPEN_REQUEST,
-            openPayload, 0, oaa::MessageType::Control);
-
-        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
-        auto startStream = [&](int sessionId) {
-            oaa::proto::messages::AVChannelStartIndication start;
-            start.set_session(sessionId);
-            start.set_config(0);
-            QByteArray payload(start.ByteSizeLong(), '\0');
-            QVERIFY(start.SerializeToArray(payload.data(), payload.size()));
+            oaa::proto::messages::ChannelOpenRequest request;
+            request.set_channel_id(oaa::ChannelId::Video);
+            request.set_priority(1);
+            QByteArray openPayload(request.ByteSizeLong(), '\0');
+            QVERIFY(request.SerializeToArray(
+                openPayload.data(), openPayload.size()));
             session.messenger()->messageReceived(
-                oaa::ChannelId::Video, oaa::AVMessageId::START_INDICATION,
-                payload, 0, oaa::MessageType::Specific);
-        };
+                incomingChannel,
+                oaa::SessionMessageId::CHANNEL_OPEN_REQUEST,
+                openPayload, 0, oaa::MessageType::Control);
 
-        startStream(41);
-        session.messenger()->messageReceived(
-            oaa::ChannelId::Video, oaa::SessionMessageId::CHANNEL_OPEN_REQUEST,
-            openPayload, 0, oaa::MessageType::Control);
-        QVERIFY(handler.canAcceptMedia());
+            QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+            auto startStream = [&](int sessionId) {
+                oaa::proto::messages::AVChannelStartIndication start;
+                start.set_session(sessionId);
+                start.set_config(0);
+                QByteArray payload(start.ByteSizeLong(), '\0');
+                QVERIFY(start.SerializeToArray(
+                    payload.data(), payload.size()));
+                session.messenger()->messageReceived(
+                    oaa::ChannelId::Video,
+                    oaa::AVMessageId::START_INDICATION,
+                    payload, 0, oaa::MessageType::Specific);
+            };
+            auto sendMedia = [&]() {
+                QByteArray mediaPayload(8, '\0');
+                mediaPayload.append(QByteArrayLiteral("frame"));
+                session.messenger()->messageReceived(
+                    oaa::ChannelId::Video,
+                    oaa::AVMessageId::AV_MEDIA_WITH_TIMESTAMP,
+                    mediaPayload, 0, oaa::MessageType::Specific);
+            };
+            auto ackPayloadAt = [&](int index) {
+                return sendSpy[index][2].toByteArray();
+            };
 
-        startStream(42);
-        QByteArray mediaPayload(8, '\0');
-        mediaPayload.append(QByteArrayLiteral("frame"));
-        session.messenger()->messageReceived(
-            oaa::ChannelId::Video, oaa::AVMessageId::AV_MEDIA_WITH_TIMESTAMP,
-            mediaPayload, 0, oaa::MessageType::Specific);
+            startStream(41);
+            transport.clearWritten();
+            session.messenger()->messageReceived(
+                incomingChannel,
+                oaa::SessionMessageId::CHANNEL_OPEN_REQUEST,
+                openPayload, 0, oaa::MessageType::Control);
 
-        QCOMPARE(sendSpy.count(), 1);
-        oaa::proto::messages::AVMediaAckIndication ack;
-        const QByteArray ackPayload = sendSpy[0][2].toByteArray();
-        QVERIFY(ack.ParseFromArray(ackPayload.constData(), ackPayload.size()));
-        QCOMPARE(ack.session_id(), 42);
-        QCOMPARE(ack.ack_count(), 1u);
+            QCOMPARE(handler.canAcceptMedia(), true);
+            QCOMPARE(transport.writtenData().size(), 1);
+            const QByteArray responseFrame = transport.writtenData().first();
+            QVERIFY(responseFrame.size() >= 7);
+            QCOMPARE(static_cast<uint8_t>(responseFrame[0]),
+                     oaa::ChannelId::Video);
+            QCOMPARE(static_cast<uint8_t>(responseFrame[1]), uint8_t(0x07));
+            QCOMPARE(qFromBigEndian<uint16_t>(
+                         reinterpret_cast<const uchar*>(
+                             responseFrame.constData() + 4)),
+                     uint16_t(0x0008));
+            oaa::proto::messages::ChannelOpenResponse response;
+            QVERIFY(response.ParseFromArray(
+                responseFrame.constData() + 6, responseFrame.size() - 6));
+            QCOMPARE(response.status(), oaa::proto::enums::Status::OK);
+
+            sendMedia();
+            QCOMPARE(sendSpy.count(), 1);
+            oaa::proto::messages::AVMediaAckIndication preservedAck;
+            const QByteArray preservedAckPayload = ackPayloadAt(0);
+            QVERIFY(preservedAck.ParseFromArray(
+                preservedAckPayload.constData(), preservedAckPayload.size()));
+            QCOMPARE(preservedAck.session_id(), 41);
+            QCOMPARE(preservedAck.ack_count(), 1u);
+
+            startStream(42);
+            sendMedia();
+            QCOMPARE(sendSpy.count(), 2);
+            oaa::proto::messages::AVMediaAckIndication replacementAck;
+            const QByteArray replacementAckPayload = ackPayloadAt(1);
+            QVERIFY(replacementAck.ParseFromArray(
+                replacementAckPayload.constData(), replacementAckPayload.size()));
+            QCOMPARE(replacementAck.session_id(), 42);
+            QCOMPARE(replacementAck.ack_count(), 1u);
+        }
     }
 
     void testUnregisteredChannelIsRejectedOnBothDispatchPaths() {
