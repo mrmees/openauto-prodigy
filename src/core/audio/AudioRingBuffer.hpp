@@ -60,6 +60,31 @@ public:
         return toWrite;
     }
 
+    // Writer-side all-or-nothing variant for packetized producers. When the
+    // complete callback does not fit, publish no bytes and record one drop.
+    // This prevents a consumer-side overflow purge from racing a partial
+    // write publication and later framing that partial packet with new data.
+    uint32_t writeAllOrDrop(const uint8_t* src, uint32_t size)
+    {
+        if (!src || size == 0) return 0;
+
+        uint32_t writeIdx;
+        const int32_t fill = spa_ringbuffer_get_write_index(&ring_, &writeIdx);
+        const uint32_t used = (fill <= 0)
+            ? 0u : std::min(static_cast<uint32_t>(fill), capacity_);
+        if (size > capacity_ - used) {
+            dropCount_.fetch_add(1, std::memory_order_release);
+            return 0;
+        }
+
+        const uint32_t offset = writeIdx & (capacity_ - 1);
+        spa_ringbuffer_write_data(&ring_, data_.data(), capacity_,
+                                  offset, src, size);
+        spa_ringbuffer_write_update(&ring_,
+            static_cast<int32_t>(writeIdx + size));
+        return size;
+    }
+
     uint32_t read(uint8_t* dst, uint32_t size)
     {
         if (!dst || size == 0) return 0;
@@ -111,7 +136,7 @@ public:
 
     uint32_t resetDropCount()
     {
-        return dropCount_.exchange(0, std::memory_order_relaxed);
+        return dropCount_.exchange(0, std::memory_order_acq_rel);
     }
 
 private:

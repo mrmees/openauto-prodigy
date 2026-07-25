@@ -75,6 +75,21 @@ private slots:
         QCOMPARE(std::memcmp(out, expected, sizeof(out)), 0);
     }
 
+    void atomicOverflowDropsWholePacket()
+    {
+        oap::AudioRingBuffer rb(8);
+        const uint8_t first[] = {1, 2, 3, 4, 5, 6};
+        const uint8_t second[] = {7, 8, 9, 10};
+        QCOMPARE(rb.writeAllOrDrop(first, sizeof(first)), 6u);
+        QCOMPARE(rb.writeAllOrDrop(second, sizeof(second)), 0u);
+        QCOMPARE(rb.dropCount(), 1u);
+        QCOMPARE(rb.available(), 6u);
+
+        uint8_t out[6] = {};
+        QCOMPARE(rb.read(out, sizeof(out)), 6u);
+        QCOMPARE(std::memcmp(out, first, sizeof(out)), 0);
+    }
+
     void resetClearsBuffer()
     {
         oap::AudioRingBuffer rb(1024);

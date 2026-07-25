@@ -113,6 +113,17 @@ public:
         return orchestrator.avInputHandler_;
     }
 
+    static oaa::hu::AudioChannelHandler& mediaAudioHandler(
+        AndroidAutoOrchestrator& orchestrator)
+    {
+        return orchestrator.mediaAudioHandler_;
+    }
+
+    static void simulateAudioServiceTeardown(AndroidAutoOrchestrator& orchestrator)
+    {
+        orchestrator.onAudioServiceAboutToDestroy();
+    }
+
     static void installMicCaptureBackend(AndroidAutoOrchestrator& orchestrator,
                                          TestMicCaptureBackend& backend)
     {
@@ -183,6 +194,35 @@ public:
     QVariant pluginValue(const QString&, const QString&) const override { return {}; }
     void setPluginValue(const QString&, const QString&, const QVariant&) override {}
     void save() override {}
+};
+
+class FakePlaybackAudioService : public oap::IAudioService {
+public:
+    oap::AudioStreamHandle* createStream(const QString&, int, int, int,
+                                         const QString&, int) override
+    {
+        if (created >= 3)
+            return nullptr;
+        return &handles[created++];
+    }
+    void destroyStream(oap::AudioStreamHandle*) override {}
+    int writeAudio(oap::AudioStreamHandle*, const uint8_t*, int size) override
+    {
+        ++writes;
+        return size;
+    }
+    void setMasterVolume(int) override {}
+    int masterVolume() const override { return 100; }
+    void requestAudioFocus(oap::AudioStreamHandle*, oap::AudioFocusType) override {}
+    void releaseAudioFocus(oap::AudioStreamHandle*) override {}
+    void setOutputDevice(const QString&) override {}
+    void setInputDevice(const QString&) override {}
+    QString outputDevice() const override { return QStringLiteral("auto"); }
+    QString inputDevice() const override { return QStringLiteral("auto"); }
+
+    oap::AudioStreamHandle handles[3];
+    int created = 0;
+    int writes = 0;
 };
 
 class TestAndroidAutoOrchestrator : public QObject {
@@ -799,6 +839,32 @@ private slots:
 
         orch.stop();
         QCOMPARE(backend.closeCount, 1);
+    }
+
+    void testQueuedPlaybackFrameIsHarmlessAfterAudioServiceTeardown() {
+        StubConfigService cfg;
+        cfg.values["connection.tcp_port"] = 0;
+        FakePlaybackAudioService audioService;
+        oap::aa::AndroidAutoOrchestrator orch(&cfg, &audioService, nullptr);
+        orch.start();
+        oap::aa::AndroidAutoOrchestratorTestAccess::disableAutomaticAccept(orch);
+
+        QTcpSocket socket;
+        socket.connectToHost(QHostAddress::LocalHost,
+            oap::aa::AndroidAutoOrchestratorTestAccess::listenerPort(orch));
+        QVERIFY(socket.waitForConnected());
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::acceptNextConnection(orch));
+        QCOMPARE(audioService.created, 3);
+
+        auto& handler =
+            oap::aa::AndroidAutoOrchestratorTestAccess::mediaAudioHandler(orch);
+        handler.audioDataReceived(QByteArray(64, '\x55'), 1);
+        oap::aa::AndroidAutoOrchestratorTestAccess::simulateAudioServiceTeardown(orch);
+        QCoreApplication::sendPostedEvents(&orch, QEvent::MetaCall);
+
+        QCOMPARE(audioService.writes, 0);
+        orch.stop();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     }
 };
 

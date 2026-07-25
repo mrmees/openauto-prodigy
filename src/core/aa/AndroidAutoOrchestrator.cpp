@@ -438,22 +438,28 @@ void AndroidAutoOrchestrator::onNewConnection()
         if (mediaStream_) {
             connect(&mediaAudioHandler_, &oaa::hu::AudioChannelHandler::audioDataReceived,
                     this, [this](const QByteArray& data, uint64_t) {
-                        audioService_->writeAudio(mediaStream_,
-                            reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+                        if (audioService_ && mediaStream_) {
+                            audioService_->writeAudio(mediaStream_,
+                                reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+                        }
                     }, Qt::QueuedConnection);
         }
         if (speechStream_) {
             connect(&speechAudioHandler_, &oaa::hu::AudioChannelHandler::audioDataReceived,
                     this, [this](const QByteArray& data, uint64_t) {
-                        audioService_->writeAudio(speechStream_,
-                            reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+                        if (audioService_ && speechStream_) {
+                            audioService_->writeAudio(speechStream_,
+                                reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+                        }
                     }, Qt::QueuedConnection);
         }
         if (systemStream_) {
             connect(&systemAudioHandler_, &oaa::hu::AudioChannelHandler::audioDataReceived,
                     this, [this](const QByteArray& data, uint64_t) {
-                        audioService_->writeAudio(systemStream_,
-                            reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+                        if (audioService_ && systemStream_) {
+                            audioService_->writeAudio(systemStream_,
+                                reinterpret_cast<const uint8_t*>(data.constData()), data.size());
+                        }
                     }, Qt::QueuedConnection);
         }
     }
@@ -901,6 +907,9 @@ void AndroidAutoOrchestrator::onAudioServiceAboutToDestroy()
     // handle before AudioService destroys any remaining objects itself.
     stopAssistantMicCapture();
     avInputHandler_.abortCapture();
+    mediaAudioHandler_.disconnect(this);
+    speechAudioHandler_.disconnect(this);
+    systemAudioHandler_.disconnect(this);
     mediaStream_ = nullptr;
     speechStream_ = nullptr;
     systemStream_ = nullptr;

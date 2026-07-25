@@ -63,9 +63,10 @@ void AVInputCaptureBridge::pushPcm(uint64_t generation,
     }
 
     // Preserve complete S16LE samples if a malformed producer supplies an odd
-    // byte count. AudioRingBuffer::write is bounded and drop-newest.
+    // byte count. A capture callback is published atomically or dropped whole;
+    // partial publication could cross an overflow purge and corrupt framing.
     const uint32_t evenSize = static_cast<uint32_t>(size) & ~uint32_t{1};
-    ring_.write(data, evenSize);
+    ring_.writeAllOrDrop(data, evenSize);
 }
 
 void AVInputCaptureBridge::notifyWindowAvailable()
