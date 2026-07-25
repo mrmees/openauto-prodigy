@@ -612,7 +612,7 @@ private slots:
         QCOMPARE(availabilitySpy.count(), 0);
     }
 
-    void directDecoderReplacementIsClearedOnRollback()
+    void directDecoderReplacementIsClearedOnInitialRollback()
     {
         auto display = enabledClusterDisplay();
         QVideoSink candidate;
@@ -632,6 +632,7 @@ private slots:
         QVERIFY(!display.attachVideoSink(&candidate));
         QVERIFY(display.isVideoSinkAvailable());
         QCOMPARE(display.decoder()->videoSink(), nullptr);
+        // candidate -> observer replacement -> rollback null
         QCOMPARE(decoderSinkSpy.count(), 3);
         replacement.reset();
         QCOMPARE(display.decoder()->videoSink(), nullptr);
@@ -665,6 +666,39 @@ private slots:
         QCoreApplication::processEvents();
         QCOMPARE(availabilitySpy.count(), 2);
         QVERIFY(display.isVideoSinkAvailable());
+    }
+
+    void rollbackRejectsReentrantSameSinkClaim()
+    {
+        auto display = enabledClusterDisplay();
+        QVideoSink candidate;
+        auto replacement = std::make_unique<QVideoSink>();
+        bool initialClaimDisrupted = false;
+        bool reentrantClaimAttempted = false;
+        bool reentrantClaimResult = true;
+        connect(
+            display.decoder(),
+            &oap::aa::VideoDecoder::videoSinkChanged,
+            &display,
+            [&display, &candidate, &replacement, &initialClaimDisrupted,
+             &reentrantClaimAttempted, &reentrantClaimResult]() {
+                if (display.decoder()->videoSink() == &candidate
+                    && !initialClaimDisrupted) {
+                    initialClaimDisrupted = true;
+                    display.decoder()->setVideoSink(replacement.get());
+                } else if (!display.decoder()->videoSink()
+                           && !reentrantClaimAttempted) {
+                    reentrantClaimAttempted = true;
+                    reentrantClaimResult = display.attachVideoSink(&candidate);
+                }
+            },
+            Qt::DirectConnection);
+
+        QVERIFY(!display.attachVideoSink(&candidate));
+        QVERIFY(reentrantClaimAttempted);
+        QVERIFY(!reentrantClaimResult);
+        QVERIFY(display.isVideoSinkAvailable());
+        QCOMPARE(display.decoder()->videoSink(), nullptr);
     }
 
     void publishedRollbackDoesNotEmitStaleAvailabilityAfterNewClaim()

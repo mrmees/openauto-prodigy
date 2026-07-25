@@ -3,6 +3,7 @@
 #include "../Logging.hpp"
 #include "../YamlConfig.hpp"
 
+#include <QScopedValueRollback>
 #include <QThread>
 #include <QVideoFrame>
 
@@ -372,6 +373,8 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
     Q_ASSERT(QThread::currentThread() == thread());
     if (!sink || !decoder_)
         return false;
+    if (sinkRollbackActive_)
+        return false;
     if (sink_ == sink)
         return true;
     if (sink_) {
@@ -401,6 +404,7 @@ bool ProjectedDisplaySession::attachVideoSink(QVideoSink* sink)
     const auto rollbackClaim = [this, claimedSink](bool availabilityPublished) {
         if (sink_ != claimedSink)
             return;
+        QScopedValueRollback<bool> rollbackGuard(sinkRollbackActive_, true);
         disconnect(sinkDestroyedConnection_);
         sink_.clear();
         sinkClaimRejectionLogged_ = false;

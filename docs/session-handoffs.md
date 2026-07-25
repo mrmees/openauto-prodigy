@@ -114,6 +114,19 @@ and prevents a stale notification after an intervening claim. No findings
 were dismissed from this pair. Publication requires a clean rerun after the
 full native and aarch64 gates on this production delta.
 
+That rerun found one supported reentrancy hole: a decoder notification could
+reclaim the same session sink during rollback, leaving the outer caller with a
+false ownership result. It was confirmed and fixed with a narrow session-owned
+rollback guard and a regression test. Opus's ambiguous cross-build record was
+also confirmed and corrected. Its direct decoder re-install concern was
+dismissed because setting a non-null decoder sink outside the session is not a
+supported ownership path and has no production consumer; the fault-injection
+test was renamed to state its narrower invariant. Its exact signal-count
+clarity issue was fixed with an enumerating comment. A redundant deferred
+NOTIFY after an unrelated claim/detach cycle was dismissed as harmless: Qt
+consumers must re-read the property, and the QML handler already does so.
+Publication still requires one clean incremental rerun on this final delta.
+
 **Verification:** the full native build, explicit `openauto-prodigy` target,
 `QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, `git diff --check`, and
 the frozen-proto boundary check passed. The tracked live-document link scope
@@ -122,7 +135,8 @@ references in the user-owned untracked wishlist baseline, which remained
 untouched. `./cross-build.sh` produced the deployed accepted aarch64
 application with compiled-in QML. The latest production review-fix delta and
 the final signal-safe production tree were each cross-built successfully;
-subsequent edits only record those verification and review results. For the
+subsequent edits only record those verification and review results. Any future
+production change must repeat the final-tree native and aarch64 gates. For the
 accepted bench,
 local, staged, and installed artifact hashes matched. The guarded config edit
 changed only `col_span` and `row_span`; the target 3×3 cells were
