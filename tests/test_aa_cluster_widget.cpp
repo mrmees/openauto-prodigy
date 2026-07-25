@@ -161,7 +161,8 @@ private slots:
                  QStringLiteral("viewportEncodedHeight"),
                  QStringLiteral("viewportContentX"),
                  QStringLiteral("viewportContentY"),
-                 QStringLiteral("viewportContentWidth")}) {
+                 QStringLiteral("viewportContentWidth"),
+                 QStringLiteral("viewportContentHeight")}) {
             QVERIFY2(source.contains(
                          QStringLiteral("AAClusterDisplay.%1").arg(property)),
                      qPrintable(QStringLiteral("Missing geometry property: %1")

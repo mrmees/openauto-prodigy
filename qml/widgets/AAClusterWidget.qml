@@ -42,6 +42,7 @@ Item {
             objectName: "clusterVideoOutput"
             readonly property real viewportScale:
                 AAClusterDisplay.viewportContentWidth > 0
+                && AAClusterDisplay.viewportContentHeight > 0
                 ? cropViewport.width / AAClusterDisplay.viewportContentWidth
                 : 0
             width: AAClusterDisplay.viewportEncodedWidth * viewportScale
