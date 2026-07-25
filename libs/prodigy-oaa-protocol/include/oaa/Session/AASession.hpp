@@ -71,7 +71,8 @@ private:
     void onServiceDiscoveryRequested(const QByteArray& payload);
     void onChannelOpenRequested(int32_t channelId, const QByteArray& payload);
     void onMessage(uint8_t channelId, uint16_t messageId,
-                   const QByteArray& payload, int dataOffset);
+                   const QByteArray& payload, int dataOffset,
+                   oaa::MessageType messageType);
     void onPingTick();
     void onPongReceived(int64_t timestamp);
     void onPongDeadline();

@@ -273,7 +273,7 @@ void Messenger::onMessageAssembled(uint8_t channelId, MessageType messageType,
     }
 
     // Pass full payload with offset to avoid per-message QByteArray allocation
-    emit messageReceived(channelId, messageId, payload, msgIdSize);
+    emit messageReceived(channelId, messageId, payload, msgIdSize, messageType);
 }
 
 void Messenger::handleHandshakeData(const QByteArray& data)

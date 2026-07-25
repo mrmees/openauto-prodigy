@@ -202,6 +202,8 @@ private slots:
         int dataOffset = spy[0][3].toInt();
         QByteArray fullPayload = spy[0][2].toByteArray();
         QCOMPARE(fullPayload.mid(dataOffset), versionResponse);
+        QCOMPARE(spy[0][4].value<oaa::MessageType>(),
+                 oaa::MessageType::Control);
     }
 
     void testSendLargeMessageFragmented() {

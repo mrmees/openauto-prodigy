@@ -270,7 +270,7 @@ void ProjectedDisplaySession::beginProtocolSession()
     summaryTimer_.start();
     qCInfo(lcAA).noquote() << diagnosticPrefix_
                           << "protocol begin generation=" << protocolGeneration_;
-    if (!decoder_ || !decoder_->isOperational()) {
+    if (!decoder_ || !decoder_->isAvailable()) {
         enterTerminalState(
             Error, QStringLiteral("Projected decoder unavailable"));
         return;

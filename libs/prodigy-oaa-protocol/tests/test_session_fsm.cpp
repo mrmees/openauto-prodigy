@@ -826,7 +826,8 @@ private slots:
         QCOMPARE(openedSpy.count(), 1);
 
         session.messenger()->messageReceived(
-            oaa::ChannelId::ClusterVideo, 0x0009, QByteArray(), 0);
+            oaa::ChannelId::ClusterVideo, 0x0009, QByteArray(), 0,
+            oaa::MessageType::Control);
         QCOMPARE(handler.closeCount, 1);
         QCOMPARE(closedSpy.count(), 1);
         QCOMPARE(closedSpy[0][0].value<uint8_t>(),
@@ -843,7 +844,7 @@ private slots:
         QCOMPARE(openedSpy.count(), 3);
     }
 
-    void testLegacyServiceChannelCloseAndDuplicateOpenStayIdempotent() {
+    void testLegacyServiceChannelCloseThenReopenAndDuplicateOpenIsIdempotent() {
         for (const uint8_t channelId : {
                  oaa::ChannelId::Video,
                  oaa::ChannelId::MediaAudio,
@@ -877,9 +878,23 @@ private slots:
             QCOMPARE(closedSpy.count(), 0);
 
             session.messenger()->messageReceived(
-                channelId, 0x0009, QByteArray(), 0);
-            QCOMPARE(handler.closeCount, 0);
-            QCOMPARE(closedSpy.count(), 0);
+                channelId, 0x0009, QByteArray(), 0,
+                oaa::MessageType::Control);
+            QCOMPARE(handler.closeCount, 1);
+            QCOMPARE(closedSpy.count(), 1);
+
+            session.messenger()->messageReceived(
+                channelId, 0x0007, payload, 0);
+            QCOMPARE(handler.openCount, 2);
+            QCOMPARE(openedSpy.count(), 2);
+
+            // The same numeric ID in a service-specific frame is handler data,
+            // not a transport close notification.
+            session.messenger()->messageReceived(
+                channelId, 0x0009, QByteArray(), 0,
+                oaa::MessageType::Specific);
+            QCOMPARE(handler.closeCount, 1);
+            QCOMPARE(closedSpy.count(), 1);
             QCOMPARE(handler.messageCount, 1);
             QCOMPARE(handler.lastMessageId, uint16_t(0x0009));
         }

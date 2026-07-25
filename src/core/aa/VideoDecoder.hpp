@@ -45,6 +45,9 @@ public:
     QVideoSink* videoSink() const { return videoSink_.loadRelaxed(); }
     void setVideoSink(QVideoSink* sink);
     void setYamlConfig(oap::YamlConfig* config) { yamlConfig_ = config; }
+    /// True when construction produced a worker capable of starting streams.
+    /// Unlike isOperational(), this is not cleared by a recoverable stream error.
+    bool isAvailable() const { return worker_ != nullptr; }
     bool isOperational() const { return operational_.load(); }
     void setDiagnosticLabel(const QString& label) { diagnosticLabel_ = label; }
 

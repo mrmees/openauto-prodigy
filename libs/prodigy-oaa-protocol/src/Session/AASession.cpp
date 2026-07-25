@@ -479,7 +479,8 @@ void AASession::onChannelOpenRequested(int32_t channelId, const QByteArray& /*pa
 }
 
 void AASession::onMessage(uint8_t channelId, uint16_t messageId,
-                          const QByteArray& payload, int dataOffset) {
+                          const QByteArray& payload, int dataOffset,
+                          MessageType messageType) {
     const int dataSize = payload.size() - dataOffset;
 
     // Log ALL incoming messages for debugging
@@ -495,7 +496,7 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
     // Service-channel close notifications carry their target in the frame's
     // channel id. Retire the handler before accepting a later reopen.
     if (messageId == SessionMessageId::CHANNEL_CLOSE_NOTIFICATION
-        && supportsExplicitReopenLifecycle(channelId)) {
+        && messageType == MessageType::Control) {
         if (state_ == SessionState::Active)
             closeServiceChannel(channelId);
         return;

@@ -18,6 +18,12 @@ public:
         VideoDecoder::failCodecInitForTest_.store(true);
     }
 
+    static void failNextCodecInitialization(VideoDecoder& decoder)
+    {
+        Q_UNUSED(decoder);
+        VideoDecoder::failCodecInitForTest_.store(true);
+    }
+
     static void publishFrame(
         VideoDecoder& decoder,
         quint64 generation,
@@ -134,6 +140,40 @@ private slots:
                  static_cast<int>(oap::aa::ProjectedDisplaySession::Error));
         QVERIFY(display.statusText().contains(
             QStringLiteral("decoder"), Qt::CaseInsensitive));
+    }
+
+    void transientDecoderResetFailureCanRecoverNextProtocolSession()
+    {
+        auto display = enabledClusterDisplay();
+        QSignalSpy resetSpy(display.decoder(),
+                            &oap::aa::VideoDecoder::streamResetCompleted);
+
+        display.beginProtocolSession();
+        display.videoHandler()->onChannelOpened();
+        display.noteChannelOpened(oaa::ChannelId::ClusterVideo);
+        oap::aa::VideoDecoderTestAccess::failNextCodecInitialization(
+            *display.decoder());
+        display.videoHandler()->onMessage(
+            oaa::AVMessageId::START_INDICATION, startIndicationBytes());
+        QTRY_COMPARE(resetSpy.count(), 1);
+        QTRY_COMPARE(display.state(),
+                     static_cast<int>(oap::aa::ProjectedDisplaySession::Error));
+        QVERIFY(!display.decoder()->isOperational());
+
+        display.endProtocolSession();
+        display.beginProtocolSession();
+        QCOMPARE(display.state(),
+                 static_cast<int>(
+                     oap::aa::ProjectedDisplaySession::WaitingForChannel));
+        display.videoHandler()->onChannelOpened();
+        display.noteChannelOpened(oaa::ChannelId::ClusterVideo);
+        display.videoHandler()->onMessage(
+            oaa::AVMessageId::START_INDICATION, startIndicationBytes(2));
+        QTRY_COMPARE(resetSpy.count(), 2);
+        QTRY_VERIFY(display.decoder()->isOperational());
+        QCOMPARE(display.state(),
+                 static_cast<int>(
+                     oap::aa::ProjectedDisplaySession::WaitingForFrames));
     }
 
     void disabledDisplayStaysDisabled()

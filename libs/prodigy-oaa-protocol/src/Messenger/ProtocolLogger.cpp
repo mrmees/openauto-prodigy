@@ -126,7 +126,8 @@ void ProtocolLogger::attach(Messenger* messenger)
     if (!messenger_) return;
 
     connect(messenger_, &Messenger::messageReceived,
-            this, [this](uint8_t ch, uint16_t msgId, const QByteArray& payload, int dataOffset) {
+            this, [this](uint8_t ch, uint16_t msgId, const QByteArray& payload,
+                         int dataOffset, MessageType) {
                 log("Phone->HU", ch, msgId,
                     reinterpret_cast<const uint8_t*>(payload.constData() + dataOffset),
                     payload.size() - dataOffset);
