@@ -9,6 +9,24 @@ Item {
     property QtObject widgetContext: null
     property bool ownsSink: false
     property string localStatusText: ""
+    readonly property bool isCurrentPage: widgetContext
+                                          ? widgetContext.isCurrentPage
+                                          : false
+
+    function syncSinkClaim() {
+        if (!isCurrentPage) {
+            if (ownsSink)
+                AAClusterDisplay.detachVideoSink(videoOutput.videoSink)
+            ownsSink = false
+            localStatusText = ""
+            return
+        }
+
+        if (ownsSink)
+            return
+        ownsSink = AAClusterDisplay.attachVideoSink(videoOutput.videoSink)
+        localStatusText = ownsSink ? "" : "Cluster display already in use"
+    }
 
     VideoOutput {
         id: videoOutput
@@ -43,11 +61,19 @@ Item {
         }
     }
 
-    Component.onCompleted: {
-        ownsSink = AAClusterDisplay.attachVideoSink(videoOutput.videoSink)
-        if (!ownsSink)
-            localStatusText = "Cluster display already in use"
+    // SwipeView keeps adjacent dashboard pages loaded. A short retry makes a
+    // page transition robust when the incoming copy becomes current just
+    // before the outgoing copy releases the single cluster sink.
+    Timer {
+        interval: 250
+        repeat: true
+        running: root.isCurrentPage && !root.ownsSink
+        onTriggered: root.syncSinkClaim()
     }
+
+    onIsCurrentPageChanged: syncSinkClaim()
+
+    Component.onCompleted: syncSinkClaim()
 
     Component.onDestruction: {
         if (ownsSink)

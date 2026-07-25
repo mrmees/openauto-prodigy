@@ -68,6 +68,13 @@ private slots:
             "attachVideoSink(videoOutput.videoSink)")));
         QVERIFY(source.contains(QStringLiteral(
             "detachVideoSink(videoOutput.videoSink)")));
+        QVERIFY(source.contains(QStringLiteral("widgetContext.isCurrentPage")));
+        QVERIFY(source.contains(QStringLiteral("onIsCurrentPageChanged")));
+        QVERIFY(source.contains(QStringLiteral("if (!isCurrentPage)")));
+        QVERIFY(source.contains(QStringLiteral(
+            "running: root.isCurrentPage && !root.ownsSink")));
+        QVERIFY(source.contains(QStringLiteral(
+            "onTriggered: root.syncSinkClaim()")));
         QVERIFY(source.contains(QStringLiteral("already in use"),
                                 Qt::CaseInsensitive));
 
