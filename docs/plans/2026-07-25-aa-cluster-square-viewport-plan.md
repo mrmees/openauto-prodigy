@@ -862,12 +862,23 @@ cfg="$HOME/.openauto/config.yaml"
 stage="$HOME/openauto-prodigy/build/src/openauto-prodigy.square-viewport-stage"
 stamp_file="$HOME/.openauto/oap-square-viewport-backup-stamp"
 stamp=$(cat "$stamp_file")
-restore_on_error() {
-  cp -a "$bin.pre-square-viewport-$stamp" "$bin"
-  cp -a "$cfg.pre-square-viewport-$stamp" "$cfg"
-  sudo systemctl start openauto-prodigy.service
+deployment_succeeded=false
+restore_on_exit() {
+  status=$?
+  trap - EXIT HUP INT TERM
+  if [ "$deployment_succeeded" != true ]; then
+    set +e
+    sudo systemctl stop openauto-prodigy.service
+    cp -a "$bin.pre-square-viewport-$stamp" "$bin"
+    cp -a "$cfg.pre-square-viewport-$stamp" "$cfg"
+    sudo systemctl start openauto-prodigy.service
+  fi
+  exit "$status"
 }
-trap restore_on_error ERR INT TERM
+trap restore_on_exit EXIT
+trap "exit 129" HUP
+trap "exit 130" INT
+trap "exit 143" TERM
 python3 - <<"PY"
 from pathlib import Path
 
@@ -891,7 +902,8 @@ install -m 0755 "$stage" "$bin"
 diff -u "$cfg.pre-square-viewport-$stamp" "$cfg" || true
 sha256sum "$stage" "$bin"
 sudo systemctl start openauto-prodigy.service
-trap - ERR INT TERM
+deployment_succeeded=true
+trap - EXIT HUP INT TERM
 '
 ```
 
