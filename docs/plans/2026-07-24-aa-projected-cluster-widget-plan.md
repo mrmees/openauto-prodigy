@@ -3,7 +3,10 @@
 Date: 2026-07-24
 Status: ACTIVE
 Design: `docs/plans/2026-07-24-aa-projected-cluster-widget-design.md`
-Grounded against: `dev` at `9062d66`
+Implementation base: `9062d66` (the design was first grounded at `3766d4f`,
+then amended and re-reviewed at `9062d66`; this plan was first reviewed at
+`d5a8282`). All implementation and final review ranges intentionally use
+`9062d66..HEAD`.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -68,6 +71,8 @@ boundary are fixed by the reviewed design. No open decision remains.
   builder, and widget registration without rereading dotted config paths.
 - Disabled discovery contains the legacy channel list and leaves MAIN AV field
   6/display type/input display ID/touch display type absent.
+- Disabled discovery serializes to the checked-in pre-feature golden bytes for
+  the MAIN video/input descriptors, not merely the same parsed field set.
 - Enabled discovery contains exactly one explicit MAIN and one CLUSTER plus one
   matching input descriptor each; CLUSTER has exactly the fixed video config
   and no input capabilities.
@@ -80,6 +85,7 @@ runtime focus behavior, and Pi deployment.
 
 - Create: `src/core/aa/ProjectedDisplayConfig.hpp`
 - Create: `src/core/aa/ProjectedDisplayConfig.cpp`
+- Modify: `libs/prodigy-oaa-protocol/include/oaa/Channel/ChannelId.hpp`
 - Modify: `src/core/aa/ServiceDiscoveryBuilder.hpp`
 - Modify: `src/core/aa/ServiceDiscoveryBuilder.cpp`
 - Modify: `src/CMakeLists.txt`
@@ -115,6 +121,7 @@ void ServiceDiscoveryBuilder::setProjectedClusterConfig(
     const ProjectedClusterConfig& config);
 uint32_t ServiceDiscoveryBuilder::videoConfigCount(
     ProjectedDisplayRole role) const;
+uint32_t ServiceDiscoveryBuilder::videoConfigCount() const; // retained MAIN default
 ```
 
 - Consumes: `YamlConfig::pluginValue(pluginId, key)` and existing generated
@@ -239,6 +246,11 @@ void enabledClusterAdvertisesPairedFixedTopology()
 }
 ```
 
+Also compare the serialized bytes for descriptors 3 and 1 against golden byte
+arrays captured from commit `9062d66`. The golden is a literal checked into the
+test, so both the implicit default and explicit disabled config are compared
+against pre-feature output rather than against two paths in the new code.
+
 - [ ] **Step 5: Run discovery tests to prove RED**
 
 ```bash
@@ -255,7 +267,10 @@ display identities do not exist.
 Keep the current MAIN builder functions untouched for the disabled path. In the
 enabled path, set MAIN identity explicitly, append fixed CLUSTER video/input
 descriptors, and return role-specific config counts. Use generated enum values;
-do not replace or rename any proto field.
+do not replace or rename any proto field. Add `ClusterVideo = 12` and
+`ClusterInput = 13` to `ChannelId.hpp` in this task and use those names in the
+builder; retain the existing no-argument `videoConfigCount()` as a MAIN-default
+delegating overload so the intermediate commit remains source-compatible.
 
 - [ ] **Step 7: Run focused tests and the full local gate**
 
@@ -275,6 +290,7 @@ Expected: all commands pass.
 ```bash
 git add src/core/aa/ProjectedDisplayConfig.hpp \
         src/core/aa/ProjectedDisplayConfig.cpp \
+        libs/prodigy-oaa-protocol/include/oaa/Channel/ChannelId.hpp \
         src/core/aa/ServiceDiscoveryBuilder.hpp \
         src/core/aa/ServiceDiscoveryBuilder.cpp \
         src/CMakeLists.txt \
@@ -307,13 +323,14 @@ resolved startup enum; protocol capture must suppress channel 12 media when
 - Handler frame/ACK counters reset on channel open and increase together.
 - Parsed setup requests and local parse failures emit bounded semantic signals
   so the application can add role/display context without parsing log text.
+- Existing malformed-fragment tests remain green and explicitly document that
+  `FrameAssembler::assemblyFailed` is session-global, outside display isolation.
 
 **Out of Scope:** Service-discovery fields, decoder changes, display-session
 state, app orchestration, and malformed-fragment recovery.
 
 **Files:**
 
-- Modify: `libs/prodigy-oaa-protocol/include/oaa/Channel/ChannelId.hpp`
 - Modify: `libs/prodigy-oaa-protocol/include/oaa/HU/Handlers/VideoChannelHandler.hpp`
 - Modify: `libs/prodigy-oaa-protocol/src/HU/Handlers/VideoChannelHandler.cpp`
 - Modify: `libs/prodigy-oaa-protocol/include/oaa/HU/Handlers/InputChannelHandler.hpp`
@@ -347,6 +364,10 @@ signals:
 
 `InputChannelHandler` adds the same `handlerError(const QString&)` signal for
 malformed binding messages.
+
+`VideoChannelHandler.hpp` explicitly includes the generated
+`oaa/video/VideoFocusModeEnum.pb.h`; its nested proto enum cannot be
+forward-declared.
 
 - Produces fixed application channel constants:
 
@@ -388,8 +409,9 @@ void clusterInputUsesInjectedChannel()
 }
 ```
 
-Also assert two media frames yield received/ACK counters of two, and reopening
-the channel resets both to zero. Feed malformed setup/binding payloads and
+Also send a valid `START_INDICATION` before media, then assert two media frames
+yield received/ACK counters of two; reopening the channel resets both to zero.
+Feed malformed setup/binding payloads and
 assert one bounded `handlerError`; feed a valid setup request and assert
 `setupRequested` carries its codec.
 
@@ -414,8 +436,8 @@ frame and one setup request, and assert the file contains only the setup line.
 
 ```bash
 cd ~/builds/openauto-prodigy
-cmake --build . --target test_video_channel_handler test_input_channel_handler test_oaa_protocol_logger -j$(nproc)
-ctest --output-on-failure -R 'test_video_channel_handler|test_input_channel_handler|test_oaa_protocol_logger'
+cmake --build . --target test_video_channel_handler test_input_channel_handler test_oaa_protocol_logger test_frame_assembler -j$(nproc)
+ctest --output-on-failure -R 'test_video_channel_handler|test_input_channel_handler|test_oaa_protocol_logger|test_frame_assembler'
 ```
 
 Expected: compile failures for missing constructors/constants/counters.
@@ -440,8 +462,8 @@ include channel 12 in `isAVMediaFrame()`.
 
 ```bash
 cd ~/builds/openauto-prodigy
-cmake --build . --target test_video_channel_handler test_input_channel_handler test_oaa_protocol_logger -j$(nproc)
-ctest --output-on-failure -R 'test_video_channel_handler|test_input_channel_handler|test_oaa_protocol_logger'
+cmake --build . --target test_video_channel_handler test_input_channel_handler test_oaa_protocol_logger test_frame_assembler -j$(nproc)
+ctest --output-on-failure -R 'test_video_channel_handler|test_input_channel_handler|test_oaa_protocol_logger|test_frame_assembler'
 cmake --build . -j$(nproc)
 cmake --build . --target openauto-prodigy -j$(nproc)
 ctest --output-on-failure
@@ -450,8 +472,7 @@ ctest --output-on-failure
 - [ ] **Step 7: Commit Task 2**
 
 ```bash
-git add libs/prodigy-oaa-protocol/include/oaa/Channel/ChannelId.hpp \
-        libs/prodigy-oaa-protocol/include/oaa/HU/Handlers/VideoChannelHandler.hpp \
+git add libs/prodigy-oaa-protocol/include/oaa/HU/Handlers/VideoChannelHandler.hpp \
         libs/prodigy-oaa-protocol/src/HU/Handlers/VideoChannelHandler.cpp \
         libs/prodigy-oaa-protocol/include/oaa/HU/Handlers/InputChannelHandler.hpp \
         libs/prodigy-oaa-protocol/src/HU/Handlers/InputChannelHandler.cpp \
@@ -498,16 +519,19 @@ FrameAssembler behavior, and widget state.
 
 ```cpp
 bool VideoDecoder::isOperational() const;
+quint64 VideoDecoder::beginStream();
 void VideoDecoder::endStream();
 void VideoDecoder::setDiagnosticLabel(const QString& label);
 
 signals:
+    void frameReadyForGeneration(quint64 generation);
     void streamEnded(quint64 generation);
     void streamError(quint64 generation, const QString& message);
 ```
 
-The worker gains `WorkKind::EndStream`; `beginStream()` and `endStream()` are
-the only methods that change frame acceptance.
+The worker gains `WorkKind::EndStream`; `beginStream()` returns the generation
+assigned to its ordered begin item, and `beginStream()`/`endStream()` are the
+only methods that change frame acceptance.
 
 - [ ] **Step 1: Add failing end-boundary tests**
 
@@ -542,11 +566,15 @@ assert `isOperational()==false` and exactly one `streamError` emission for that
 generation. Set diagnostic label `CLUSTER[id=1,ch=12]` and capture Qt messages
 to assert the label prefixes reset/error/performance diagnostics.
 
-The seam is a private `std::function<bool(AVCodecID)> codecInitForTest_` read by
+The seam is a private `std::atomic<bool> failCodecInitForTest_{false}` read by
 an internal `initializeCodec()` wrapper before falling back to `initCodec()`;
 declare `oap::aa::VideoDecoderTestAccess` as a friend so production callers
-cannot inject it. The test installs `[](AVCodecID) { return false; }` only after
-normal constructor initialization and before the reset under test.
+cannot inject it. The test flips the atomic only after normal constructor
+initialization and before enqueueing the reset under test, avoiding a
+test-thread/worker-thread data race. The worker emits
+`frameReadyForGeneration(generation)` alongside the legacy parameterless
+`frameReady()` so display-session consumers can reject stale queued callbacks
+without breaking existing callers.
 
 - [ ] **Step 2: Run the decoder test to prove RED**
 
@@ -628,6 +656,7 @@ state, dashboard registration, and Pi behavior.
 class ProjectedDisplaySession : public QObject {
     Q_OBJECT
     Q_PROPERTY(int state READ state NOTIFY stateChanged)
+    Q_PROPERTY(bool rendering READ isRendering NOTIFY stateChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY stateChanged)
 public:
     enum State {
@@ -653,6 +682,7 @@ public:
     oaa::hu::VideoChannelHandler* videoHandler();
     oaa::hu::InputChannelHandler* inputHandler();
     VideoDecoder* decoder();
+    bool isRendering() const;
     void setAdvertisedVideoConfigCount(uint32_t count);
     void beginProtocolSession();
     void endProtocolSession();
@@ -682,7 +712,7 @@ void clusterStateFollowsOnlyItsLifecycle()
     QCOMPARE(display.state(), display.WaitingForChannel);
     display.noteChannelOpened(12);
     QCOMPARE(display.state(), display.WaitingForFrames);
-    display.decoder()->frameReady();
+    display.decoder()->frameReadyForGeneration(1);
     QCoreApplication::processEvents();
     QCOMPARE(display.state(), display.Rendering);
     display.endProtocolSession();
@@ -702,8 +732,10 @@ void rejectionAndDecoderErrorAreExplicit()
 }
 ```
 
-Also assert a callback from an ended generation cannot move the new generation
-to Rendering.
+Also assert a `frameReadyForGeneration()` or `streamError()` callback from an
+ended generation cannot move the new generation to Rendering/Error. The
+session records the generation returned by each begin boundary and
+compares every generation-bearing decoder callback against it.
 
 Add a no-sink flow test: begin/open the CLUSTER display, drive a video start and
 media indication, assert received/ACK counters advance with no sink attached,
@@ -725,20 +757,29 @@ cmake --build . --target test_projected_display_session -j$(nproc)
 ctest --output-on-failure -R '^test_projected_display_session$'
 ```
 
+Set `QT_QPA_PLATFORM=offscreen` for this test in `tests/CMakeLists.txt`, matching
+the existing orchestrator test, because it constructs `QVideoSink`s.
+
 - [ ] **Step 4: Implement the bounded session owner**
 
-Connect handler/decoder signals once in the constructor. Maintain a monotonically
-increasing protocol generation and an active flag checked by every queued slot.
-On end, mark inactive before calling `decoder.endStream()`. Transition to
-Rendering only from a valid frame-ready callback in the current active
-generation. State changes and sink calls remain on the QObject owner thread.
+Connect handler/decoder signals once in the constructor. Preserve the current
+`Qt::DirectConnection` from `videoFrameData` to `VideoDecoder::decodeFrame` so
+MAIN does not gain an event-loop hop. Maintain a monotonically increasing
+protocol generation and an active flag checked by every queued slot. On end,
+mark inactive before calling `decoder.endStream()`. In production,
+`frameReadyForGeneration()` is emitted only after a valid frame is stored, so
+the first such callback in the current active generation transitions to
+Rendering; taking/pushing the frame remains separately guarded by
+`QVideoFrame::isValid()`. This signal contract makes the synthetic lifecycle
+test legal without weakening sink delivery. State changes and sink calls
+remain on the QObject owner thread.
 
 Use the video handler's counters for a rate-limited summary on state change and
 at most once per five seconds while frames arrive; do not log each frame.
 
 Set the decoder diagnostic label from role/display/video-channel identity.
 Connect `setupRequested`, `handlerError`, `streamStarted`, `streamStopped`,
-`videoFocusChanged`, `videoFrameData`, `frameReady`, `streamError`, and
+`videoFocusChanged`, `videoFrameData`, `frameReadyForGeneration`, `streamError`, and
 `streamEnded` once. Log setup codec, focus mode, first media frame, first valid
 decoded frame dimensions, sink claim/release, rate-limited received/ACK totals,
 and begin/end boundaries with the shared prefix. A valid decoded frame is still
@@ -769,7 +810,7 @@ git commit -m "feat: add isolated projected display session"
 
 ### Task 5: Orchestrator MAIN Refactor and Optional CLUSTER Registration
 
-**Tier:** `opus`
+**Tier:** `main`
 
 **Definition of Ready:** Tasks 1–4 are green. The exact fixed sessions,
 startup config, session begin/end order, global MAIN-only effects, CLUSTER
@@ -829,7 +870,10 @@ source-compatible overload and passes it to the orchestrator.
 Update `AndroidAutoOrchestratorTestAccess` to access the MAIN display session,
 then preserve existing assertions through the public compatibility accessors.
 Add a test that the legacy constructor yields disabled CLUSTER and that MAIN
-handler IDs remain 3/1.
+handler IDs remain 3/1. Add a narrow `setConnectedForFocusTest()` helper on
+the existing friend access class that calls the private `setState(Connected,
+...)`; use it to establish the real precondition for MAIN's NATIVE-focus
+transition without pretending the loopback socket completed AA negotiation.
 
 - [ ] **Step 2: Add failing enabled registration/isolation tests**
 
@@ -854,6 +898,9 @@ main.videoHandler()->videoFocusChanged(
     oaa::proto::enums::VideoFocusMode::NATIVE, false);
 QCOMPARE(orch.connectionState(), AndroidAutoOrchestrator::Backgrounded);
 ```
+
+Call `setConnectedForFocusTest()` immediately before the MAIN-focus assertion;
+otherwise `Backgrounded` is not reachable from the test's default state.
 
 Add reconnect/teardown assertions that both display sessions end, late old
 frame callbacks do not render, and the next MAIN generation still begins.
@@ -880,6 +927,9 @@ Pass the immutable config to `ServiceDiscoveryBuilder`. Register MAIN always
 and CLUSTER only when enabled. Feed role-specific config counts before start.
 Connect `AASession::channelOpened` and `channelOpenRejected` to the matching
 display by wire ID. Connect only MAIN `videoFocusChanged` to global state.
+After handler registration and `setAdvertisedVideoConfigCount()`, call
+`beginProtocolSession()` once for each enabled display before
+`session_->start()`; do not defer display activation until a channel-open event.
 
 Emit one descriptor summary at service-discovery construction for each enabled
 role (display ID/type, video/input wire IDs, config count) and one contextual
@@ -951,8 +1001,10 @@ tap-to-launch behavior, responsive sizes, settings UI, and MAIN QML redesign.
 **Interfaces:**
 
 ```cpp
+namespace oap::plugins {
 bool registerAAClusterWidget(oap::WidgetRegistry& registry,
                              const oap::aa::ProjectedClusterConfig& config);
+}
 ```
 
 The enabled descriptor uses ID `org.openauto.aa-cluster`, QML URL
@@ -989,9 +1041,11 @@ void enabledConfigRegistersFixedSquare()
 
 In the same test target, read `qml/widgets/AAClusterWidget.qml` using a
 `TEST_SOURCE_DIR` definition and assert it contains `import QtMultimedia`, one
-`VideoOutput`, `PreserveAspectFit`, `attachVideoSink(videoOutput.videoSink)`,
-and `detachVideoSink(videoOutput.videoSink)`, while containing no `MouseArea`,
-`TapHandler`, `ShaderEffect`, or `sourceRect`.
+`VideoOutput`, `PreserveAspectFit`, `AAClusterDisplay.rendering`,
+`attachVideoSink(videoOutput.videoSink)`, and
+`detachVideoSink(videoOutput.videoSink)`, while containing no `MouseArea`,
+`TapHandler`, `ShaderEffect`, `sourceRect`, or instance-enum lookup such as
+`AAClusterDisplay.Rendering`.
 
 - [ ] **Step 3: Register test/CMake entries and prove RED**
 
@@ -1002,13 +1056,18 @@ cmake --build . --target test_aa_cluster_widget -j$(nproc)
 ctest --output-on-failure -R '^test_aa_cluster_widget$'
 ```
 
+Set `QT_QPA_PLATFORM=offscreen` for this target in `tests/CMakeLists.txt`
+because its transitive display/QML surface constructs multimedia objects.
+
 - [ ] **Step 4: Implement conditional registration and startup sharing**
 
 Resolve `ProjectedClusterConfig` once in `main.cpp` immediately after YAML
 load. Pass the copy to `AndroidAutoPlugin`, call the registration helper after
 creating `WidgetRegistry`, and expose
 `aaPlugin->orchestrator()->clusterDisplay()` as `AAClusterDisplay` on the root
-context. Do not reread YAML in any of those paths.
+context. Preserve the existing `aaPlugin && aaPlugin->orchestrator()` guard;
+only dereference and set the context property inside that guarded path. Do not
+reread YAML in any of those paths.
 
 - [ ] **Step 5: Implement the fixed QML widget**
 
@@ -1028,8 +1087,7 @@ Item {
         id: videoOutput
         anchors.fill: parent
         fillMode: VideoOutput.PreserveAspectFit
-        visible: root.ownsSink && AAClusterDisplay.state
-                 === AAClusterDisplay.Rendering
+        visible: root.ownsSink && AAClusterDisplay.rendering
     }
 
     Component.onCompleted: {
@@ -1249,11 +1307,14 @@ or commit that user-owned reference file.
 
 ## Execution Decision
 
-Execute `main`-tier Tasks 1–4 and 7 inline with
-`superpowers:executing-plans`. Dispatch Opus-tier Tasks 5 and 6 as prepared,
-write-capable Opus jobs only after all consumed interfaces are committed and
-green; each prompt pins its files, acceptance criteria, out-of-scope boundary,
-and focused test command from this plan. The main session reads the returned
+Execute `main`-tier Tasks 1–5 and 7 inline with
+`superpowers:executing-plans`; Task 5 stays in the main session because its
+teardown-before-finalize ordering and focus ownership are protocol/threading
+judgments under the repo tier rules. Dispatch Opus-tier Task 6 as a prepared,
+write-capable Opus job only after all consumed interfaces are committed and
+green; its prompt pins files, acceptance criteria, out-of-scope boundary, and
+focused test command from this plan. The main session reads the returned
 verdict and `git diff`, reruns the task's focused/full gates, and commits only
-verified work. If a write job cannot preserve shared-worktree state or exhausts
-two focused attempts, the main session takes over rather than broadening scope.
+verified work. If the write job cannot preserve shared-worktree state or
+exhausts two focused attempts, the main session takes over rather than
+broadening scope.
