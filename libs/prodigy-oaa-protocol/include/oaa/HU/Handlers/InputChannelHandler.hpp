@@ -4,6 +4,7 @@
 #include <oaa/Channel/ChannelId.hpp>
 #include <oaa/Channel/MessageIds.hpp>
 #include <atomic>
+#include <QString>
 
 namespace oaa {
 namespace hu {
@@ -14,8 +15,9 @@ public:
     struct Pointer { int x; int y; int id; };
 
     explicit InputChannelHandler(QObject* parent = nullptr);
+    explicit InputChannelHandler(uint8_t channelId, QObject* parent = nullptr);
 
-    uint8_t channelId() const override { return oaa::ChannelId::Input; }
+    uint8_t channelId() const override { return channelId_; }
     void onChannelOpened() override;
     void onChannelClosed() override;
     void onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset = 0) override;
@@ -29,10 +31,12 @@ public:
 
 signals:
     void hapticFeedbackRequested(int feedbackType);
+    void handlerError(const QString& message);
 
 private:
     void handleBindingRequest(const QByteArray& payload);
     void handleBindingNotification(const QByteArray& payload);
+    uint8_t channelId_ = oaa::ChannelId::Input;
     std::atomic<bool> channelOpen_{false};
 };
 
