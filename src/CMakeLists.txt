@@ -29,6 +29,7 @@ add_library(openauto-core STATIC
     core/aa/CodecCapability.cpp
     core/aa/WirelessAaConfig.cpp
     core/aa/ProjectedDisplayConfig.cpp
+    core/aa/ProjectedDisplaySession.cpp
     core/aa/ServiceDiscoveryBuilder.cpp
     core/aa/AVInputCaptureBridge.cpp
     core/aa/AndroidAutoOrchestrator.cpp

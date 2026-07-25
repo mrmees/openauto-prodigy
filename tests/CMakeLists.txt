@@ -168,6 +168,9 @@ oap_add_test(test_circular_buffer SOURCES test_circular_buffer.cpp)
 oap_add_test(test_codec_capability SOURCES test_codec_capability.cpp)
 oap_add_test(test_video_frame_pool SOURCES test_video_frame_pool.cpp)
 oap_add_test(test_video_decoder SOURCES test_video_decoder.cpp)
+oap_add_test(test_projected_display_session SOURCES test_projected_display_session.cpp)
+set_tests_properties(test_projected_display_session
+    PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
 # --- Touch routing tests ---
 
