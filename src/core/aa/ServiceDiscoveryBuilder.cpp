@@ -324,8 +324,8 @@ QByteArray ServiceDiscoveryBuilder::buildClusterVideoDescriptor() const
     config->set_video_resolution(
         oaa::proto::enums::VideoResolution::VIDEO_800x480);
     config->set_video_fps(oaa::proto::enums::VideoFPS::_30);
-    config->set_margin_width(0);
-    config->set_margin_height(0);
+    config->set_margin_width(kClusterViewportGeometry.marginWidth());
+    config->set_margin_height(kClusterViewportGeometry.marginHeight());
     config->set_dpi(140);
     config->set_codec(
         oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);

@@ -415,8 +415,12 @@ private slots:
         QCOMPARE(videoConfig.codec(),
                  oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
         QCOMPARE(videoConfig.dpi(), 140u);
-        QCOMPARE(videoConfig.margin_width(), 0u);
-        QCOMPARE(videoConfig.margin_height(), 0u);
+        QCOMPARE(videoConfig.margin_width(),
+                 static_cast<uint32_t>(
+                     oap::aa::kClusterViewportGeometry.marginWidth()));
+        QCOMPARE(videoConfig.margin_height(),
+                 static_cast<uint32_t>(
+                     oap::aa::kClusterViewportGeometry.marginHeight()));
 
         const auto clusterInput = descriptorById(config, 13).input_channel();
         QCOMPARE(clusterInput.display_id(), 1u);
