@@ -311,4 +311,13 @@ All were adjudicated:
 - Finding 9 was confirmed for the AA rendering guide and dismissed for the
   generic widget guide, whose sizing contract is unchanged.
 
-The amended spec requires a final Opus pass before plan writing.
+The final Opus pass reviewed commit `a29ea48` and returned `PASS`, with no
+blocker or major findings. It identified two minor plan-time wiring
+requirements that are binding on the implementation plan:
+
+- Update `VideoDecoderTestAccess::publishFrame` so ordinary CLUSTER session
+  tests can publish the expected carrier size; reserve a mismatched size for
+  the dedicated rejection test.
+- When completion archives the design and plan, update `docs/INDEX.md` and
+  `docs/roadmap-current.md` alongside the AA rendering guide and session
+  handoff so no active-document links become stale.
