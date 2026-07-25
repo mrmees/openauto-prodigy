@@ -23,15 +23,19 @@ landscape carrier inside a square widget. This bounded follow-up tests the
 phone-rendered-margin approach at the desired small cluster shape before any
 generalized multi-display or production-settings work is promoted.
 
-**Status:** COMPLETE on local `dev` in the implementation range
-`b7f6451..7ccdfc4`; not pushed. The default-off product policy remains intact.
-The accepted Pi bench keeps `experimental_cluster_display` enabled and the
-existing `org.openauto.aa-cluster-16` placement intentionally migrated from
-2×2 to 3×3 on dashboard page 1. The Pixel opened CLUSTER channels 12/13,
-decoded the required 800×480 carrier, reached Rendering, and produced no
-geometry-mismatch terminal error. Matthew accepted the visible basic square
-implementation. The pre-deploy binary and configuration remain recoverable
-under stamp `20260725-103337`; the installed and staged binary SHA-256 is
+**Status:** COMPLETE on local `dev` and staged in draft PR #40. The default-off
+product policy remains intact. The accepted Pi bench corresponds to the
+implementation range `b7f6451..7ccdfc4`; it keeps
+`experimental_cluster_display` enabled and the existing
+`org.openauto.aa-cluster-16` placement intentionally migrated from 2×2 to 3×3
+on dashboard page 1. The Pixel opened CLUSTER channels 12/13, decoded the
+required 800×480 carrier, reached Rendering, and produced no geometry-mismatch
+terminal error. Matthew accepted the visible basic square implementation.
+Later review-hardening commits cover shared AA channel and decoder lifecycles;
+they have repository and ARM cross-build coverage but are not claimed as an
+additional Pi/Pixel bench pass. The pre-deploy binary and configuration remain
+recoverable under stamp `20260725-103337`; the installed and staged binary
+SHA-256 is
 `f2d3f6765f741014e25a43bd1a6475f382202b7586075e6af68dca60ad15dd03`.
 
 **Review gate:** Opus reviewed the design and plan before execution; their
@@ -47,21 +51,37 @@ rerun returned `LGTM — no issues found.` A later live verification command
 exposed Linux's 15-character `pgrep -x` comm-name limit; the runbook now checks
 systemd's MainPID and exact executable path instead.
 
+The later whole-range Opus publication review ran with read-only repository
+tools and no turn or wall-clock limit. Its latest pass produced five findings:
+four were confirmed and addressed by separating live-bench claims from later
+hardening, warning on non-control channel-open traffic, validating live-doc
+links, and bounding/rearming widget sink-claim retries. The remaining minor
+request to replace the fixed CLUSTER channel IDs with registration-time policy
+was dismissed for this experiment: IDs 12/13 are the explicit frozen
+`ChannelId` contract, the library is an in-tree static target, and a generalized
+channel-policy API would expand the completed feature without changing its
+current behavior. A final unbounded Opus rerun remains the publication gate.
+
 **Verification:** the full native build, explicit `openauto-prodigy` target,
 `QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, `git diff --check`, and
-the frozen-proto boundary check passed. `./cross-build.sh` produced the
-deployed aarch64 application with compiled-in QML. Local, staged, and installed
-artifact hashes matched. The guarded config edit changed only `col_span` and
-`row_span`; the target 3×3 cells were collision-free. The service remained
-active with zero restarts and one systemd-owned executable. Live journal
-evidence recorded both CLUSTER channel opens, an exact 800×480 first decoded
-frame, Rendering state, and no geometry mismatch. The user-owned untracked
-wishlist baseline remained untouched.
+the frozen-proto boundary check passed. The tracked live-document link scope
+also passed; the repository-wide checker reported only the known external-tree
+references in the user-owned untracked wishlist baseline, which remained
+untouched. `./cross-build.sh` produced the deployed accepted aarch64
+application with compiled-in QML; a fresh cross-build of the final
+review-hardening tree is part of the publication gate. For the accepted bench,
+local, staged, and installed artifact hashes matched. The guarded config edit
+changed only `col_span` and `row_span`; the target 3×3 cells were
+collision-free. The service remained active with zero restarts and one
+systemd-owned executable. Live journal evidence recorded both CLUSTER channel
+opens, an exact 800×480 first decoded frame, Rendering state, and no geometry
+mismatch.
 
-**Next 1-3 steps:** (1) push `dev` and open a draft PR targeting `main` after
-Matthew's go-ahead; (2) merge after the agreed review policy is satisfied; (3)
-choose and promote the next bounded item from the qualified wishlist rather
-than extending this completed experiment in place.
+**Next 1-3 steps:** (1) publish and merge PR #40 after the unbounded Opus rerun
+and CI are green; (2) verify the review-hardening lifecycle changes during the
+next routine Pi/Pixel session; (3) choose and promote the next bounded item
+from the qualified wishlist rather than extending this completed experiment in
+place.
 
 ---
 

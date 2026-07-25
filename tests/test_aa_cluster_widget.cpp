@@ -40,6 +40,7 @@ public:
     { return oap::aa::kClusterViewportGeometry.contentHeight; }
     Q_INVOKABLE bool attachVideoSink(QVideoSink* sink)
     {
+        ++attachAttempts_;
         if (!sink || (sink_ && sink_ != sink))
             return false;
         sink_ = sink;
@@ -51,9 +52,11 @@ public:
             sink_.clear();
     }
     QVideoSink* sink() const { return sink_.data(); }
+    int attachAttempts() const { return attachAttempts_; }
 
 private:
     QPointer<QVideoSink> sink_;
+    int attachAttempts_ = 0;
 };
 
 class FakeWidgetContext : public QObject {
@@ -157,7 +160,7 @@ private slots:
         QVERIFY(source.contains(QStringLiteral("onIsCurrentPageChanged")));
         QVERIFY(source.contains(QStringLiteral("if (!isCurrentPage)")));
         QVERIFY(source.contains(QStringLiteral(
-            "running: root.isCurrentPage && !root.ownsSink")));
+            "root.sinkClaimAttempts < root.maxSinkClaimAttempts")));
         QVERIFY(source.contains(QStringLiteral(
             "onTriggered: root.syncSinkClaim()")));
         QVERIFY(source.contains(QStringLiteral("already in use"),
@@ -292,6 +295,78 @@ private slots:
         QCOMPARE(video->height(), 480.0 * scale);
         QCOMPARE(video->x(), -250.0 * scale);
         QCOMPARE(video->y(), -90.0 * scale);
+    }
+
+    void failedSinkClaimStopsAfterBoundAndRearmsOnPageTransition()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const auto writeFile = [&dir](const QString& name,
+                                      const QByteArray& contents) {
+            QSaveFile file(dir.filePath(name));
+            if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+                return false;
+            if (file.write(contents) != contents.size())
+                return false;
+            return file.commit();
+        };
+        QVERIFY(writeFile(QStringLiteral("AAClusterWidget.qml"),
+                          qmlSource().toUtf8()));
+        QVERIFY(writeFile(
+            QStringLiteral("MaterialIcon.qml"),
+            QByteArrayLiteral(
+                "import QtQuick\nItem { property string icon; property real "
+                "size; property color color; implicitWidth: size; "
+                "implicitHeight: size }\n")));
+        QVERIFY(writeFile(QStringLiteral("NormalText.qml"),
+                          QByteArrayLiteral("import QtQuick\nText {}\n")));
+
+        FakeClusterDisplay display;
+        QQmlEngine engine;
+        engine.rootContext()->setContextProperty(
+            QStringLiteral("AAClusterDisplay"), &display);
+        engine.rootContext()->setContextProperty(
+            QStringLiteral("UiMetrics"),
+            QVariantMap{{QStringLiteral("spacing"), 8},
+                        {QStringLiteral("iconSize"), 24},
+                        {QStringLiteral("fontBody"), 16}});
+        engine.rootContext()->setContextProperty(
+            QStringLiteral("ThemeService"),
+            QVariantMap{{QStringLiteral("onSurfaceVariant"),
+                         QStringLiteral("#ffffff")}});
+
+        QQmlComponent component(
+            &engine, QUrl::fromLocalFile(
+                         dir.filePath(QStringLiteral("AAClusterWidget.qml"))));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        QScopedPointer<QObject> owner(component.create());
+        QScopedPointer<QObject> blocked(component.create());
+        QVERIFY(owner);
+        QVERIFY(blocked);
+
+        FakeWidgetContext ownerContext;
+        FakeWidgetContext blockedContext;
+        ownerContext.setIsCurrentPage(true);
+        blockedContext.setIsCurrentPage(true);
+        QVERIFY(owner->setProperty(
+            "widgetContext", QVariant::fromValue<QObject*>(&ownerContext)));
+        QVERIFY(blocked->setProperty(
+            "widgetContext", QVariant::fromValue<QObject*>(&blockedContext)));
+        QTRY_VERIFY(owner->property("ownsSink").toBool());
+
+        const int maxAttempts =
+            blocked->property("maxSinkClaimAttempts").toInt();
+        QVERIFY(maxAttempts > 0);
+        QTRY_COMPARE_WITH_TIMEOUT(
+            blocked->property("sinkClaimAttempts").toInt(), maxAttempts,
+            4000);
+        const int attemptsAtBound = display.attachAttempts();
+        QTest::qWait(500);
+        QCOMPARE(display.attachAttempts(), attemptsAtBound);
+
+        blockedContext.setIsCurrentPage(false);
+        blockedContext.setIsCurrentPage(true);
+        QTRY_VERIFY(display.attachAttempts() > attemptsAtBound);
     }
 };
 

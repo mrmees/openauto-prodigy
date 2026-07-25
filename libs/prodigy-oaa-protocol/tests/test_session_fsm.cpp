@@ -1063,6 +1063,33 @@ private slots:
         }
     }
 
+    void testClosedServiceChannelWarnsOnNonControlOpenMessage() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        oaa::AASession session(&transport, config);
+        MockChannelHandler handler(oaa::ChannelId::Video);
+        session.registerChannel(oaa::ChannelId::Video, &handler);
+
+        transport.simulateConnect();
+        session.start();
+        advanceToActive(session);
+        transport.clearWritten();
+
+        QTest::ignoreMessage(
+            QtWarningMsg,
+            QRegularExpression(
+                ".*Ignoring non-control channel-open request on 3.*"));
+        session.messenger()->messageReceived(
+            oaa::ChannelId::Video,
+            oaa::SessionMessageId::CHANNEL_OPEN_REQUEST,
+            QByteArrayLiteral("not control"), 0,
+            oaa::MessageType::Specific);
+
+        QCOMPARE(handler.openCount, 0);
+        QCOMPARE(handler.messageCount, 0);
+        QCOMPARE(transport.writtenData().size(), 0);
+    }
+
     void testUnregisteredChannelIsRejectedOnBothDispatchPaths() {
         for (const uint8_t incomingChannel : {uint8_t(0), uint8_t(9)}) {
             oaa::ReplayTransport transport;

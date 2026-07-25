@@ -561,6 +561,14 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
         return;
     }
 
+    if (!openChannels_.contains(channelId)
+        && channels_.contains(channelId)
+        && messageId == SessionMessageId::CHANNEL_OPEN_REQUEST) {
+        qWarning() << "[AASession] Ignoring non-control channel-open request on"
+                   << channelId << "message type"
+                   << static_cast<int>(messageType);
+    }
+
     if (!openChannels_.contains(channelId)) {
         qDebug() << "[AASession] Dropping traffic for closed channel"
                  << channelId << "msgId" << Qt::hex << messageId;

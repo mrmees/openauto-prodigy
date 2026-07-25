@@ -34,7 +34,11 @@ spike, or research-first feasibility work.
   implementation. MAIN behavior, default-off policy, and the experimental
   scope remain unchanged. Design and plan:
   `docs/archive/plans/2026-07-25-aa-cluster-square-viewport-design.md` and
-  `docs/archive/plans/2026-07-25-aa-cluster-square-viewport-plan.md`.
+  `docs/archive/plans/2026-07-25-aa-cluster-square-viewport-plan.md`. The live
+  Pi/Pixel result corresponds to the accepted implementation through
+  `7ccdfc4`; subsequent pre-publication lifecycle hardening is covered by the
+  repository build, test, and ARM cross-build gates but is not described as a
+  separate hardware-validation pass.
 
 - Android Auto projected CLUSTER dashboard widget feasibility spike —
   **COMPLETE 2026-07-24** (Pi/Pixel positive result). Behind a default-off
