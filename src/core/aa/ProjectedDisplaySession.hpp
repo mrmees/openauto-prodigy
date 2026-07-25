@@ -99,7 +99,6 @@ private:
     uint8_t videoChannelId_;
     uint8_t inputChannelId_;
     bool enabled_;
-    ProjectedSetupFocus setupFocus_;
     QString diagnosticPrefix_;
 
     oaa::hu::VideoChannelHandler videoHandler_;

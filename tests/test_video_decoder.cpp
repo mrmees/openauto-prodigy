@@ -25,9 +25,15 @@ namespace oap::aa {
 
 class VideoDecoderTestAccess {
 public:
+    static void failNextCodecInitialization()
+    {
+        VideoDecoder::failCodecInitForTest_.store(true);
+    }
+
     static void failNextCodecInitialization(VideoDecoder& decoder)
     {
-        decoder.failCodecInitForTest_.store(true);
+        Q_UNUSED(decoder);
+        VideoDecoder::failCodecInitForTest_.store(true);
     }
 };
 
@@ -74,6 +80,15 @@ class TestVideoDecoder : public QObject {
     Q_OBJECT
 
 private slots:
+    void constructionFailureDoesNotStartWorker()
+    {
+        oap::aa::VideoDecoderTestAccess::failNextCodecInitialization();
+        oap::aa::VideoDecoder decoder;
+
+        QVERIFY(!decoder.isOperational());
+        QCOMPARE(decoder.beginStream(), 0ULL);
+    }
+
     void workerOrdersResetBeforeNewCodecDetection()
     {
         oap::aa::VideoDecoder decoder;

@@ -149,7 +149,7 @@ private:
     uint64_t frameCount_ = 0;
     std::atomic<bool> acceptingFrames_{false};
     std::atomic<bool> operational_{false};
-    std::atomic<bool> failCodecInitForTest_{false};
+    static std::atomic<bool> failCodecInitForTest_;
     QString diagnosticLabel_;
 
     // Performance instrumentation

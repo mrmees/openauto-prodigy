@@ -706,7 +706,8 @@ int main(int argc, char *argv[])
     // --- Widget system ---
     auto widgetRegistry = new oap::WidgetRegistry(&app);
     oap::plugins::registerAAClusterWidget(*widgetRegistry,
-                                          projectedClusterConfig);
+                                          projectedClusterConfig,
+                                          aaPlugin->orchestrator() != nullptr);
 
     // Register built-in standalone widgets
     {

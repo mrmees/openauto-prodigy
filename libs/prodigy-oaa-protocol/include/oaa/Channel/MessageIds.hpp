@@ -3,6 +3,12 @@
 
 namespace oaa {
 
+/// Session-level messages carried on service channels.
+namespace SessionMessageId {
+    constexpr uint16_t CHANNEL_OPEN_REQUEST       = 0x0007;
+    constexpr uint16_t CHANNEL_CLOSE_NOTIFICATION = 0x0009;
+}
+
 /// AV channel messages (Video, Audio, AVInput)
 namespace AVMessageId {
     constexpr uint16_t AV_MEDIA_WITH_TIMESTAMP = 0x0000;

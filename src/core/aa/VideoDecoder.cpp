@@ -2,13 +2,14 @@
 #include "../../core/YamlConfig.hpp"
 #include "DmaBufVideoBuffer.hpp"
 
-#include <QMetaObject>
 #include "../Logging.hpp"
 #include <cstring>
 #include <iomanip>
 
 namespace oap {
 namespace aa {
+
+std::atomic<bool> VideoDecoder::failCodecInitForTest_{false};
 
 VideoDecoder::VideoDecoder(QObject* parent)
     : QObject(parent)
@@ -28,17 +29,11 @@ VideoDecoder::VideoDecoder(QObject* parent)
 
     if (!packet_ || !frame_ || !initializeCodec(AV_CODEC_ID_H264)) {
         operational_ = false;
-        QMetaObject::invokeMethod(
-            this,
-            [this]() {
-                reportStreamError(
-                    0, QStringLiteral("failed to initialize H.264 decoder"));
-            },
-            Qt::QueuedConnection);
-    } else {
-        operational_ = true;
+        qCCritical(lcAA) << "Failed to initialize H.264 decoder";
+        return;
     }
 
+    operational_ = true;
     worker_ = new DecodeWorker(this);
     worker_->start();
     qCInfo(lcAA) << "Decode worker thread started";

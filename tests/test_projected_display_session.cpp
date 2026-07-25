@@ -13,6 +13,11 @@ namespace oap::aa {
 
 class VideoDecoderTestAccess {
 public:
+    static void failNextCodecInitialization()
+    {
+        VideoDecoder::failCodecInitForTest_.store(true);
+    }
+
     static void publishFrame(
         VideoDecoder& decoder,
         quint64 generation,
@@ -117,6 +122,20 @@ class TestProjectedDisplaySession : public QObject {
     Q_OBJECT
 
 private slots:
+    void decoderConstructionFailureEntersErrorAtProtocolStart()
+    {
+        oap::aa::VideoDecoderTestAccess::failNextCodecInitialization();
+        auto display = enabledClusterDisplay();
+
+        QVERIFY(!display.decoder()->isOperational());
+        display.beginProtocolSession();
+
+        QCOMPARE(display.state(),
+                 static_cast<int>(oap::aa::ProjectedDisplaySession::Error));
+        QVERIFY(display.statusText().contains(
+            QStringLiteral("decoder"), Qt::CaseInsensitive));
+    }
+
     void disabledDisplayStaysDisabled()
     {
         oap::aa::ProjectedDisplaySession display(

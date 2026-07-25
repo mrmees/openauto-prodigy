@@ -1,4 +1,6 @@
 #include <oaa/Session/AASession.hpp>
+#include <oaa/Channel/ChannelId.hpp>
+#include <oaa/Channel/MessageIds.hpp>
 #include <oaa/Version.hpp>
 #include <QDateTime>
 #include <QDebug>
@@ -14,6 +16,16 @@
 #include "oaa/common/DriverPositionEnum.pb.h"
 
 namespace oaa {
+
+namespace {
+
+bool supportsExplicitReopenLifecycle(uint8_t channelId)
+{
+    return channelId == ChannelId::ClusterVideo
+        || channelId == ChannelId::ClusterInput;
+}
+
+} // namespace
 
 AASession::AASession(ITransport* transport, const SessionConfig& config,
                      QObject* parent)
@@ -439,6 +451,10 @@ void AASession::onChannelOpenRequested(int32_t channelId, const QByteArray& /*pa
         qDebug() << "[AASession] Opening channel" << targetChannel;
         IChannelHandler* handler = channels_.value(targetChannel);
         if (openChannels_.contains(targetChannel)) {
+            if (!supportsExplicitReopenLifecycle(targetChannel)) {
+                controlChannel_->sendChannelOpenResponse(targetChannel, true);
+                return;
+            }
             closeServiceChannel(targetChannel);
             if (finalized_ || state_ != SessionState::Active
                 || channels_.value(targetChannel, nullptr) != handler)
@@ -478,7 +494,8 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
 
     // Service-channel close notifications carry their target in the frame's
     // channel id. Retire the handler before accepting a later reopen.
-    if (messageId == 0x0009) {
+    if (messageId == SessionMessageId::CHANNEL_CLOSE_NOTIFICATION
+        && supportsExplicitReopenLifecycle(channelId)) {
         if (state_ == SessionState::Active)
             closeServiceChannel(channelId);
         return;
@@ -486,7 +503,7 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
 
     // CHANNEL_OPEN_REQUEST (0x0007) arrives on the TARGET channel, not ch0.
     // Handle it here and respond on the same channel.
-    if (messageId == 0x0007) {
+    if (messageId == SessionMessageId::CHANNEL_OPEN_REQUEST) {
         if (state_ != SessionState::Active) return;
 
         proto::messages::ChannelOpenRequest req;
@@ -506,12 +523,16 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
                 qDebug() << "[AASession] Opening channel" << targetCh;
                 IChannelHandler* handler = channels_.value(targetCh);
                 if (openChannels_.contains(targetCh)) {
+                    if (!supportsExplicitReopenLifecycle(targetCh)) {
+                        controlChannel_->sendChannelOpenResponse(targetCh, true);
+                        return;
+                    }
                     closeServiceChannel(targetCh);
                     if (finalized_ || state_ != SessionState::Active
                         || channels_.value(targetCh, nullptr) != handler)
                         return;
                 }
-                // Response goes on the target channel, not ch0
+                // Response goes on the target channel, not ch0.
                 controlChannel_->sendChannelOpenResponse(targetCh, true);
                 if (finalized_ || state_ != SessionState::Active
                     || channels_.value(targetCh, nullptr) != handler)

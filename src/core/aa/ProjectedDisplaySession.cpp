@@ -42,7 +42,6 @@ ProjectedDisplaySession::ProjectedDisplaySession(
     , videoChannelId_(videoChannelId)
     , inputChannelId_(inputChannelId)
     , enabled_(enabled)
-    , setupFocus_(setupFocus)
     , diagnosticPrefix_(QStringLiteral("%1[id=%2,ch=%3]")
                             .arg(roleName(role))
                             .arg(displayId)
@@ -271,6 +270,11 @@ void ProjectedDisplaySession::beginProtocolSession()
     summaryTimer_.start();
     qCInfo(lcAA).noquote() << diagnosticPrefix_
                           << "protocol begin generation=" << protocolGeneration_;
+    if (!decoder_ || !decoder_->isOperational()) {
+        enterTerminalState(
+            Error, QStringLiteral("Projected decoder unavailable"));
+        return;
+    }
     setState(WaitingForChannel,
              QStringLiteral("Waiting for projected channel"));
 }

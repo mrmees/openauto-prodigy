@@ -96,7 +96,7 @@ private slots:
     {
         oap::WidgetRegistry registry;
         QVERIFY(!oap::plugins::registerAAClusterWidget(
-            registry, {false, {}}));
+            registry, {false, {}}, true));
         QVERIFY(!registry.descriptor(QStringLiteral("org.openauto.aa-cluster"))
                      .has_value());
         QVERIFY(registry.widgetsFittingSpace(2, 2).isEmpty());
@@ -105,7 +105,8 @@ private slots:
     void enabledConfigRegistersFixedSquare()
     {
         oap::WidgetRegistry registry;
-        QVERIFY(oap::plugins::registerAAClusterWidget(registry, {true, {}}));
+        QVERIFY(oap::plugins::registerAAClusterWidget(
+            registry, {true, {}}, true));
 
         const auto descriptor =
             registry.descriptor(QStringLiteral("org.openauto.aa-cluster"));
@@ -127,6 +128,15 @@ private slots:
         QCOMPARE(pickerEntries.first().id,
                  QStringLiteral("org.openauto.aa-cluster"));
         QVERIFY(registry.widgetsFittingSpace(1, 2).isEmpty());
+    }
+
+    void unavailableDisplayRegistersNothing()
+    {
+        oap::WidgetRegistry registry;
+        QVERIFY(!oap::plugins::registerAAClusterWidget(
+            registry, {true, {}}, false));
+        QVERIFY(!registry.descriptor(QStringLiteral("org.openauto.aa-cluster"))
+                     .has_value());
     }
 
     void qmlOwnsOneNonInteractivePreserveAspectSink()

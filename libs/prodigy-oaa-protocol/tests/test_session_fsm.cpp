@@ -3,6 +3,7 @@
 #include <QtEndian>
 #include <oaa/Transport/ReplayTransport.hpp>
 #include <oaa/Session/AASession.hpp>
+#include <oaa/Channel/ChannelId.hpp>
 #include <oaa/Channel/IChannelHandler.hpp>
 
 #include "oaa/control/ChannelOpenRequestMessage.pb.h"
@@ -800,41 +801,88 @@ private slots:
         QCOMPARE(transport.writtenData().size(), 0);
     }
 
-    void testServiceChannelCloseAndDuplicateOpenPublishLifecycle() {
+    void testClusterServiceChannelCloseAndDuplicateOpenPublishLifecycle() {
         oaa::ReplayTransport transport;
         oaa::SessionConfig config;
         oaa::AASession session(&transport, config);
-        MockChannelHandler handler(3);
-        session.registerChannel(3, &handler);
+        MockChannelHandler handler(oaa::ChannelId::ClusterVideo);
+        session.registerChannel(oaa::ChannelId::ClusterVideo, &handler);
 
         transport.simulateConnect();
         session.start();
         advanceToActive(session);
 
         oaa::proto::messages::ChannelOpenRequest request;
-        request.set_channel_id(3);
+        request.set_channel_id(oaa::ChannelId::ClusterVideo);
         request.set_priority(1);
         QByteArray payload(request.ByteSizeLong(), '\0');
         QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
         QSignalSpy openedSpy(&session, &oaa::AASession::channelOpened);
         QSignalSpy closedSpy(&session, &oaa::AASession::channelClosed);
 
-        session.messenger()->messageReceived(3, 0x0007, payload, 0);
+        session.messenger()->messageReceived(
+            oaa::ChannelId::ClusterVideo, 0x0007, payload, 0);
         QCOMPARE(handler.openCount, 1);
         QCOMPARE(openedSpy.count(), 1);
 
-        session.messenger()->messageReceived(3, 0x0009, QByteArray(), 0);
+        session.messenger()->messageReceived(
+            oaa::ChannelId::ClusterVideo, 0x0009, QByteArray(), 0);
         QCOMPARE(handler.closeCount, 1);
         QCOMPARE(closedSpy.count(), 1);
-        QCOMPARE(closedSpy[0][0].value<uint8_t>(), uint8_t(3));
+        QCOMPARE(closedSpy[0][0].value<uint8_t>(),
+                 oaa::ChannelId::ClusterVideo);
 
-        session.messenger()->messageReceived(3, 0x0007, payload, 0);
+        session.messenger()->messageReceived(
+            oaa::ChannelId::ClusterVideo, 0x0007, payload, 0);
         QCOMPARE(handler.openCount, 2);
-        session.messenger()->messageReceived(3, 0x0007, payload, 0);
+        session.messenger()->messageReceived(
+            oaa::ChannelId::ClusterVideo, 0x0007, payload, 0);
         QCOMPARE(handler.closeCount, 2);
         QCOMPARE(handler.openCount, 3);
         QCOMPARE(closedSpy.count(), 2);
         QCOMPARE(openedSpy.count(), 3);
+    }
+
+    void testLegacyServiceChannelCloseAndDuplicateOpenStayIdempotent() {
+        for (const uint8_t channelId : {
+                 oaa::ChannelId::Video,
+                 oaa::ChannelId::MediaAudio,
+                 oaa::ChannelId::AVInput}) {
+            oaa::ReplayTransport transport;
+            oaa::SessionConfig config;
+            oaa::AASession session(&transport, config);
+            MockChannelHandler handler(channelId);
+            session.registerChannel(channelId, &handler);
+
+            transport.simulateConnect();
+            session.start();
+            advanceToActive(session);
+
+            oaa::proto::messages::ChannelOpenRequest request;
+            request.set_channel_id(channelId);
+            request.set_priority(1);
+            QByteArray payload(request.ByteSizeLong(), '\0');
+            QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
+            QSignalSpy openedSpy(&session, &oaa::AASession::channelOpened);
+            QSignalSpy closedSpy(&session, &oaa::AASession::channelClosed);
+
+            session.messenger()->messageReceived(
+                channelId, 0x0007, payload, 0);
+            session.messenger()->messageReceived(
+                channelId, 0x0007, payload, 0);
+
+            QCOMPARE(handler.openCount, 1);
+            QCOMPARE(handler.closeCount, 0);
+            QCOMPARE(openedSpy.count(), 1);
+            QCOMPARE(closedSpy.count(), 0);
+
+            session.messenger()->messageReceived(
+                channelId, 0x0009, QByteArray(), 0);
+            QCOMPARE(handler.closeCount, 0);
+            QCOMPARE(closedSpy.count(), 0);
+            QCOMPARE(handler.messageCount, 1);
+            QCOMPARE(handler.lastMessageId, uint16_t(0x0009));
+        }
     }
 
     void testUnregisteredChannelIsRejectedOnBothDispatchPaths() {

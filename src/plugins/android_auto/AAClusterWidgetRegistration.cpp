@@ -6,9 +6,10 @@ namespace oap::plugins {
 
 bool registerAAClusterWidget(
     oap::WidgetRegistry& registry,
-    const oap::aa::ProjectedClusterConfig& config)
+    const oap::aa::ProjectedClusterConfig& config,
+    bool displayAvailable)
 {
-    if (!config.enabled)
+    if (!config.enabled || !displayAvailable)
         return false;
 
     oap::WidgetDescriptor descriptor;
