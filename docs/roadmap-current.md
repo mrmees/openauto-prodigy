@@ -25,8 +25,9 @@ spike, or research-first feasibility work.
   margins, crop only those known borders locally, and upsize the result inside
   a fixed 3x3 dashboard widget. This remains a bounded experimental follow-up;
   it does not promote generalized multi-display or a public settings surface.
-  Design:
-  `docs/plans/2026-07-25-aa-cluster-square-viewport-design.md`.
+  Design and plan:
+  `docs/plans/2026-07-25-aa-cluster-square-viewport-design.md` and
+  `docs/plans/2026-07-25-aa-cluster-square-viewport-plan.md`.
 
 ## Done (recent)
 

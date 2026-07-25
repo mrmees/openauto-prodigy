@@ -5,6 +5,9 @@
 - [AA CLUSTER square-viewport follow-up design](plans/2026-07-25-aa-cluster-square-viewport-design.md)
   — active design for a centered 300x300 phone-rendered viewport inside the
   required 800x480 carrier and a fixed 3x3 dashboard widget.
+- [AA CLUSTER square-viewport implementation plan](plans/2026-07-25-aa-cluster-square-viewport-plan.md)
+  — active execution plan for shared geometry, CLUSTER-only validation, the
+  fixed 3x3 crop surface, review gates, and recoverable Pi validation.
 
 ## Start Here
 
@@ -63,7 +66,9 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 Active plans:
 
 - [2026-07-25-aa-cluster-square-viewport-design.md](plans/2026-07-25-aa-cluster-square-viewport-design.md)
-  — ACTIVE; implementation plan pending reviewed-spec approval.
+  — ACTIVE; approved design for the square projected-CLUSTER follow-up.
+- [2026-07-25-aa-cluster-square-viewport-plan.md](plans/2026-07-25-aa-cluster-square-viewport-plan.md)
+  — ACTIVE; tiered implementation, verification, and live-validation plan.
 
 ## Pi Configuration (pi-config/)
 
