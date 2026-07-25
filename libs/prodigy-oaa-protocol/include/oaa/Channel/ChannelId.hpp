@@ -15,6 +15,8 @@ namespace ChannelId {
     constexpr uint8_t Navigation   = 9;
     constexpr uint8_t MediaStatus  = 10;
     constexpr uint8_t PhoneStatus  = 11;
+    constexpr uint8_t ClusterVideo = 12;
+    constexpr uint8_t ClusterInput = 13;
     constexpr uint8_t WiFi         = 14;
 } // namespace ChannelId
 } // namespace oaa

@@ -18,6 +18,7 @@ bool isAVMediaFrame(uint8_t channelId, uint16_t messageId)
     }
 
     return channelId == ChannelId::Video
+        || channelId == ChannelId::ClusterVideo
         || channelId == ChannelId::MediaAudio
         || channelId == ChannelId::SpeechAudio
         || channelId == ChannelId::SystemAudio
@@ -125,7 +126,8 @@ void ProtocolLogger::attach(Messenger* messenger)
     if (!messenger_) return;
 
     connect(messenger_, &Messenger::messageReceived,
-            this, [this](uint8_t ch, uint16_t msgId, const QByteArray& payload, int dataOffset) {
+            this, [this](uint8_t ch, uint16_t msgId, const QByteArray& payload,
+                         int dataOffset, MessageType) {
                 log("Phone->HU", ch, msgId,
                     reinterpret_cast<const uint8_t*>(payload.constData() + dataOffset),
                     payload.size() - dataOffset);
@@ -182,7 +184,9 @@ void ProtocolLogger::log(const std::string& direction,
     const size_t previewMax = 64;
 
     if (isDataMsg) {
-        hex << "[" << (channelId == ChannelId::Video ? "video" : "audio")
+        hex << "[" << (channelId == ChannelId::Video
+                            || channelId == ChannelId::ClusterVideo
+                        ? "video" : "audio")
             << " data]";
     } else if (payloadSize > 0) {
         size_t previewLen = std::min(payloadSize, previewMax);
@@ -213,10 +217,12 @@ std::string ProtocolLogger::channelName(uint8_t id)
         case ChannelId::Input:        return "INPUT";
         case ChannelId::Sensor:       return "SENSOR";
         case ChannelId::Video:        return "VIDEO";
+        case ChannelId::ClusterVideo: return "CLUSTER_VIDEO";
         case ChannelId::MediaAudio:   return "MEDIA_AUDIO";
         case ChannelId::SpeechAudio:  return "SPEECH_AUDIO";
         case ChannelId::SystemAudio:  return "SYSTEM_AUDIO";
         case ChannelId::AVInput:      return "AV_INPUT";
+        case ChannelId::ClusterInput: return "CLUSTER_INPUT";
         case ChannelId::Bluetooth:    return "BLUETOOTH";
         case ChannelId::Navigation:   return "NAVIGATION";
         case ChannelId::MediaStatus:  return "MEDIA_STATUS";
@@ -255,7 +261,8 @@ std::string ProtocolLogger::messageName(uint8_t channelId, uint16_t msgId)
     }
 
     // AV channels
-    if (channelId == ChannelId::Video || channelId == ChannelId::MediaAudio
+    if (channelId == ChannelId::Video || channelId == ChannelId::ClusterVideo
+        || channelId == ChannelId::MediaAudio
         || channelId == ChannelId::SpeechAudio || channelId == ChannelId::SystemAudio
         || channelId == ChannelId::AVInput) {
         switch (msgId) {
@@ -274,7 +281,7 @@ std::string ProtocolLogger::messageName(uint8_t channelId, uint16_t msgId)
         }
     }
 
-    if (channelId == ChannelId::Input) {
+    if (channelId == ChannelId::Input || channelId == ChannelId::ClusterInput) {
         switch (msgId) {
             case InputMessageId::INPUT_EVENT_INDICATION: return "INPUT_EVENT_INDICATION";
             case InputMessageId::BINDING_REQUEST:        return "BINDING_REQUEST";

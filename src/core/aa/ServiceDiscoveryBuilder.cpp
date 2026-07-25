@@ -5,6 +5,7 @@
 #include "../Logging.hpp"
 #include <QMap>
 #include <QSet>
+#include "oaa/Channel/ChannelId.hpp"
 
 // oaa proto headers
 #include "oaa/control/ChannelDescriptorData.pb.h"
@@ -86,6 +87,19 @@ uint32_t ServiceDiscoveryBuilder::videoConfigCount() const
     return static_cast<uint32_t>(videoCodecNames_.size());
 }
 
+uint32_t ServiceDiscoveryBuilder::videoConfigCount(ProjectedDisplayRole role) const
+{
+    if (role == ProjectedDisplayRole::Cluster)
+        return projectedClusterConfig_.enabled ? 1u : 0u;
+    return videoConfigCount();
+}
+
+void ServiceDiscoveryBuilder::setProjectedClusterConfig(
+    const ProjectedClusterConfig& config)
+{
+    projectedClusterConfig_ = config;
+}
+
 void ServiceDiscoveryBuilder::setDisplayDimensions(int w, int h)
 {
     overrideDisplayW_ = w;
@@ -120,10 +134,14 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
     };
 
     addChannel(3,  buildVideoDescriptor());
+    if (projectedClusterConfig_.enabled)
+        addChannel(oaa::ChannelId::ClusterVideo, buildClusterVideoDescriptor());
     addChannel(4,  buildMediaAudioDescriptor());
     addChannel(5,  buildSpeechAudioDescriptor());
     addChannel(6,  buildSystemAudioDescriptor());
     addChannel(1,  buildInputDescriptor());
+    if (projectedClusterConfig_.enabled)
+        addChannel(oaa::ChannelId::ClusterInput, buildClusterInputDescriptor());
     addChannel(2,  buildSensorDescriptor());
     addChannel(8,  buildBluetoothDescriptor());
     addChannel(14, buildWifiDescriptor());
@@ -232,6 +250,10 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
     auto* avChannel = desc.mutable_av_channel();
     avChannel->set_stream_type(oaa::proto::enums::AVStreamType::VIDEO);
     avChannel->set_color_scheme_support(oaa::proto::enums::ColorSchemeSupport::COLOR_SCHEME_MATERIAL_YOU_V3);
+    if (projectedClusterConfig_.enabled) {
+        avChannel->set_channel_id(kMainDisplayId);
+        avChannel->set_display_type(oaa::proto::enums::DisplayType::MAIN);
+    }
     // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
 
     // Resolve preferred resolution from config
@@ -282,6 +304,31 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
     }
 
     qCInfo(lcAA) << "Advertised" << configIdx << "video configs";
+
+    QByteArray data(desc.ByteSizeLong(), '\0');
+    desc.SerializeToArray(data.data(), data.size());
+    return data;
+}
+
+QByteArray ServiceDiscoveryBuilder::buildClusterVideoDescriptor() const
+{
+    oaa::proto::data::ChannelDescriptor desc;
+    desc.set_channel_id(oaa::ChannelId::ClusterVideo);
+
+    auto* avChannel = desc.mutable_av_channel();
+    avChannel->set_stream_type(oaa::proto::enums::AVStreamType::VIDEO);
+    avChannel->set_channel_id(kClusterDisplayId);
+    avChannel->set_display_type(oaa::proto::enums::DisplayType::CLUSTER);
+
+    auto* config = avChannel->add_video_configs();
+    config->set_video_resolution(
+        oaa::proto::enums::VideoResolution::VIDEO_800x480);
+    config->set_video_fps(oaa::proto::enums::VideoFPS::_30);
+    config->set_margin_width(kClusterViewportGeometry.marginWidth());
+    config->set_margin_height(kClusterViewportGeometry.marginHeight());
+    config->set_dpi(140);
+    config->set_codec(
+        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
 
     QByteArray data(desc.ByteSizeLong(), '\0');
     desc.SerializeToArray(data.data(), data.size());
@@ -354,6 +401,8 @@ QByteArray ServiceDiscoveryBuilder::buildInputDescriptor() const
     desc.set_channel_id(1);
 
     auto* inputChannel = desc.mutable_input_channel();
+    if (projectedClusterConfig_.enabled)
+        inputChannel->set_display_id(kMainDisplayId);
 
     // Touch screen config — must match content dimensions (after margins)
     int touchW = 1280, touchH = 720;
@@ -373,6 +422,8 @@ QByteArray ServiceDiscoveryBuilder::buildInputDescriptor() const
     auto* touchConfig = inputChannel->add_touch_screen_configs();
     touchConfig->set_width(touchW);
     touchConfig->set_height(touchH);
+    if (projectedClusterConfig_.enabled)
+        touchConfig->set_display_type(oaa::proto::enums::DisplayType::MAIN);
 
     qCDebug(lcAA) << "touch_screen_config:" << touchW << "x" << touchH;
 
@@ -388,6 +439,17 @@ QByteArray ServiceDiscoveryBuilder::buildInputDescriptor() const
     inputChannel->add_supported_keycodes(127); // KEYCODE_MEDIA_PAUSE
     inputChannel->add_supported_keycodes(219); // KEYCODE_ASSIST (Google Assistant)
     inputChannel->add_supported_keycodes(231); // KEYCODE_VOICE_ASSIST
+
+    QByteArray data(desc.ByteSizeLong(), '\0');
+    desc.SerializeToArray(data.data(), data.size());
+    return data;
+}
+
+QByteArray ServiceDiscoveryBuilder::buildClusterInputDescriptor() const
+{
+    oaa::proto::data::ChannelDescriptor desc;
+    desc.set_channel_id(oaa::ChannelId::ClusterInput);
+    desc.mutable_input_channel()->set_display_id(kClusterDisplayId);
 
     QByteArray data(desc.ByteSizeLong(), '\0');
     desc.SerializeToArray(data.data(), data.size());

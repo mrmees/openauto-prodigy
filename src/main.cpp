@@ -55,6 +55,7 @@
 #include "core/plugin/HostContext.hpp"
 #include "core/plugin/PluginManager.hpp"
 #include "plugins/android_auto/AndroidAutoPlugin.hpp"
+#include "plugins/android_auto/AAClusterWidgetRegistration.hpp"
 #include "core/aa/AndroidAutoOrchestrator.hpp"
 #include "core/aa/NavigationDataBridge.hpp"
 #include "core/aa/ManeuverIconProvider.hpp"
@@ -192,6 +193,8 @@ int main(int argc, char *argv[])
     if (QFile::exists(yamlPath)) {
         yamlConfig->load(yamlPath);
     }
+    const oap::aa::ProjectedClusterConfig projectedClusterConfig =
+        oap::aa::resolveProjectedClusterConfig(*yamlConfig);
 
     // Sync WiFi credentials from hostapd.conf (single source of truth)
     {
@@ -444,7 +447,8 @@ int main(int argc, char *argv[])
     oap::PluginManager pluginManager(&app);
 
     // Register static (compiled-in) plugins
-    auto aaPlugin = new oap::plugins::AndroidAutoPlugin(yamlConfig.get(), &app);
+    auto aaPlugin = new oap::plugins::AndroidAutoPlugin(
+        yamlConfig.get(), projectedClusterConfig, &app);
     aaPlugin->setDisplayInfo(displayInfo);
     pluginManager.registerStaticPlugin(aaPlugin);
 
@@ -701,6 +705,9 @@ int main(int argc, char *argv[])
 
     // --- Widget system ---
     auto widgetRegistry = new oap::WidgetRegistry(&app);
+    oap::plugins::registerAAClusterWidget(*widgetRegistry,
+                                          projectedClusterConfig,
+                                          aaPlugin->orchestrator() != nullptr);
 
     // Register built-in standalone widgets
     {
@@ -1156,6 +1163,11 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("PairedDevicesModel", bluetoothManager->pairedDevicesModel());
     // Projection status provider for widgets and debug settings
     engine.rootContext()->setContextProperty("ProjectionStatus", static_cast<QObject*>(projectionStatusProvider));
+    if (aaPlugin && aaPlugin->orchestrator()) {
+        engine.rootContext()->setContextProperty(
+            "AAClusterDisplay",
+            static_cast<QObject*>(aaPlugin->orchestrator()->clusterDisplay()));
+    }
 
     // Provider-backed root-context properties for widgets
     engine.rootContext()->setContextProperty("NavigationProvider", static_cast<QObject*>(navBridge));

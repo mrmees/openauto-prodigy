@@ -2,13 +2,14 @@
 #include "../../core/YamlConfig.hpp"
 #include "DmaBufVideoBuffer.hpp"
 
-#include <QMetaObject>
 #include "../Logging.hpp"
 #include <cstring>
 #include <iomanip>
 
 namespace oap {
 namespace aa {
+
+std::atomic<bool> VideoDecoder::failCodecInitForTest_{false};
 
 VideoDecoder::VideoDecoder(QObject* parent)
     : QObject(parent)
@@ -26,11 +27,13 @@ VideoDecoder::VideoDecoder(QObject* parent)
         hwDeviceCtx_ = nullptr;
     }
 
-    if (!initCodec(AV_CODEC_ID_H264)) {
+    if (!packet_ || !frame_ || !initializeCodec(AV_CODEC_ID_H264)) {
+        operational_ = false;
         qCCritical(lcAA) << "Failed to initialize H.264 decoder";
         return;
     }
 
+    operational_ = true;
     worker_ = new DecodeWorker(this);
     worker_->start();
     qCInfo(lcAA) << "Decode worker thread started";
@@ -190,6 +193,15 @@ bool VideoDecoder::initCodec(AVCodecID codecId)
     return true;
 }
 
+bool VideoDecoder::initializeCodec(AVCodecID codecId)
+{
+    if (failCodecInitForTest_.exchange(false)) {
+        cleanupCodec();
+        return false;
+    }
+    return initCodec(codecId);
+}
+
 void VideoDecoder::cleanupCodec()
 {
     if (parser_) { av_parser_close(parser_); parser_ = nullptr; }
@@ -292,21 +304,27 @@ void VideoDecoder::setVideoSink(QVideoSink* sink)
 
 void VideoDecoder::decodeFrame(std::shared_ptr<const QByteArray> h264Data, qint64 enqueueTimeNs)
 {
-    if (worker_)
+    if (worker_ && acceptingFrames_.load())
         worker_->enqueue(std::move(h264Data), enqueueTimeNs);
 }
 
-void VideoDecoder::beginStream()
+quint64 VideoDecoder::beginStream()
 {
-    if (worker_)
-        worker_->beginStream();
+    if (!worker_)
+        return 0;
+    acceptingFrames_ = true;
+    return worker_->beginStream();
 }
 
-void VideoDecoder::resetForNewStream(quint64 generation)
+void VideoDecoder::endStream()
 {
-    streamGeneration_ = generation;
-    codecDetected_ = false;
+    acceptingFrames_ = false;
+    if (worker_)
+        worker_->endStream();
+}
 
+void VideoDecoder::clearBufferedFrames()
+{
     if (packet_)
         av_packet_unref(packet_);
     if (frame_)
@@ -318,6 +336,13 @@ void VideoDecoder::resetForNewStream(quint64 generation)
         hasLatestFrame_.store(false, std::memory_order_release);
     }
     framePool_.reset();
+}
+
+void VideoDecoder::resetForNewStream(quint64 generation)
+{
+    streamGeneration_ = generation;
+    codecDetected_ = false;
+    clearBufferedFrames();
 
     metricQueue_.reset();
     metricDecode_.reset();
@@ -327,11 +352,36 @@ void VideoDecoder::resetForNewStream(quint64 generation)
     framesSinceLog_ = 0;
     lastLogTime_ = PerfStats::Clock::now();
 
-    if (!initCodec(AV_CODEC_ID_H264)) {
-        qCCritical(lcAA) << "Failed to reset decoder for stream generation"
-                         << generation;
-    }
+    qCDebug(lcAA).noquote() << diagnosticLabel_
+                           << "resetting decoder for stream generation"
+                           << generation;
+    if (!initializeCodec(AV_CODEC_ID_H264))
+        reportStreamError(generation, QStringLiteral("failed to reset decoder"));
+    else
+        operational_ = true;
     emit streamResetCompleted(generation);
+}
+
+void VideoDecoder::finishStream(quint64 generation)
+{
+    streamGeneration_ = generation;
+    codecDetected_ = false;
+    clearBufferedFrames();
+    if (codecCtx_)
+        avcodec_flush_buffers(codecCtx_);
+    qCDebug(lcAA).noquote() << diagnosticLabel_
+                           << "ended stream generation" << generation;
+    emit streamEnded(generation);
+}
+
+void VideoDecoder::reportStreamError(quint64 generation, const QString& message)
+{
+    operational_ = false;
+    const QString labelledMessage = diagnosticLabel_.isEmpty()
+        ? message
+        : diagnosticLabel_ + QStringLiteral(" ") + message;
+    qCCritical(lcAA).noquote() << labelledMessage;
+    emit streamError(generation, labelledMessage);
 }
 
 void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs)
@@ -349,10 +399,13 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
         if (detected != activeCodecId_) {
             const char* name = (detected == AV_CODEC_ID_H265) ? "H.265" : "H.264";
             qCInfo(lcAA) << "Phone is sending" << name << "— switching decoder";
-            if (!initCodec(detected)) {
-                qCCritical(lcAA) << "Failed to switch to" << name;
+            if (!initializeCodec(detected)) {
+                reportStreamError(streamGeneration_,
+                                  QStringLiteral("failed to switch decoder to %1")
+                                      .arg(QString::fromLatin1(name)));
                 return;
             }
+            operational_ = true;
         } else {
             qCDebug(lcAA) << "Phone is sending"
                     << ((detected == AV_CODEC_ID_H265) ? "H.265" : "H.264")
@@ -455,6 +508,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                 }
                 hasLatestFrame_.store(true, std::memory_order_release);
                 emit frameReady();
+                emit frameReadyForGeneration(streamGeneration_);
                 frameDelivered = true;
             }
             else if (sink && (frame_->format == AV_PIX_FMT_YUV420P ||
@@ -530,6 +584,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                     }
                     hasLatestFrame_.store(true, std::memory_order_release);
                     emit frameReady();
+                    emit frameReadyForGeneration(streamGeneration_);
                     frameDelivered = true;
                 }
             }
@@ -562,7 +617,7 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
                 if (elapsed >= LOG_INTERVAL_SEC) {
                     double fps = framesSinceLog_ / elapsed;
                     int depth = worker_ ? worker_->queueDepth() : 0;
-                    qCDebug(lcAA) << "[Perf] Video: queue="
+                    qCDebug(lcAA).noquote() << diagnosticLabel_ << "[Perf] Video: queue="
                         << QString::number(metricQueue_.avg(), 'f', 1) << "ms"
                         << "decode=" << QString::number(metricDecode_.avg(), 'f', 1) << "ms"
                         << "copy=" << QString::number(metricCopy_.avg(), 'f', 1) << "ms"
@@ -590,6 +645,8 @@ void VideoDecoder::processFrame(const QByteArray& h264Data, qint64 enqueueTimeNs
 void VideoDecoder::DecodeWorker::enqueue(std::shared_ptr<const QByteArray> data, qint64 enqueueTimeNs)
 {
     QMutexLocker locker(&mutex_);
+    if (!decoder_->acceptingFrames_.load())
+        return;
 
     // Never drop compressed packets — doing so breaks the decoder's reference
     // chain and causes persistent visual corruption.  Instead, always enqueue
@@ -603,16 +660,40 @@ void VideoDecoder::DecodeWorker::enqueue(std::shared_ptr<const QByteArray> data,
     condition_.wakeOne();
 }
 
-void VideoDecoder::DecodeWorker::beginStream()
+quint64 VideoDecoder::DecodeWorker::beginStream()
 {
     QMutexLocker locker(&mutex_);
 
-    // Work not yet started belongs to the previous stream. The reset command
-    // remains ordered after any item already executing and before every frame
-    // enqueued after this lock is released.
-    std::queue<WorkItem> empty;
-    queue_.swap(empty);
-    queue_.push({WorkKind::BeginStream, {}, 0, ++nextGeneration_});
+    // Drop compressed frames but preserve already-ordered stream boundaries.
+    // This keeps every accepted begin/end completion observable even when the
+    // owner transitions again before the worker reaches the prior boundary.
+    std::queue<WorkItem> boundaries;
+    while (!queue_.empty()) {
+        WorkItem item = std::move(queue_.front());
+        queue_.pop();
+        if (item.kind != WorkKind::Frame)
+            boundaries.push(std::move(item));
+    }
+    queue_.swap(boundaries);
+    const quint64 generation = ++nextGeneration_;
+    queue_.push({WorkKind::BeginStream, {}, 0, generation});
+    condition_.wakeOne();
+    return generation;
+}
+
+void VideoDecoder::DecodeWorker::endStream()
+{
+    QMutexLocker locker(&mutex_);
+
+    std::queue<WorkItem> boundaries;
+    while (!queue_.empty()) {
+        WorkItem item = std::move(queue_.front());
+        queue_.pop();
+        if (item.kind != WorkKind::Frame)
+            boundaries.push(std::move(item));
+    }
+    queue_.swap(boundaries);
+    queue_.push({WorkKind::EndStream, {}, 0, nextGeneration_});
     condition_.wakeOne();
 }
 
@@ -641,6 +722,10 @@ void VideoDecoder::DecodeWorker::run()
 
         if (item.kind == WorkKind::BeginStream) {
             decoder_->resetForNewStream(item.generation);
+            continue;
+        }
+        if (item.kind == WorkKind::EndStream) {
+            decoder_->finishStream(item.generation);
             continue;
         }
 

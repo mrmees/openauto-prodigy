@@ -23,7 +23,19 @@ namespace oaa {
 namespace hu {
 
 VideoChannelHandler::VideoChannelHandler(QObject* parent)
+    : VideoChannelHandler(oaa::ChannelId::Video,
+                          oaa::proto::enums::VideoFocusMode::PROJECTED,
+                          parent)
+{
+}
+
+VideoChannelHandler::VideoChannelHandler(
+    uint8_t channelId,
+    oaa::proto::enums::VideoFocusMode::Enum setupFocusMode,
+    QObject* parent)
     : oaa::IAVChannelHandler(parent)
+    , channelId_(channelId)
+    , setupFocusMode_(setupFocusMode)
 {
 }
 
@@ -32,6 +44,8 @@ void VideoChannelHandler::onChannelOpened()
     channelOpen_ = true;
     streaming_ = false;
     session_ = -1;
+    receivedFrameCount_ = 0;
+    ackCount_ = 0;
 
     qDebug() << "[VideoChannel] opened";
 }
@@ -73,6 +87,7 @@ void VideoChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
         oaa::proto::messages::UiConfigRequest request;
         if (!request.ParseFromArray(data.constData(), data.size())) {
             qWarning() << "[VideoChannel] failed to parse UiConfigRequest";
+            emit handlerError(QStringLiteral("failed to parse UI config request"));
             break;
         }
 
@@ -134,8 +149,11 @@ void VideoChannelHandler::handleSetupRequest(const QByteArray& payload)
     oaa::proto::messages::AVChannelSetupRequest req;
     if (!req.ParseFromArray(payload.constData(), payload.size())) {
         qWarning() << "[VideoChannel] failed to parse SetupRequest";
+        emit handlerError(QStringLiteral("failed to parse setup request"));
         return;
     }
+
+    emit setupRequested(static_cast<int>(req.media_codec_type()));
 
     qInfo() << "[VideoChannel] setup request, codec:" << req.media_codec_type()
             << "raw:" << payload.toHex(' ')
@@ -158,7 +176,7 @@ void VideoChannelHandler::handleSetupRequest(const QByteArray& payload)
     // Send unsolicited VIDEO_FOCUS_INDICATION — some phones (e.g. Moto G Play)
     // won't send VIDEO_FOCUS_REQUEST and expect the HU to indicate focus first.
     oaa::proto::messages::VideoFocusIndication focus;
-    focus.set_focus_mode(oaa::proto::enums::VideoFocusMode::PROJECTED);
+    focus.set_focus_mode(setupFocusMode_);
     focus.set_unrequested(false);
     QByteArray focusData(focus.ByteSizeLong(), '\0');
     focus.SerializeToArray(focusData.data(), focusData.size());
@@ -173,6 +191,7 @@ void VideoChannelHandler::handleStartIndication(const QByteArray& payload)
     oaa::proto::messages::AVChannelStartIndication start;
     if (!start.ParseFromArray(payload.constData(), payload.size())) {
         qWarning() << "[VideoChannel] failed to parse StartIndication";
+        emit handlerError(QStringLiteral("failed to parse start indication"));
         return;
     }
 
@@ -197,6 +216,7 @@ void VideoChannelHandler::handleVideoFocusRequest(const QByteArray& payload)
     oaa::proto::messages::VideoFocusRequest req;
     if (!req.ParseFromArray(payload.constData(), payload.size())) {
         qWarning() << "[VideoChannel] failed to parse VideoFocusRequest";
+        emit handlerError(QStringLiteral("failed to parse video focus request"));
         return;
     }
 
@@ -220,6 +240,7 @@ void VideoChannelHandler::handleVideoFocusIndication(const QByteArray& payload)
     oaa::proto::messages::VideoFocusIndication indication;
     if (!indication.ParseFromArray(payload.constData(), payload.size())) {
         qWarning() << "[VideoChannel] failed to parse VideoFocusIndication";
+        emit handlerError(QStringLiteral("failed to parse video focus indication"));
         return;
     }
 
@@ -240,6 +261,7 @@ void VideoChannelHandler::onMediaData(const QByteArray& data, uint64_t timestamp
         now.time_since_epoch()).count();
 
     auto shared = std::make_shared<const QByteArray>(data);
+    ++receivedFrameCount_;
     emit videoFrameData(shared, enqueueNs);
     sendAck();
 }
@@ -272,6 +294,7 @@ void VideoChannelHandler::sendAck()
     QByteArray data(ack.ByteSizeLong(), '\0');
     ack.SerializeToArray(data.data(), data.size());
     emit sendRequested(channelId(), oaa::AVMessageId::ACK_INDICATION, data);
+    ++ackCount_;
 }
 
 } // namespace hu

@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <utility>
 
+#include "ProjectedDisplayConfig.hpp"
+
 namespace oap { class YamlConfig; }
 
 namespace oap {
@@ -25,6 +27,9 @@ public:
 
     /// Number of video configs produced by build() from the same codec set.
     uint32_t videoConfigCount() const;
+    uint32_t videoConfigCount(ProjectedDisplayRole role) const;
+
+    void setProjectedClusterConfig(const ProjectedClusterConfig& config);
 
     /// Override display dimensions for margin calculations (detected > config fallback).
     void setDisplayDimensions(int w, int h);
@@ -41,10 +46,12 @@ public:
 
 private:
     QByteArray buildVideoDescriptor() const;
+    QByteArray buildClusterVideoDescriptor() const;
     QByteArray buildMediaAudioDescriptor() const;
     QByteArray buildSpeechAudioDescriptor() const;
     QByteArray buildSystemAudioDescriptor() const;
     QByteArray buildInputDescriptor() const;
+    QByteArray buildClusterInputDescriptor() const;
     QByteArray buildSensorDescriptor() const;
     QByteArray buildBluetoothDescriptor() const;
     QByteArray buildWifiDescriptor() const;
@@ -66,6 +73,7 @@ private:
     QString wifiPassword_;
     QString wifiBssid_;
     QStringList videoCodecNames_;
+    ProjectedClusterConfig projectedClusterConfig_;
     int overrideDisplayW_ = 0;  // 0 = use yamlConfig values
     int overrideDisplayH_ = 0;
     int navbarThickness_ = 56;

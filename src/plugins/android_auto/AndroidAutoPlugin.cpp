@@ -18,8 +18,22 @@ namespace plugins {
 
 AndroidAutoPlugin::AndroidAutoPlugin(oap::YamlConfig* yamlConfig,
                                      QObject* parent)
+    : AndroidAutoPlugin(
+          yamlConfig,
+          yamlConfig
+              ? oap::aa::resolveProjectedClusterConfig(*yamlConfig)
+              : oap::aa::ProjectedClusterConfig{},
+          parent)
+{
+}
+
+AndroidAutoPlugin::AndroidAutoPlugin(
+    oap::YamlConfig* yamlConfig,
+    const oap::aa::ProjectedClusterConfig& clusterConfig,
+    QObject* parent)
     : QObject(parent)
     , yamlConfig_(yamlConfig)
+    , clusterConfig_(clusterConfig)
 {
 }
 
@@ -47,7 +61,9 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
     auto* eventBus = context ? context->eventBus() : nullptr;
     auto* eqService = context ? dynamic_cast<oap::EqualizerService*>(context->equalizerService()) : nullptr;
     auto* configService = context ? context->configService() : nullptr;
-    aaService_ = new oap::aa::AndroidAutoOrchestrator(configService, audioService, yamlConfig_, eventBus, eqService, this);
+    aaService_ = new oap::aa::AndroidAutoOrchestrator(
+        configService, audioService, yamlConfig_, clusterConfig_, eventBus,
+        eqService, this);
 
     // Give orchestrator access to theme service for UiConfigRequest sending
     if (context) {

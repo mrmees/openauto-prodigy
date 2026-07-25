@@ -23,7 +23,7 @@
 #include <oaa/HU/Handlers/MediaStatusChannelHandler.hpp>
 #include <oaa/HU/Handlers/PhoneStatusChannelHandler.hpp>
 #include "ServiceDiscoveryBuilder.hpp"
-#include "VideoDecoder.hpp"
+#include "ProjectedDisplaySession.hpp"
 #include "AVInputCaptureBridge.hpp"
 #include "core/services/IAudioService.hpp"
 #include "TouchHandler.hpp"
@@ -69,6 +69,13 @@ public:
                                       oap::IEventBus* eventBus = nullptr,
                                       oap::EqualizerService* eqService = nullptr,
                                       QObject* parent = nullptr);
+    AndroidAutoOrchestrator(oap::IConfigService* configService,
+                            oap::IAudioService* audioService,
+                            oap::YamlConfig* yamlConfig,
+                            const ProjectedClusterConfig& clusterConfig,
+                            oap::IEventBus* eventBus = nullptr,
+                            oap::EqualizerService* eqService = nullptr,
+                            QObject* parent = nullptr);
     ~AndroidAutoOrchestrator() override;
 
     Q_INVOKABLE void start();
@@ -81,8 +88,9 @@ public:
     /// Send a button press+release via the Input channel (Android keycode)
     Q_INVOKABLE void sendButtonPress(int keycode);
 
-    VideoDecoder* videoDecoder() { return &videoDecoder_; }
+    VideoDecoder* videoDecoder() { return mainDisplay_.decoder(); }
     TouchHandler* touchHandler() { return &touchHandler_; }
+    ProjectedDisplaySession* clusterDisplay() { return &clusterDisplay_; }
 
     /// Set theme service for applying phone-sent AA theming tokens.
     void setThemeService(oap::IThemeService* theme) { themeService_ = theme; }
@@ -95,7 +103,7 @@ public:
 
     /// Set DPI-scaled navbar thickness for margin calculations.
     void setNavbarThickness(int thickness) { navbarThickness_ = thickness; }
-    oaa::hu::InputChannelHandler* inputHandler() { return &inputHandler_; }
+    oaa::hu::InputChannelHandler* inputHandler() { return mainDisplay_.inputHandler(); }
     oaa::hu::NavigationChannelHandler* navigationHandler() { return &navHandler_; }
     oaa::hu::MediaStatusChannelHandler* mediaStatusHandler() { return &mediaStatusHandler_; }
 
@@ -154,6 +162,7 @@ private:
     oap::IThemeService* themeService_ = nullptr;
     oap::NightModeService* nightModeService_ = nullptr;
     QMetaObject::Connection nightModeConnection_;
+    ProjectedClusterConfig projectedClusterConfig_;
 
     // TCP listener (Qt-native, replaces ASIO acceptor)
     QTcpServer tcpServer_;
@@ -166,11 +175,11 @@ private:
     QTcpSocket* activeSocket_ = nullptr;
 
     // Channel handlers (from prodigy-oaa-protocol library)
-    oaa::hu::VideoChannelHandler videoHandler_;
+    ProjectedDisplaySession mainDisplay_;
+    ProjectedDisplaySession clusterDisplay_;
     oaa::hu::AudioChannelHandler mediaAudioHandler_{oaa::ChannelId::MediaAudio};
     oaa::hu::AudioChannelHandler speechAudioHandler_{oaa::ChannelId::SpeechAudio};
     oaa::hu::AudioChannelHandler systemAudioHandler_{oaa::ChannelId::SystemAudio};
-    oaa::hu::InputChannelHandler inputHandler_;
     oaa::hu::SensorChannelHandler sensorHandler_;
     oaa::hu::BluetoothChannelHandler btHandler_;
     std::unique_ptr<oaa::hu::WiFiChannelHandler> wifiHandler_;
@@ -181,7 +190,6 @@ private:
 
     // Shared resources
     TouchHandler touchHandler_;
-    VideoDecoder videoDecoder_;
     QTimer watchdogTimer_;
     AVInputCaptureBridge micCaptureBridge_;
 
@@ -214,6 +222,7 @@ private:
     bool mediaStreamActive_ = false;
     bool speechStreamActive_ = false;
     bool systemStreamActive_ = false;
+    bool lastProjectedActivityWasCluster_ = false;
 
     std::unique_ptr<oaa::ProtocolLogger> protocolLogger_;
 

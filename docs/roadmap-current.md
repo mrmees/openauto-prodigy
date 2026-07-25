@@ -19,10 +19,44 @@ spike, or research-first feasibility work.
 
 ## Now
 
-No capability is currently promoted. Select and re-research the next bounded
-wishlist item before implementation.
+- No promoted work is currently active.
 
 ## Done (recent)
+
+- Android Auto CLUSTER square viewport — **COMPLETE 2026-07-25**
+  (Pi/Pixel live-validated). Prodigy retains the protocol-required 800×480
+  H.264 carrier while requesting a centered 300×300 phone-rendered CLUSTER
+  region through total margins of 500×180. One fixed 3×3 dashboard widget
+  clips and uniformly upsizes that region without a second decoder, frame
+  rewrite, shader, stretch, or projected input. The Pixel opened CLUSTER
+  channels 12/13, delivered an exact 800×480 decoded carrier, and reached
+  Rendering without a geometry mismatch; Matthew accepted the visible basic
+  implementation. MAIN behavior, default-off policy, and the experimental
+  scope remain unchanged. Design and plan:
+  `docs/archive/plans/2026-07-25-aa-cluster-square-viewport-design.md` and
+  `docs/archive/plans/2026-07-25-aa-cluster-square-viewport-plan.md`. The live
+  Pi/Pixel result corresponds to the accepted implementation through
+  `7ccdfc4`; subsequent pre-publication CLUSTER-only lifecycle hardening is
+  covered by the repository build, test, and ARM cross-build gates but remains
+  pending the next routine hardware regression and is not described as a
+  separate hardware-validation pass. Established legacy-channel behavior is
+  unchanged.
+
+- Android Auto projected CLUSTER dashboard widget feasibility spike —
+  **COMPLETE 2026-07-24** (Pi/Pixel positive result). Behind a default-off
+  startup flag, Prodigy advertises one fixed H.264 800×480 CLUSTER display on
+  independent video/input channels and renders the phone-produced stream in a
+  fixed 2×2 dashboard widget. The Pixel 8 accepted both descriptors, opened
+  channels 12/13, streamed and decoded an independent Maps surface, kept it
+  flowing on the native dashboard after MAIN exited, and returned to healthy
+  MAIN projection afterward. The flag-off path retained the legacy MAIN-only
+  descriptor and reconnect behavior. The bench did not have an active Maps
+  route during capture, so route-specific maneuver presentation remains a
+  follow-up rather than an inferred result. Generalized multi-display,
+  alternate resolutions, second-monitor routing, and production enablement
+  remain unpromoted. Design and plan:
+  `docs/archive/plans/2026-07-24-aa-projected-cluster-widget-design.md` and
+  `docs/archive/plans/2026-07-24-aa-projected-cluster-widget-plan.md`.
 
 - Android Auto Assistant microphone transport — **COMPLETE 2026-07-24**
   (Pi/Pixel live-validated). Prodigy now captures the configured Pi microphone

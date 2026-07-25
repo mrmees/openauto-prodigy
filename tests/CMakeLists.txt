@@ -145,6 +145,7 @@ oap_add_test(test_focus_gain SOURCES test_focus_gain.cpp)
 
 # --- AA protocol tests ---
 
+oap_add_test(test_projected_display_config SOURCES test_projected_display_config.cpp)
 oap_add_test(test_service_discovery_builder SOURCES test_service_discovery_builder.cpp)
 oap_add_test(test_sensor_channel_handler SOURCES test_sensor_channel_handler.cpp)
 oap_add_test(test_input_channel_handler SOURCES test_input_channel_handler.cpp)
@@ -167,6 +168,9 @@ oap_add_test(test_circular_buffer SOURCES test_circular_buffer.cpp)
 oap_add_test(test_codec_capability SOURCES test_codec_capability.cpp)
 oap_add_test(test_video_frame_pool SOURCES test_video_frame_pool.cpp)
 oap_add_test(test_video_decoder SOURCES test_video_decoder.cpp)
+oap_add_test(test_projected_display_session SOURCES test_projected_display_session.cpp)
+set_tests_properties(test_projected_display_session
+    PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
 # --- Touch routing tests ---
 
@@ -200,6 +204,13 @@ oap_add_test(test_widget_types SOURCES test_widget_types.cpp)
 oap_add_test(test_widget_registry SOURCES test_widget_registry.cpp)
 oap_add_test(test_widget_instance_context SOURCES test_widget_instance_context.cpp)
 oap_add_test(test_widget_plugin_integration SOURCES test_widget_plugin_integration.cpp)
+oap_add_test(test_aa_cluster_widget
+    SOURCES test_aa_cluster_widget.cpp
+    EXTRA_LIBS Qt6::Qml Qt6::Quick Qt6::Multimedia
+    DEFS TEST_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+set_tests_properties(test_aa_cluster_widget
+    PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
 configure_file(data/test_widget_config.yaml ${CMAKE_CURRENT_BINARY_DIR}/data/test_widget_config.yaml COPYONLY)
 oap_add_test(test_widget_placement_model SOURCES test_widget_placement_model.cpp)

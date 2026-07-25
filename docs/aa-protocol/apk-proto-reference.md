@@ -44,7 +44,7 @@
 | 0x0006 | SERVICE_DISCOVERY_RESPONSE | HU→Phone | |
 | 0x0007 | CHANNEL_OPEN_REQUEST | Phone→HU | Arrives on target channel |
 | 0x0008 | CHANNEL_OPEN_RESPONSE | HU→Phone | |
-| 0x0009 | CHANNEL_CLOSE_NOTIFICATION | Either | Not yet observed |
+| 0x0009 | CHANNEL_CLOSE_NOTIFICATION | Either | Not yet observed; see compatibility note below |
 | 0x000a | (unknown) | — | Present in map, no handler |
 | 0x000b | PING_REQUEST | Either | |
 | 0x000c | PING_RESPONSE | Either | |
@@ -61,6 +61,14 @@
 | 0x0fff | (special) | — | Present in APK map |
 | 0xDEAD | (diagnostic?) | — | Present in APK map |
 | 0xFFFF | (sentinel?) | — | Present in APK map |
+
+Prodigy's experimental explicit close/reopen lifecycle is currently limited
+to CLUSTER channels 12/13. For compatibility with the pre-CLUSTER MAIN and
+service-channel behavior, a control-typed `0x0009` on a legacy channel is
+passed through once-warned rather than changing that channel's lifecycle in
+this feature. Correct all-channel close handling requires separate protocol
+research and hardware regression coverage; the compatibility behavior is not
+the desired long-term transport contract.
 
 ## AV Channel Messages (from `vee.S()`)
 

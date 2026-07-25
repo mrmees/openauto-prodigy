@@ -17,6 +17,8 @@ private slots:
         QCOMPARE(oaa::ProtocolLogger::channelName(oaa::ChannelId::Navigation), std::string("NAVIGATION"));
         QCOMPARE(oaa::ProtocolLogger::channelName(oaa::ChannelId::MediaStatus), std::string("MEDIA_STATUS"));
         QCOMPARE(oaa::ProtocolLogger::channelName(oaa::ChannelId::PhoneStatus), std::string("PHONE_STATUS"));
+        QCOMPARE(oaa::ProtocolLogger::channelName(oaa::ChannelId::ClusterVideo), std::string("CLUSTER_VIDEO"));
+        QCOMPARE(oaa::ProtocolLogger::channelName(oaa::ChannelId::ClusterInput), std::string("CLUSTER_INPUT"));
         QCOMPARE(oaa::ProtocolLogger::channelName(oaa::ChannelId::WiFi), std::string("WIFI"));
         QCOMPARE(oaa::ProtocolLogger::channelName(99), std::string("UNKNOWN(99)"));
     }
@@ -35,6 +37,8 @@ private slots:
 
         // AV channel
         QCOMPARE(oaa::ProtocolLogger::messageName(oaa::ChannelId::Video, oaa::AVMessageId::SETUP_REQUEST),
+                 std::string("AV_SETUP_REQUEST"));
+        QCOMPARE(oaa::ProtocolLogger::messageName(oaa::ChannelId::ClusterVideo, oaa::AVMessageId::SETUP_REQUEST),
                  std::string("AV_SETUP_REQUEST"));
 
         // Sensor channel
@@ -164,6 +168,36 @@ private slots:
 
         std::string line;
         QVERIFY(!std::getline(f, line));
+
+        std::remove(path.c_str());
+    }
+
+    void testJsonlSkipsClusterMediaButKeepsSetup()
+    {
+        std::string path = "/tmp/test_protocol_logger_jsonl_cluster_media.jsonl";
+
+        oaa::ProtocolLogger logger;
+        logger.setFormat(oaa::ProtocolLogger::OutputFormat::Jsonl);
+        logger.setIncludeMedia(false);
+        logger.open(path);
+
+        uint8_t payload[] = {0x00, 0x01, 0x02};
+        logger.log("Phone->HU", oaa::ChannelId::ClusterVideo,
+                   oaa::AVMessageId::AV_MEDIA_INDICATION,
+                   payload, sizeof(payload));
+        logger.log("Phone->HU", oaa::ChannelId::ClusterVideo,
+                   oaa::AVMessageId::SETUP_REQUEST,
+                   payload, sizeof(payload));
+        logger.close();
+
+        std::ifstream file(path);
+        std::string line;
+        QVERIFY(std::getline(file, line));
+        QVERIFY(line.find("\"channel_id\":12") != std::string::npos);
+        QVERIFY(line.find("\"message_name\":\"AV_SETUP_REQUEST\"")
+                != std::string::npos);
+        std::string extra;
+        QVERIFY(!std::getline(file, extra));
 
         std::remove(path.c_str());
     }

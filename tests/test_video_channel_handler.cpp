@@ -46,6 +46,36 @@ private slots:
             QCOMPARE(response.configs(index), static_cast<uint32_t>(index));
     }
 
+    void testClusterVideoUsesInjectedChannelAndNoInputFocus() {
+        oaa::hu::VideoChannelHandler handler(
+            oaa::ChannelId::ClusterVideo,
+            oaa::proto::enums::VideoFocusMode::PROJECTED_NO_INPUT_FOCUS);
+        handler.setNumVideoConfigs(1);
+        handler.onChannelOpened();
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+        QSignalSpy setupSpy(&handler,
+                            &oaa::hu::VideoChannelHandler::setupRequested);
+
+        oaa::proto::messages::AVChannelSetupRequest request;
+        request.set_media_codec_type(
+            oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+        QByteArray payload(request.ByteSizeLong(), '\0');
+        QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(oaa::AVMessageId::SETUP_REQUEST, payload);
+
+        QCOMPARE(sendSpy.count(), 2);
+        QCOMPARE(sendSpy[0][0].value<uint8_t>(), oaa::ChannelId::ClusterVideo);
+        QCOMPARE(sendSpy[1][0].value<uint8_t>(), oaa::ChannelId::ClusterVideo);
+        oaa::proto::messages::VideoFocusIndication focus;
+        const QByteArray focusPayload = sendSpy[1][2].toByteArray();
+        QVERIFY(focus.ParseFromArray(focusPayload.constData(), focusPayload.size()));
+        QCOMPARE(focus.focus_mode(),
+                 oaa::proto::enums::VideoFocusMode::PROJECTED_NO_INPUT_FOCUS);
+        QCOMPARE(setupSpy.count(), 1);
+        QCOMPARE(setupSpy[0][0].toInt(),
+                 static_cast<int>(oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP));
+    }
+
     void testChannelId() {
         oaa::hu::VideoChannelHandler handler;
         QCOMPARE(handler.channelId(), oaa::ChannelId::Video);
@@ -129,6 +159,8 @@ private slots:
                  static_cast<uint16_t>(oaa::AVMessageId::ACK_INDICATION));
         QCOMPARE(sendSpy[1][1].value<uint16_t>(),
                  static_cast<uint16_t>(oaa::AVMessageId::ACK_INDICATION));
+        QCOMPARE(handler.receivedFrameCount(), 2u);
+        QCOMPARE(handler.ackCount(), 2u);
 
         // ACK value must be delta-per-message (1), not cumulative count.
         oaa::proto::messages::AVMediaAckIndication ack0;
@@ -140,6 +172,21 @@ private slots:
         QByteArray ackPayload1 = sendSpy[1][2].toByteArray();
         QVERIFY(ack1.ParseFromArray(ackPayload1.constData(), ackPayload1.size()));
         QCOMPARE(ack1.ack_count(), 1);
+
+        handler.onChannelOpened();
+        QCOMPARE(handler.receivedFrameCount(), 0u);
+        QCOMPARE(handler.ackCount(), 0u);
+    }
+
+    void testMalformedSetupReportsBoundedError() {
+        oaa::hu::VideoChannelHandler handler;
+        QSignalSpy errorSpy(&handler,
+                            &oaa::hu::VideoChannelHandler::handlerError);
+        handler.onChannelOpened();
+        handler.onMessage(oaa::AVMessageId::SETUP_REQUEST,
+                          QByteArray("\x80", 1));
+        QCOMPARE(errorSpy.count(), 1);
+        QVERIFY(!errorSpy[0][0].toString().isEmpty());
     }
 
     void testVideoFocusIndication() {

@@ -36,6 +36,7 @@ public:
 signals:
     void stateChanged(oaa::SessionState newState);
     void channelOpened(uint8_t channelId);
+    void channelClosed(uint8_t channelId);
     void channelOpenRejected(int32_t channelId);
     void disconnected(oaa::DisconnectReason reason);
 
@@ -52,6 +53,7 @@ private:
     void setState(SessionState newState);
     void connectHandler(IChannelHandler* handler);
     void disconnectHandler(IChannelHandler* handler);
+    bool closeServiceChannel(uint8_t channelId);
     void closeChannels();
     void startStateTimer(int timeoutMs);
     void stopStateTimer();
@@ -69,7 +71,8 @@ private:
     void onServiceDiscoveryRequested(const QByteArray& payload);
     void onChannelOpenRequested(int32_t channelId, const QByteArray& payload);
     void onMessage(uint8_t channelId, uint16_t messageId,
-                   const QByteArray& payload, int dataOffset);
+                   const QByteArray& payload, int dataOffset,
+                   oaa::MessageType messageType);
     void onPingTick();
     void onPongReceived(int64_t timestamp);
     void onPongDeadline();
@@ -92,6 +95,8 @@ private:
     QTimer pongDeadlineTimer_;
     int64_t lastPingTimestamp_ = 0;
     QSet<int64_t> outstandingPingTimestamps_;
+    QSet<uint8_t> warnedNonControlOpenChannels_;
+    QSet<uint8_t> warnedLegacyCloseChannels_;
     bool channelsClosed_ = true;
     bool finalized_ = false;
 };

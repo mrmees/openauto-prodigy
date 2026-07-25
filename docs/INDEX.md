@@ -2,8 +2,7 @@
 
 ## Active Plans
 
-No active implementation plan. Promote and re-research a qualified wishlist
-item before adding one here.
+- None. New implementation work requires promotion and approval.
 
 ## Start Here
 
@@ -46,6 +45,9 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 - [aa-troubleshooting-runbook.md](aa-protocol/aa-troubleshooting-runbook.md) — troubleshooting guide
 - [apk-proto-reference.md](aa-protocol/apk-proto-reference.md) — dated APK v16.1 protobuf research snapshot
 - [apk-indexing.md](aa-protocol/apk-indexing.md) — APK indexing pipeline
+- [Android Auto wishlist research baselines](aa-protocol/wishlist-baselines/README.md)
+  — AA 17.3 handoffs for camera coexistence, broadcast radio, vehicle control,
+  local media, audio policy, display modes, sensors, and rotary input
 
 ## How-To (how-to/)
 
@@ -69,6 +71,8 @@ Active plans:
 Everything under `archive/` is history, not guidance. Internal links there may point at pre-restructure paths by design.
 
 - [archive/plans/](archive/plans/) — completed/superseded designs and implementation plans, incl. milestone-01..05 history and pre-restructure proto docs
+- [2026-07-25-aa-cluster-square-viewport-design.md](archive/plans/2026-07-25-aa-cluster-square-viewport-design.md) and [implementation plan](archive/plans/2026-07-25-aa-cluster-square-viewport-plan.md) — completed centered 300×300 phone-rendered CLUSTER viewport inside the standard 800×480 carrier and fixed 3×3 dashboard crop surface
+- [2026-07-24-aa-projected-cluster-widget-design.md](archive/plans/2026-07-24-aa-projected-cluster-widget-design.md) and [implementation plan](archive/plans/2026-07-24-aa-projected-cluster-widget-plan.md) — completed positive Pixel 8 MAIN-plus-CLUSTER activation, isolation, and square dashboard rendering spike
 - [2026-07-24-aa-assistant-microphone-transport-design.md](archive/plans/2026-07-24-aa-assistant-microphone-transport-design.md) and [implementation plan](archive/plans/2026-07-24-aa-assistant-microphone-transport-plan.md) — completed bounded Pi microphone capture, AVInput flow control, gain, and teardown
 - [2026-02-21-config-contract-overhaul-design.md](archive/plans/2026-02-21-config-contract-overhaul-design.md) and [implementation plan](archive/plans/2026-02-21-config-contract-overhaul-plan.md) — abandoned after shipped generic config/theme work superseded the original design; residual technical findings are tracked in the engineering backlog
 - [2026-07-24-installer-deployment-lifecycle-remediation-design.md](archive/plans/2026-07-24-installer-deployment-lifecycle-remediation-design.md) and [implementation plan](archive/plans/2026-07-24-installer-deployment-lifecycle-remediation-plan.md) — completed source ownership, shared hardware/startup contracts, recoverable prebuilt upgrades, and Xvfb ownership remediation

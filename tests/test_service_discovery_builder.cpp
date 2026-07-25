@@ -1,6 +1,7 @@
 #include <QTest>
 #include <QTemporaryFile>
 #include "core/aa/ServiceDiscoveryBuilder.hpp"
+#include "core/aa/ProjectedDisplayConfig.hpp"
 #include "core/YamlConfig.hpp"
 
 // oaa proto headers
@@ -8,6 +9,45 @@
 #include "oaa/input/InputChannelData.pb.h"
 #include "oaa/input/TouchConfigData.pb.h"
 #include "oaa/video/AdditionalVideoConfigData.pb.h"
+#include "oaa/video/DisplayTypeEnum.pb.h"
+#include "oaa/video/VideoFPSEnum.pb.h"
+#include "oaa/video/VideoResolutionEnum.pb.h"
+#include "oaa/av/MediaCodecTypeEnum.pb.h"
+
+namespace {
+
+const oaa::ChannelConfig* channelById(const oaa::SessionConfig& config,
+                                      uint8_t channelId)
+{
+    for (const auto& channel : config.channels) {
+        if (channel.channelId == channelId)
+            return &channel;
+    }
+    return nullptr;
+}
+
+oaa::proto::data::ChannelDescriptor descriptorById(
+    const oaa::SessionConfig& config, uint8_t channelId)
+{
+    const auto* channel = channelById(config, channelId);
+    if (!channel)
+        return {};
+
+    oaa::proto::data::ChannelDescriptor descriptor;
+    descriptor.ParseFromArray(channel->descriptor.constData(),
+                              channel->descriptor.size());
+    return descriptor;
+}
+
+QList<uint8_t> channelIds(const oaa::SessionConfig& config)
+{
+    QList<uint8_t> ids;
+    for (const auto& channel : config.channels)
+        ids.append(channel.channelId);
+    return ids;
+}
+
+} // namespace
 
 class TestServiceDiscoveryBuilder : public QObject {
     Q_OBJECT
@@ -318,6 +358,78 @@ private slots:
             }
         }
         QFAIL("WiFi channel not found");
+    }
+
+    void disabledClusterPreservesLegacyMainDescriptorBytes() {
+        static const QByteArray legacyVideo = QByteArray::fromHex(
+            "08031a220803220d0802100218002028288c015003"
+            "220d0802100218002028288c0150074803");
+        static const QByteArray legacyInput = QByteArray::fromHex(
+            "080122170a0d030454555657587e7fdb01e701120608800a10a805");
+
+        oap::aa::ServiceDiscoveryBuilder implicitDefault;
+        const auto implicitConfig = implicitDefault.build();
+        QCOMPARE(channelById(implicitConfig, 3)->descriptor, legacyVideo);
+        QCOMPARE(channelById(implicitConfig, 1)->descriptor, legacyInput);
+
+        oap::aa::ServiceDiscoveryBuilder explicitDisabled;
+        explicitDisabled.setProjectedClusterConfig({false, {}});
+        const auto config = explicitDisabled.build();
+        QCOMPARE(channelIds(config),
+                 QList<uint8_t>({3, 4, 5, 6, 1, 2, 8, 14, 7, 9, 10, 11}));
+        QCOMPARE(channelById(config, 3)->descriptor, legacyVideo);
+        QCOMPARE(channelById(config, 1)->descriptor, legacyInput);
+
+        const auto video = descriptorById(config, 3).av_channel();
+        QVERIFY(!video.has_channel_id());
+        QVERIFY(!video.has_display_type());
+        const auto input = descriptorById(config, 1).input_channel();
+        QVERIFY(!input.has_display_id());
+        QVERIFY(!input.touch_screen_configs(0).has_display_type());
+    }
+
+    void enabledClusterAdvertisesPairedFixedTopology() {
+        oap::aa::ServiceDiscoveryBuilder builder;
+        builder.setProjectedClusterConfig({true, {}});
+        const auto config = builder.build();
+
+        const auto mainVideo = descriptorById(config, 3).av_channel();
+        QCOMPARE(mainVideo.channel_id(), 0u);
+        QCOMPARE(mainVideo.display_type(),
+                 oaa::proto::enums::DisplayType::MAIN);
+
+        const auto mainInput = descriptorById(config, 1).input_channel();
+        QCOMPARE(mainInput.display_id(), 0u);
+        QCOMPARE(mainInput.touch_screen_configs(0).display_type(),
+                 oaa::proto::enums::DisplayType::MAIN);
+
+        const auto clusterVideo = descriptorById(config, 12).av_channel();
+        QCOMPARE(clusterVideo.channel_id(), 1u);
+        QCOMPARE(clusterVideo.display_type(),
+                 oaa::proto::enums::DisplayType::CLUSTER);
+        QCOMPARE(clusterVideo.video_configs_size(), 1);
+        const auto& videoConfig = clusterVideo.video_configs(0);
+        QCOMPARE(videoConfig.video_resolution(),
+                 oaa::proto::enums::VideoResolution::VIDEO_800x480);
+        QCOMPARE(videoConfig.video_fps(), oaa::proto::enums::VideoFPS::_30);
+        QCOMPARE(videoConfig.codec(),
+                 oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+        QCOMPARE(videoConfig.dpi(), 140u);
+        QCOMPARE(videoConfig.margin_width(),
+                 static_cast<uint32_t>(
+                     oap::aa::kClusterViewportGeometry.marginWidth()));
+        QCOMPARE(videoConfig.margin_height(),
+                 static_cast<uint32_t>(
+                     oap::aa::kClusterViewportGeometry.marginHeight()));
+
+        const auto clusterInput = descriptorById(config, 13).input_channel();
+        QCOMPARE(clusterInput.display_id(), 1u);
+        QCOMPARE(clusterInput.touch_screen_configs_size(), 0);
+        QCOMPARE(clusterInput.supported_keycodes_size(), 0);
+        QCOMPARE(clusterInput.touchpad_configs_size(), 0);
+        QCOMPARE(clusterInput.supported_haptic_types_size(), 0);
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Cluster), 1u);
     }
 };
 

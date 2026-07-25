@@ -17,7 +17,13 @@ namespace oaa {
 namespace hu {
 
 InputChannelHandler::InputChannelHandler(QObject* parent)
+    : InputChannelHandler(oaa::ChannelId::Input, parent)
+{
+}
+
+InputChannelHandler::InputChannelHandler(uint8_t channelId, QObject* parent)
     : oaa::IChannelHandler(parent)
+    , channelId_(channelId)
 {
 }
 
@@ -58,6 +64,7 @@ void InputChannelHandler::handleBindingRequest(const QByteArray& payload)
     oaa::proto::messages::BindingRequest req;
     if (!req.ParseFromArray(payload.constData(), payload.size())) {
         qWarning() << "[InputChannel] failed to parse BindingRequest";
+        emit handlerError(QStringLiteral("failed to parse binding request"));
         return;
     }
 
@@ -76,6 +83,7 @@ void InputChannelHandler::handleBindingNotification(const QByteArray& payload)
     oaa::proto::messages::InputBindingNotification notif;
     if (!notif.ParseFromArray(payload.constData(), payload.size())) {
         qWarning() << "[InputChannel] failed to parse InputBindingNotification";
+        emit handlerError(QStringLiteral("failed to parse binding notification"));
         return;
     }
 

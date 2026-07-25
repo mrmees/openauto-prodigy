@@ -15,6 +15,25 @@ private slots:
         QCOMPARE(handler.channelId(), oaa::ChannelId::Input);
     }
 
+    void testClusterInputUsesInjectedChannel() {
+        oaa::hu::InputChannelHandler handler(oaa::ChannelId::ClusterInput);
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+        handler.onChannelOpened();
+
+        oaa::proto::messages::BindingRequest request;
+        QByteArray payload(request.ByteSizeLong(), '\0');
+        QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(oaa::InputMessageId::BINDING_REQUEST, payload);
+
+        QCOMPARE(sendSpy.count(), 1);
+        QCOMPARE(sendSpy[0][0].value<uint8_t>(), oaa::ChannelId::ClusterInput);
+
+        oaa::hu::InputChannelHandler::Pointer point{10, 20, 0};
+        handler.sendTouchIndication(1, &point, 0, 0, 123);
+        QCOMPARE(sendSpy.count(), 2);
+        QCOMPARE(sendSpy[1][0].value<uint8_t>(), oaa::ChannelId::ClusterInput);
+    }
+
     void testSendTouchEvent() {
         oaa::hu::InputChannelHandler handler;
         QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
@@ -113,6 +132,16 @@ private slots:
         handler.onMessage(oaa::InputMessageId::BINDING_NOTIFICATION, garbage);
 
         QCOMPARE(hapticSpy.count(), 0);
+    }
+
+    void testMalformedBindingReportsBoundedError() {
+        oaa::hu::InputChannelHandler handler;
+        QSignalSpy errorSpy(&handler,
+                            &oaa::hu::InputChannelHandler::handlerError);
+        handler.onMessage(oaa::InputMessageId::BINDING_REQUEST,
+                          QByteArray("\x80", 1));
+        QCOMPARE(errorSpy.count(), 1);
+        QVERIFY(!errorSpy[0][0].toString().isEmpty());
     }
 };
 

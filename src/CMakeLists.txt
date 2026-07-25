@@ -28,6 +28,8 @@ add_library(openauto-core STATIC
     core/aa/GpioNightMode.cpp
     core/aa/CodecCapability.cpp
     core/aa/WirelessAaConfig.cpp
+    core/aa/ProjectedDisplayConfig.cpp
+    core/aa/ProjectedDisplaySession.cpp
     core/aa/ServiceDiscoveryBuilder.cpp
     core/aa/AVInputCaptureBridge.cpp
     core/aa/AndroidAutoOrchestrator.cpp
@@ -84,6 +86,7 @@ add_library(openauto-core STATIC
     core/plugin/PluginLoader.cpp
     core/plugin/PluginManager.cpp
     plugins/android_auto/AndroidAutoPlugin.cpp
+    plugins/android_auto/AAClusterWidgetRegistration.cpp
     plugins/bt_audio/BtAudioPlugin.cpp
     plugins/bt_audio/BtAudioTap.cpp
     plugins/media_player/PlayQueue.cpp
@@ -356,6 +359,11 @@ set_source_files_properties(../qml/widgets/AAFocusToggleWidget.qml PROPERTIES
     QT_RESOURCE_ALIAS "AAFocusToggleWidget.qml"
     QT_QML_SKIP_CACHEGEN TRUE
 )
+set_source_files_properties(../qml/widgets/AAClusterWidget.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "AAClusterWidget"
+    QT_RESOURCE_ALIAS "AAClusterWidget.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
 set_source_files_properties(../qml/widgets/WeatherWidget.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "WeatherWidget"
     QT_RESOURCE_ALIAS "WeatherWidget.qml"
@@ -502,6 +510,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/widgets/BatteryWidget.qml
         ../qml/widgets/CompanionStatusWidget.qml
         ../qml/widgets/AAFocusToggleWidget.qml
+        ../qml/widgets/AAClusterWidget.qml
         ../qml/widgets/WeatherWidget.qml
         ../qml/widgets/WebWidgetHost.qml
 

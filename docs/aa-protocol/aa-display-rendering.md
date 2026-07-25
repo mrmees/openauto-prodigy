@@ -78,6 +78,23 @@ bars and fills that viewport. There is no separate fit-mode branch.
 The optional debug overlay maps `TouchHandler`'s content-space coordinates
 back over the rendered viewport. It is diagnostic only and defaults off.
 
+### Experimental CLUSTER square viewport
+
+When the default-off projected CLUSTER experiment is enabled, its independent
+display keeps the protocol-backed 800×480 H.264 carrier at 30 fps and 140 DPI.
+The CLUSTER video configuration declares total margins of 500 horizontal and
+180 vertical pixels, asking the phone to render a centered 300×300 content
+rectangle at source offset (250, 90). Its paired input descriptor remains
+capability-empty; the widget does not accept touch or other projected input.
+
+The fixed 3×3 dashboard widget uses one `VideoOutput` inside a centered clipped
+square. It uniformly scales and offsets the full decoded carrier so only the
+known 300×300 source rectangle is visible. This is ordinary texture geometry:
+there is no second decoder, CPU frame crop, shader, enhancement, stretch, or
+nonstandard encoded resolution. The path does not change MAIN projection's
+`PreserveAspectCrop` behavior, generalize multi-display configuration, or add
+a public setting.
+
 ## Evdev mapping
 
 `AndroidAutoRuntimeBridge` creates `EvdevTouchReader`, gives it the detected
@@ -147,6 +164,7 @@ without building shell-specific hit testing into the AA touch reader.
 | File | Role |
 |---|---|
 | `src/core/aa/ServiceDiscoveryBuilder.cpp` | Selected-mode configs, Navbar viewport, margins, content-sized input descriptor |
+| `src/core/aa/ProjectedDisplaySession.cpp` | Role-safe CLUSTER geometry properties and decoded-carrier validation |
 | `src/core/aa/AndroidAutoOrchestrator.cpp` | Per-session discovery and decode wiring |
 | `src/core/aa/VideoDecoder.cpp` | H.264/H.265 detection, decode, latest-frame delivery |
 | `src/core/aa/AndroidAutoRuntimeBridge.cpp` | Display/Navbar setup, touch-reader lifecycle, evdev bridge |
@@ -154,6 +172,8 @@ without building shell-specific hit testing into the AA touch reader.
 | `src/core/aa/TouchRouter.cpp` | Priority and sticky per-slot zone claims |
 | `src/core/aa/EvdevCoordBridge.cpp` | Pixel-to-evdev zone conversion |
 | `src/ui/NavbarController.cpp` | Navbar/popup zone registration and local actions |
+| `src/plugins/android_auto/AAClusterWidgetRegistration.cpp` | Fixed 3×3 experimental CLUSTER widget registration |
 | `qml/components/Shell.qml` | Navbar-aware plugin viewport |
 | `qml/components/Navbar.qml` | Navbar visibility, edge layout, and popup geometry reporting |
 | `qml/applications/android_auto/` | Projection surface, crop fill mode, and debug overlay |
+| `qml/widgets/AAClusterWidget.qml` | Single-output centered square CLUSTER crop and upsize geometry |
