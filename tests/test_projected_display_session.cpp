@@ -176,6 +176,29 @@ private slots:
                      oap::aa::ProjectedDisplaySession::WaitingForFrames));
     }
 
+    void earlyChannelTrafficIsRejectedWithDiagnostic()
+    {
+        auto display = enabledClusterDisplay();
+        QSignalSpy resetSpy(display.decoder(),
+                            &oap::aa::VideoDecoder::streamResetCompleted);
+        ScopedMessageCapture messages;
+
+        display.videoHandler()->onChannelOpened();
+        display.noteChannelOpened(oaa::ChannelId::ClusterVideo);
+        display.videoHandler()->onMessage(
+            oaa::AVMessageId::START_INDICATION, startIndicationBytes());
+        QCoreApplication::processEvents();
+
+        QCOMPARE(display.state(),
+                 static_cast<int>(
+                     oap::aa::ProjectedDisplaySession::Disconnected));
+        QCOMPARE(resetSpy.count(), 0);
+        QVERIFY(messages.joined().contains(
+            QStringLiteral("before protocol begin")));
+        QVERIFY(messages.joined().contains(
+            QStringLiteral("outside protocol session")));
+    }
+
     void disabledDisplayStaysDisabled()
     {
         oap::aa::ProjectedDisplaySession display(

@@ -84,7 +84,12 @@ ProjectedDisplaySession::ProjectedDisplaySession(
             });
     connect(&videoHandler_, &oaa::hu::VideoChannelHandler::streamStarted,
             this, [this](int32_t session, uint32_t configIndex) {
-                if (!protocolActive_ || terminalStateLatched_ || !decoder_)
+                if (!protocolActive_) {
+                    qCWarning(lcAA).noquote() << diagnosticPrefix_
+                                             << "ignoring stream start outside protocol session";
+                    return;
+                }
+                if (terminalStateLatched_ || !decoder_)
                     return;
                 activeDecoderGeneration_ = decoder_->beginStream();
                 firstDecodedLogged_ = false;
@@ -300,8 +305,14 @@ void ProjectedDisplaySession::endProtocolSession()
 
 void ProjectedDisplaySession::noteChannelOpened(uint8_t channelId)
 {
-    if (!enabled_ || !protocolActive_ || terminalStateLatched_)
+    if (!enabled_ || terminalStateLatched_)
         return;
+    if (!protocolActive_) {
+        qCWarning(lcAA).noquote() << diagnosticPrefix_
+                                 << "ignoring channel open before protocol begin"
+                                 << "channel=" << channelId;
+        return;
+    }
     if (channelId == videoChannelId_) {
         activeDecoderGeneration_ = 0;
         if (decoder_)

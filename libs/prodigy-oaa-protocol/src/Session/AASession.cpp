@@ -21,6 +21,11 @@ namespace {
 
 bool supportsExplicitReopenLifecycle(uint8_t channelId)
 {
+    // CLUSTER channels use replacement opens as an observed renegotiation
+    // boundary. For established legacy channels, treat an already-open request
+    // as a retransmission: acknowledging it without resetting live media avoids
+    // disrupting projection when the original response was lost. A transport
+    // CHANNEL_CLOSE_NOTIFICATION remains the explicit reset boundary.
     return channelId == ChannelId::ClusterVideo
         || channelId == ChannelId::ClusterInput;
 }

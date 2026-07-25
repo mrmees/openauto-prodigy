@@ -370,9 +370,11 @@ private slots:
         qToBigEndian<uint16_t>(1, reinterpret_cast<uchar*>(versionResponse.data()));
         qToBigEndian<uint16_t>(7, reinterpret_cast<uchar*>(versionResponse.data() + 2));
         qToBigEndian<uint16_t>(0, reinterpret_cast<uchar*>(versionResponse.data() + 4));
-        session->messenger()->messageReceived(0, 0x0002, versionResponse, 0);
+        session->messenger()->messageReceived(
+            0, 0x0002, versionResponse, 0, oaa::MessageType::Specific);
         session->messenger()->handshakeComplete();
-        session->messenger()->messageReceived(0, 0x0005, QByteArray(), 0);
+        session->messenger()->messageReceived(
+            0, 0x0005, QByteArray(), 0, oaa::MessageType::Specific);
         QCOMPARE(session->state(), oaa::SessionState::Active);
 
         QByteArray discoveryPayload;
@@ -606,12 +608,14 @@ private slots:
         qToBigEndian<uint16_t>(1, reinterpret_cast<uchar*>(versionResponse.data()));
         qToBigEndian<uint16_t>(7, reinterpret_cast<uchar*>(versionResponse.data() + 2));
         qToBigEndian<uint16_t>(0, reinterpret_cast<uchar*>(versionResponse.data() + 4));
-        firstSession->messenger()->messageReceived(0, 0x0002, versionResponse, 0);
+        firstSession->messenger()->messageReceived(
+            0, 0x0002, versionResponse, 0, oaa::MessageType::Specific);
         QCOMPARE(firstSession->state(), oaa::SessionState::TLSHandshake);
 
         firstSession->messenger()->handshakeComplete();
         QCOMPARE(firstSession->state(), oaa::SessionState::ServiceDiscovery);
-        firstSession->messenger()->messageReceived(0, 0x0005, QByteArray(), 0);
+        firstSession->messenger()->messageReceived(
+            0, 0x0005, QByteArray(), 0, oaa::MessageType::Specific);
         QCOMPARE(firstSession->state(), oaa::SessionState::Active);
         QCOMPARE(orch.connectionState(),
                  static_cast<int>(oap::aa::AndroidAutoOrchestrator::Connected));

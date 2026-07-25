@@ -37,7 +37,7 @@ public:
 signals:
     void messageReceived(uint8_t channelId, uint16_t messageId,
                          const QByteArray& payload, int dataOffset,
-                         oaa::MessageType messageType = oaa::MessageType::Specific);
+                         oaa::MessageType messageType);
     void messageSent(uint8_t channelId, uint16_t messageId,
                      const QByteArray& payload);
     void handshakeComplete();
