@@ -161,8 +161,7 @@ private slots:
                  QStringLiteral("viewportEncodedHeight"),
                  QStringLiteral("viewportContentX"),
                  QStringLiteral("viewportContentY"),
-                 QStringLiteral("viewportContentWidth"),
-                 QStringLiteral("viewportContentHeight")}) {
+                 QStringLiteral("viewportContentWidth")}) {
             QVERIFY2(source.contains(
                          QStringLiteral("AAClusterDisplay.%1").arg(property)),
                      qPrintable(QStringLiteral("Missing geometry property: %1")
@@ -275,6 +274,7 @@ private slots:
         const qreal scale = 400.0 / 300.0;
         QCOMPARE(crop->width(), 400.0);
         QCOMPARE(crop->height(), 400.0);
+        QCOMPARE(crop->height(), crop->width());
         QCOMPARE(crop->x(), 100.0);
         QCOMPARE(crop->y(), 0.0);
         QCOMPARE(video->width(), 800.0 * scale);

@@ -32,10 +32,7 @@ Item {
         id: cropViewport
         objectName: "clusterCropViewport"
         width: Math.min(root.width, root.height)
-        height: AAClusterDisplay.viewportContentWidth > 0
-                ? width * AAClusterDisplay.viewportContentHeight
-                    / AAClusterDisplay.viewportContentWidth
-                : 0
+        height: width
         anchors.centerIn: parent
         clip: true
         visible: root.ownsSink && AAClusterDisplay.rendering
