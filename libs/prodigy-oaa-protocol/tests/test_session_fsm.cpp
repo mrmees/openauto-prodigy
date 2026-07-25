@@ -4,6 +4,7 @@
 #include <oaa/Transport/ReplayTransport.hpp>
 #include <oaa/Session/AASession.hpp>
 #include <oaa/Channel/ChannelId.hpp>
+#include <oaa/Channel/MessageIds.hpp>
 #include <oaa/Channel/IChannelHandler.hpp>
 
 #include "oaa/control/ChannelOpenRequestMessage.pb.h"
@@ -331,7 +332,8 @@ private slots:
         request.set_priority(1);
         QByteArray payload(request.ByteSizeLong(), '\0');
         QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
-        session.messenger()->messageReceived(3, 0x0007, payload, 0);
+        session.messenger()->messageReceived(
+            3, 0x0007, payload, 0, oaa::MessageType::Control);
         transport.clearWritten();
         emit handler.sendRequested(3, 0x1234, QByteArray("fresh"));
         QCOMPARE(transport.writtenData().size(), 1);
@@ -384,7 +386,8 @@ private slots:
         request.set_priority(1);
         QByteArray payload(request.ByteSizeLong(), '\0');
         QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
-        replacementSession.messenger()->messageReceived(3, 0x0007, payload, 0);
+        replacementSession.messenger()->messageReceived(
+            3, 0x0007, payload, 0, oaa::MessageType::Control);
         replacementTransport.clearWritten();
         emit handler.sendRequested(3, 0x1234, QByteArray("replacement"));
 
@@ -712,7 +715,8 @@ private slots:
         request.set_priority(1);
         QByteArray payload(request.ByteSizeLong(), '\0');
         QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
-        emit session.messenger()->messageReceived(3, 0x0007, payload, 0);
+        emit session.messenger()->messageReceived(
+            3, 0x0007, payload, 0, oaa::MessageType::Control);
 
         QCOMPARE(session.state(), oaa::SessionState::Disconnected);
         QCOMPARE(handler.openCount, 0);
@@ -737,7 +741,8 @@ private slots:
             QByteArray payload(request.ByteSizeLong(), '\0');
             QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
             session.messenger()->messageReceived(
-                incomingChannel, 0x0007, payload, 0);
+                incomingChannel, 0x0007, payload, 0,
+                oaa::MessageType::Control);
 
             QCOMPARE(handler.openCount, 1);
             QCOMPARE(transport.writtenData().size(), 1);
@@ -767,7 +772,8 @@ private slots:
                 QByteArray payload(request.ByteSizeLong(), '\0');
                 QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
                 session.messenger()->messageReceived(
-                    incomingChannel, 0x0007, payload, 0);
+                    incomingChannel, 0x0007, payload, 0,
+                    oaa::MessageType::Control);
 
                 QCOMPARE(handler.openCount, 0);
                 QCOMPARE(transport.writtenData().size(), 0);
@@ -794,7 +800,8 @@ private slots:
         request.set_priority(1);
         QByteArray payload(request.ByteSizeLong(), '\0');
         QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
-        session.messenger()->messageReceived(4, 0x0007, payload, 0);
+        session.messenger()->messageReceived(
+            4, 0x0007, payload, 0, oaa::MessageType::Control);
 
         QCOMPARE(videoHandler.openCount, 0);
         QCOMPARE(audioHandler.openCount, 0);
@@ -821,7 +828,8 @@ private slots:
         QSignalSpy closedSpy(&session, &oaa::AASession::channelClosed);
 
         session.messenger()->messageReceived(
-            oaa::ChannelId::ClusterVideo, 0x0007, payload, 0);
+            oaa::ChannelId::ClusterVideo, 0x0007, payload, 0,
+            oaa::MessageType::Control);
         QCOMPARE(handler.openCount, 1);
         QCOMPARE(openedSpy.count(), 1);
 
@@ -834,10 +842,12 @@ private slots:
                  oaa::ChannelId::ClusterVideo);
 
         session.messenger()->messageReceived(
-            oaa::ChannelId::ClusterVideo, 0x0007, payload, 0);
+            oaa::ChannelId::ClusterVideo, 0x0007, payload, 0,
+            oaa::MessageType::Control);
         QCOMPARE(handler.openCount, 2);
         session.messenger()->messageReceived(
-            oaa::ChannelId::ClusterVideo, 0x0007, payload, 0);
+            oaa::ChannelId::ClusterVideo, 0x0007, payload, 0,
+            oaa::MessageType::Control);
         QCOMPARE(handler.closeCount, 2);
         QCOMPARE(handler.openCount, 3);
         QCOMPARE(closedSpy.count(), 2);
@@ -868,9 +878,11 @@ private slots:
             QSignalSpy closedSpy(&session, &oaa::AASession::channelClosed);
 
             session.messenger()->messageReceived(
-                channelId, 0x0007, payload, 0);
+                channelId, 0x0007, payload, 0,
+                oaa::MessageType::Control);
             session.messenger()->messageReceived(
-                channelId, 0x0007, payload, 0);
+                channelId, 0x0007, payload, 0,
+                oaa::MessageType::Control);
 
             QCOMPARE(handler.openCount, 1);
             QCOMPARE(handler.closeCount, 0);
@@ -884,7 +896,13 @@ private slots:
             QCOMPARE(closedSpy.count(), 1);
 
             session.messenger()->messageReceived(
-                channelId, 0x0007, payload, 0);
+                channelId, oaa::AVMessageId::START_INDICATION,
+                QByteArray(), 0, oaa::MessageType::Specific);
+            QCOMPARE(handler.messageCount, 0);
+
+            session.messenger()->messageReceived(
+                channelId, 0x0007, payload, 0,
+                oaa::MessageType::Control);
             QCOMPARE(handler.openCount, 2);
             QCOMPARE(openedSpy.count(), 2);
 
@@ -897,6 +915,13 @@ private slots:
             QCOMPARE(closedSpy.count(), 1);
             QCOMPARE(handler.messageCount, 1);
             QCOMPARE(handler.lastMessageId, uint16_t(0x0009));
+
+            session.messenger()->messageReceived(
+                channelId, 0x0007, QByteArrayLiteral("service payload"), 0,
+                oaa::MessageType::Specific);
+            QCOMPARE(handler.openCount, 2);
+            QCOMPARE(handler.messageCount, 2);
+            QCOMPARE(handler.lastMessageId, uint16_t(0x0007));
         }
     }
 
@@ -918,7 +943,8 @@ private slots:
             QByteArray payload(request.ByteSizeLong(), '\0');
             QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
             session.messenger()->messageReceived(
-                incomingChannel, 0x0007, payload, 0);
+                incomingChannel, 0x0007, payload, 0,
+                oaa::MessageType::Control);
 
             QCOMPARE(rejectedSpy.count(), 1);
             QCOMPARE(rejectedSpy[0][0].toInt(), 9);
@@ -945,7 +971,8 @@ private slots:
         request.set_priority(1);
         QByteArray payload(request.ByteSizeLong(), '\0');
         QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
-        session.messenger()->messageReceived(3, 0x0007, payload, 0);
+        session.messenger()->messageReceived(
+            3, 0x0007, payload, 0, oaa::MessageType::Control);
         QCOMPARE(oldHandler.openCount, 1);
 
         session.registerChannel(3, &replacementHandler);

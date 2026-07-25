@@ -400,7 +400,8 @@ private slots:
             request.set_priority(1);
             QByteArray payload(request.ByteSizeLong(), '\0');
             QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
-            session->messenger()->messageReceived(channelId, 0x0007, payload, 0);
+            session->messenger()->messageReceived(
+                channelId, 0x0007, payload, 0, oaa::MessageType::Control);
         }
         QCOMPARE(openedSpy.count(), 2);
         QCOMPARE(orch.clusterDisplay()->state(),

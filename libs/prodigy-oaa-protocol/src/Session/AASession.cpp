@@ -504,7 +504,8 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
 
     // CHANNEL_OPEN_REQUEST (0x0007) arrives on the TARGET channel, not ch0.
     // Handle it here and respond on the same channel.
-    if (messageId == SessionMessageId::CHANNEL_OPEN_REQUEST) {
+    if (messageId == SessionMessageId::CHANNEL_OPEN_REQUEST
+        && messageType == MessageType::Control) {
         if (state_ != SessionState::Active) return;
 
         proto::messages::ChannelOpenRequest req;
@@ -552,6 +553,12 @@ void AASession::onMessage(uint8_t channelId, uint16_t messageId,
                 emit channelOpenRejected(targetCh);
             }
         }
+        return;
+    }
+
+    if (!openChannels_.contains(channelId)) {
+        qDebug() << "[AASession] Dropping traffic for closed channel"
+                 << channelId << "msgId" << Qt::hex << messageId;
         return;
     }
 
