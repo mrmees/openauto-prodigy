@@ -17,19 +17,25 @@ Task 0 deployed 1.7 → 1.7/MATCH baseline and the corrected request-only
 historical GAL 1.1 wording. The native-turn-card flag is now documented as an
 HU availability declaration only, not a content-selection or rendering claim.
 
-**Status:** documentation candidate is committed for the pre-bench repository
-and ARM gate. The active design/plan remain ACTIVE. The final hidden-UI/
-field-11 hardware matrix has not passed and no feature completion is claimed.
+**Status:** the pre-bench documentation candidate
+`9c0b7ee38a871a94052d3ca4f6a3f9c795d4388e` completed its repository and ARM
+gate. Its ARM artifact was `ALPHA-26-07-24-01-94-g9c0b7ee`, SHA-256
+`9b4fc2d4e559e9c794d87a2287378d7e8930047d07409ede9915f102e5fd5107`.
+The active design/plan remain ACTIVE. The final hidden-UI/field-11 hardware
+matrix has not passed and no feature completion is claimed.
 
-**Verification:** before the candidate commit, `python3
-scripts/check-doc-links.py --scope tracked-live` reported zero broken links and
-`git diff --check` passed. The post-commit native build, explicit app-target,
-offscreen CTest, ARM cross-build, and frozen-proto cleanliness gate are the
-next required evidence.
+**Verification:** the full native build, explicit `openauto-prodigy` target,
+and `QT_QPA_PLATFORM=offscreen ctest --output-on-failure` passed. The fast ARM
+`./cross-build.sh` application build passed; `python3
+scripts/check-doc-links.py --scope tracked-live` reported zero broken links;
+`git diff --check` passed; and the frozen proto worktree was clean at
+`cabe46ec9c5e1628264427aa77d910b1f574bb34`. A first report recorded the
+previous artifact hash from an earlier checkpoint; a later re-hash identified
+the artifact as rebuilt after that gate and corrected the candidate hash above.
 
-**Next 1–3 steps:** (1) run the full repository and ARM gate from the exact
-candidate commit; (2) record its binary version and hash; (3) perform the
-pending field-11 hardware matrix before marking the active work complete.
+**Next 1–3 steps:** (1) complete the pending field-11 hardware matrix; (2)
+retain requested 4.3 as the local policy input while evaluating its evidence;
+(3) do not mark the active work complete before that matrix passes.
 
 ---
 

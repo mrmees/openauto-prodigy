@@ -122,9 +122,10 @@ local input to descriptor and UI-feature policy:
 | 4.3 (lab) | Raw status `MATCH` plus a numerically equal-or-higher reported tuple. | The session bit is clear. | Each selectable MAIN codec configuration gets one `UI_ELEMENT_CLOCK` only when the Navbar clock is enabled. The CLUSTER configuration gets one `UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE` only when `native_turn_card_available` is true. |
 
 The removed session-configuration value 16 is never emitted. Field 11 is
-limited to those two hidden-UI declarations; it does not add
-`AdditionalVideoConfig`, alter display roles, select a turn-card service, or
-change the established video, input, audio, ACK, focus, or touch contracts.
+limited to those two hidden-UI declarations; it does not populate unsupported
+`AdditionalVideoConfig` fields 1–4 or 6–8, alter display roles, select a
+turn-card service, or change the established video, input, audio, ACK, focus,
+or touch contracts.
 
 Version diagnostics retain the complete fixed response prefix: reported major,
 minor, raw 16-bit status, and every byte after that six-byte prefix. A short
