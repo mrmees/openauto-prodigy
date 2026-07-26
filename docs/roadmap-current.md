@@ -19,16 +19,21 @@ spike, or research-first feasibility work.
 
 ## Now
 
-- Android Auto runtime CLUSTER lab — **ACTIVE**. Add process-lifetime Debug
-  Settings and External API controls for 480p/720p carrier resolution, DPI,
-  centered content geometry, and the turn-data capability bit. Valid active
-  changes renegotiate through an AA-only reconnect; MAIN, the default-off
-  policy, and the single-CLUSTER scope remain unchanged. Implementation is
-  locally verified and awaiting the bounded review gate; Pi/phone behavior
-  remains the next live-validation step. Plan:
-  `docs/plans/2026-07-25-aa-runtime-cluster-lab-plan.md`.
+- No promoted work is currently active.
 
 ## Done (recent)
+
+- Android Auto runtime CLUSTER lab — **COMPLETE 2026-07-25** (hardware
+  validation pending). The default-off experiment now accepts process-lifetime
+  480p/720p resolution, DPI, centered content geometry, and the AA 17.3
+  session-wide turn-data bit through Debug Settings or `aa.cluster.*` External
+  API action dispatch. Valid active edits stage one snapshot and renegotiate
+  through an AA-only reconnect; descriptor, decoded-frame validation, and the
+  aspect-aware widget crop activate together. No YAML edit or Prodigy restart
+  is required. MAIN descriptors/decoding/focus/touch and the single-CLUSTER
+  scope remain unchanged. Native tests, compiled QML, and the aarch64 build are
+  green; Pi/phone experiments remain the next validation step. Plan:
+  `docs/archive/plans/2026-07-25-aa-runtime-cluster-lab-plan.md`.
 
 - Android Auto CLUSTER square viewport — **COMPLETE 2026-07-25**
   (Pi/Pixel live-validated). Prodigy retains the protocol-required 800×480

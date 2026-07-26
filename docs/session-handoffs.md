@@ -25,17 +25,19 @@ CLUSTER and avoiding unsupported `ServiceDiscoveryUpdate` behavior. The phone
 still chooses map versus turn card according to navigation availability and
 policy; geometry is not documented as a content selector.
 
-**Status:** implementation and local/ARM verification are complete on `dev`;
-Pi/phone behavior is not yet live-validated. The initial major review used the
-user-authorized Opus fallback after Fable produced no observable progress. It
-reported zero blockers, two majors, and three minors. The rectangular crop
-major was confirmed and fixed with runtime widget coverage. The bit-16
-"unattested" claim was dismissed using pinned AA 17.3 `ity.d`/`xmm` evidence;
-its missing citation, session scope, and stale protocol-submodule enum were
-confirmed and documented. The write-only External API result and Fable
-invocation observability are recorded for follow-up. A question about the
-current bit-16 consumer and stale enum was added to open-android-auto issue #10.
-The single remediation review remains pending.
+**Status:** COMPLETE on local `dev`; Pi/phone behavior is not yet
+live-validated. The initial major review used the user-authorized Opus fallback
+after Fable produced no observable progress. It reported zero blockers, two
+majors, and three minors. All five findings were adjudicated: four were
+confirmed and fixed, and the write-only External API result was confirmed and
+deferred. Within the bit-16 finding, the "unattested" subclaim was dismissed
+using pinned AA 17.3 `ity.d`/`xmm` evidence; the missing citation, session
+scope, and stale protocol-submodule enum were confirmed and documented. A
+question about the current bit-16 consumer and stale enum was added to
+open-android-auto issue #10. The remediation review reported zero blockers,
+zero majors, and one minor; its stale square-crop documentation statement was
+confirmed and fixed. The two-pass gate is exhausted. Fable invocation
+observability remains a recorded tooling follow-up.
 
 **Verification:** focused profile, descriptor, orchestrator, settings, and
 widget tests passed. The native build, explicit `openauto-prodigy` target,
@@ -44,10 +46,10 @@ check, frozen-proto boundary check, `git diff --check`, and
 `./cross-build.sh` passed. The cross-build compiled the updated QML into the
 aarch64 application. No deployment or service restart was performed.
 
-**Next 1–3 steps:** (1) complete the bounded remediation review; (2) deploy the
-new aarch64 binary to the Pi and exercise baseline, full-frame, 720p, and
-turn-data profiles with an active Maps route; (3) use issue #10's Maps/YouTube
-Music findings to scope the subsequent AUXILIARY phase.
+**Next 1–3 steps:** (1) deploy the new aarch64 binary to the Pi and exercise
+baseline, full-frame, 720p, and turn-data profiles with an active Maps route;
+(2) capture the resulting descriptor/frame/log evidence; (3) use issue #10's
+Maps/YouTube Music findings to scope the subsequent AUXILIARY phase.
 
 ---
 

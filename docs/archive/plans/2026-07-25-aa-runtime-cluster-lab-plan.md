@@ -1,6 +1,6 @@
 # Android Auto Runtime CLUSTER Lab Plan
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-25
 
 Grounded on Prodigy `98038cc` and open-android-auto
 `dev/android-auto-17.3-analysis` at `231f932b`.
@@ -105,8 +105,11 @@ or reconnecting. Reset restores the compiled 480p/140-DPI/300x300 baseline.
 - Run the native build, explicit `openauto-prodigy` target,
   `ctest --output-on-failure`, and `./cross-build.sh` because embedded QML and
   the Pi artifact change.
-- Run one major Codex-authored Fable review through `scripts/review-gate.sh` and
-  adjudicate every finding within the repository's two-pass limit.
+- Run one major Codex-authored review through `scripts/review-gate.sh` and
+  adjudicate every finding within the repository's two-pass limit. The Fable
+  attempt did not produce an observable result, so the user-authorized Opus
+  fallback completed both review passes; the invocation issue is recorded for
+  tooling follow-up.
 - Hardware experiments and their observations remain pending until the new Pi
   binary is deployed and a phone session is available.
 

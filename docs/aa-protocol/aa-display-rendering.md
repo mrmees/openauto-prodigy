@@ -110,8 +110,9 @@ its policy consumer to CLUSTER turn cards, so this experimental toggle changes
 the session response rather than a CLUSTER-local protobuf.
 
 The fixed 3×3 dashboard widget uses one `VideoOutput` inside a centered clipped
-square. It uniformly scales and offsets the full decoded carrier so only the
-active content rectangle is visible. This is ordinary texture geometry:
+viewport sized to the active content aspect (a square for the 300×300
+baseline). It uniformly scales and offsets the full decoded carrier so only
+the active content rectangle is visible. This is ordinary texture geometry:
 there is no second decoder, CPU frame crop, shader, enhancement, stretch, or
 nonstandard encoded resolution. The path does not change MAIN projection's
 `PreserveAspectCrop` behavior or generalize display type/configuration beyond
