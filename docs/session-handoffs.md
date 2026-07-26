@@ -425,4 +425,34 @@ place.
 
 ---
 
+## 2026-07-26 — Task 6 final GAL matrix blocked before deployment
+
+**What/why:** The final candidate `46c5be998470188c1ef62ac048db5b831d0d753f`
+was checked for the requested Pi/Pixel display matrix. Its local aarch64
+artifact is `ALPHA-26-07-24-01-95-g46c5be9`, SHA-256
+`9b6ed4e3d65c1dc8ed9d44819734cc80e39eaccb1f853ae24d2c75fa9e61081b`.
+
+**Status:** BLOCKED before deployment. `adb devices -l` returned an empty
+device list, so the required phone logcat/provider evidence and route-active /
+route-inactive screenshots for cases C–E cannot be collected. The task brief
+forbids inferring those results from descriptors or Pi logs. No Pi artifact,
+configuration, rollback snapshot, source, or earlier capture was changed.
+
+**Current safe state:** The Pi remains on the known-good checkpoint binary
+`df2b6b475be4d9ddc99ba1e6e7773a279dcbb37351e7fcf412b3bb6e3d6071c1`
+with config `afd7f1a8cdb1bd2e067563bf16361965a59b841ad767edd05fea9b5f024985a7`;
+`openauto-prodigy.service` is active/running with `MainPID=78782`,
+`NRestarts=0`, exact executable
+`/home/matt/openauto-prodigy/build/src/openauto-prodigy`, and startup GAL 1.7.
+The Task 6 report is in the plan workspace.
+
+**Verification:** `python3 scripts/check-doc-links.py --scope tracked-live`
+and `git diff --check` are required for this docs-only blocker record.
+
+**Next 1–3 steps:** (1) reconnect/authorize the Pixel in ADB; (2) rerun the
+full Task 6 A/C/D/E matrix with phone logcat, route transitions, and
+screenshots; (3) only then create the guarded candidate deployment snapshot.
+
+---
+
 Older entries are archived under `docs/archive/session-handoffs/`.
