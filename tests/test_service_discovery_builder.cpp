@@ -407,6 +407,9 @@ private slots:
         QCOMPARE(clusterVideo.channel_id(), 1u);
         QCOMPARE(clusterVideo.display_type(),
                  oaa::proto::enums::DisplayType::AUXILIARY);
+        QVERIFY(clusterVideo.has_keycode());
+        QCOMPARE(clusterVideo.keycode(),
+                 oaa::proto::enums::AndroidKeycode::KEYCODE_TURN_CARD);
         QCOMPARE(clusterVideo.video_configs_size(), 1);
         const auto& videoConfig = clusterVideo.video_configs(0);
         QCOMPARE(videoConfig.video_resolution(),
