@@ -256,28 +256,35 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir ~/builds/openauto-prodigy \
    - 1.7 + navbar off: session mask zero, no additional config;
    - invalid 1.7 + native turn card true: profile rejected before build;
    - 4.3 + navbar on: session mask zero and `UI_ELEMENT_CLOCK` exactly once on
-     every MAIN video config;
+     every MAIN video config, with field-1 per-edge insets mirroring that
+     config's unchanged legacy total margins;
    - 4.3 + navbar off: no MAIN clock declaration;
    - 4.3 + native turn card false: CLUSTER field 11 absent unless another
      separately supported CLUSTER feature requires it;
    - 4.3 + native turn card true: CLUSTER field 11 contains exactly
-     `UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE`;
-   - no case populates AdditionalVideoConfig fields 1-4 or 6-8.
+     `UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE`, with field-1 insets mirroring
+     its unchanged legacy totals;
+   - fields 2-4 and 6-8 remain absent in every case.
 3. Add a small builder helper that appends hidden elements to an individual
-   `VideoConfig`. It must create `additional_config` lazily and deduplicate
-   enum values. Do not create an empty field-11 submessage.
+   `VideoConfig`. It must create `additional_config` lazily, copy the legacy
+   totals into explicit per-edge field-1 values (`left=floor(width/2)`, right
+   gets the remainder, and likewise for top/bottom), and deduplicate enum
+   values. Do not create an empty or inset-only field-11 submessage.
 4. Apply the MAIN clock element inside the codec loop so every selectable MAIN
    configuration has identical UI policy. Leave existing margin, DPI,
    resolution, FPS, and codec fields untouched.
 5. Apply the native-turn-card element only to the CLUSTER video config and only
    at requested GAL 4.3 with the explicit lab flag true. Do not set AV field 8.
 6. Assert the legacy MAIN-only golden bytes and the 1.7 CLUSTER descriptors
-   remain unchanged. For 4.3, assert that removing field 11 from the serialized
-   message yields the same base `VideoConfig` fields and margins.
+   remain unchanged. For 4.3, assert that clearing `additional_config` from the
+   serialized message yields the same base `VideoConfig` fields and margins.
+   Lock the live MAIN totals `0x58` to top/bottom 29 and left/right 0, and the
+   native-true CLUSTER totals 500x180 to left/right 250 and top/bottom 90.
 7. Update profile diagnostics to show requested GAL and the honest native
    turn-card declaration state.
 
 **Acceptance:** field 11 is absent on every 1.7 path, correctly scoped on 4.3,
+every created field 11 has the margin-preserving field-1 companion insets,
 legacy bit 16 is gone, and descriptor geometry/roles remain unchanged.
 
 ## Task 4 — Update Debug Settings and action adapters
@@ -388,6 +395,31 @@ review have not yet been claimed.
 descriptor effects, 1.7 rollback is proven, no unsupported native-turn-card
 claim remains enabled, and the accepted Pi state is explicitly recorded.
 
+**Executed evidence (2026-07-26):** Task 0 at repository HEAD `ba63f9fa` proved
+the 1.7 baseline on deployed executable SHA-256 `6a8a6573…`. The request-only
+`9501bbef` artifact (`ALPHA-26-07-24-01-91-g9501bbe`, SHA-256 `df2b6b47…`)
+proved 4.3 → 6.0/MATCH before modern metadata. Candidate `46c5be9`
+(`ALPHA-26-07-24-01-95-g46c5be9`, SHA-256 `9b6ed4e3…`) exposed a hidden-only
+field-11 MAIN regression with bottom chrome at y=489..599. Remediation
+`d06fa40a2d9141f4a62155ce75e3bb3d2d2550f3` added only the required field-1
+companion insets and passed the full A/C/D/E rerun. MAIN 4.3/native false and
+true restored the 1.7 Navbar boundary at y=541..599 with side phone chrome.
+CLUSTER native false, true, and restored false had identical 364x364 dashboard
+crop geometry; the false banner was present, the true enum-5 banner was absent,
+and the restored-false banner returned with field 11 absent. The Pi was left
+healthy on `ALPHA-26-07-24-01-97-gd06fa40`, SHA-256
+`4b73d69a40f7e5be4701f1775af53a11fa1d3a7863cb0ddb3d379afad0fded48`,
+GAL 4.3/native false, unchanged config SHA-256
+`afd7f1a8cdb1bd2e067563bf16361965a59b841ad767edd05fea9b5f024985a7`.
+Rollback is
+`/var/backups/openauto-prodigy/20260726T185152Z-pre-companion-inset`.
+Capture roots are `gal-4-3-captures-2026-07-26`,
+`gal-4-3-remediation-captures-2026-07-26`,
+`gal-final-matrix-captures-2026-07-26`, and
+`gal-companion-inset-remediation-captures-2026-07-26` beside the repository.
+ADB/logcat was unavailable for the final run; this is an evidence-source
+limitation, not an unresolved defect.
+
 ## Task 7 — Final record, verification, bounded review, and archival
 
 **Files:**
@@ -396,31 +428,36 @@ claim remains enabled, and the accepted Pi state is explicitly recorded.
 - Modify or clear applicable entries: `docs/validation-current.md`
 - Modify: `docs/roadmap-current.md`
 - Modify: `docs/INDEX.md`
-- Complete and move this design and plan to `docs/archive/plans/` in the same
-  commit
+- Complete and move this design and plan to `docs/archive/plans/` in the final
+  Task 7C commit
 
-1. Append the final handoff with the Task 0, request-only checkpoint, and final
-   matrix evidence; exact SHAs/hashes; commands; accepted Pi state; rollback
-   location; and remaining material risks.
-2. Run the complete required repository gate from Task 5 again on the exact
-   post-bench documentation tree. The accepted hardware results satisfy the
-   live portion of the gate.
-3. Run one Codex-authored major review through the repository review gate using
+1. **Task 7A — final evidence and exact post-bench gate.** Correct every live
+   document to the field-1 companion-inset contract, append the final handoff
+   with the full hardware chain, clear resolved validation observations, and
+   rotate the 2026-07-25 handoffs. Commit that documentation coherently, then
+   run the complete Task 5 repository/ARM gate on that exact committed HEAD.
+   Keep this design/plan ACTIVE and the roadmap review-pending.
+2. **Task 7B — bounded review.** Run one Codex-authored major review through
+   the repository review gate using
    Fable. Adjudicate every finding under the two-pass limit and record
    confirmed/dismissed/deferred counts. Do not start another independent
    reviewer.
-4. For confirmed review fixes, re-run the affected automated gates and repeat
+3. For confirmed review fixes, re-run the affected automated gates and repeat
    any live matrix case whose production behavior or deployed artifact changed.
    A documentation-only review fix does not require another application build
    or deployment.
-5. After the exact final tree and any required live reruns are green, mark the
+4. **Task 7C — completion and archival.** After the exact final tree and any
+   required live reruns are green, mark the
    design and plan `COMPLETED <date>`, move both to `docs/archive/plans/`, move
    the roadmap item from Now to Done, and update the index. Do not archive while
    a required hardware case or supported-production blocker remains open.
 
+**Current status:** Task 7A is the documentation/gate step. The bounded major
+review and Task 7C archival remain pending, so both artifacts stay ACTIVE.
+
 **Acceptance:** fresh evidence covers the exact final tree, the bounded review
-has no supported-production blocker, all findings are recorded, and the plan
-artifacts are completed and archived consistently.
+has no supported-production blocker, all findings are recorded, and Task 7C
+completes and archives the plan artifacts consistently.
 
 ## Final Definition of Done
 

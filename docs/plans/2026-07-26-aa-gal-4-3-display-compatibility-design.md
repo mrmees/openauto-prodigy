@@ -111,6 +111,7 @@ sessions or introduce a third display.
 | `AVChannel.keycode` field 8 | initial AUXILIARY selector; omitted for CLUSTER |
 | `InputChannelConfig.display_id` field 5 | matching logical display ID |
 | `VideoConfig.additional_config` field 11 | per-video modern display/UI metadata |
+| `AdditionalVideoConfig.display_insets` field 1 | companion per-edge copy of the unchanged legacy total margins whenever this phase creates field 11 |
 | `AdditionalVideoConfig.hidden_ui_elements` field 5 | HU-provided native UI declarations at requested GAL 4.3+ |
 | `ServiceDiscoveryResponse.session_configuration` field 13 | legacy session flags used below GAL 4.3 |
 
@@ -135,7 +136,9 @@ wire numbers:
 - `KEYCODE_NAVIGATION` value 65538 becomes available beside
   `KEYCODE_TURN_CARD` value 65544, but neither is used by this phase.
 - Additional-video fields 1-3 are corrected to inset-shaped messages and field
-  8 adds blended-UI configuration. This phase sets none of those fields.
+  8 adds blended-UI configuration. This phase uses only field 1 as the
+  companion inset declaration described below; fields 2-4 and 6-8 remain
+  absent.
 - The generated AV message-ID map corrects the modern IDs. Prodigy's manual
   `MessageIds.hpp` must be reconciled before any 4.3 live run so incoming
   messages are not dispatched under stale shifted names.
@@ -227,15 +230,29 @@ video configuration:
 
 | Prodigy behavior | Descriptor output |
 |---|---|
-| Navbar shown during AA, so Prodigy supplies a clock | Add `UI_ELEMENT_CLOCK` to every MAIN `VideoConfig.additional_config.hidden_ui_elements` |
+| Navbar shown during AA, so Prodigy supplies a clock | On every MAIN codec config, retain the legacy total margins and add field-1 per-edge insets plus `UI_ELEMENT_CLOCK` in field 11 |
 | Navbar hidden during AA | Do not advertise `UI_ELEMENT_CLOCK` |
 | CLUSTER lab native-turn-card toggle false | Do not create a CLUSTER additional config solely for this feature |
-| CLUSTER lab native-turn-card toggle true | Add `UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE` to the one CLUSTER video config |
+| CLUSTER lab native-turn-card toggle true | Retain the legacy total margins and add field-1 per-edge insets plus `UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE` to the one CLUSTER video config |
 
 The 4.3 path sets legacy `session_configuration` to zero for these UI features.
-It never sets AdditionalVideoConfig fields 1-4 or 6-8. In particular, it does
-not populate the corrected inset fields and does not duplicate the legacy
-margin values inside field 11.
+Whenever this phase creates field 11, `display_insets` must accompany it and
+mirror, not replace, the unchanged legacy totals:
+
+```text
+left = floor(margin_width / 2)
+right = margin_width - left
+top = floor(margin_height / 2)
+bottom = margin_height - top
+```
+
+All four edges are explicit, including zero-valued edges. The live 480p MAIN
+shape therefore retains total margins `0x58` and carries top/bottom 29,
+left/right 0, plus `UI_ELEMENT_CLOCK`. The native-true 800x480/300x300 CLUSTER
+shape retains totals 500x180 and carries left/right 250, top/bottom 90, plus
+enum 5. AdditionalVideoConfig fields 2-4 and 6-8 remain absent. Field-11-absent
+GAL 1.7, navbar-off, and CLUSTER-native-false paths remain unchanged and do not
+create an inset-only submessage.
 
 Every MAIN codec configuration gets the same clock declaration. Otherwise a
 phone codec choice could also change UI behavior.
@@ -255,6 +272,13 @@ Adding field 11 must not alter the existing legacy margin fields on the same
 `VideoConfig`. The final tree must prove both structurally and on hardware that
 the 300x300 CLUSTER content rectangle still arrives centered inside its
 800x480 carrier and that MAIN navbar-aware margins remain unchanged.
+
+The live failure made the companion relationship observable. AA chooses side
+versus bottom phone chrome from the usable aspect ratio. The initial 4.3
+hidden-element-only descriptor left bottom chrome at y=489..599. Mirroring the
+same legacy margins into field-1 `display_insets` restored side chrome and the
+exact 1.7 Navbar boundary at y=541..599. Field 1 accompanies the legacy margin
+fields; it does not supersede them.
 
 The experiment does not change:
 
@@ -330,6 +354,53 @@ Cases F (AUXILIARY/NAVIGATION) and G (three simultaneous displays) are not part
 of this plan. Their presence in a future capture matrix requires separate
 promotion after this compatibility layer is accepted.
 
+## Validated Hardware Record
+
+The complete staged chain is preserved rather than collapsing the result into
+one final screenshot:
+
+- Task 0 at repository HEAD
+  `ba63f9faf9bed0455c875bd0f0c20273429e339a` captured the deployed GAL 1.7
+  request and 1.7/MATCH response with the established MAIN+CLUSTER session
+  healthy. The deployed executable SHA-256 was
+  `6a8a6573ba72b366b87234b5a6e692c61ba3df4b6c77f606dc6fa72abd637e6e`.
+- The request-only checkpoint at `9501bbef239f86301536c7445e090a34f2c77203`
+  captured request 4.3, response 6.0/MATCH, and the unchanged media path before
+  any modern descriptor output. Its artifact was
+  `ALPHA-26-07-24-01-91-g9501bbe`, SHA-256
+  `df2b6b475be4d9ddc99ba1e6e7773a279dcbb37351e7fcf412b3bb6e3d6071c1`.
+- Candidate `46c5be998470188c1ef62ac048db5b831d0d753f` exposed the modern
+  descriptor regression: hidden-only field 11 selected bottom phone chrome and
+  left a black run at y=489..599. Its artifact was
+  `ALPHA-26-07-24-01-95-g46c5be9`, SHA-256
+  `9b6ed4e3d65c1dc8ed9d44819734cc80e39eaccb1f853ae24d2c75fa9e61081b`.
+- Remediation `d06fa40a2d9141f4a62155ce75e3bb3d2d2550f3` paired each created
+  field 11 with field-1 companion insets. Fresh A/C/D/E reruns restored the
+  1.7-equivalent MAIN chrome boundary at y=541..599 and kept side phone chrome.
+  CLUSTER native false, true, and restored false each produced the identical
+  364x364 dashboard crop at x=23..386/y=27..390 from the 800x480 carrier and
+  centered 300x300 content. False showed the phone-rendered maneuver banner,
+  true omitted it with enum 5 present, and restored false showed it again with
+  field 11 absent.
+
+The Pi remains healthy on `ALPHA-26-07-24-01-97-gd06fa40`, executable SHA-256
+`4b73d69a40f7e5be4701f1775af53a11fa1d3a7863cb0ddb3d379afad0fded48`,
+GAL 4.3/native false, with unchanged configuration SHA-256
+`afd7f1a8cdb1bd2e067563bf16361965a59b841ad767edd05fea9b5f024985a7`.
+The preserved rollback snapshot is
+`/var/backups/openauto-prodigy/20260726T185152Z-pre-companion-inset`.
+Captures are outside tracked source under
+`E:\claude\personal\openautopro\gal-4-3-captures-2026-07-26`,
+`E:\claude\personal\openautopro\gal-4-3-remediation-captures-2026-07-26`,
+`E:\claude\personal\openautopro\gal-final-matrix-captures-2026-07-26`,
+`E:\claude\personal\openautopro\gal-companion-inset-remediation-captures-2026-07-26`,
+with manifests in the matrix/remediation roots.
+
+ADB/logcat was unavailable for the final rerun. That is an explicit
+evidence-source limitation, not an unresolved defect: the accepted result is
+supported by raw version capture, descriptor goldens, Pi lifecycle/ACK and
+resource logs, and direct MAIN and CLUSTER screenshots.
+
 ## Failure and Rollback Semantics
 
 - Baseline request is not 1.7: preserve the raw capture, correct the baseline
@@ -363,7 +434,8 @@ promotion after this compatibility layer is accepted.
 - A native semantic navigation/turn-card widget.
 - Provider forcing, live descriptor replacement, or
   `ServiceDiscoveryUpdate` use.
-- Overlay, blended UI, inset, resize-action, theme, or UI-config protocol work.
+- Overlay, blended UI, inset policy beyond the required field-1 companion copy,
+  resize-action, theme, or UI-config protocol work.
 - Any edit within `libs/prodigy-oaa-protocol/proto/` beyond advancing its
   gitlink to the audited upstream commit.
 - Any change to frozen `proto/api/` or new External API capability.
@@ -383,9 +455,11 @@ promotion after this compatibility layer is accepted.
 - The handshake-only 4.3 checkpoint sustains existing MAIN+CLUSTER media before
   field 11 is enabled.
 - GAL 4.3 clock metadata appears on every MAIN video config exactly when the
-  navbar supplies a clock.
+  navbar supplies a clock, accompanied by field-1 insets mirroring the legacy
+  total margins.
 - The CLUSTER native-turn-card metadata is absent by default and appears only
-  under the explicit 4.3 lab toggle.
+  under the explicit 4.3 lab toggle, accompanied by the same margin-preserving
+  field-1 contract.
 - No 1.7 descriptor contains `additional_config`; no path emits the disproven
   session bit 16.
 - MAIN margins/touch and the CLUSTER 800x480 carrier/300x300 centered content

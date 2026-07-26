@@ -24,12 +24,18 @@ spike, or research-first feasibility work.
   MATCH phone response reporting 4.3 or higher, while keeping requested 4.3 as
   the sole input to local feature policy. Task 0 captured the deployed 1.7 →
   1.7/MATCH baseline with healthy MAIN+CLUSTER media; the corrected request-only
-  checkpoint captured 4.3 → 6.0/MATCH and continued the same path. The current
-  implementation gates per-video MAIN clock metadata and the lab-only CLUSTER
-  native-turn-card availability declaration on the requested 4.3 profile, but
-  the final hidden-UI/field-11 hardware matrix remains pending. GAL 5.x/6.x,
-  AUXILIARY, third-display, and native semantic turn-card work remain out of
-  scope. Design and plan:
+  checkpoint captured 4.3 → 6.0/MATCH and continued the same path. The initial
+  hidden-only field-11 candidate selected bottom phone chrome and failed the
+  Navbar composition check. Remediation `d06fa40` now pairs every created field
+  11 with field-1 insets mirroring the unchanged legacy margins. The full
+  A/C/D/E rerun restored the exact 1.7 MAIN Navbar boundary and proved identical
+  false/true/restored-false CLUSTER crop geometry, with the phone maneuver
+  banner present/absent/present as enum 5 was absent/present/absent. The Pi is
+  healthy on GAL 4.3/native false. Hardware validation is complete; the exact
+  post-bench repository/ARM gate and one bounded major review remain before
+  completion and archival. ADB/logcat unavailability is recorded as an evidence
+  limitation, not an unresolved defect. GAL 5.x/6.x, AUXILIARY, third-display,
+  and native semantic turn-card work remain out of scope. Design and plan:
   `docs/plans/2026-07-26-aa-gal-4-3-display-compatibility-design.md` and
   `docs/plans/2026-07-26-aa-gal-4-3-display-compatibility-plan.md`.
 

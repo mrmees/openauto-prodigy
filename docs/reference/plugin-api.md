@@ -272,11 +272,13 @@ GAL 1.7 is the default profile and requires only a MATCH response status. The
 default-off GAL 4.3 profile requires MATCH plus a numerically equal-or-higher
 reported tuple; the observed request 4.3 → response 6.0/MATCH is accepted.
 The requested tuple remains the only local feature-policy input. On 4.3, the
-native-turn declaration writes only the CLUSTER `VideoConfig` field-11 hidden
-UI availability element; it neither renders a native turn card nor selects
-phone content. It is false for 1.7. The former session-configuration value-16
-`turn_data_available` control is removed because AA 17.3 had no consumer for
-that bit.
+native-turn declaration writes the CLUSTER `VideoConfig` field-11 hidden UI
+availability element plus field-1 companion insets that mirror the unchanged
+legacy total margins. The default 300x300 CLUSTER uses left/right 250 and
+top/bottom 90 plus enum 5. It neither renders a native turn card nor selects
+phone content. It is false for 1.7; native false leaves field 11 absent. The
+former session-configuration value-16 `turn_data_available` control is removed
+because AA 17.3 had no consumer for that bit.
 
 Additional internal actions exist for navbar gesture routing (`navbar.volume.*`, `navbar.clock.*`, `navbar.brightness.*`, `app.minimize`, `app.restart`) but are not part of the plugin API.
 

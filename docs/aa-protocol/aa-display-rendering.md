@@ -119,13 +119,21 @@ local input to descriptor and UI-feature policy:
 | Requested GAL | Version-response admission | Session clock | `VideoConfig` field 11 |
 |---|---|---|---|
 | 1.7 (default) | Raw status `MATCH` is sufficient; the reported tuple is legacy status-only. | Existing navbar clock bit is set only when the Navbar clock is enabled. | Absent from every MAIN and CLUSTER configuration. Native-turn-card true is rejected. |
-| 4.3 (lab) | Raw status `MATCH` plus a numerically equal-or-higher reported tuple. | The session bit is clear. | Each selectable MAIN codec configuration gets one `UI_ELEMENT_CLOCK` only when the Navbar clock is enabled. The CLUSTER configuration gets one `UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE` only when `native_turn_card_available` is true. |
+| 4.3 (lab) | Raw status `MATCH` plus a numerically equal-or-higher reported tuple. | The session bit is clear. | Each selectable MAIN codec configuration gets field-1 companion insets plus one `UI_ELEMENT_CLOCK` only when the Navbar clock is enabled. The CLUSTER configuration gets field-1 companion insets plus one `UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE` only when `native_turn_card_available` is true. |
 
 The removed session-configuration value 16 is never emitted. Field 11 is
-limited to those two hidden-UI declarations; it does not populate unsupported
-`AdditionalVideoConfig` fields 1–4 or 6–8, alter display roles, select a
-turn-card service, or change the established video, input, audio, ACK, focus,
-or touch contracts.
+limited to those two hidden-UI declarations and their required field-1
+`display_insets`. Whenever field 11 is created, field 1 mirrors rather than
+replaces the unchanged legacy total margins: left is
+`floor(margin_width / 2)`, right gets the remainder, and top/bottom split
+`margin_height` the same way. All four edges are explicit. The live 480p MAIN
+descriptor therefore keeps total margins `0x58` and carries top/bottom 29,
+left/right 0, plus CLOCK. Native-true CLUSTER keeps totals 500x180 and carries
+left/right 250, top/bottom 90, plus enum 5. Fields 2–4 and 6–8 remain absent.
+GAL 1.7, Navbar-off, and native-false CLUSTER paths remain field-11-free; no
+inset-only submessage is created. This policy does not alter display roles,
+select a turn-card service, or change the established video, input, audio,
+ACK, focus, or touch contracts.
 
 Version diagnostics retain the complete fixed response prefix: reported major,
 minor, raw 16-bit status, and every byte after that six-byte prefix. A short
@@ -136,11 +144,45 @@ bounded opaque-byte prefix; trailing bytes are non-fatal.
 
 Task 0's deployed Pi/Pixel baseline captured request `1.7`, response
 `1.7/MATCH`, no trailing bytes, and healthy simultaneous MAIN+CLUSTER media.
-The corrected request-only checkpoint then captured requested `4.3` with the
-same Pixel reporting `6.0/MATCH`; that compatible response proceeded through
-the established projection path, while requested `4.3` remained authoritative
-locally. This is request/response and media evidence only. The final
-field-11/hidden-UI hardware matrix has not yet passed and is not implied here.
+The corrected request-only checkpoint at `9501bbef` then captured requested
+`4.3` with the same Pixel reporting `6.0/MATCH`; that compatible response
+proceeded through the established projection path before any modern descriptor
+output, while requested `4.3` remained authoritative locally.
+
+The first complete field-11 candidate, `46c5be9`, exposed the disproven
+hidden-only assumption. AA chooses side versus bottom phone chrome from the
+usable aspect ratio. With field 11 but no companion insets, the capture had
+bottom chrome at y=489..599 and no left phone chrome. Remediation `d06fa40`
+kept the legacy margins and copied them into field 1 whenever field 11 existed.
+Fresh 1.7 and 4.3/native-false captures then matched exactly: side phone chrome
+was present and the Prodigy Navbar occupied y=541..599. Native true retained
+the same corrected MAIN composition. Field 1 accompanies the legacy margin
+fields; it does not replace them.
+
+The independent dashboard closure directly observed the CLUSTER surface. The
+false, true, and restored-false runs each decoded the 800x480 carrier and
+rendered the centered 300x300 content window into the identical 364x364 crop
+at x=23..386/y=27..390. Native false showed the phone-rendered maneuver banner;
+native true omitted it with enum 5 present; restored false brought it back with
+field 11 absent. Normal CLUSTER ACK cadence continued throughout.
+
+The final Pi state is service healthy on
+`ALPHA-26-07-24-01-97-gd06fa40`, source
+`d06fa40a2d9141f4a62155ce75e3bb3d2d2550f3`, executable SHA-256
+`4b73d69a40f7e5be4701f1775af53a11fa1d3a7863cb0ddb3d379afad0fded48`,
+GAL 4.3/native false. Configuration remained unchanged at SHA-256
+`afd7f1a8cdb1bd2e067563bf16361965a59b841ad767edd05fea9b5f024985a7`;
+rollback is
+`/var/backups/openauto-prodigy/20260726T185152Z-pre-companion-inset`.
+Evidence is retained outside tracked source in
+`gal-4-3-captures-2026-07-26`,
+`gal-4-3-remediation-captures-2026-07-26`,
+`gal-final-matrix-captures-2026-07-26`,
+and `gal-companion-inset-remediation-captures-2026-07-26` beside the repository.
+The Pi had no ADB/logcat source for the final rerun. That is an explicit
+evidence limitation, not an unresolved display defect; the result rests on raw
+version capture, exact descriptor goldens, Pi lifecycle/ACK/resource evidence,
+and direct MAIN and CLUSTER screenshots.
 
 The fixed 3×3 dashboard widget uses one `VideoOutput` inside a centered clipped
 viewport sized to the active content aspect (a square for the 300×300
