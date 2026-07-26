@@ -74,20 +74,29 @@ bool navbarShownDuringAa(oap::YamlConfig* yamlConfig)
     return configured.isNull() || configured.toBool();
 }
 
-void appendHiddenUiElement(
+void appendHiddenUiElementWithInsets(
     oaa::proto::data::VideoConfig* videoConfig,
-    oaa::proto::data::UIElement element)
+    oaa::proto::data::UIElement element,
+    uint32_t marginWidth,
+    uint32_t marginHeight)
 {
     if (!videoConfig)
         return;
-    if (videoConfig->has_additional_config()) {
-        for (const auto existing
-             : videoConfig->additional_config().hidden_ui_elements()) {
-            if (existing == element)
-                return;
-        }
+
+    auto* additional = videoConfig->mutable_additional_config();
+    auto* insets = additional->mutable_display_insets();
+    const uint32_t left = marginWidth / 2;
+    const uint32_t top = marginHeight / 2;
+    insets->set_left(left);
+    insets->set_right(marginWidth - left);
+    insets->set_top(top);
+    insets->set_bottom(marginHeight - top);
+
+    for (const auto existing : additional->hidden_ui_elements()) {
+        if (existing == element)
+            return;
     }
-    videoConfig->mutable_additional_config()->add_hidden_ui_elements(element);
+    additional->add_hidden_ui_elements(element);
 }
 
 } // namespace
@@ -329,8 +338,11 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
         cfg->set_codec(it.value());
         if (projectedClusterConfig_.profile.galVersion == kGalVersion4_3
             && navbarShownDuringAa(yamlConfig_)) {
-            appendHiddenUiElement(
-                cfg, oaa::proto::data::UI_ELEMENT_CLOCK);
+            appendHiddenUiElementWithInsets(
+                cfg,
+                oaa::proto::data::UI_ELEMENT_CLOCK,
+                static_cast<uint32_t>(mW),
+                static_cast<uint32_t>(mH));
         }
         qCInfo(lcAA) << "config[" << configIdx++ << "]:"
                 << chosen.label << codecName << "margins:" << mW << "x" << mH;
@@ -368,9 +380,11 @@ QByteArray ServiceDiscoveryBuilder::buildClusterVideoDescriptor() const
         oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
     if (profile.galVersion == kGalVersion4_3
         && profile.nativeTurnCardAvailable) {
-        appendHiddenUiElement(
+        appendHiddenUiElementWithInsets(
             config,
-            oaa::proto::data::UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE);
+            oaa::proto::data::UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE,
+            static_cast<uint32_t>(geometry.marginWidth()),
+            static_cast<uint32_t>(geometry.marginHeight()));
     }
 
     QByteArray data(desc.ByteSizeLong(), '\0');

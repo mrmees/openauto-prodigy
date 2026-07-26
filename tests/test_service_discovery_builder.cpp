@@ -48,10 +48,23 @@ QList<uint8_t> channelIds(const oaa::SessionConfig& config)
     return ids;
 }
 
-void verifyNoUnsupportedAdditionalFields(
-    const oaa::proto::data::AdditionalVideoConfig& additional)
+void verifyCompanionInsets(
+    const oaa::proto::data::AdditionalVideoConfig& additional,
+    uint32_t marginWidth,
+    uint32_t marginHeight)
 {
-    QVERIFY(!additional.has_display_insets());
+    QVERIFY(additional.has_display_insets());
+    const auto& insets = additional.display_insets();
+    QVERIFY(insets.has_top());
+    QVERIFY(insets.has_bottom());
+    QVERIFY(insets.has_left());
+    QVERIFY(insets.has_right());
+    QCOMPARE(insets.left(), marginWidth / 2);
+    QCOMPARE(insets.right(), marginWidth - marginWidth / 2);
+    QCOMPARE(insets.top(), marginHeight / 2);
+    QCOMPARE(insets.bottom(), marginHeight - marginHeight / 2);
+    QCOMPARE(insets.left() + insets.right(), marginWidth);
+    QCOMPARE(insets.top() + insets.bottom(), marginHeight);
     QVERIFY(!additional.has_field_2_insets());
     QVERIFY(!additional.has_field_3_insets());
     QVERIFY(!additional.has_ui_theme());
@@ -433,7 +446,8 @@ private slots:
             if (!video.has_additional_config())
                 continue;
             const auto& additional = video.additional_config();
-            verifyNoUnsupportedAdditionalFields(additional);
+            verifyCompanionInsets(
+                additional, video.margin_width(), video.margin_height());
             QCOMPARE(additional.hidden_ui_elements_size(), 1);
             QCOMPARE(static_cast<int>(additional.hidden_ui_elements(0)),
                      expectedMainElement);
@@ -446,7 +460,8 @@ private slots:
         QCOMPARE(video.has_additional_config(), expectedClusterElement >= 0);
         if (video.has_additional_config()) {
             const auto& additional = video.additional_config();
-            verifyNoUnsupportedAdditionalFields(additional);
+            verifyCompanionInsets(
+                additional, video.margin_width(), video.margin_height());
             QCOMPARE(additional.hidden_ui_elements_size(), 1);
             QCOMPARE(static_cast<int>(additional.hidden_ui_elements(0)),
                      expectedClusterElement);
@@ -583,7 +598,12 @@ private slots:
         QCOMPARE(config.sessionConfiguration & 16, 0);
         QVERIFY(videoConfig.has_additional_config());
         const auto& additional = videoConfig.additional_config();
-        verifyNoUnsupportedAdditionalFields(additional);
+        verifyCompanionInsets(
+            additional, videoConfig.margin_width(), videoConfig.margin_height());
+        QCOMPARE(additional.display_insets().left(), 340u);
+        QCOMPARE(additional.display_insets().right(), 340u);
+        QCOMPARE(additional.display_insets().top(), 160u);
+        QCOMPARE(additional.display_insets().bottom(), 160u);
         QCOMPARE(additional.hidden_ui_elements_size(), 1);
         QCOMPARE(additional.hidden_ui_elements(0),
                  oaa::proto::data::UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE);
@@ -591,11 +611,14 @@ private slots:
 
     void gal43AdditionalConfigPreservesBaseVideoConfigBytes() {
         oap::YamlConfig yaml;
+        yaml.setVideoResolution(QStringLiteral("480p"));
         yaml.setValueByPath("navbar.show_during_aa", true);
 
         oap::aa::ProjectedClusterConfig legacyCluster;
         legacyCluster.enabled = true;
         oap::aa::ServiceDiscoveryBuilder legacyBuilder(&yaml);
+        legacyBuilder.setDisplayDimensions(1024, 600);
+        legacyBuilder.setNavbarThickness(60);
         legacyBuilder.setProjectedClusterConfig(legacyCluster);
         const auto legacy = legacyBuilder.build();
 
@@ -603,6 +626,8 @@ private slots:
         modernCluster.profile.galVersion = oap::aa::kGalVersion4_3;
         modernCluster.profile.nativeTurnCardAvailable = true;
         oap::aa::ServiceDiscoveryBuilder modernBuilder(&yaml);
+        modernBuilder.setDisplayDimensions(1024, 600);
+        modernBuilder.setNavbarThickness(60);
         modernBuilder.setProjectedClusterConfig(modernCluster);
         const auto modern = modernBuilder.build();
 
@@ -610,23 +635,76 @@ private slots:
         const auto modernMain = descriptorById(modern, 3).av_channel();
         QCOMPARE(modernMain.video_configs_size(), legacyMain.video_configs_size());
         for (int i = 0; i < legacyMain.video_configs_size(); ++i) {
+            const auto& modernVideo = modernMain.video_configs(i);
+            QCOMPARE(modernVideo.margin_width(), 0u);
+            QCOMPARE(modernVideo.margin_height(), 58u);
+            QVERIFY(modernVideo.has_additional_config());
+            verifyCompanionInsets(
+                modernVideo.additional_config(), 0u, 58u);
+            QCOMPARE(modernVideo.additional_config().display_insets().top(), 29u);
+            QCOMPARE(modernVideo.additional_config().display_insets().bottom(), 29u);
             QCOMPARE(baseVideoConfigBytes(modernMain.video_configs(i)),
                      baseVideoConfigBytes(legacyMain.video_configs(i)));
         }
 
         const auto legacyClusterVideo = descriptorById(legacy, 12).av_channel();
         const auto modernClusterVideo = descriptorById(modern, 12).av_channel();
+        const auto& modernClusterConfig = modernClusterVideo.video_configs(0);
+        QVERIFY(modernClusterConfig.has_additional_config());
+        verifyCompanionInsets(
+            modernClusterConfig.additional_config(), 500u, 180u);
+        QCOMPARE(
+            modernClusterConfig.additional_config().display_insets().left(),
+            250u);
+        QCOMPARE(
+            modernClusterConfig.additional_config().display_insets().right(),
+            250u);
+        QCOMPARE(
+            modernClusterConfig.additional_config().display_insets().top(),
+            90u);
+        QCOMPARE(
+            modernClusterConfig.additional_config().display_insets().bottom(),
+            90u);
         QCOMPARE(baseVideoConfigBytes(modernClusterVideo.video_configs(0)),
                  baseVideoConfigBytes(legacyClusterVideo.video_configs(0)));
 
         static const QByteArray modernMainGolden = QByteArray::fromHex(
-            "08031a2e080322110802100218002028288c0150035a022801"
-            "22110802100218002028288c0150075a022801300038004803");
+            "08031a420803221b080110021800203a288c015003"
+            "5a0c0a08081d101d180020002801"
+            "221b080110021800203a288c015007"
+            "5a0c0a08081d101d180020002801300038004803");
         static const QByteArray modernClusterGolden = QByteArray::fromHex(
-            "080c1a1b080322130801100218f40320b401288c015003"
-            "5a02280530013801");
+            "080c1a270803221f0801100218f40320b401288c015003"
+            "5a0e0a0a085a105a18fa0120fa01280530013801");
         QCOMPARE(channelById(modern, 3)->descriptor, modernMainGolden);
         QCOMPARE(channelById(modern, 12)->descriptor, modernClusterGolden);
+    }
+
+    void gal43CompanionInsetsPreserveOddMarginTotals() {
+        oap::YamlConfig yaml;
+        yaml.setVideoResolution(QStringLiteral("480p"));
+        yaml.setValueByPath("navbar.show_during_aa", true);
+
+        oap::aa::ProjectedClusterConfig cluster;
+        cluster.enabled = true;
+        cluster.profile.galVersion = oap::aa::kGalVersion4_3;
+
+        oap::aa::ServiceDiscoveryBuilder builder(&yaml);
+        builder.setDisplayDimensions(1024, 600);
+        builder.setNavbarThickness(2);
+        builder.setProjectedClusterConfig(cluster);
+        const auto session = builder.build();
+
+        const auto main = descriptorById(session, 3).av_channel();
+        for (const auto& video : main.video_configs()) {
+            QCOMPARE(video.margin_width(), 0u);
+            QCOMPARE(video.margin_height(), 13u);
+            QVERIFY(video.has_additional_config());
+            const auto& insets = video.additional_config().display_insets();
+            QCOMPARE(insets.top(), 6u);
+            QCOMPARE(insets.bottom(), 7u);
+            QCOMPARE(insets.top() + insets.bottom(), 13u);
+        }
     }
 };
 
