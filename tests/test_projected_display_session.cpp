@@ -236,6 +236,7 @@ private slots:
             &oap::aa::ProjectedDisplaySession::viewportGeometryChanged);
 
         QVERIFY(display.applyClusterProfile({
+            {QStringLiteral("gal_version"), QStringLiteral("4.3")},
             {QStringLiteral("resolution"), QStringLiteral("720p")},
             {QStringLiteral("dpi"), 160},
             {QStringLiteral("content_width"), 600},
@@ -244,6 +245,8 @@ private slots:
         }));
         QCOMPARE(requestSpy.count(), 1);
         QCOMPARE(display.profileGeneration(), 1u);
+        QCOMPARE(display.requestedClusterProfile().galVersion,
+                 oap::aa::kGalVersion4_3);
         QCOMPARE(display.viewportEncodedWidth(), 800);
         QCOMPARE(display.viewportContentWidth(), 300);
         QCOMPARE(geometrySpy.count(), 0);
@@ -269,6 +272,12 @@ private slots:
         QVERIFY(!display.applyClusterProfile({
             {QStringLiteral("content_width"), 301},
         }));
+        QVERIFY(!display.applyClusterProfile({
+            {QStringLiteral("gal_version"), QStringLiteral("5.0")},
+        }));
+        QVERIFY(!display.applyClusterProfile({
+            {QStringLiteral("turn_data_available"), true},
+        }));
         QCOMPARE(requestSpy.count(), 0);
         QCOMPARE(display.profileGeneration(), 0u);
 
@@ -277,6 +286,26 @@ private slots:
         }));
         QCOMPARE(requestSpy.count(), 0);
         QCOMPARE(display.profileGeneration(), 0u);
+
+        QVERIFY(display.applyClusterProfile({
+            {QStringLiteral("gal_version"), QStringLiteral("4.3")},
+        }));
+        QCOMPARE(requestSpy.count(), 1);
+        QCOMPARE(display.profileGeneration(), 1u);
+        QCOMPARE(display.requestedClusterProfile().galVersion,
+                 oap::aa::kGalVersion4_3);
+
+        QVERIFY(display.applyClusterProfile({
+            {QStringLiteral("gal_version"), QStringLiteral("4.3")},
+        }));
+        QCOMPARE(requestSpy.count(), 1);
+        QCOMPARE(display.profileGeneration(), 1u);
+
+        QVERIFY(display.resetClusterProfile());
+        QCOMPARE(requestSpy.count(), 2);
+        QCOMPARE(display.profileGeneration(), 2u);
+        QCOMPARE(display.requestedClusterProfile().galVersion,
+                 oap::aa::kGalVersion1_7);
     }
 
     void clusterStateFollowsOnlyItsLifecycle()

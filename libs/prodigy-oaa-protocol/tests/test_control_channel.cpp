@@ -8,6 +8,7 @@
 #include "oaa/control/ChannelOpenRequestMessage.pb.h"
 #include "oaa/control/ChannelOpenResponseMessage.pb.h"
 #include "oaa/control/ShutdownRequestMessage.pb.h"
+#include "oaa/control/ControlChannelConfigMessage.pb.h"
 #include "oaa/common/StatusEnum.pb.h"
 #include "oaa/control/ShutdownReasonEnum.pb.h"
 
@@ -52,7 +53,8 @@ private slots:
         QCOMPARE(versionSpy.count(), 1);
         QCOMPARE(versionSpy[0][0].value<uint16_t>(), uint16_t(1));
         QCOMPARE(versionSpy[0][1].value<uint16_t>(), uint16_t(7));
-        QCOMPARE(versionSpy[0][2].toBool(), true);
+        QCOMPARE(versionSpy[0][2].value<uint16_t>(), uint16_t(0x0000));
+        QCOMPARE(versionSpy[0][3].toByteArray(), QByteArray());
     }
 
     void testReceiveVersionResponseMismatch() {
@@ -67,17 +69,54 @@ private slots:
         ctrl.onMessage(0x0002, payload);
 
         QCOMPARE(versionSpy.count(), 1);
-        QCOMPARE(versionSpy[0][2].toBool(), false);
+        QCOMPARE(versionSpy[0][2].value<uint16_t>(), uint16_t(0xFFFF));
+        QCOMPARE(versionSpy[0][3].toByteArray(), QByteArray());
     }
 
-    void testReceiveVersionResponseTooShort() {
+    void testReceiveVersionResponseRetainsValidTrailingConfig() {
         oaa::ControlChannel ctrl;
         QSignalSpy versionSpy(&ctrl, &oaa::ControlChannel::versionReceived);
 
-        ctrl.onMessage(0x0002, QByteArray(2, '\0')); // too short
+        oaa::proto::messages::ControlChannelConfigWrapper wrapper;
+        wrapper.mutable_config()->mutable_params()->set_param_1(7);
+        const QByteArray trailing = QByteArray::fromStdString(
+            wrapper.SerializeAsString());
+        QByteArray payload = QByteArray::fromHex("000100070000") + trailing;
+
+        ctrl.onMessage(0x0002, payload);
 
         QCOMPARE(versionSpy.count(), 1);
-        QCOMPARE(versionSpy[0][2].toBool(), false); // mismatch
+        QCOMPARE(versionSpy[0][0].value<uint16_t>(), uint16_t{1});
+        QCOMPARE(versionSpy[0][1].value<uint16_t>(), uint16_t{7});
+        QCOMPARE(versionSpy[0][2].value<uint16_t>(), uint16_t{0});
+        QCOMPARE(versionSpy[0][3].toByteArray(), trailing);
+    }
+
+    void testReceiveVersionResponseRetainsOpaqueTrailingBytes() {
+        oaa::ControlChannel ctrl;
+        QSignalSpy versionSpy(&ctrl, &oaa::ControlChannel::versionReceived);
+        const QByteArray trailing = QByteArray::fromHex("ff0080");
+
+        ctrl.onMessage(
+            0x0002, QByteArray::fromHex("000400030000") + trailing);
+
+        QCOMPARE(versionSpy.count(), 1);
+        QCOMPARE(versionSpy[0][3].toByteArray(), trailing);
+    }
+
+    void testEveryTruncatedVersionPrefixIsMalformed() {
+        for (int payloadSize = 0; payloadSize < 6; ++payloadSize) {
+            oaa::ControlChannel ctrl;
+            QSignalSpy versionSpy(&ctrl, &oaa::ControlChannel::versionReceived);
+            QSignalSpy malformedSpy(
+                &ctrl, &oaa::ControlChannel::versionResponseMalformed);
+
+            ctrl.onMessage(0x0002, QByteArray(payloadSize, '\0'));
+
+            QCOMPARE(versionSpy.count(), 0);
+            QCOMPARE(malformedSpy.count(), 1);
+            QCOMPARE(malformedSpy[0][0].toInt(), payloadSize);
+        }
     }
 
     void testPingAutoResponse() {

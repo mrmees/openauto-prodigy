@@ -466,6 +466,7 @@ private slots:
             &cfg, nullptr, nullptr, clusterConfig);
 
         QVERIFY(orch.clusterDisplay()->applyClusterProfile({
+            {QStringLiteral("gal_version"), QStringLiteral("4.3")},
             {QStringLiteral("resolution"), QStringLiteral("720p")},
             {QStringLiteral("content_width"), 600},
             {QStringLiteral("content_height"), 400},
@@ -474,6 +475,9 @@ private slots:
         QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::projectedClusterConfig(orch)
                      .profile.resolution,
                  QStringLiteral("720p"));
+        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::projectedClusterConfig(orch)
+                     .profile.galVersion,
+                 oap::aa::kGalVersion4_3);
         QCOMPARE(orch.clusterDisplay()->viewportEncodedWidth(), 800);
 
         orch.start();
@@ -484,6 +488,8 @@ private slots:
             oap::aa::AndroidAutoOrchestratorTestAccess::listenerPort(orch));
         QVERIFY(socket.waitForConnected());
         QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::acceptNextConnection(orch));
+        QTRY_VERIFY_WITH_TIMEOUT(socket.bytesAvailable() >= 10, 1000);
+        QCOMPARE(socket.readAll(), QByteArray::fromHex("00030006000100040003"));
         QCOMPARE(orch.clusterDisplay()->viewportEncodedWidth(), 1280);
         QCOMPARE(orch.clusterDisplay()->viewportContentWidth(), 600);
         QCOMPARE(orch.clusterDisplay()->viewportContentHeight(), 400);

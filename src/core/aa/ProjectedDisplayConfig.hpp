@@ -19,6 +19,42 @@ enum class ProjectedSetupFocus {
     Projected,
 };
 
+struct GalVersion {
+    uint16_t major = 1;
+    uint16_t minor = 7;
+
+    QString toString() const;
+
+    constexpr bool operator==(const GalVersion& other) const
+    {
+        return major == other.major && minor == other.minor;
+    }
+    constexpr bool operator!=(const GalVersion& other) const
+    {
+        return !(*this == other);
+    }
+    constexpr bool operator<(const GalVersion& other) const
+    {
+        return major < other.major
+            || (major == other.major && minor < other.minor);
+    }
+    constexpr bool operator>(const GalVersion& other) const
+    {
+        return other < *this;
+    }
+    constexpr bool operator<=(const GalVersion& other) const
+    {
+        return !(other < *this);
+    }
+    constexpr bool operator>=(const GalVersion& other) const
+    {
+        return !(*this < other);
+    }
+};
+
+inline constexpr GalVersion kGalVersion1_7{1, 7};
+inline constexpr GalVersion kGalVersion4_3{4, 3};
+
 struct ProjectedViewportGeometry {
     int encodedWidth;
     int encodedHeight;
@@ -59,6 +95,7 @@ struct ProjectedClusterProfile {
     int contentWidth = 300;
     int contentHeight = 300;
     bool turnDataAvailable = false;
+    GalVersion galVersion = kGalVersion1_7;
 
     ProjectedViewportGeometry geometry() const;
     bool operator==(const ProjectedClusterProfile& other) const;

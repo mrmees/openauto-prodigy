@@ -63,7 +63,9 @@ private:
     void onTransportConnected();
     void onTransportDisconnected();
     void onTransportError(const QString& message);
-    void onVersionReceived(uint16_t major, uint16_t minor, bool match);
+    void onVersionReceived(uint16_t major, uint16_t minor, uint16_t rawStatus,
+                           const QByteArray& trailingBytes);
+    void onVersionResponseMalformed(int payloadSize);
     void onHandshakeComplete();
     void onHandshakeFailed(const QString& message);
     void onTlsFailed(const QString& message);

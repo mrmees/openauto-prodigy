@@ -69,6 +69,8 @@ private slots:
     void runtimeProfileDefaultsToAcceptedSquare()
     {
         const oap::aa::ProjectedClusterProfile profile;
+        QCOMPARE(profile.galVersion, oap::aa::kGalVersion1_7);
+        QCOMPARE(profile.galVersion.toString(), QStringLiteral("1.7"));
         QCOMPARE(profile.resolution, QStringLiteral("480p"));
         QCOMPARE(profile.dpi, 140);
         QCOMPARE(profile.contentWidth, 300);
@@ -77,12 +79,25 @@ private slots:
         QCOMPARE(profile.geometry(), oap::aa::kClusterViewportGeometry);
     }
 
+    void galVersionsCompareAsNumericPairs()
+    {
+        const oap::aa::GalVersion oneSeven{1, 7};
+        const oap::aa::GalVersion oneTen{1, 10};
+        const oap::aa::GalVersion fourThree{4, 3};
+
+        QVERIFY(oneSeven < oneTen);
+        QVERIFY(oneTen < fourThree);
+        QVERIFY(fourThree > oneSeven);
+        QCOMPARE(fourThree.toString(), QStringLiteral("4.3"));
+    }
+
     void validRuntimeProfileUpdateIsNormalizedAtomically()
     {
         const oap::aa::ProjectedClusterProfile baseline;
         oap::aa::ProjectedClusterProfile updated;
         QString error;
         const QVariantMap update{
+            {QStringLiteral("gal_version"), QStringLiteral("4.3")},
             {QStringLiteral("resolution"), QStringLiteral("720p")},
             {QStringLiteral("dpi"), 160},
             {QStringLiteral("content_width"), 600},
@@ -93,6 +108,7 @@ private slots:
         QVERIFY(oap::aa::applyProjectedClusterProfileUpdate(
             baseline, update, &updated, &error));
         QVERIFY(error.isEmpty());
+        QCOMPARE(updated.galVersion, oap::aa::kGalVersion4_3);
         QCOMPARE(updated.resolution, QStringLiteral("720p"));
         QCOMPARE(updated.dpi, 160);
         QCOMPARE(updated.contentWidth, 600);
@@ -102,6 +118,30 @@ private slots:
                  (oap::aa::ProjectedViewportGeometry{1280, 720, 600, 400}));
         QCOMPARE(updated.geometry().marginWidth(), 680);
         QCOMPARE(updated.geometry().marginHeight(), 320);
+    }
+
+    void runtimeProfileRejectsUnsupportedAndIncompatibleGalAtomically()
+    {
+        const oap::aa::ProjectedClusterProfile baseline;
+        oap::aa::ProjectedClusterProfile updated = baseline;
+        updated.dpi = 200;
+        QString error;
+
+        QVERIFY(!oap::aa::applyProjectedClusterProfileUpdate(
+            baseline,
+            {{QStringLiteral("gal_version"), QStringLiteral("5.0")},
+             {QStringLiteral("dpi"), 160}},
+            &updated, &error));
+        QCOMPARE(updated.dpi, 200);
+        QCOMPARE(updated.galVersion, oap::aa::kGalVersion1_7);
+
+        QVERIFY(!oap::aa::applyProjectedClusterProfileUpdate(
+            baseline,
+            {{QStringLiteral("turn_data_available"), true}},
+            &updated, &error));
+        QCOMPARE(updated.dpi, 200);
+        QCOMPARE(updated.galVersion, oap::aa::kGalVersion1_7);
+        QVERIFY(!updated.turnDataAvailable);
     }
 
     void invalidRuntimeProfileUpdateDoesNotPartiallyMutate()

@@ -106,6 +106,34 @@ private slots:
         // (AASession.cpp set_sw_build/set_sw_version) — the phone logs them.
         QCOMPARE(config.swBuild, QString::fromLatin1(OAP_VERSION));
         QCOMPARE(config.swVersion, QString::fromLatin1(OAP_VERSION));
+        QCOMPARE(config.protocolMajor, uint16_t{1});
+        QCOMPARE(config.protocolMinor, uint16_t{7});
+        QVERIFY(!config.requireExactProtocolVersion);
+    }
+
+    void galSelectionChangesOnlySessionVersionPolicy() {
+        oap::aa::ProjectedClusterConfig legacyCluster;
+        legacyCluster.enabled = true;
+
+        oap::aa::ServiceDiscoveryBuilder legacyBuilder;
+        legacyBuilder.setProjectedClusterConfig(legacyCluster);
+        const auto legacy = legacyBuilder.build();
+
+        auto modernCluster = legacyCluster;
+        modernCluster.profile.galVersion = oap::aa::kGalVersion4_3;
+        oap::aa::ServiceDiscoveryBuilder modernBuilder;
+        modernBuilder.setProjectedClusterConfig(modernCluster);
+        const auto modern = modernBuilder.build();
+
+        QCOMPARE(modern.protocolMajor, uint16_t{4});
+        QCOMPARE(modern.protocolMinor, uint16_t{3});
+        QVERIFY(modern.requireExactProtocolVersion);
+        QCOMPARE(modern.sessionConfiguration, legacy.sessionConfiguration);
+        QCOMPARE(modern.channels.size(), legacy.channels.size());
+        for (int i = 0; i < legacy.channels.size(); ++i) {
+            QCOMPARE(modern.channels[i].channelId, legacy.channels[i].channelId);
+            QCOMPARE(modern.channels[i].descriptor, legacy.channels[i].descriptor);
+        }
     }
 
     void testVideoChannelDescriptor() {

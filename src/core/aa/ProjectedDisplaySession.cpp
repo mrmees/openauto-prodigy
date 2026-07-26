@@ -301,6 +301,7 @@ bool ProjectedDisplaySession::resetClusterProfile()
 {
     const ProjectedClusterProfile baseline;
     return applyClusterProfile({
+        {QStringLiteral("gal_version"), baseline.galVersion.toString()},
         {QStringLiteral("resolution"), baseline.resolution},
         {QStringLiteral("dpi"), baseline.dpi},
         {QStringLiteral("content_width"), baseline.contentWidth},
@@ -325,6 +326,7 @@ void ProjectedDisplaySession::activateRequestedClusterProfile()
         emit viewportGeometryChanged();
     qCInfo(lcAA).noquote()
         << diagnosticPrefix_ << "profile generation=" << profileGeneration_
+        << "gal=" << activeProfile_.galVersion.toString()
         << "resolution=" << activeProfile_.resolution
         << "dpi=" << activeProfile_.dpi
         << "content=" << activeProfile_.contentWidth << "x"

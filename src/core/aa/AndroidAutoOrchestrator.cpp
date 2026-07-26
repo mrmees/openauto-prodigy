@@ -117,7 +117,9 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
                     clusterDisplay_.requestedClusterProfile();
                 qCInfo(lcAA).noquote()
                     << "CLUSTER profile staged generation="
-                    << clusterDisplay_.profileGeneration();
+                    << clusterDisplay_.profileGeneration()
+                    << "gal="
+                    << projectedClusterConfig_.profile.galVersion.toString();
                 if (isAaConnected())
                     disconnectAndRetrigger();
             });
@@ -411,7 +413,10 @@ void AndroidAutoOrchestrator::onNewConnection()
 
     qCInfo(lcAA) << "Projected display descriptor:"
                  << "role=MAIN display=0 video_ch=3 input_ch=1 configs="
-                 << builder.videoConfigCount(ProjectedDisplayRole::Main);
+                 << builder.videoConfigCount(ProjectedDisplayRole::Main)
+                 << "profile_generation=" << clusterDisplay_.profileGeneration()
+                 << "requested_gal="
+                 << projectedClusterConfig_.profile.galVersion.toString();
     if (projectedClusterConfig_.enabled) {
         qCInfo(lcAA) << "Projected display descriptor:"
                      << "role=CLUSTER display=1 video_ch=12 input_ch=13 configs="

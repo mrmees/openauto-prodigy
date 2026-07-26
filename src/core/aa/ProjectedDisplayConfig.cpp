@@ -35,6 +35,11 @@ bool readInteger(const QVariant& value, int* result)
 
 } // namespace
 
+QString GalVersion::toString() const
+{
+    return QStringLiteral("%1.%2").arg(major).arg(minor);
+}
+
 ProjectedViewportGeometry ProjectedClusterProfile::geometry() const
 {
     const bool is720p = resolution == QStringLiteral("720p");
@@ -50,7 +55,8 @@ bool ProjectedClusterProfile::operator==(
     return resolution == other.resolution && dpi == other.dpi
         && contentWidth == other.contentWidth
         && contentHeight == other.contentHeight
-        && turnDataAvailable == other.turnDataAvailable;
+        && turnDataAvailable == other.turnDataAvailable
+        && galVersion == other.galVersion;
 }
 
 bool applyProjectedClusterProfileUpdate(
@@ -75,6 +81,7 @@ bool applyProjectedClusterProfileUpdate(
         QStringLiteral("content_width"),
         QStringLiteral("content_height"),
         QStringLiteral("turn_data_available"),
+        QStringLiteral("gal_version"),
     };
     for (auto it = update.cbegin(); it != update.cend(); ++it) {
         if (!allowedKeys.contains(it.key()))
@@ -82,6 +89,23 @@ bool applyProjectedClusterProfileUpdate(
     }
 
     ProjectedClusterProfile candidate = current;
+    if (update.contains(QStringLiteral("gal_version"))) {
+        const QVariant value = update.value(QStringLiteral("gal_version"));
+        if (value.metaType().id() != QMetaType::QString)
+            return reject(QStringLiteral("gal_version must be a string"));
+        const QString version = value.toString().trimmed();
+        if (version == QStringLiteral("1.7")) {
+            candidate.galVersion = kGalVersion1_7;
+        } else if (version == QStringLiteral("4.3")) {
+            candidate.galVersion = kGalVersion4_3;
+        } else {
+            return reject(QStringLiteral("gal_version must be 1.7 or 4.3"));
+        }
+    }
+    if (candidate.galVersion != kGalVersion1_7
+        && candidate.galVersion != kGalVersion4_3) {
+        return reject(QStringLiteral("gal_version must be 1.7 or 4.3"));
+    }
     if (update.contains(QStringLiteral("resolution"))) {
         const QVariant value = update.value(QStringLiteral("resolution"));
         if (value.metaType().id() != QMetaType::QString)
@@ -115,6 +139,11 @@ bool applyProjectedClusterProfileUpdate(
         if (value.metaType().id() != QMetaType::Bool)
             return reject(QStringLiteral("turn_data_available must be boolean"));
         candidate.turnDataAvailable = value.toBool();
+    }
+    if (candidate.turnDataAvailable
+        && candidate.galVersion == kGalVersion1_7) {
+        return reject(QStringLiteral(
+            "turn_data_available requires gal_version 4.3"));
     }
 
     if (candidate.dpi < 80 || candidate.dpi > 640)

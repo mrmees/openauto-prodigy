@@ -6,6 +6,7 @@
 #include <QDebug>
 
 #include "oaa/control/ServiceDiscoveryRequestMessage.pb.h"
+#include "oaa/control/ControlChannelConfigMessage.pb.h"
 #include "oaa/control/ServiceDiscoveryResponseMessage.pb.h"
 #include "oaa/control/ChannelDescriptorData.pb.h"
 #include "oaa/control/ChannelOpenRequestMessage.pb.h"
@@ -83,6 +84,8 @@ AASession::AASession(ITransport* transport, const SessionConfig& config,
     // ControlChannel signals
     connect(controlChannel_, &ControlChannel::versionReceived,
             this, &AASession::onVersionReceived);
+    connect(controlChannel_, &ControlChannel::versionResponseMalformed,
+            this, &AASession::onVersionResponseMalformed);
     connect(controlChannel_, &ControlChannel::serviceDiscoveryRequested,
             this, &AASession::onServiceDiscoveryRequested);
     connect(controlChannel_, &ControlChannel::channelOpenRequested,
@@ -340,14 +343,47 @@ void AASession::onTransportError(const QString& message) {
     emit disconnected(DisconnectReason::TransportError);
 }
 
-void AASession::onVersionReceived(uint16_t major, uint16_t minor, bool match) {
+void AASession::onVersionReceived(uint16_t major, uint16_t minor,
+                                  uint16_t rawStatus,
+                                  const QByteArray& trailingBytes) {
     if (state_ != SessionState::VersionExchange) return;
     stopStateTimer();
 
-    qDebug() << "[AASession] Version response:" << major << "." << minor
-             << (match ? "MATCH" : "MISMATCH");
+    const QString requestedVersion = QStringLiteral("%1.%2")
+                                         .arg(config_.protocolMajor)
+                                         .arg(config_.protocolMinor);
+    const QString reportedVersion = QStringLiteral("%1.%2")
+                                        .arg(major)
+                                        .arg(minor);
+    const QString statusText = QStringLiteral("0x%1")
+                                   .arg(rawStatus, 4, 16, QLatin1Char('0'));
+    qDebug().noquote() << "[AASession] Version response requested="
+                       << requestedVersion << "reported=" << reportedVersion
+                       << "status=" << statusText
+                       << "trailing_bytes=" << trailingBytes.size();
 
-    if (!match) {
+    if (!trailingBytes.isEmpty()) {
+        proto::messages::ControlChannelConfigWrapper wrapper;
+        if (wrapper.ParseFromArray(trailingBytes.constData(),
+                                   trailingBytes.size())) {
+            const QString summary = QString::fromStdString(
+                                        wrapper.ShortDebugString())
+                                        .left(512);
+            qDebug().noquote()
+                << "[AASession] Version response control config:" << summary;
+        } else {
+            qWarning().noquote()
+                << "[AASession] Version response optional control config"
+                << "is opaque or malformed; bytes=" << trailingBytes.size()
+                << "prefix=" << trailingBytes.left(16).toHex();
+        }
+    }
+
+    const bool statusMatches = rawStatus == 0x0000;
+    const bool exactVersionMatches = major == config_.protocolMajor
+                                     && minor == config_.protocolMinor;
+    if (!statusMatches
+        || (config_.requireExactProtocolVersion && !exactVersionMatches)) {
         setState(SessionState::Disconnected);
         emit disconnected(DisconnectReason::VersionMismatch);
         return;
@@ -360,6 +396,16 @@ void AASession::onVersionReceived(uint16_t major, uint16_t minor, bool match) {
         return;
     startStateTimer(config_.handshakeTimeout);
     startTlsHandshake();
+}
+
+void AASession::onVersionResponseMalformed(int payloadSize) {
+    if (state_ != SessionState::VersionExchange)
+        return;
+    stopStateTimer();
+    qWarning() << "[AASession] Malformed VERSION_RESPONSE fixed prefix:"
+               << payloadSize << "bytes; expected at least 6";
+    setState(SessionState::Disconnected);
+    emit disconnected(DisconnectReason::VersionMismatch);
 }
 
 void AASession::startTlsHandshake() {

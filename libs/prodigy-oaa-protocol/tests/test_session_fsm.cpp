@@ -80,7 +80,9 @@ class TestSessionFSM : public QObject {
 private:
     // Helper: build a VERSION_RESPONSE frame (plain, control, bulk)
     // The messenger expects raw transport data: header(2) + size(2) + messageId(2) + payload
-    QByteArray makeVersionResponseFrame(uint16_t major, uint16_t minor, uint16_t status) {
+    QByteArray makeVersionResponseFrame(uint16_t major, uint16_t minor,
+                                        uint16_t status,
+                                        const QByteArray& trailing = {}) {
         // Payload = messageId(0x0002) + major(2B) + minor(2B) + status(2B)
         QByteArray payload(8, '\0');
         qToBigEndian<uint16_t>(0x0002, reinterpret_cast<uchar*>(payload.data()));     // messageId
@@ -88,11 +90,14 @@ private:
         qToBigEndian<uint16_t>(minor, reinterpret_cast<uchar*>(payload.data() + 4));
         qToBigEndian<uint16_t>(status, reinterpret_cast<uchar*>(payload.data() + 6));
 
-        // Frame: ch=0, flags=BULK|CONTROL|PLAIN=0x07, size=8
+        payload.append(trailing);
+
+        // Frame: ch=0, flags=BULK|CONTROL|PLAIN=0x07
         QByteArray frame(4, '\0');
         frame[0] = 0x00; // channel 0
         frame[1] = 0x07; // BULK(0x03) | CONTROL(0x04) | PLAIN(0x00)
-        qToBigEndian<uint16_t>(8, reinterpret_cast<uchar*>(frame.data() + 2));
+        qToBigEndian<uint16_t>(static_cast<uint16_t>(payload.size()),
+                               reinterpret_cast<uchar*>(frame.data() + 2));
         frame.append(payload);
         return frame;
     }
@@ -193,6 +198,76 @@ private slots:
         transport.feedData(makeVersionResponseFrame(1, 7, 0x0000));
 
         QTRY_COMPARE(session.state(), oaa::SessionState::TLSHandshake);
+    }
+
+    void testLegacyMatchRemainsStatusBased() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        oaa::AASession session(&transport, config);
+
+        transport.simulateConnect();
+        session.start();
+        transport.feedData(makeVersionResponseFrame(
+            4, 3, 0x0000, QByteArray::fromHex("ff0080")));
+
+        QTRY_COMPARE(session.state(), oaa::SessionState::TLSHandshake);
+    }
+
+    void testStrict43RejectsMatched17ResponseBeforeHandshake() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        config.protocolMajor = 4;
+        config.protocolMinor = 3;
+        config.requireExactProtocolVersion = true;
+        oaa::AASession session(&transport, config);
+        QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+        transport.simulateConnect();
+        session.start();
+        QCOMPARE(transport.writtenData().first(),
+                 QByteArray::fromHex("00030006000100040003"));
+        transport.feedData(makeVersionResponseFrame(1, 7, 0x0000));
+
+        QTRY_COMPARE(session.state(), oaa::SessionState::Disconnected);
+        QCOMPARE(disconnectSpy.count(), 1);
+        QCOMPARE(disconnectSpy[0][0].value<oaa::DisconnectReason>(),
+                 oaa::DisconnectReason::VersionMismatch);
+    }
+
+    void testStrict43AcceptsMatched43ResponseWithTrailingConfig() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        config.protocolMajor = 4;
+        config.protocolMinor = 3;
+        config.requireExactProtocolVersion = true;
+        oaa::AASession session(&transport, config);
+
+        transport.simulateConnect();
+        session.start();
+        transport.feedData(makeVersionResponseFrame(
+            4, 3, 0x0000, QByteArray::fromHex("0a060a0408071001")));
+
+        QTRY_COMPARE(session.state(), oaa::SessionState::TLSHandshake);
+    }
+
+    void testEveryTruncatedVersionPrefixFailsImmediately() {
+        for (int payloadSize = 0; payloadSize < 6; ++payloadSize) {
+            oaa::ReplayTransport transport;
+            oaa::SessionConfig config;
+            oaa::AASession session(&transport, config);
+            QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
+
+            transport.simulateConnect();
+            session.start();
+            session.messenger()->messageReceived(
+                0, 0x0002, QByteArray(payloadSize, '\0'), 0,
+                oaa::MessageType::Specific);
+
+            QCOMPARE(session.state(), oaa::SessionState::Disconnected);
+            QCOMPARE(disconnectSpy.count(), 1);
+            QCOMPARE(disconnectSpy[0][0].value<oaa::DisconnectReason>(),
+                     oaa::DisconnectReason::VersionMismatch);
+        }
     }
 
     void testVersionTimeoutDisconnects() {
