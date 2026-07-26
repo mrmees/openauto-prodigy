@@ -40,7 +40,8 @@ established GAL 1.7, MAIN-only, or default-off CLUSTER behavior.
 
 Success means:
 
-1. The exact requested version and the phone-reported response are observable.
+1. The requested GAL tuple and the separately phone-reported tuple are
+   observable.
 2. GAL 1.7 remains the default and retains its established descriptor bytes,
    margins, clock policy, media ACK cadence, and runtime behavior.
 3. GAL 4.3 can complete version exchange, TLS, service discovery, channel open,
@@ -151,8 +152,8 @@ boundary. Floating point and lexicographic string comparisons are forbidden.
 
 The projected-display lab accepts exactly two modes:
 
-- `1.7` — default, non-strict legacy mode.
-- `4.3` — experimental, exact-response mode.
+- `1.7` — default, status-only legacy mode.
+- `4.3` — experimental, minimum-compatible-response mode.
 
 No arbitrary major/minor entry is exposed. This prevents an accidental 5.x or
 6.x request from silently crossing obligations outside this design.
@@ -187,10 +188,14 @@ into an out-of-bounds read or crash.
 `AASession` logs the requested version, phone-reported version, status, and
 whether trailing configuration was present. Existing 1.7 acceptance semantics
 remain unchanged: status MATCH is authoritative, as it is today. Experimental
-4.3 additionally requires the phone-reported numeric version to equal 4.3. A
-status MATCH paired with any other version fails before TLS/service discovery
-with `VersionMismatch`, because the prebuilt service-discovery descriptors are
-based on the requested policy and cannot safely be downgraded in place.
+4.3 additionally requires the phone-reported numeric tuple to be greater than
+or equal to the requested 4.3 tuple. Reported 4.3 and 6.0 are compatible;
+reported 4.2 fails before TLS/service discovery with `VersionMismatch`.
+
+The requested 4.3 tuple remains the sole input to Prodigy's local feature
+policy. The separately reported compatible tuple is diagnostic only and is
+never promoted into `SessionConfig`, descriptors, ACK policy, or 5.x/6.x
+behavior.
 
 No automatic retry at 1.7 is added. A silent fallback would contaminate the
 experiment and make captures ambiguous; the operator can select 1.7 and
@@ -304,7 +309,7 @@ It is not pushed or tagged mid-execution.
 | Case | Requested GAL | Descriptor policy | Native turn-card flag | Required observations |
 |---|---:|---|---:|---|
 | A | 1.7 | legacy baseline | false | raw request/full response, exact existing MAIN+CLUSTER descriptors, channel/media health |
-| B | 4.3 | request-only intermediate artifact | false | exact 4.3 response, TLS/discovery, sustained MAIN+CLUSTER video/audio, ACK health |
+| B | 4.3 | request-only intermediate artifact | false | MATCH response reporting at least 4.3, TLS/discovery, sustained MAIN+CLUSTER video/audio, ACK health |
 | C | 4.3 | MAIN clock through field 11 | false | phone status-bar clock response, unchanged MAIN margins and touch |
 | D | 4.3 | MAIN clock; CLUSTER field 5 absent | false | route active/inactive CLUSTER behavior and exact 300x300 crop |
 | E | 4.3 | MAIN clock; CLUSTER field 5 value 5 present | true | phone logcat feature state/turn-card policy, route active/inactive CLUSTER behavior, exact crop |
@@ -332,7 +337,7 @@ promotion after this compatibility layer is accepted.
   from source.
 - Proto pin changes a legacy serialized descriptor: stop and explain every
   byte before a live run; numeric coincidence is not assumed.
-- 4.3 response status is non-MATCH or reports another version: disconnect
+- 4.3 response status is non-MATCH or reports below 4.3: disconnect
   before TLS/service discovery, log the mismatch, restore/select 1.7.
 - Optional response configuration is malformed: retain bounded raw bytes and
   continue only if the fixed response and version policy are valid.
@@ -373,7 +378,8 @@ promotion after this compatibility layer is accepted.
 - GAL 1.7 remains the default; its MAIN-only and CLUSTER-enabled legacy
   descriptors and session policy remain covered by golden tests.
 - The complete phone version response is bounded, retained, and diagnosed.
-- Experimental 4.3 rejects a non-4.3 phone response before discovery.
+- Experimental 4.3 accepts a MATCH response at or above 4.3 and rejects a
+  lower or non-MATCH response before discovery.
 - The handshake-only 4.3 checkpoint sustains existing MAIN+CLUSTER media before
   field 11 is enabled.
 - GAL 4.3 clock metadata appears on every MAIN video config exactly when the
@@ -387,4 +393,3 @@ promotion after this compatibility layer is accepted.
 - The final tree passes the repository's native build, explicit application
   target, CTest, aarch64 cross-build, documentation checks, and one bounded
   major review.
-

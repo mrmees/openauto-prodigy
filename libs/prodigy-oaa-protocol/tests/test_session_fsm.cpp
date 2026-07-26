@@ -213,12 +213,12 @@ private slots:
         QTRY_COMPARE(session.state(), oaa::SessionState::TLSHandshake);
     }
 
-    void testStrict43RejectsMatched17ResponseBeforeHandshake() {
+    void testMinimum43RejectsMatched42ResponseBeforeHandshake() {
         oaa::ReplayTransport transport;
         oaa::SessionConfig config;
         config.protocolMajor = 4;
         config.protocolMinor = 3;
-        config.requireExactProtocolVersion = true;
+        config.requireMinimumCompatibleProtocolVersion = true;
         oaa::AASession session(&transport, config);
         QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
 
@@ -226,7 +226,7 @@ private slots:
         session.start();
         QCOMPARE(transport.writtenData().first(),
                  QByteArray::fromHex("00030006000100040003"));
-        transport.feedData(makeVersionResponseFrame(1, 7, 0x0000));
+        transport.feedData(makeVersionResponseFrame(4, 2, 0x0000));
 
         QTRY_COMPARE(session.state(), oaa::SessionState::Disconnected);
         QCOMPARE(disconnectSpy.count(), 1);
@@ -234,18 +234,33 @@ private slots:
                  oaa::DisconnectReason::VersionMismatch);
     }
 
-    void testStrict43AcceptsMatched43ResponseWithTrailingConfig() {
+    void testMinimum43AcceptsMatched43ResponseWithTrailingConfig() {
         oaa::ReplayTransport transport;
         oaa::SessionConfig config;
         config.protocolMajor = 4;
         config.protocolMinor = 3;
-        config.requireExactProtocolVersion = true;
+        config.requireMinimumCompatibleProtocolVersion = true;
         oaa::AASession session(&transport, config);
 
         transport.simulateConnect();
         session.start();
         transport.feedData(makeVersionResponseFrame(
             4, 3, 0x0000, QByteArray::fromHex("0a060a0408071001")));
+
+        QTRY_COMPARE(session.state(), oaa::SessionState::TLSHandshake);
+    }
+
+    void testMinimum43AcceptsMatched60ResponseBeforeHandshake() {
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        config.protocolMajor = 4;
+        config.protocolMinor = 3;
+        config.requireMinimumCompatibleProtocolVersion = true;
+        oaa::AASession session(&transport, config);
+
+        transport.simulateConnect();
+        session.start();
+        transport.feedData(makeVersionResponseFrame(6, 0, 0x0000));
 
         QTRY_COMPARE(session.state(), oaa::SessionState::TLSHandshake);
     }

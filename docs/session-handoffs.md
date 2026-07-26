@@ -4,6 +4,37 @@ Newest entries first.
 
 ---
 
+## 2026-07-26 — GAL 4.3 compatible-response policy remediation
+
+**What changed:** corrected experimental GAL 4.3 version admission to require
+status MATCH plus a phone-reported numeric tuple greater than or equal to the
+requested 4.3 tuple. FSM coverage now locks reported 4.3 and 6.0 success and
+reported 4.2 failure before TLS. The policy flag now names minimum-compatible
+semantics throughout production and tests. Requested 4.3 remains authoritative
+for local feature policy; descriptors, ACK behavior, and response diagnostics
+are unchanged.
+
+**Why:** the live Pixel answered a 4.3 HU request with 6.0/MATCH, and pinned AA
+17.3 analysis shows downstream phone gates retain the HU request separately
+from the compatible reported version. Exact response equality therefore
+rejected a supported negotiation.
+
+**Status:** IMPLEMENTED and native-verified. No proto-submodule, descriptor,
+AdditionalVideoConfig, QML/action, cross-build, deployment, or hardware change
+is part of this remediation.
+
+**Verification:** the focused `test_session_config`, `test_session_fsm`, and
+`test_service_discovery_builder` build and CTest commands passed. The explicit
+`openauto-prodigy` target built successfully.
+`python3 scripts/check-doc-links.py --scope tracked-live` reported zero broken
+links, and `git diff --check` passed.
+
+**Next 1–3 steps:** (1) complete the bounded independent review; (2) cross-build
+and repeat the request-only GAL 4.3 Pi/Pixel checkpoint; (3) begin Task 3 only
+after that checkpoint is accepted.
+
+---
+
 ## 2026-07-26 — Android Auto GAL 4.3 display compatibility planning
 
 **What changed:** promoted and documented the next protocol-critical phase in

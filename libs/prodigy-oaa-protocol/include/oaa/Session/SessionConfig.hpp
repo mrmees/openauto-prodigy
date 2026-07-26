@@ -15,7 +15,7 @@ struct ChannelConfig {
 struct SessionConfig {
     uint16_t protocolMajor = 1;
     uint16_t protocolMinor = 7;
-    bool requireExactProtocolVersion = false;
+    bool requireMinimumCompatibleProtocolVersion = false;
 
     QString headUnitName = "OpenAuto Prodigy";
     QString carModel = "Universal";

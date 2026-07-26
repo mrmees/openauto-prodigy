@@ -108,7 +108,7 @@ private slots:
         QCOMPARE(config.swVersion, QString::fromLatin1(OAP_VERSION));
         QCOMPARE(config.protocolMajor, uint16_t{1});
         QCOMPARE(config.protocolMinor, uint16_t{7});
-        QVERIFY(!config.requireExactProtocolVersion);
+        QVERIFY(!config.requireMinimumCompatibleProtocolVersion);
     }
 
     void galSelectionChangesOnlySessionVersionPolicy() {
@@ -127,7 +127,7 @@ private slots:
 
         QCOMPARE(modern.protocolMajor, uint16_t{4});
         QCOMPARE(modern.protocolMinor, uint16_t{3});
-        QVERIFY(modern.requireExactProtocolVersion);
+        QVERIFY(modern.requireMinimumCompatibleProtocolVersion);
         QCOMPARE(modern.sessionConfiguration, legacy.sessionConfiguration);
         QCOMPARE(modern.channels.size(), legacy.channels.size());
         for (int i = 0; i < legacy.channels.size(); ++i) {

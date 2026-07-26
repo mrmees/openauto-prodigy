@@ -20,8 +20,9 @@ spike, or research-first feasibility work.
 ## Now
 
 - Android Auto GAL 4.3 display compatibility — **ACTIVE**. Preserve GAL 1.7 as
-  the default while adding a default-off, exact-match 4.3 laboratory mode with
-  complete version-response diagnostics. Prove the 4.3 handshake and current
+  the default while adding a default-off 4.3 laboratory mode that accepts a
+  MATCH phone response reporting 4.3 or higher, while keeping requested 4.3 as
+  the sole input to local feature policy. Prove the handshake and current
   MAIN+CLUSTER media before enabling per-video MAIN clock and lab-only CLUSTER
   native-turn-card declarations. GAL 5.x/6.x, AUXILIARY, third-display, and
   native semantic turn-card work remain out of scope. Design and plan:

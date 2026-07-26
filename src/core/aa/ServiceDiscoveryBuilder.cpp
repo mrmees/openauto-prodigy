@@ -117,7 +117,7 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
     const GalVersion galVersion = projectedClusterConfig_.profile.galVersion;
     config.protocolMajor = galVersion.major;
     config.protocolMinor = galVersion.minor;
-    config.requireExactProtocolVersion = galVersion == kGalVersion4_3;
+    config.requireMinimumCompatibleProtocolVersion = galVersion == kGalVersion4_3;
 
     // Head unit identity
     // Phone matches on: manufacturer + model + modelyear + vehicleid

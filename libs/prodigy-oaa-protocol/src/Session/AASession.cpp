@@ -380,10 +380,11 @@ void AASession::onVersionReceived(uint16_t major, uint16_t minor,
     }
 
     const bool statusMatches = rawStatus == 0x0000;
-    const bool exactVersionMatches = major == config_.protocolMajor
-                                     && minor == config_.protocolMinor;
+    const bool reportedVersionIsCompatible = major > config_.protocolMajor
+        || (major == config_.protocolMajor && minor >= config_.protocolMinor);
     if (!statusMatches
-        || (config_.requireExactProtocolVersion && !exactVersionMatches)) {
+        || (config_.requireMinimumCompatibleProtocolVersion
+            && !reportedVersionIsCompatible)) {
         setState(SessionState::Disconnected);
         emit disconnected(DisconnectReason::VersionMismatch);
         return;

@@ -166,18 +166,20 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir ~/builds/openauto-prodigy \
    versions and reject native-turn-card true with 1.7. Update equality, reset,
    generation, and no-op tests.
 3. Set `SessionConfig.protocolMajor/minor` from the staged profile in
-   `ServiceDiscoveryBuilder`. Add an explicit exact-version-response policy
-   that is false for 1.7 and true for 4.3.
+   `ServiceDiscoveryBuilder`. Add an explicit minimum-compatible-response
+   policy that is false for 1.7 and true for 4.3.
 4. Change `ControlChannel::versionReceived` to retain raw status and every
    byte after the six-byte prefix. Tests cover exactly six bytes, valid trailing
    protobuf bytes, opaque trailing bytes, and each truncated prefix length.
 5. In `AASession`, record/log requested and phone-reported versions, raw status,
    trailing length, and parsed `ControlChannelConfigWrapper` summary when valid.
    Keep malformed optional data bounded and non-fatal.
-6. Preserve current status-based 1.7 acceptance. For strict 4.3, add a failing
-   FSM test for status MATCH with phone-reported 1.7 and make it terminate with
-   `VersionMismatch` before handshake/discovery. Add the matching 4.3 success
-   case.
+6. Preserve current status-based 1.7 acceptance. For requested 4.3, require
+   status MATCH and a phone-reported tuple numerically greater than or equal to
+   4.3. Add FSM coverage that reported 4.3 and 6.0 advance to TLS while reported
+   4.2 and every non-MATCH status terminate with `VersionMismatch` first. Keep
+   requested 4.3, not the separately reported tuple, authoritative for all
+   local feature policy.
 7. Update orchestrator diagnostics to print the staged requested GAL beside
    the descriptor generation. Do not expose arbitrary mutation on
    `AASession` after construction.
@@ -186,8 +188,9 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir ~/builds/openauto-prodigy \
    request version, and response handling.
 
 **Acceptance:** automated tests prove 1.7 default behavior, exact 4.3 request
-bytes, retained full responses, and strict 4.3 mismatch failure, while all
-service-discovery descriptors remain unchanged from Task 1.
+bytes, retained full responses, compatible higher-response acceptance, and
+lower/non-MATCH failure, while all service-discovery descriptors remain
+unchanged from Task 1 and remain keyed to requested 4.3.
 
 ## Hardware checkpoint — Prove request-only GAL 4.3
 
@@ -206,8 +209,8 @@ record local/staged/installed hashes and service identity.
 1. Run case A on the Task 2 binary at GAL 1.7 and confirm parity with Task 0.
 2. Through the process-lifetime lab control, stage GAL 4.3 with native turn card
    false and reconnect AA.
-3. Capture case B: exact 4.3 request/response, TLS, service discovery, every
-   expected channel open, MAIN+CLUSTER setup/start, first NAL/decoded frame,
+3. Capture case B: exact 4.3 request, compatible MATCH response, TLS, service
+   discovery, every expected channel open, MAIN+CLUSTER setup/start, first NAL/decoded frame,
    sustained audio/video, focus/touch, and media ACK cadence.
 4. If version exchange, media, focus, touch, or audio regresses, restore 1.7 and
    stop the plan. Do not implement Task 3 on an unproven handshake.
