@@ -1,6 +1,6 @@
 # Android Auto GAL 4.3 Display Compatibility Design
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-26
 
 Date: 2026-07-26
 
@@ -15,6 +15,13 @@ Grounded on:
 
 Implementation plan:
 [2026-07-26-aa-gal-4-3-display-compatibility-plan.md](2026-07-26-aa-gal-4-3-display-compatibility-plan.md)
+
+Completion record: the default-off GAL 4.3 lab, companion-inset remediation,
+and A/C/D/E Pi/Pixel matrix completed on accepted code `d06fa40`. The exact
+post-bench tree at `8ecc514` passed the repository and ARM gates. Fable's one
+bounded major review of `ba63f9f..8ecc514` reported no blocker or major and
+three nonblocking minor research findings; all were deferred to the engineering
+backlog under the accepted-tree rule.
 
 ## Decision
 

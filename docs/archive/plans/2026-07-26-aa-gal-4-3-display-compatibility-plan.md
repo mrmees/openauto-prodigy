@@ -1,6 +1,6 @@
 # Android Auto GAL 4.3 Display Compatibility Implementation Plan
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-26
 
 Date: 2026-07-26
 
@@ -452,8 +452,11 @@ limitation, not an unresolved defect.
    the roadmap item from Now to Done, and update the index. Do not archive while
    a required hardware case or supported-production blocker remains open.
 
-**Current status:** Task 7A is the documentation/gate step. The bounded major
-review and Task 7C archival remain pending, so both artifacts stay ACTIVE.
+**Completed status:** Task 7A committed the final evidence and passed the exact
+post-bench repository/ARM gate. The one bounded Fable major review then found
+no blocker or major and three nonblocking minor research items, all confirmed
+and deferred to the engineering backlog without source churn. Task 7C recorded
+the dispositions and archived both artifacts.
 
 **Acceptance:** fresh evidence covers the exact final tree, the bounded review
 has no supported-production blocker, all findings are recorded, and Task 7C

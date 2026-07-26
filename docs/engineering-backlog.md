@@ -109,17 +109,32 @@ limits, and a verification command before implementation.
   surface, add an additive profile/result publisher or an action-result
   contract without weakening the frozen External API rails.
 
-- **Projected CLUSTER UI features require a GAL-version obligation audit** —
-  Evidence: **STATIC AA 17.3 CONFIRMED; CURRENT TOGGLE LIVE-CONFIRMED NO-OP**.
-  Issue #10's completed 17.3 trace found no `session_configuration` bit-16
-  consumer. `hasClusterTurnCard` instead comes from
-  `AdditionalVideoConfig.hidden_ui_elements` value 5 when the HU requests GAL
-  4.3 or newer. Prodigy requests 1.1, so its current
-  `turn_data_available` lab toggle is ignored; changing it produced no visible
-  CLUSTER or AUXILIARY/TURN_CARD difference. Candidate deliverable: audit all
-  behavioral obligations of requesting GAL 4.3 through 6.1 before changing the
-  request, then either wire the UI feature correctly or retire the no-op lab
-  toggle. Do not blindly bump the advertised version.
+- **Audited AV message IDs may still produce diagnostic warning noise** —
+  Evidence: **REVIEW-CONFIRMED 2026-07-26; RE-RESEARCH REQUIRED**. The audited
+  ID remap leaves `AUDIO_UNDERFLOW` (`0x800B`), `MEDIA_STATS` (`0x8013`),
+  `OVERLAY_START`/`OVERLAY_STOP` (`0x800E`/`0x800F`), and possibly `0x8009`
+  outside debug-classified handler branches. A received message can therefore
+  reach warning/`unknownMessage` diagnostics, but no production consumer exists
+  and the accepted live GAL evidence showed no repeated occurrence. Re-check
+  current live journals before proposing any rate-limit or classification
+  change; do not infer a protocol failure from reachability alone.
+
+- **Navigation distance-unit suffixes need metric/imperial hardware
+  comparison** — Evidence: **REVIEW-CONFIRMED 2026-07-26; HARDWARE
+  REVALIDATION REQUIRED**. `NavigationDataBridge` maps the audited AA 17.3
+  `DistanceDisplayUnit` values: 2/3 to km, 4/5 to mi, 6 to ft, and 7 to yd. The
+  final GAL hardware matrix did not compare rendered suffixes with Maps under
+  imperial and metric phone configurations. A bounded hardware comparison is
+  required before changing the audited mapping; there is no evidence that the
+  current map is wrong.
+
+- **Successful parsing of opaque version-response trailing bytes can mislead
+  diagnostics** — Evidence: **REVIEW-CONFIRMED 2026-07-26; RE-RESEARCH
+  REQUIRED**. Opaque trailing bytes can protobuf-parse by chance and produce a
+  plausible control-configuration summary. This path is bounded and diagnostic
+  only; it never feeds `SessionConfig` or local feature policy. Re-research
+  whether successful-parse logs should also retain the bounded raw prefix so an
+  operator can distinguish a real wrapper from an accidental parse.
 
 - **AUXILIARY/NAVIGATION selector needs AA 17.3 provenance and an upstream enum
   update** — Evidence: **AUXILIARY/TURN_CARD LIVE-CONFIRMED; MAPS 26.30.05

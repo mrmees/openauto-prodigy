@@ -4,6 +4,53 @@ Newest entries first.
 
 ---
 
+## 2026-07-26 — GAL 4.3 display compatibility COMPLETE
+
+**What changed:** the completed GAL 4.3 design and implementation plan moved to
+`docs/archive/plans/` with `Status: COMPLETED 2026-07-26`. The roadmap now
+records the shipped default-off 4.3 lab under Done, the index points only to
+the archived artifacts, the resolved GAL-obligation backlog item is removed,
+and three evidence-led review follow-ups are recorded without widening the
+completed phase.
+
+**Why:** the exact post-bench tree and accepted Pi/Pixel behavior were green,
+and the single required major review found no supported-production blocker.
+The active artifacts therefore no longer represent pending execution guidance.
+
+**Review gate:** Fable pass 1 reviewed
+`ba63f9faf9bed0455c875bd0f0c20273429e339a..8ecc514ef1e145bde4b2d6a108012314d369a9d7`
+and reported `BLOCKER=0`, `MAJOR=0`, `MINOR=3`. Adjudication totals are
+confirmed=3, dismissed=0, deferred=3. The confirmed minors are: possible
+warning/`unknownMessage` noise for audited AV IDs with no production consumer
+or repeated accepted-live occurrence; missing metric/imperial hardware
+comparison for the audited navigation distance-unit suffix map; and a
+diagnostic-only chance parse of opaque version-response trailing bytes. All
+three are nonblocking research under the accepted-tree rule and are recorded
+in `docs/engineering-backlog.md`. No remediation review or source churn was
+run.
+
+**Status:** COMPLETE. Accepted hardware code remains
+`d06fa40a2d9141f4a62155ce75e3bb3d2d2550f3`; the Pi remains on
+`ALPHA-26-07-24-01-97-gd06fa40`, executable SHA-256
+`4b73d69a40f7e5be4701f1775af53a11fa1d3a7863cb0ddb3d379afad0fded48`,
+GAL 4.3/native false. Task 7C is documentation-only, so it does not require a
+build, cross-build, deployment, or hardware rerun. ADB/logcat unavailability
+remains a documented evidence-source limitation, not an unresolved defect.
+
+**Verification:** on the final Task 7C documentation tree,
+`python3 scripts/check-doc-links.py --scope tracked-live` reports no broken
+links, `git diff --check` passes, and the hands-off proto worktree remains clean
+at `cabe46ec9c5e1628264427aa77d910b1f574bb34`. Both archived artifacts carry
+the completed status, and no live document links point to their former
+`docs/plans/` paths.
+
+**Next 1–3 steps:** (1) re-research the three deferred backlog leads only if
+fresh live evidence promotes them; (2) continue routine hardware regression
+coverage; (3) select a separately promoted roadmap item before starting new
+feature work. No current execution plan remains.
+
+---
+
 ## 2026-07-26 — GAL 4.3 final hardware evidence and Task 7A record
 
 **What changed:** current guidance now records the corrected modern descriptor

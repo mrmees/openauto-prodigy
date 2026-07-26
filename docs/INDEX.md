@@ -2,11 +2,7 @@
 
 ## Active Plans
 
-- [Android Auto GAL 4.3 display compatibility design](plans/2026-07-26-aa-gal-4-3-display-compatibility-design.md)
-  and [implementation plan](plans/2026-07-26-aa-gal-4-3-display-compatibility-plan.md)
-  — preserve GAL 1.7 while adding a bounded 4.3 handshake and margin-preserving
-  per-video UI metadata for the existing MAIN+CLUSTER lab; the hardware matrix
-  is validated and the bounded major review remains pending.
+- None.
 
 ## Start Here
 
@@ -64,9 +60,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- [Android Auto GAL 4.3 display compatibility design](plans/2026-07-26-aa-gal-4-3-display-compatibility-design.md)
-  and [implementation plan](plans/2026-07-26-aa-gal-4-3-display-compatibility-plan.md)
-  — ACTIVE through the pending bounded major review and final archival step.
+- None.
 
 ## Pi Configuration (pi-config/)
 
@@ -77,6 +71,7 @@ Active plans:
 Everything under `archive/` is history, not guidance. Internal links there may point at pre-restructure paths by design.
 
 - [archive/plans/](archive/plans/) — completed/superseded designs and implementation plans, incl. milestone-01..05 history and pre-restructure proto docs
+- [2026-07-26-aa-gal-4-3-display-compatibility-design.md](archive/plans/2026-07-26-aa-gal-4-3-display-compatibility-design.md) and [implementation plan](archive/plans/2026-07-26-aa-gal-4-3-display-compatibility-plan.md) — completed default-off GAL 4.3 compatibility lab, margin-preserving modern UI metadata, and MAIN+CLUSTER hardware validation
 - [2026-07-25-aa-auxiliary-role-swap-experiment.md](archive/plans/2026-07-25-aa-auxiliary-role-swap-experiment.md) — completed Pixel 8 AUXILIARY/UNKNOWN and AUXILIARY/TURN_CARD role-swap capture with restoration to CLUSTER
 - [2026-07-25-aa-runtime-cluster-lab-plan.md](archive/plans/2026-07-25-aa-runtime-cluster-lab-plan.md) — completed process-lifetime CLUSTER descriptor/crop profiles with Debug Settings and External API action control
 - [2026-07-25-aa-cluster-square-viewport-design.md](archive/plans/2026-07-25-aa-cluster-square-viewport-design.md) and [implementation plan](archive/plans/2026-07-25-aa-cluster-square-viewport-plan.md) — completed centered 300×300 phone-rendered CLUSTER viewport inside the standard 800×480 carrier and fixed 3×3 dashboard crop surface
