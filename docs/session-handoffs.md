@@ -4,6 +4,53 @@ Newest entries first.
 
 ---
 
+## 2026-07-25 — Android Auto runtime CLUSTER lab implementation
+
+**What changed:** the default-off projected CLUSTER experiment now owns one
+validated process-lifetime runtime profile for 480p/720p carrier resolution,
+DPI, centered content dimensions, and AA 17.3's session-wide turn-data bit 16.
+Debug Settings exposes editable controls plus 300-square/full-frame presets,
+apply/reset actions, generation, and result text. The same controller is
+reachable through `aa.cluster.applyProfile` and `aa.cluster.resetProfile`, so
+External API v1 clients can iterate by JSON action dispatch. Accepted active
+changes stage one snapshot and use the existing graceful AA-only reconnect;
+the matching descriptor, decoded-frame validation, and aspect-aware widget crop
+activate together before the replacement session. Overrides do not edit YAML
+or restart Prodigy.
+
+**Why:** the accepted fixed square proved the second projected display, but
+iterating on its descriptor still required edits, builds, and service restarts.
+This provides durable lab infrastructure while keeping display type fixed to
+CLUSTER and avoiding unsupported `ServiceDiscoveryUpdate` behavior. The phone
+still chooses map versus turn card according to navigation availability and
+policy; geometry is not documented as a content selector.
+
+**Status:** implementation and local/ARM verification are complete on `dev`;
+Pi/phone behavior is not yet live-validated. The initial major review used the
+user-authorized Opus fallback after Fable produced no observable progress. It
+reported zero blockers, two majors, and three minors. The rectangular crop
+major was confirmed and fixed with runtime widget coverage. The bit-16
+"unattested" claim was dismissed using pinned AA 17.3 `ity.d`/`xmm` evidence;
+its missing citation, session scope, and stale protocol-submodule enum were
+confirmed and documented. The write-only External API result and Fable
+invocation observability are recorded for follow-up. A question about the
+current bit-16 consumer and stale enum was added to open-android-auto issue #10.
+The single remediation review remains pending.
+
+**Verification:** focused profile, descriptor, orchestrator, settings, and
+widget tests passed. The native build, explicit `openauto-prodigy` target,
+`QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, documentation link
+check, frozen-proto boundary check, `git diff --check`, and
+`./cross-build.sh` passed. The cross-build compiled the updated QML into the
+aarch64 application. No deployment or service restart was performed.
+
+**Next 1–3 steps:** (1) complete the bounded remediation review; (2) deploy the
+new aarch64 binary to the Pi and exercise baseline, full-frame, 720p, and
+turn-data profiles with an active Maps route; (3) use issue #10's Maps/YouTube
+Music findings to scope the subsequent AUXILIARY phase.
+
+---
+
 ## 2026-07-25 — Agentic workflow simplification COMPLETE
 
 **What changed:** the repository now uses a lean trivial/standard/major work

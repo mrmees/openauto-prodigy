@@ -263,7 +263,13 @@ Named command dispatch. Actions are synchronous.
 The `aa.cluster.*` actions are registered only when
 `experimental_cluster_display` was enabled at startup. Profile overrides are
 process-lifetime only. Action dispatch acknowledges that the named handler ran;
-profile validation is reported through CLUSTER diagnostics and logs.
+it does not report whether the profile was accepted. UI callers can read the
+CLUSTER diagnostics; External API callers must inspect the application log for
+acceptance or rejection in this phase.
+`turn_data_available` sets AA 17.3 session-configuration bit 16. That field is
+session-wide rather than scoped to the CLUSTER descriptor; the action remains
+under the experimental CLUSTER namespace because turn-card policy is its known
+consumer.
 
 Additional internal actions exist for navbar gesture routing (`navbar.volume.*`, `navbar.clock.*`, `navbar.brightness.*`, `app.minimize`, `app.restart`) but are not part of the plugin API.
 

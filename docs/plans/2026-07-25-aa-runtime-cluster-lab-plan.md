@@ -42,7 +42,9 @@ startup defaults.
   narrow input-service update.
 - The community proto submodule and frozen External API numerics remain
   untouched.
-- MAIN display discovery, decoding, focus, and touch behavior must not change.
+- MAIN display descriptors, decoding, focus, and touch behavior must not
+  change. The opt-in turn-data bit is explicitly session-scoped in AA 17.3 and
+  therefore changes the shared session-configuration field.
 
 ## Profile contract
 

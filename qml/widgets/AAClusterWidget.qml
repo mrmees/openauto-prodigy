@@ -36,8 +36,18 @@ Item {
     Item {
         id: cropViewport
         objectName: "clusterCropViewport"
-        width: Math.min(root.width, root.height)
-        height: width
+        readonly property real contentAspect:
+            AAClusterDisplay.viewportContentWidth > 0
+            && AAClusterDisplay.viewportContentHeight > 0
+            ? AAClusterDisplay.viewportContentWidth
+              / AAClusterDisplay.viewportContentHeight
+            : 1
+        readonly property real availableAspect:
+            root.height > 0 ? root.width / root.height : contentAspect
+        width: contentAspect >= availableAspect
+               ? root.width : root.height * contentAspect
+        height: contentAspect >= availableAspect
+                ? root.width / contentAspect : root.height
         anchors.centerIn: parent
         clip: true
         visible: root.ownsSink && AAClusterDisplay.rendering

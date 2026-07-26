@@ -103,6 +103,11 @@ The same path is available to local integrations as
 `content_width`, `content_height`, and `turn_data_available`) and
 `aa.cluster.resetProfile`. External API v1 can dispatch those registered
 actions with `payload_json`. Invalid and unchanged updates do not reconnect.
+The turn-data bit is the AA 17.3 `ity.d` mapping of
+`UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE` to value 16. It lives in the
+session-wide `session_configuration` field even though current evidence ties
+its policy consumer to CLUSTER turn cards, so this experimental toggle changes
+the session response rather than a CLUSTER-local protobuf.
 
 The fixed 3×3 dashboard widget uses one `VideoOutput` inside a centered clipped
 square. It uniformly scales and offsets the full decoded carrier so only the

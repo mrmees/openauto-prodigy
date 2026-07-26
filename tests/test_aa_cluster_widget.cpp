@@ -16,30 +16,35 @@ class FakeClusterDisplay : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool rendering READ rendering CONSTANT)
     Q_PROPERTY(QString statusText READ statusText CONSTANT)
-    Q_PROPERTY(int viewportEncodedWidth READ viewportEncodedWidth CONSTANT)
-    Q_PROPERTY(int viewportEncodedHeight READ viewportEncodedHeight CONSTANT)
-    Q_PROPERTY(int viewportContentX READ viewportContentX CONSTANT)
-    Q_PROPERTY(int viewportContentY READ viewportContentY CONSTANT)
-    Q_PROPERTY(int viewportContentWidth READ viewportContentWidth CONSTANT)
-    Q_PROPERTY(int viewportContentHeight READ viewportContentHeight CONSTANT)
+    Q_PROPERTY(int viewportEncodedWidth READ viewportEncodedWidth
+                   NOTIFY viewportGeometryChanged)
+    Q_PROPERTY(int viewportEncodedHeight READ viewportEncodedHeight
+                   NOTIFY viewportGeometryChanged)
+    Q_PROPERTY(int viewportContentX READ viewportContentX
+                   NOTIFY viewportGeometryChanged)
+    Q_PROPERTY(int viewportContentY READ viewportContentY
+                   NOTIFY viewportGeometryChanged)
+    Q_PROPERTY(int viewportContentWidth READ viewportContentWidth
+                   NOTIFY viewportGeometryChanged)
+    Q_PROPERTY(int viewportContentHeight READ viewportContentHeight
+                   NOTIFY viewportGeometryChanged)
     Q_PROPERTY(bool videoSinkAvailable READ videoSinkAvailable
                    NOTIFY videoSinkAvailabilityChanged)
 
 public:
     bool rendering() const { return false; }
     QString statusText() const { return QStringLiteral("Waiting"); }
-    int viewportEncodedWidth() const
-    { return oap::aa::kClusterViewportGeometry.encodedWidth; }
-    int viewportEncodedHeight() const
-    { return oap::aa::kClusterViewportGeometry.encodedHeight; }
-    int viewportContentX() const
-    { return oap::aa::kClusterViewportGeometry.contentX(); }
-    int viewportContentY() const
-    { return oap::aa::kClusterViewportGeometry.contentY(); }
-    int viewportContentWidth() const
-    { return oap::aa::kClusterViewportGeometry.contentWidth; }
-    int viewportContentHeight() const
-    { return oap::aa::kClusterViewportGeometry.contentHeight; }
+    int viewportEncodedWidth() const { return geometry_.encodedWidth; }
+    int viewportEncodedHeight() const { return geometry_.encodedHeight; }
+    int viewportContentX() const { return geometry_.contentX(); }
+    int viewportContentY() const { return geometry_.contentY(); }
+    int viewportContentWidth() const { return geometry_.contentWidth; }
+    int viewportContentHeight() const { return geometry_.contentHeight; }
+    void setGeometry(const oap::aa::ProjectedViewportGeometry& geometry)
+    {
+        geometry_ = geometry;
+        emit viewportGeometryChanged();
+    }
     bool videoSinkAvailable() const { return sink_.isNull(); }
     Q_INVOKABLE bool attachVideoSink(QVideoSink* sink)
     {
@@ -62,8 +67,11 @@ public:
 
 signals:
     void videoSinkAvailabilityChanged();
+    void viewportGeometryChanged();
 
 private:
+    oap::aa::ProjectedViewportGeometry geometry_ =
+        oap::aa::kClusterViewportGeometry;
     QPointer<QVideoSink> sink_;
     int attachAttempts_ = 0;
 };
@@ -306,6 +314,20 @@ private slots:
         QCOMPARE(video->height(), 480.0 * scale);
         QCOMPARE(video->x(), -250.0 * scale);
         QCOMPARE(video->y(), -90.0 * scale);
+
+        display.setGeometry({1280, 720, 600, 400});
+        hidden->setProperty("width", 400.0);
+        hidden->setProperty("height", 400.0);
+        QCoreApplication::processEvents();
+        const qreal rectangularScale = 400.0 / 600.0;
+        QCOMPARE(crop->width(), 400.0);
+        QVERIFY(qAbs(crop->height() - 400.0 * 400.0 / 600.0) < 0.001);
+        QCOMPARE(crop->x(), 0.0);
+        QVERIFY(qAbs(crop->y() - (400.0 - crop->height()) / 2.0) < 1.0);
+        QVERIFY(qAbs(video->width() - 1280.0 * rectangularScale) < 0.001);
+        QCOMPARE(video->height(), 720.0 * rectangularScale);
+        QVERIFY(qAbs(video->x() - -340.0 * rectangularScale) < 0.001);
+        QVERIFY(qAbs(video->y() - -160.0 * rectangularScale) < 0.001);
     }
 
     void failedSinkClaimStopsAfterBoundAndRearmsWhenOwnerReleases()

@@ -164,6 +164,12 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
     }
     if (projectedClusterConfig_.enabled
         && projectedClusterConfig_.profile.turnDataAvailable) {
+        // AA 17.3 class ity.d maps
+        // xmm.UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE to value 16 in the
+        // session_configuration bitmask. This field is session-scoped even
+        // though the known consumer is CLUSTER turn-card policy. Evidence:
+        // open-android-auto dev/android-auto-17.3-analysis @ 231f932b,
+        // docs/channels/display-routing.md (the local protocol enum lags it).
         config.sessionConfiguration |= 16;
     }
 

@@ -495,7 +495,7 @@ Flickable {
                 Layout.fillWidth: true
 
                 Text {
-                    text: "Advertise turn data available"
+                    text: "Session turn-data capability (bit 16)"
                     font.pixelSize: UiMetrics.fontBody
                     color: ThemeService.onSurface
                     Layout.fillWidth: true

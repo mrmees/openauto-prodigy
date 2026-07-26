@@ -101,6 +101,22 @@ limits, and a verification command before implementation.
 
 ## Android Auto, Calls, and Core Lifecycle
 
+- **Runtime CLUSTER action validation is not observable over External API** —
+  Evidence: **CODE-CONFIRMED 2026-07-25**. ActionRegistry reports whether an
+  action ID was dispatched, while the CLUSTER controller's accepted/rejected
+  result is available only through its QML diagnostics and application log.
+  Candidate deliverable: if the experimental lab becomes a supported remote
+  surface, add an additive profile/result publisher or an action-result
+  contract without weakening the frozen External API rails.
+
+- **Protocol-library session-configuration enum lags the AA 17.3 turn-data
+  bit** — Evidence: **STATIC AA 17.3 CONFIRMED; SUBMODULE FOLLOW-UP REQUIRED**.
+  AA 17.3 `ity.d` maps `xmm.UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE` to bit
+  16, while the hands-off protocol submodule's `SessionConfigurationEnum.proto`
+  documents only the four 16.2 values. Candidate deliverable: confirm the
+  current-app consumer path in open-android-auto, then add the named bit and
+  updated provenance there; Prodigy must not patch the submodule proto locally.
+
 - **AUXILIARY display semantics and projected content need current-app/live
   confirmation** — Evidence: **STATIC AA 17.3 ANALYSIS; LIVE REVALIDATION
   REQUIRED**. The pinned open-android-auto analysis and maintainer response in
@@ -216,6 +232,15 @@ limits, and a verification command before implementation.
   pins plus a documented/regression-checked regeneration procedure.
 
 ## Release Engineering and Documentation
+
+- **Fable review-gate invocation needs a reproducible readiness/progress
+  check** — Evidence: **LOCAL TOOLING OBSERVATION 2026-07-25**. Two Fable
+  launches created the pinned prompt/diff and a live companion/Claude process
+  but no raw output or completion signal during polling; the user authorized
+  an Opus fallback, which completed the same immutable review range. Candidate
+  deliverable: distinguish slow healthy execution from model/runtime failure,
+  expose job progress without direct process inspection, and verify the
+  `claude-fable-5` invocation used by `review-gate.sh`.
 
 - **Prebuilt installs do not own the wait-online boot policy** — Evidence:
   **INSTALLER GAP CONFIRMED 2026-07-24; FRESH-IMAGE VALIDATION REQUIRED**. The
