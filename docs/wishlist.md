@@ -98,17 +98,18 @@ all three when promoting an item; they are not estimates or approval.
   **Stack:** The current stack now contains a guarded MAIN-plus-CLUSTER
   two-instance substrate, a dashboard renderer, and a process-lifetime lab for
   480p/720p CLUSTER resolution, DPI, centered content geometry, and the
-  turn-data capability bit. Generalization still needs a display registry,
-  persisted output configuration, broader focus policy, AUXILIARY ownership,
-  and lifecycle support.
+  confirmed-no-op session value 16 toggle. Generalization still needs a display
+  registry, persisted output configuration, broader focus policy, AUXILIARY
+  ownership, and lifecycle support.
   **Hardware:** Available without new purchases: an existing HDMI monitor can
   run beside the current USB display.
   **Investigation:** Research first for production scope. The completed bounded
   spike proved that the current Pixel 8 accepts channels 12/13 and streams an
-  independent 800×480 Maps surface, but route-specific presentation, runtime
-  profile behavior, other phones, and physical second-output ownership remain
-  unvalidated. Current 17.3 analysis reports AUXILIARY navigation/turn-card
-  routing but no confirmed media or phone projection path.
+  independent 800×480 Maps surface. A later role swap live-confirmed
+  AUXILIARY/UNKNOWN as frame-idle and AUXILIARY/TURN_CARD as a route-gated
+  maneuver card that media does not populate or replace. AUXILIARY/NAVIGATION,
+  other phones, simultaneous third-display operation, and physical
+  second-output ownership remain unvalidated.
   **Protocol baseline:** [projected multi-display](aa-protocol/wishlist-baselines/projected-multi-display.md).
   **Promotion note:** the fixed MAIN-plus-one-CLUSTER dashboard experiment is
   complete; see

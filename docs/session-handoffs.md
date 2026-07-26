@@ -47,7 +47,11 @@ Google Maps route. Captures are retained at
 The initial Opus review reported zero blockers, one major, and three minors;
 the major required restoration before publication and was satisfied. Mixed
 local CLUSTER labels were accepted only for the disposable capture, the reverse
-test was strengthened, and the stale protocol comment remained upstream-only.
+test was strengthened, and the stale protocol-submodule comment remained
+upstream-only. The remediation review reported zero blockers, one major, and
+two minors. All three were confirmed and fixed directly: the live source/API
+consumer claim, settings reconnect warning, and multi-display wishlist evidence
+now match the corrected trace. The two-pass review budget is exhausted.
 Direct Claude companion invocations again failed to return an observable
 verdict before the repository review gate succeeded; the existing companion
 runtime investigation remains open.
@@ -64,7 +68,7 @@ simultaneous display.
 
 **What changed:** the default-off projected CLUSTER experiment now owns one
 validated process-lifetime runtime profile for 480p/720p carrier resolution,
-DPI, centered content dimensions, and AA 17.3's session-wide turn-data bit 16.
+DPI, centered content dimensions, and an experimental session value 16 toggle.
 Debug Settings exposes editable controls plus 300-square/full-frame presets,
 apply/reset actions, generation, and result text. The same controller is
 reachable through `aa.cluster.applyProfile` and `aa.cluster.resetProfile`, so
@@ -86,11 +90,11 @@ major review used the user-authorized Opus fallback
 after Fable produced no observable progress. It reported zero blockers, two
 majors, and three minors. All five findings were adjudicated: four were
 confirmed and fixed, and the write-only External API result was confirmed and
-deferred. Within the bit-16 finding, the "unattested" subclaim was dismissed
-using pinned AA 17.3 `ity.d`/`xmm` evidence; the missing citation, session
-scope, and stale protocol-submodule enum were confirmed and documented. A
-question about the current bit-16 consumer and stale enum was added to
-open-android-auto issue #10. The remediation review reported zero blockers,
+deferred. The bit-16 finding prompted a current-consumer question in
+open-android-auto issue #10. Its later complete trace corrected the original
+interpretation: `ity.d` maps an `AdditionalVideoConfig` UI element, while
+`session_configuration` value 16 has no AA 17.3 consumer. The remediation
+review reported zero blockers,
 zero majors, and one minor; its stale square-crop documentation statement was
 confirmed and fixed. The two-pass gate is exhausted. Fable invocation
 observability remains a recorded tooling follow-up.

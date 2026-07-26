@@ -203,4 +203,4 @@ keep it to H.264/H.265 because the decoder does not identify VP9 or AV1 streams.
 | WiFi Access Point | Read-only field | Channel | `connection.wifi_ap.channel` |
 | WiFi Access Point | Read-only field | Band | `connection.wifi_ap.band` |
 | AA Protocol Test | Expandable actions | Media and assistant buttons | Enabled only while projection is connected; dispatches `aa.sendButton` through `ActionRegistry`. |
-| Projected CLUSTER Lab | Expandable runtime profile | Resolution, DPI, content size, session turn-data bit 16, presets, apply, reset, generation/status | Visible only when `experimental_cluster_display` is enabled; dispatches `aa.cluster.*` actions and reconnects only active AA. Values are not persisted. The turn-data field is session-wide. |
+| Projected CLUSTER Lab | Expandable runtime profile | Resolution, DPI, content size, session turn-data value 16, presets, apply, reset, generation/status | Visible only when `experimental_cluster_display` is enabled; dispatches `aa.cluster.*` actions and reconnects only active AA. Values are not persisted. At Prodigy's requested GAL 1.1, the turn-data toggle is a confirmed no-op that still reconnects active AA. |

@@ -164,12 +164,11 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
     }
     if (projectedClusterConfig_.enabled
         && projectedClusterConfig_.profile.turnDataAvailable) {
-        // AA 17.3 class ity.d maps
-        // xmm.UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE to value 16 in the
-        // session_configuration bitmask. This field is session-scoped even
-        // though the known consumer is CLUSTER turn-card policy. Evidence:
-        // open-android-auto dev/android-auto-17.3-analysis @ 231f932b,
-        // docs/channels/display-routing.md (the local protocol enum lags it).
+        // Retained lab toggle: AA 17.3 reads only values 1, 2, 4, and 8 from
+        // session_configuration, so value 16 is a confirmed no-op. The
+        // similarly numbered hasClusterTurnCard feature comes from
+        // AdditionalVideoConfig.hidden_ui_elements at requested GAL >= 4.3;
+        // Prodigy currently requests 1.1. See open-android-auto issue #10.
         config.sessionConfiguration |= 16;
     }
 

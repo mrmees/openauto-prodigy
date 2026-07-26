@@ -266,10 +266,12 @@ process-lifetime only. Action dispatch acknowledges that the named handler ran;
 it does not report whether the profile was accepted. UI callers can read the
 CLUSTER diagnostics; External API callers must inspect the application log for
 acceptance or rejection in this phase.
-`turn_data_available` sets AA 17.3 session-configuration bit 16. That field is
-session-wide rather than scoped to the CLUSTER descriptor; the action remains
-under the experimental CLUSTER namespace because turn-card policy is its known
-consumer.
+`turn_data_available` sets value 16 in the session-wide
+`session_configuration` field. The completed AA 17.3 trace found no consumer
+for that value at Prodigy's requested GAL 1.1, so it is a confirmed no-op that
+still causes an active AA reconnect. It remains under the experimental CLUSTER
+namespace as recorded lab infrastructure pending retirement or correct
+`AdditionalVideoConfig` support after a GAL-version obligation audit.
 
 Additional internal actions exist for navbar gesture routing (`navbar.volume.*`, `navbar.clock.*`, `navbar.brightness.*`, `app.minimize`, `app.restart`) but are not part of the plugin API.
 
