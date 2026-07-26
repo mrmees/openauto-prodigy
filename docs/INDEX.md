@@ -71,6 +71,7 @@ Active plans:
 Everything under `archive/` is history, not guidance. Internal links there may point at pre-restructure paths by design.
 
 - [archive/plans/](archive/plans/) — completed/superseded designs and implementation plans, incl. milestone-01..05 history and pre-restructure proto docs
+- [2026-07-25-aa-auxiliary-role-swap-experiment.md](archive/plans/2026-07-25-aa-auxiliary-role-swap-experiment.md) — completed Pixel 8 AUXILIARY/UNKNOWN and AUXILIARY/TURN_CARD role-swap capture with restoration to CLUSTER
 - [2026-07-25-aa-runtime-cluster-lab-plan.md](archive/plans/2026-07-25-aa-runtime-cluster-lab-plan.md) — completed process-lifetime CLUSTER descriptor/crop profiles with Debug Settings and External API action control
 - [2026-07-25-aa-cluster-square-viewport-design.md](archive/plans/2026-07-25-aa-cluster-square-viewport-design.md) and [implementation plan](archive/plans/2026-07-25-aa-cluster-square-viewport-plan.md) — completed centered 300×300 phone-rendered CLUSTER viewport inside the standard 800×480 carrier and fixed 3×3 dashboard crop surface
 - [2026-07-24-aa-projected-cluster-widget-design.md](archive/plans/2026-07-24-aa-projected-cluster-widget-design.md) and [implementation plan](archive/plans/2026-07-24-aa-projected-cluster-widget-plan.md) — completed positive Pixel 8 MAIN-plus-CLUSTER activation, isolation, and square dashboard rendering spike

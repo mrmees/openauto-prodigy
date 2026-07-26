@@ -103,11 +103,13 @@ The same path is available to local integrations as
 `content_width`, `content_height`, and `turn_data_available`) and
 `aa.cluster.resetProfile`. External API v1 can dispatch those registered
 actions with `payload_json`. Invalid and unchanged updates do not reconnect.
-The turn-data bit is the AA 17.3 `ity.d` mapping of
-`UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE` to value 16. It lives in the
-session-wide `session_configuration` field even though current evidence ties
-its policy consumer to CLUSTER turn cards, so this experimental toggle changes
-the session response rather than a CLUSTER-local protobuf.
+The `turn_data_available` lab toggle currently sets value 16 in
+`session_configuration`, but the completed AA 17.3 trace found no consumer for
+that bit. The similarly numbered `hasClusterTurnCard` feature instead comes
+from `AdditionalVideoConfig.hidden_ui_elements` value 5, and only when the HU
+requests GAL 4.3 or newer. Prodigy requests GAL 1.1, so the current toggle is a
+confirmed no-op retained only as recorded lab infrastructure pending a
+separate protocol-version obligation audit.
 
 The fixed 3×3 dashboard widget uses one `VideoOutput` inside a centered clipped
 viewport sized to the active content aspect (a square for the 300×300
@@ -130,10 +132,24 @@ advertised. This hardware result agrees with the static finding that phone
 policy selects CLUSTER content and runtime message 26 cannot add or replace
 AV/CLUSTER services.
 
-The same static analysis finds AUXILIARY to be an independent logical display
-with navigation/turn-card evidence but no confirmed media or phone projection
-path. AUXILIARY still needs its own current-app trace and bounded live session;
-the negative CLUSTER result must not be generalized to it without evidence.
+The follow-up AUXILIARY role-swap produced a different, deterministic result.
+AA 17.3 accepted MAIN ID 0 plus AUXILIARY ID 1 on the existing channel 12/13
+pair. With AV field 8 omitted (`KEYCODE_UNKNOWN`), the phone opened and started
+the stream but sent only the codec header and no decodable frame. Advertising
+`KEYCODE_TURN_CARD` (65544) kept the stream idle without a route, including
+while YouTube Music played, then produced a compact maneuver card as soon as a
+Maps route became active. Media never replaced or populated the AUXILIARY
+surface. The session-bit-16 A/B made no content change, matching the corrected
+17.3 trace.
+
+Maps 26.30.05 publishes separate CLUSTER and AUXILIARY projection services.
+Its decompiled routing path identifies AV field 8 as the AUXILIARY initial
+content selector: `KEYCODE_NAVIGATION` (65538) selects a limited navigation
+map and `KEYCODE_TURN_CARD` selects a turn-card service/fallback. The local
+hands-off protocol enum lacks `KEYCODE_NAVIGATION`, and the available Maps
+report traces this selector through AA 16.2/16.4 rather than 17.3. The current
+17.3 confirmation and enum/provenance update are tracked upstream in
+open-android-auto issue #14; Prodigy has not patched the submodule locally.
 
 ## Evdev mapping
 

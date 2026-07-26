@@ -23,19 +23,35 @@ spike, or research-first feasibility work.
 
 ## Done (recent)
 
+- Android Auto AUXILIARY turn-card role-swap experiment — **COMPLETE
+  2026-07-25** (Pi/Pixel live-validated). AA 17.3 accepted MAIN ID 0 plus an
+  AUXILIARY ID 1 on the existing secondary channels 12/13. AUXILIARY/UNKNOWN
+  opened but produced no decodable frame. AUXILIARY/TURN_CARD was idle without
+  a route, including while YouTube Music played, and rendered a compact
+  maneuver card when a Maps route became active. The existing session-bit-16
+  toggle made no content difference. The temporary descriptor and Pi binary
+  were restored to CLUSTER after capture. Maps 26.30.05 identifies a separate
+  AUXILIARY/NAVIGATION selector, but its missing local enum and AA 17.3
+  provenance are tracked in open-android-auto issue #14 before another phase.
+  Plan:
+  `docs/archive/plans/2026-07-25-aa-auxiliary-role-swap-experiment.md`.
+
 - Android Auto runtime CLUSTER lab — **COMPLETE 2026-07-25** (Pi/Pixel
   live-validated). The default-off experiment now accepts process-lifetime
   480p/720p resolution, DPI, centered content geometry, and the AA 17.3
-  session-wide turn-data bit through Debug Settings or `aa.cluster.*` External
-  API action dispatch. Valid active edits stage one snapshot and renegotiate
-  through an AA-only reconnect; descriptor, decoded-frame validation, and the
-  aspect-aware widget crop activate together. No YAML edit or Prodigy restart
-  is required. MAIN descriptors/decoding/focus/touch and the single-CLUSTER
-  scope remain unchanged. A 24-capture live matrix with navigation active,
-  navigation stopped, and YouTube Music playing showed Google Maps in every
-  CLUSTER profile: navigation only added route UI, while turn-data bit 16 and
-  media playback selected no alternate content. Resolution, crop geometry,
-  and DPI visibly changed framing/scale and negotiated the expected carrier.
+  experimental turn-data toggle through Debug Settings or `aa.cluster.*`
+  External API action dispatch. Valid active edits stage one snapshot and
+  renegotiate through an AA-only reconnect; descriptor, decoded-frame
+  validation, and the aspect-aware widget crop activate together. No YAML edit
+  or Prodigy restart is required. MAIN descriptors/decoding/focus/touch and the
+  single-CLUSTER scope remain unchanged. A 24-capture live matrix with
+  navigation active, navigation stopped, and YouTube Music playing showed
+  Google Maps in every CLUSTER profile: navigation only added route UI, while
+  the turn-data toggle and media playback selected no alternate content.
+  Issue #10 subsequently confirmed the toggle's `session_configuration` value
+  16 has no AA 17.3 consumer at Prodigy's requested GAL 1.1. Resolution, crop
+  geometry, and DPI visibly changed framing/scale and negotiated the expected
+  carrier.
   Plan:
   `docs/archive/plans/2026-07-25-aa-runtime-cluster-lab-plan.md`.
 

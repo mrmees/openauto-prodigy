@@ -1,6 +1,6 @@
 # Android Auto AUXILIARY Role-Swap Experiment Plan
 
-Status: ACTIVE
+Status: COMPLETED 2026-07-25
 
 Grounded on Prodigy `67371be` and open-android-auto's deleted
 `dev/android-auto-17.3-analysis` branch recovered at
@@ -39,38 +39,38 @@ this is a disposable role swap, not a supported secondary-display abstraction.
 - Modify: `src/core/aa/ServiceDiscoveryBuilder.cpp`
 - Modify: `src/core/aa/AndroidAutoOrchestrator.cpp`
 
-- [ ] Change the paired-topology test to expect
+- [x] Change the paired-topology test to expect
   `oaa::proto::enums::DisplayType::AUXILIARY` for descriptor channel 12 while
   retaining display ID 1 and input channel 13.
-- [ ] Run `test_service_discovery_builder` and confirm it fails because the
+- [x] Run `test_service_discovery_builder` and confirm it fails because the
   implementation still emits `CLUSTER`.
-- [ ] Change `buildClusterVideoDescriptor()` to serialize
+- [x] Change `buildClusterVideoDescriptor()` to serialize
   `DisplayType::AUXILIARY` and change the session diagnostic role label to
   `AUXILIARY`. Do not rename the local session, APIs, QML context, or widget.
-- [ ] Re-run `test_service_discovery_builder`, build the explicit
+- [x] Re-run `test_service_discovery_builder`, build the explicit
   `openauto-prodigy` target, and run `QT_QPA_PLATFORM=offscreen ctest
   --output-on-failure`.
-- [ ] Run one independent Opus review of the bounded experimental diff. Fable
+- [x] Run one independent Opus review of the bounded experimental diff. Fable
   is not used because its invocation previously failed to produce an observable
   result; the existing tooling follow-up remains open.
-- [ ] Run `./cross-build.sh`, deploy the aarch64 binary, restart Prodigy once,
+- [x] Run `./cross-build.sh`, deploy the aarch64 binary, restart Prodigy once,
   and confirm the service returns `READY=1` and the descriptor log says
   `role=AUXILIARY display=1 video_ch=12 input_ch=13`.
 
 ## Task 2 — Capture the result and restore CLUSTER
 
-- [ ] With baseline 480p/140-DPI/300x300 geometry, capture AUXILIARY with no
+- [x] With baseline 480p/140-DPI/300x300 geometry, capture AUXILIARY with no
   active navigation and no media.
-- [ ] Capture AUXILIARY with no navigation and YouTube Music actively playing;
+- [x] Capture AUXILIARY with no navigation and YouTube Music actively playing;
   verify AA media channel 4 starts before the screenshot.
-- [ ] Capture AUXILIARY with an active Maps route and turn-data bit 16 off.
-- [ ] Capture the same active route with turn-data bit 16 on.
-- [ ] Retain screenshots, manifests, negotiated descriptor/frame logs, and the
+- [x] Capture AUXILIARY with an active Maps route and turn-data bit 16 off.
+- [x] Capture the same active route with turn-data bit 16 on.
+- [x] Retain screenshots, manifests, negotiated descriptor/frame logs, and the
   user's visual assessment in the Windows capture directory.
-- [ ] Reverse the temporary source/test/log-label patch, rebuild and redeploy
+- [x] Reverse the temporary source/test/log-label patch, rebuild and redeploy
   the normal CLUSTER artifact, and confirm the Pi returns to the compiled
   480p/140-DPI/300x300 CLUSTER baseline.
-- [ ] Record the confirmed result in live docs, mark this plan completed, move
+- [x] Record the confirmed result in live docs, mark this plan completed, move
   it to `docs/archive/plans/`, update the session handoff, run the tracked-live
   link check and `git diff --check`, and commit the documentation record.
 
@@ -85,3 +85,21 @@ this is a disposable role swap, not a supported secondary-display abstraction.
 - No experimental AUXILIARY source change remains after restoration.
 - The Pi and repository end on the normal CLUSTER baseline with the experiment
   recorded as evidence.
+
+## Execution result
+
+The initial role-only AUXILIARY/UNKNOWN run opened and started channels 12/13
+but emitted only the codec header and never produced a decoded frame. During
+execution, the Maps 26.30.05 trace identified AV field 8 as an initial AUXILIARY
+content selector. The bounded artifact was therefore extended to advertise the
+already-defined `KEYCODE_TURN_CARD` value 65544. With that selector, no-route
+and no-route-plus-media states remained frame-idle; an active Maps route
+immediately produced an 800×480 compact maneuver card. Toggling the experimental
+session bit 16 caused no content change, matching open-android-auto issue #10's
+corrected 17.3 trace.
+
+`KEYCODE_NAVIGATION` value 65538 was not tested because the hands-off protocol
+enum omits it and the available consumer trace stops at AA 16.4. Current AA 17.3
+confirmation and the upstream enum/provenance update are tracked in
+open-android-auto issue #14. The experimental source and Pi binary were restored
+to CLUSTER, and the restored active-route dashboard rendered Google Maps.

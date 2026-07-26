@@ -4,6 +4,62 @@ Newest entries first.
 
 ---
 
+## 2026-07-25 — Android Auto AUXILIARY turn-card experiment
+
+**What changed:** a disposable two-commit artifact temporarily advertised the
+existing secondary display ID 1 and channels 12/13 as AUXILIARY. The first pass
+omitted AV field 8 for an UNKNOWN-content negative control. After reviewing the
+new Maps 26.30.05 analysis, the second pass advertised the already-defined
+`KEYCODE_TURN_CARD` value 65544. No protocol-submodule or External API protobuf
+was changed. A final restoration commit returned the descriptor, diagnostic,
+test expectation, and Pi binary to the normal CLUSTER role; the only lasting
+code change is an explicit regression assertion that CLUSTER omits field 8.
+
+**Why:** the 24-case CLUSTER matrix always selected Maps, so AUXILIARY needed a
+separate bounded live test rather than inheriting that negative result. Maps
+26.30.05 publishes distinct CLUSTER and AUXILIARY services and identifies AV
+field 8 as the AUXILIARY initial-content selector. Its NAVIGATION value 65538
+is absent from the hands-off local enum and its available AA trace stops at
+16.4, so that mode remains upstream research rather than a local proto patch.
+
+**Status:** COMPLETE and Pi/Pixel live-validated on local `dev`. AA 17.3
+accepted MAIN+AUXILIARY and opened both secondary channels. AUXILIARY/UNKNOWN
+sent only the codec header and no decodable frame. AUXILIARY/TURN_CARD stayed
+idle without a route, both with media paused and with YouTube Music playing,
+then rendered a compact maneuver card during an active Maps route. Media never
+populated or replaced AUXILIARY. The session-bit-16 A/B produced the same
+turn-card service, confirming issue #10's correction that no AA 17.3 consumer
+reads that bit. Issue #10 also confirmed that message 26 cannot replace AV,
+cluster power mode is phone policy, geometry is post-selection, and Prodigy's
+GAL 1.1 request ignores the newer hidden-UI list. The remaining 17.3 field-8
+trace and `KEYCODE_NAVIGATION` enum/provenance question is tracked in
+open-android-auto issue #14.
+
+**Verification:** the experimental and restoration descriptor changes each
+used focused red/green `test_service_discovery_builder` runs. The explicit
+native `openauto-prodigy` target, `QT_QPA_PLATFORM=offscreen ctest
+--output-on-failure`, and `./cross-build.sh` passed for the final restored tree.
+The final aarch64 hash matched on host and Pi; systemd was active; logs showed
+`role=CLUSTER display=1 video_ch=12 input_ch=13`, channel open/start, the first
+800×480 decoded frame, and Rendering. The restored dashboard showed the active
+Google Maps route. Captures are retained at
+`E:\claude\personal\openautopro\auxiliary-display-captures-2026-07-25`.
+The initial Opus review reported zero blockers, one major, and three minors;
+the major required restoration before publication and was satisfied. Mixed
+local CLUSTER labels were accepted only for the disposable capture, the reverse
+test was strengthened, and the stale protocol comment remained upstream-only.
+Direct Claude companion invocations again failed to return an observable
+verdict before the repository review gate succeeded; the existing companion
+runtime investigation remains open.
+
+**Next 1–3 steps:** (1) wait for open-android-auto issue #14's AA 17.3 field-8
+trace and enum update; (2) audit GAL 4.3+ obligations before touching the
+requested version or hidden UI features; (3) if #14 confirms NAVIGATION, design
+a bounded runtime AUXILIARY content-selector phase before attempting a third
+simultaneous display.
+
+---
+
 ## 2026-07-25 — Android Auto runtime CLUSTER lab implementation
 
 **What changed:** the default-off projected CLUSTER experiment now owns one
