@@ -28,6 +28,8 @@ Flickable {
                                       ? AAClusterDisplay.profileGeneration : 0
         property string clusterStatus: clusterAvailable
                                      ? AAClusterDisplay.profileStatusText : ""
+        property string clusterRequestedGal: clusterAvailable
+                                             ? AAClusterDisplay.requestedGalVersion : ""
         property int clusterActiveWidth: clusterAvailable
                                        ? AAClusterDisplay.viewportContentWidth : 0
         property int clusterActiveHeight: clusterAvailable
@@ -456,6 +458,19 @@ Flickable {
                 columnSpacing: UiMetrics.gap
                 rowSpacing: UiMetrics.spacing
 
+                Text { text: "GAL"; color: ThemeService.onSurfaceVariant }
+                ComboBox {
+                    id: clusterGalVersion
+                    model: ["1.7", "4.3"]
+                    Layout.fillWidth: true
+                    onActivated: {
+                        if (currentText === "1.7")
+                            clusterNativeTurnCard.checked = false
+                    }
+                }
+                Item { Layout.fillWidth: true }
+                Item { Layout.fillWidth: true }
+
                 Text { text: "Resolution"; color: ThemeService.onSurfaceVariant }
                 ComboBox {
                     id: clusterResolution
@@ -494,14 +509,25 @@ Flickable {
             RowLayout {
                 Layout.fillWidth: true
 
-                Text {
-                    text: "Session turn-data capability (bit 16)"
-                    font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.onSurface
+                ColumnLayout {
+                    spacing: 0
                     Layout.fillWidth: true
+
+                    Text {
+                        text: "Advertise native HU turn card (lab)"
+                        font.pixelSize: UiMetrics.fontBody
+                        color: ThemeService.onSurface
+                    }
+                    Text {
+                        text: "GAL 4.3 only"
+                        font.pixelSize: UiMetrics.fontSmall
+                        color: ThemeService.onSurfaceVariant
+                    }
                 }
                 Switch {
-                    id: clusterTurnData
+                    id: clusterNativeTurnCard
+                    enabled: clusterGalVersion.currentText === "4.3"
+                    opacity: enabled ? 1.0 : 0.4
                     Material.accent: ThemeService.primaryContainer
                 }
             }
@@ -518,7 +544,7 @@ Flickable {
                         clusterDpi.value = 140
                         clusterContentWidth.value = 300
                         clusterContentHeight.value = 300
-                        clusterTurnData.checked = false
+                        clusterNativeTurnCard.checked = false
                         root.applyClusterProfile()
                     }
                 }
@@ -551,10 +577,12 @@ Flickable {
 
             Text {
                 Layout.fillWidth: true
-                text: content.clusterStatus
+                text: "requested GAL " + content.clusterRequestedGal
+                      + " · gen " + content.clusterGeneration
                       + " · active crop "
                       + content.clusterActiveWidth + "×"
                       + content.clusterActiveHeight
+                      + " · " + content.clusterStatus
                 wrapMode: Text.Wrap
                 font.pixelSize: UiMetrics.fontSmall
                 color: ThemeService.onSurfaceVariant
@@ -568,11 +596,14 @@ Flickable {
 
     function applyClusterProfile() {
         ActionRegistry.dispatch("aa.cluster.applyProfile", {
+            "gal_version": clusterGalVersion.currentText,
             "resolution": clusterResolution.currentText,
             "dpi": clusterDpi.value,
             "content_width": clusterContentWidth.value,
             "content_height": clusterContentHeight.value,
-            "turn_data_available": clusterTurnData.checked
+            "native_turn_card_available":
+                clusterGalVersion.currentText === "4.3"
+                && clusterNativeTurnCard.checked
         })
     }
 
@@ -581,10 +612,13 @@ Flickable {
             return
         clusterResolution.currentIndex =
             AAClusterDisplay.requestedResolution === "720p" ? 1 : 0
+        clusterGalVersion.currentIndex =
+            AAClusterDisplay.requestedGalVersion === "4.3" ? 1 : 0
         clusterDpi.value = AAClusterDisplay.requestedDpi
         clusterContentWidth.value = AAClusterDisplay.requestedContentWidth
         clusterContentHeight.value = AAClusterDisplay.requestedContentHeight
-        clusterTurnData.checked = AAClusterDisplay.requestedTurnDataAvailable
+        clusterNativeTurnCard.checked =
+            AAClusterDisplay.requestedNativeTurnCardAvailable
     }
 
     Connections {
