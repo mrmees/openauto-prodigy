@@ -388,7 +388,7 @@ private slots:
         QVERIFY(!input.touch_screen_configs(0).has_display_type());
     }
 
-    void experimentalSecondaryAdvertisesPairedAuxiliaryTopology() {
+    void enabledClusterAdvertisesPairedFixedTopology() {
         oap::aa::ServiceDiscoveryBuilder builder;
         builder.setProjectedClusterConfig({true, {}});
         const auto config = builder.build();
@@ -406,10 +406,8 @@ private slots:
         const auto clusterVideo = descriptorById(config, 12).av_channel();
         QCOMPARE(clusterVideo.channel_id(), 1u);
         QCOMPARE(clusterVideo.display_type(),
-                 oaa::proto::enums::DisplayType::AUXILIARY);
-        QVERIFY(clusterVideo.has_keycode());
-        QCOMPARE(clusterVideo.keycode(),
-                 oaa::proto::enums::AndroidKeycode::KEYCODE_TURN_CARD);
+                 oaa::proto::enums::DisplayType::CLUSTER);
+        QVERIFY(!clusterVideo.has_keycode());
         QCOMPARE(clusterVideo.video_configs_size(), 1);
         const auto& videoConfig = clusterVideo.video_configs(0);
         QCOMPARE(videoConfig.video_resolution(),

@@ -414,7 +414,7 @@ void AndroidAutoOrchestrator::onNewConnection()
                  << builder.videoConfigCount(ProjectedDisplayRole::Main);
     if (projectedClusterConfig_.enabled) {
         qCInfo(lcAA) << "Projected display descriptor:"
-                     << "role=AUXILIARY display=1 video_ch=12 input_ch=13 configs="
+                     << "role=CLUSTER display=1 video_ch=12 input_ch=13 configs="
                      << builder.videoConfigCount(ProjectedDisplayRole::Cluster);
     }
 

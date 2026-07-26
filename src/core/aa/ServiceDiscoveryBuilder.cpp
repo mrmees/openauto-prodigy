@@ -328,9 +328,7 @@ QByteArray ServiceDiscoveryBuilder::buildClusterVideoDescriptor() const
     auto* avChannel = desc.mutable_av_channel();
     avChannel->set_stream_type(oaa::proto::enums::AVStreamType::VIDEO);
     avChannel->set_channel_id(kClusterDisplayId);
-    avChannel->set_display_type(oaa::proto::enums::DisplayType::AUXILIARY);
-    avChannel->set_keycode(
-        oaa::proto::enums::AndroidKeycode::KEYCODE_TURN_CARD);
+    avChannel->set_display_type(oaa::proto::enums::DisplayType::CLUSTER);
 
     const auto& profile = projectedClusterConfig_.profile;
     const ProjectedViewportGeometry geometry = profile.geometry();
