@@ -118,15 +118,19 @@ limits, and a verification command before implementation.
   updated provenance there; Prodigy must not patch the submodule proto locally.
 
 - **AUXILIARY display semantics and projected content need current-app/live
-  confirmation** — Evidence: **STATIC AA 17.3 ANALYSIS; LIVE REVALIDATION
-  REQUIRED**. The pinned open-android-auto analysis and maintainer response in
-  issue #10 describe AUXILIARY as an independent logical display with
-  navigation/turn-card routing, no evidenced media/phone projection path, and
-  no runtime service replacement through message 26. The response also warns
-  that some supporting documents retain stale 16.2 class names. Candidate
-  deliverable: re-trace current Google Maps and YouTube Music, refresh stale
-  symbols, then capture one bounded MAIN+CLUSTER+AUXILIARY session before
-  promoting the next display-type phase.
+  confirmation** — Evidence: **STATIC AA 17.3 ANALYSIS; CLUSTER LIVE MATRIX
+  COMPLETE; AUXILIARY LIVE REVALIDATION REQUIRED**. The pinned
+  open-android-auto analysis and maintainer response in issue #10 describe
+  AUXILIARY as an independent logical display with navigation/turn-card
+  routing, no evidenced media/phone projection path, and no runtime service
+  replacement through message 26. A 2026-07-25 Pixel 8 CLUSTER matrix found
+  Google Maps in all 24 resolution/geometry/DPI/turn-bit captures across active
+  route, no route, and YouTube Music playback; media never replaced the map.
+  That corroborates the CLUSTER policy analysis but does not answer AUXILIARY.
+  The response also warns that some supporting documents retain stale 16.2
+  class names. Candidate deliverable: re-trace current Google Maps and YouTube
+  Music, refresh stale symbols, then capture one bounded
+  MAIN+CLUSTER+AUXILIARY session before promoting the next display-type phase.
 
 - **AA EventBus connections accumulate across sessions** — Evidence:
   **CODE-CONFIRMED 2026-07-24**. Navigation and media-status value-member

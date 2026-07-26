@@ -23,16 +23,20 @@ spike, or research-first feasibility work.
 
 ## Done (recent)
 
-- Android Auto runtime CLUSTER lab — **COMPLETE 2026-07-25** (hardware
-  validation pending). The default-off experiment now accepts process-lifetime
+- Android Auto runtime CLUSTER lab — **COMPLETE 2026-07-25** (Pi/Pixel
+  live-validated). The default-off experiment now accepts process-lifetime
   480p/720p resolution, DPI, centered content geometry, and the AA 17.3
   session-wide turn-data bit through Debug Settings or `aa.cluster.*` External
   API action dispatch. Valid active edits stage one snapshot and renegotiate
   through an AA-only reconnect; descriptor, decoded-frame validation, and the
   aspect-aware widget crop activate together. No YAML edit or Prodigy restart
   is required. MAIN descriptors/decoding/focus/touch and the single-CLUSTER
-  scope remain unchanged. Native tests, compiled QML, and the aarch64 build are
-  green; Pi/phone experiments remain the next validation step. Plan:
+  scope remain unchanged. A 24-capture live matrix with navigation active,
+  navigation stopped, and YouTube Music playing showed Google Maps in every
+  CLUSTER profile: navigation only added route UI, while turn-data bit 16 and
+  media playback selected no alternate content. Resolution, crop geometry,
+  and DPI visibly changed framing/scale and negotiated the expected carrier.
+  Plan:
   `docs/archive/plans/2026-07-25-aa-runtime-cluster-lab-plan.md`.
 
 - Android Auto CLUSTER square viewport — **COMPLETE 2026-07-25**

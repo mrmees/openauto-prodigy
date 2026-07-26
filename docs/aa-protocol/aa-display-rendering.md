@@ -119,12 +119,21 @@ nonstandard encoded resolution. The path does not change MAIN projection's
 the single experimental CLUSTER.
 
 Geometry and DPI are experimental layout inputs, not a claimed map-versus-turn
-card selector. Current Android Auto 17.3 analysis says navigation availability
-and phone policy choose that content, and that runtime message 26 cannot add or
-replace AV/CLUSTER services. The same static analysis finds AUXILIARY to be an
-independent logical display with navigation/turn-card evidence but no confirmed
-media or phone projection path. Those conclusions remain research inputs until
-the Maps/YouTube Music deep dive and live captures answer the open questions.
+card selector. A 2026-07-25 Pixel 8/Android Auto 17.3 live matrix exercised the
+baseline, turn-data bit, 480p/720p carriers, full-frame/square geometry, and
+80/140/280 DPI under three phone states: active Maps route, no route, and no
+route with YouTube Music actively playing. All 24 captures remained Google
+Maps. Active navigation added the route UI; stopping navigation removed it;
+media playback never replaced the map. The turn-data bit did not produce a
+visible mode change. Resolution, geometry, and DPI changed framing or scale as
+advertised. This hardware result agrees with the static finding that phone
+policy selects CLUSTER content and runtime message 26 cannot add or replace
+AV/CLUSTER services.
+
+The same static analysis finds AUXILIARY to be an independent logical display
+with navigation/turn-card evidence but no confirmed media or phone projection
+path. AUXILIARY still needs its own current-app trace and bounded live session;
+the negative CLUSTER result must not be generalized to it without evidence.
 
 ## Evdev mapping
 

@@ -25,8 +25,8 @@ CLUSTER and avoiding unsupported `ServiceDiscoveryUpdate` behavior. The phone
 still chooses map versus turn card according to navigation availability and
 policy; geometry is not documented as a content selector.
 
-**Status:** COMPLETE on local `dev`; Pi/phone behavior is not yet
-live-validated. The initial major review used the user-authorized Opus fallback
+**Status:** COMPLETE and Pi/Pixel live-validated on local `dev`. The initial
+major review used the user-authorized Opus fallback
 after Fable produced no observable progress. It reported zero blockers, two
 majors, and three minors. All five findings were adjudicated: four were
 confirmed and fixed, and the write-only External API result was confirmed and
@@ -43,13 +43,23 @@ observability remains a recorded tooling follow-up.
 widget tests passed. The native build, explicit `openauto-prodigy` target,
 `QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, documentation link
 check, frozen-proto boundary check, `git diff --check`, and
-`./cross-build.sh` passed. The cross-build compiled the updated QML into the
-aarch64 application. No deployment or service restart was performed.
+`./cross-build.sh` passed. The aarch64 binary was deployed to the Pi and its
+service returned `READY=1`. External API dispatch then captured the same eight
+profiles under active navigation, no navigation, and no navigation with
+YouTube Music playing. Logs confirmed every requested generation and decoded
+carrier, zero navigation events in the latter two sweeps, and one AA media
+stream start before each media screenshot. All 24 confirmed captures showed
+Google Maps; route activity only added route UI, while turn-data bit 16 and
+media playback produced no alternate CLUSTER content. Captures and manifests
+are retained outside the repository at
+`E:\claude\personal\openautopro\cluster-lab-captures-2026-07-25`. The Pi was
+left on the compiled baseline profile; the prior binary remains available as
+`openauto-prodigy.pre-cluster-lab-f2d3f676`.
 
-**Next 1–3 steps:** (1) deploy the new aarch64 binary to the Pi and exercise
-baseline, full-frame, 720p, and turn-data profiles with an active Maps route;
-(2) capture the resulting descriptor/frame/log evidence; (3) use issue #10's
-Maps/YouTube Music findings to scope the subsequent AUXILIARY phase.
+**Next 1–3 steps:** (1) attach the CLUSTER live result to the open-android-auto
+17.3 analysis as useful corroboration; (2) wait for issue #10's current
+Maps/YouTube Music trace; (3) scope a separate bounded AUXILIARY phase without
+assuming CLUSTER's negative result applies to that display type.
 
 ---
 
