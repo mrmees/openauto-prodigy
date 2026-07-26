@@ -90,26 +90,56 @@ projected input.
 
 Debug Settings provides a runtime CLUSTER lab while the experiment is enabled.
 It can stage 480p or 720p, DPI 80–640, any positive centered content rectangle
-that fits the carrier with even total margins, and the experimental
-`turn_data_available` session flag. A valid change updates one typed snapshot,
-then gracefully reconnects only the Android Auto session when projection is
-active. The replacement discovery descriptor, decoded-frame validation, and
-QML crop all activate from that same generation immediately before the new
-session starts. No YAML edit, Prodigy restart, or `ServiceDiscoveryUpdate` is
-involved; overrides last only for the current application process.
+that fits the carrier with even total margins, a bounded requested GAL choice
+(`1.7` or `4.3`), and the 4.3-only `native_turn_card_available` declaration.
+One accepted complete profile updates one typed snapshot and, only when it is a
+real change while projection is active, gracefully reconnects the Android Auto
+session. The replacement discovery descriptor, decoded-frame validation, and
+QML crop activate from that same generation immediately before the new session
+starts. Invalid and unchanged profiles do not reconnect. No YAML edit, Prodigy
+restart, or `ServiceDiscoveryUpdate` is involved; overrides last only for the
+current application process and reset returns to its startup profile.
 
 The same path is available to local integrations as
-`aa.cluster.applyProfile` with a map payload (`resolution`, `dpi`,
-`content_width`, `content_height`, and `turn_data_available`) and
-`aa.cluster.resetProfile`. External API v1 can dispatch those registered
-actions with `payload_json`. Invalid and unchanged updates do not reconnect.
-The `turn_data_available` lab toggle currently sets value 16 in
-`session_configuration`, but the completed AA 17.3 trace found no consumer for
-that bit. The similarly numbered `hasClusterTurnCard` feature instead comes
-from `AdditionalVideoConfig.hidden_ui_elements` value 5, and only when the HU
-requests GAL 4.3 or newer. Prodigy requests GAL 1.1, so the current toggle is a
-confirmed no-op retained only as recorded lab infrastructure pending a
-separate protocol-version obligation audit.
+`aa.cluster.applyProfile` with a complete map payload (`resolution`, `dpi`,
+`content_width`, `content_height`, `gal_version`, and
+`native_turn_card_available`) and `aa.cluster.resetProfile`. External API v1
+can dispatch those registered actions with `payload_json`; dispatch confirms
+that the handler ran, while the provider diagnostics describe profile
+acceptance. `native_turn_card_available` is an honest HU declaration only: it
+says that the CLUSTER descriptor can host the native turn-card UI element. It
+does not render a turn card, select phone content, or promise that the phone
+will use the declaration.
+
+### GAL and per-video UI policy
+
+The requested tuple, not the phone-reported compatible tuple, is the sole
+local input to descriptor and UI-feature policy:
+
+| Requested GAL | Version-response admission | Session clock | `VideoConfig` field 11 |
+|---|---|---|---|
+| 1.7 (default) | Raw status `MATCH` is sufficient; the reported tuple is legacy status-only. | Existing navbar clock bit is set only when the Navbar clock is enabled. | Absent from every MAIN and CLUSTER configuration. Native-turn-card true is rejected. |
+| 4.3 (lab) | Raw status `MATCH` plus a numerically equal-or-higher reported tuple. | The session bit is clear. | Each selectable MAIN codec configuration gets one `UI_ELEMENT_CLOCK` only when the Navbar clock is enabled. The CLUSTER configuration gets one `UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE` only when `native_turn_card_available` is true. |
+
+The removed session-configuration value 16 is never emitted. Field 11 is
+limited to those two hidden-UI declarations; it does not add
+`AdditionalVideoConfig`, alter display roles, select a turn-card service, or
+change the established video, input, audio, ACK, focus, or touch contracts.
+
+Version diagnostics retain the complete fixed response prefix: reported major,
+minor, raw 16-bit status, and every byte after that six-byte prefix. A short
+prefix is reported as malformed and fails before TLS without fabricated values.
+For a parseable prefix, logs include requested/reported tuples, raw status,
+trailing length, a bounded parsed configuration summary when applicable, and a
+bounded opaque-byte prefix; trailing bytes are non-fatal.
+
+Task 0's deployed Pi/Pixel baseline captured request `1.7`, response
+`1.7/MATCH`, no trailing bytes, and healthy simultaneous MAIN+CLUSTER media.
+The corrected request-only checkpoint then captured requested `4.3` with the
+same Pixel reporting `6.0/MATCH`; that compatible response proceeded through
+the established projection path, while requested `4.3` remained authoritative
+locally. This is request/response and media evidence only. The final
+field-11/hidden-UI hardware matrix has not yet passed and is not implied here.
 
 The fixed 3×3 dashboard widget uses one `VideoOutput` inside a centered clipped
 viewport sized to the active content aspect (a square for the 300×300

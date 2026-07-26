@@ -8,6 +8,15 @@
 > for current commands and [Architecture](../architecture.md) for current
 > implementation ownership.
 
+> **Current GAL note (2026-07-26):** the historical `v1.1` request below is
+> not current behavior. Task 0 captured the deployed baseline request as GAL
+> 1.7 with a complete 1.7/MATCH response. The default remains 1.7. The
+> default-off lab may request 4.3; its minimum-compatible policy accepts a
+> MATCH response reporting 4.3 or higher, including the observed 4.3 request →
+> 6.0/MATCH response. Requested 4.3, not reported 6.0, remains authoritative
+> for local descriptor policy. This note corrects current guidance without
+> rewriting the dated capture below.
+
 ## Date: 2026-02-22
 
 ## Setup

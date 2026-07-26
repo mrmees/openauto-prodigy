@@ -257,21 +257,26 @@ Named command dispatch. Actions are synchronous.
 | `app.openSettings` | — | Navigate to settings view |
 | `theme.toggle` | — | Toggle day/night mode |
 | `aa.sendButton` | `int` keycode | Send an AA button press to the phone |
-| `aa.cluster.applyProfile` | map | Stage `resolution`, `dpi`, `content_width`, `content_height`, and/or `turn_data_available`; reconnect active AA for renegotiation |
+| `aa.cluster.applyProfile` | complete map | Stage `resolution`, `dpi`, `content_width`, `content_height`, `gal_version` (`1.7` or `4.3`), and `native_turn_card_available`; an accepted real change reconnects active AA for renegotiation |
 | `aa.cluster.resetProfile` | — | Restore the runtime 480p/140-DPI/300×300 CLUSTER baseline |
 
 The `aa.cluster.*` actions are registered only when
 `experimental_cluster_display` was enabled at startup. Profile overrides are
-process-lifetime only. Action dispatch acknowledges that the named handler ran;
-it does not report whether the profile was accepted. UI callers can read the
-CLUSTER diagnostics; External API callers must inspect the application log for
-acceptance or rejection in this phase.
-`turn_data_available` sets value 16 in the session-wide
-`session_configuration` field. The completed AA 17.3 trace found no consumer
-for that value at Prodigy's requested GAL 1.1, so it is a confirmed no-op that
-still causes an active AA reconnect. It remains under the experimental CLUSTER
-namespace as recorded lab infrastructure pending retirement or correct
-`AdditionalVideoConfig` support after a GAL-version obligation audit.
+process-lifetime only. Each apply payload is validated and staged atomically;
+invalid and no-op maps do not request a reconnect. Action dispatch acknowledges
+that the named handler ran; it does not itself report profile acceptance. UI
+callers can read the CLUSTER diagnostics; External API callers must inspect the
+application log for acceptance or rejection in this phase.
+
+GAL 1.7 is the default profile and requires only a MATCH response status. The
+default-off GAL 4.3 profile requires MATCH plus a numerically equal-or-higher
+reported tuple; the observed request 4.3 → response 6.0/MATCH is accepted.
+The requested tuple remains the only local feature-policy input. On 4.3, the
+native-turn declaration writes only the CLUSTER `VideoConfig` field-11 hidden
+UI availability element; it neither renders a native turn card nor selects
+phone content. It is false for 1.7. The former session-configuration value-16
+`turn_data_available` control is removed because AA 17.3 had no consumer for
+that bit.
 
 Additional internal actions exist for navbar gesture routing (`navbar.volume.*`, `navbar.clock.*`, `navbar.brightness.*`, `app.minimize`, `app.restart`) but are not part of the plugin API.
 

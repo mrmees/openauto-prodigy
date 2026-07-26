@@ -4,6 +4,35 @@ Newest entries first.
 
 ---
 
+## 2026-07-26 — GAL 4.3 display compatibility guidance and pre-bench candidate
+
+**What changed:** current AA rendering, settings, plugin-action, phone-debug,
+roadmap, and index guidance now records the GAL 1.7/4.3 policy, bounded
+version-response diagnostics, per-video field-11 scope, removed session bit
+16, and process-lifetime one-reconnect profile semantics. It also records the
+Task 0 deployed 1.7 → 1.7/MATCH baseline and the corrected request-only
+4.3 → 6.0/MATCH checkpoint, with requested 4.3 authoritative locally.
+
+**Why:** live guidance still carried the retired bit-16 lab control and some
+historical GAL 1.1 wording. The native-turn-card flag is now documented as an
+HU availability declaration only, not a content-selection or rendering claim.
+
+**Status:** documentation candidate is committed for the pre-bench repository
+and ARM gate. The active design/plan remain ACTIVE. The final hidden-UI/
+field-11 hardware matrix has not passed and no feature completion is claimed.
+
+**Verification:** before the candidate commit, `python3
+scripts/check-doc-links.py --scope tracked-live` reported zero broken links and
+`git diff --check` passed. The post-commit native build, explicit app-target,
+offscreen CTest, ARM cross-build, and frozen-proto cleanliness gate are the
+next required evidence.
+
+**Next 1–3 steps:** (1) run the full repository and ARM gate from the exact
+candidate commit; (2) record its binary version and hash; (3) perform the
+pending field-11 hardware matrix before marking the active work complete.
+
+---
+
 ## 2026-07-26 — GAL 4.3 compatible-response policy remediation
 
 **What changed:** corrected experimental GAL 4.3 version admission to require
