@@ -123,7 +123,7 @@ private slots:
                 QCOMPARE(desc.channel_id(), 3u);
                 QVERIFY(desc.has_av_channel());
                 QCOMPARE(desc.av_channel().stream_type(),
-                         static_cast<int>(oaa::proto::enums::AVStreamType::VIDEO));
+                         oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
                 break;
             }
         }
@@ -142,6 +142,12 @@ private slots:
                 QVERIFY(desc.has_sensor_channel());
                 // Night, driving, parking brake = 3 sensors (only what we can populate)
                 QCOMPARE(desc.sensor_channel().sensors_size(), 3);
+                QCOMPARE(desc.sensor_channel().sensors(0).sensor_type(),
+                         oaa::proto::enums::SensorType::NIGHT_DATA);
+                QCOMPARE(desc.sensor_channel().sensors(1).sensor_type(),
+                         oaa::proto::enums::SensorType::DRIVING_STATUS);
+                QCOMPARE(desc.sensor_channel().sensors(2).sensor_type(),
+                         oaa::proto::enums::SensorType::PARKING_BRAKE);
                 return;
             }
         }
@@ -160,7 +166,7 @@ private slots:
                                     ch.descriptor.size());
                 QVERIFY(desc.has_av_channel());
                 QCOMPARE(desc.av_channel().stream_type(),
-                         static_cast<int>(oaa::proto::enums::AVStreamType::AUDIO));
+                         oaa::proto::enums::MediaCodecType::MEDIA_CODEC_AUDIO_PCM);
                 audioChannelCount++;
             }
         }
@@ -381,7 +387,7 @@ private slots:
         QCOMPARE(channelById(config, 1)->descriptor, legacyInput);
 
         const auto video = descriptorById(config, 3).av_channel();
-        QVERIFY(!video.has_channel_id());
+        QVERIFY(!video.has_display_id());
         QVERIFY(!video.has_display_type());
         const auto input = descriptorById(config, 1).input_channel();
         QVERIFY(!input.has_display_id());
@@ -394,7 +400,7 @@ private slots:
         const auto config = builder.build();
 
         const auto mainVideo = descriptorById(config, 3).av_channel();
-        QCOMPARE(mainVideo.channel_id(), 0u);
+        QCOMPARE(mainVideo.display_id(), 0u);
         QCOMPARE(mainVideo.display_type(),
                  oaa::proto::enums::DisplayType::MAIN);
 
@@ -404,7 +410,7 @@ private slots:
                  oaa::proto::enums::DisplayType::MAIN);
 
         const auto clusterVideo = descriptorById(config, 12).av_channel();
-        QCOMPARE(clusterVideo.channel_id(), 1u);
+        QCOMPARE(clusterVideo.display_id(), 1u);
         QCOMPARE(clusterVideo.display_type(),
                  oaa::proto::enums::DisplayType::CLUSTER);
         QVERIFY(!clusterVideo.has_keycode());
@@ -431,6 +437,21 @@ private slots:
         QCOMPARE(clusterInput.supported_haptic_types_size(), 0);
         QCOMPARE(builder.videoConfigCount(
                      oap::aa::ProjectedDisplayRole::Cluster), 1u);
+
+        static const QByteArray pairedMainVideo = QByteArray::fromHex(
+            "08031a260803220d0802100218002028288c015003"
+            "220d0802100218002028288c015007300038004803");
+        static const QByteArray pairedMainInput = QByteArray::fromHex(
+            "0801221b0a0d030454555657587e7fdb01e701"
+            "120808800a10a80518002800");
+        static const QByteArray clusterVideoDescriptor = QByteArray::fromHex(
+            "080c1a170803220f0801100218f40320b401288c01500330013801");
+        static const QByteArray clusterInputDescriptor = QByteArray::fromHex(
+            "080d22022801");
+        QCOMPARE(channelById(config, 3)->descriptor, pairedMainVideo);
+        QCOMPARE(channelById(config, 1)->descriptor, pairedMainInput);
+        QCOMPARE(channelById(config, 12)->descriptor, clusterVideoDescriptor);
+        QCOMPARE(channelById(config, 13)->descriptor, clusterInputDescriptor);
     }
 
     void runtimeClusterProfileDrivesDescriptorAndTurnCapability() {

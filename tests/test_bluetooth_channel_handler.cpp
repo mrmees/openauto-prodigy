@@ -44,6 +44,7 @@ private slots:
         oaa::proto::messages::BluetoothPairingResponse resp;
         QVERIFY(resp.ParseFromArray(respPayload.constData(), respPayload.size()));
         QVERIFY(resp.already_paired());
+        QCOMPARE(resp.status(), oaa::proto::enums::Status::OK);
     }
     void testAuthDataEmitsSignal() {
         oaa::hu::BluetoothChannelHandler handler;

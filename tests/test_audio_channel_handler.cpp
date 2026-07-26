@@ -126,6 +126,20 @@ private slots:
         QCOMPARE(unknownSpy.count(), 2);
     }
 
+    void testAuditedModernRawIdsAreExplicitlyClassified() {
+        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
+        QSignalSpy unknownSpy(&handler,
+                              &oaa::hu::AudioChannelHandler::unknownMessage);
+
+        const QByteArray opaque("\x08\x01", 2);
+        handler.onMessage(0x8014, opaque);
+        QCOMPARE(unknownSpy.count(), 0);
+
+        handler.onMessage(0x8010, opaque);
+        QCOMPARE(unknownSpy.count(), 1);
+        QCOMPARE(unknownSpy[0][0].value<uint16_t>(), uint16_t{0x8010});
+    }
+
     void testStateResetsOnChannelClose() {
         oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
         handler.onChannelOpened();

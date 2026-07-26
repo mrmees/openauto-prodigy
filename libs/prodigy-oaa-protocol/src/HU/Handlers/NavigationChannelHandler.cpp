@@ -175,8 +175,8 @@ void NavigationChannelHandler::handleNavDistance(const QByteArray& payload)
     QString distance;
     int unit = 0;
 
-    if (msg.has_remaining_distance() && msg.remaining_distance().has_distance()) {
-        const auto& d = msg.remaining_distance().distance();
+    if (msg.has_step_distance() && msg.step_distance().has_distance()) {
+        const auto& d = msg.step_distance().distance();
         if (d.has_display_text())
             distance = QString::fromStdString(d.display_text());
         unit = d.distance_unit();

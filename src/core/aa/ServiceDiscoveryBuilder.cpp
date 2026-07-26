@@ -24,7 +24,6 @@
 #include "oaa/navigation/NavigationChannelData.pb.h"
 #include "oaa/navigation/NavigationImageOptionsData.pb.h"
 #include "oaa/media/MediaChannelData.pb.h"
-#include "oaa/av/AVStreamTypeEnum.pb.h"
 #include "oaa/audio/AudioTypeEnum.pb.h"
 #include "oaa/video/VideoResolutionEnum.pb.h"
 #include "oaa/video/VideoFPSEnum.pb.h"
@@ -257,10 +256,11 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
     desc.set_channel_id(3);
 
     auto* avChannel = desc.mutable_av_channel();
-    avChannel->set_stream_type(oaa::proto::enums::AVStreamType::VIDEO);
+    avChannel->set_stream_type(
+        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
     avChannel->set_color_scheme_support(oaa::proto::enums::ColorSchemeSupport::COLOR_SCHEME_MATERIAL_YOU_V3);
     if (projectedClusterConfig_.enabled) {
-        avChannel->set_channel_id(kMainDisplayId);
+        avChannel->set_display_id(kMainDisplayId);
         avChannel->set_display_type(oaa::proto::enums::DisplayType::MAIN);
     }
     // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
@@ -325,8 +325,9 @@ QByteArray ServiceDiscoveryBuilder::buildClusterVideoDescriptor() const
     desc.set_channel_id(oaa::ChannelId::ClusterVideo);
 
     auto* avChannel = desc.mutable_av_channel();
-    avChannel->set_stream_type(oaa::proto::enums::AVStreamType::VIDEO);
-    avChannel->set_channel_id(kClusterDisplayId);
+    avChannel->set_stream_type(
+        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+    avChannel->set_display_id(kClusterDisplayId);
     avChannel->set_display_type(oaa::proto::enums::DisplayType::CLUSTER);
 
     const auto& profile = projectedClusterConfig_.profile;
@@ -353,7 +354,8 @@ QByteArray ServiceDiscoveryBuilder::buildMediaAudioDescriptor() const
     desc.set_channel_id(4);
 
     auto* avChannel = desc.mutable_av_channel();
-    avChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);
+    avChannel->set_stream_type(
+        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_AUDIO_PCM);
     avChannel->set_audio_type(oaa::proto::enums::AudioType::MEDIA);
     // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
 
@@ -373,7 +375,8 @@ QByteArray ServiceDiscoveryBuilder::buildSpeechAudioDescriptor() const
     desc.set_channel_id(5);
 
     auto* avChannel = desc.mutable_av_channel();
-    avChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);
+    avChannel->set_stream_type(
+        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_AUDIO_PCM);
     avChannel->set_audio_type(oaa::proto::enums::AudioType::SPEECH);
     // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
 
@@ -393,7 +396,8 @@ QByteArray ServiceDiscoveryBuilder::buildSystemAudioDescriptor() const
     desc.set_channel_id(6);
 
     auto* avChannel = desc.mutable_av_channel();
-    avChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);
+    avChannel->set_stream_type(
+        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_AUDIO_PCM);
     avChannel->set_audio_type(oaa::proto::enums::AudioType::SYSTEM);
     // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
 
@@ -476,7 +480,7 @@ QByteArray ServiceDiscoveryBuilder::buildSensorDescriptor() const
     auto* sensorChannel = desc.mutable_sensor_channel();
 
     auto addSensor = [&](oaa::proto::enums::SensorType::Enum type) {
-        sensorChannel->add_sensors()->set_type(type);
+        sensorChannel->add_sensors()->set_sensor_type(type);
     };
 
     // Only advertise sensors we can actually populate.
@@ -524,7 +528,8 @@ QByteArray ServiceDiscoveryBuilder::buildAVInputDescriptor() const
     desc.set_channel_id(7);
 
     auto* avInputChannel = desc.mutable_av_input_channel();
-    avInputChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);
+    avInputChannel->set_stream_type(
+        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_AUDIO_PCM);
     // Field 3 in APK is uint32, not bool. Omitting has no effect on session.
 
     auto* audioConfig = avInputChannel->mutable_audio_config();

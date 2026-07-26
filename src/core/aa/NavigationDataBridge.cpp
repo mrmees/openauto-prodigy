@@ -116,20 +116,22 @@ QString NavigationDataBridge::formattedDistance() const
 
     // Fallback: compute from NavigationTurnEvent data (legacy phones)
     // Uses same AA Distance.displayUnit enum as above
-    // AA proto DistanceDisplayUnit enum:
-    // 1=METERS, 2=KILOMETERS, 3=MILES, 4=FEET, 5=YARDS
+    // Audited AA 17.3 DistanceDisplayUnit enum:
+    // 1=METERS, 2/3=KILOMETERS, 4/5=MILES, 6=FEET, 7=YARDS.
     switch (distanceUnit_) {
     case 1: // METERS
         if (distanceMeters_ >= 1000)
             return QString::number(distanceMeters_ / 1000.0, 'f', 1) + " km";
         return QString::number(distanceMeters_) + " m";
     case 2: // KILOMETERS
+    case 3: // KILOMETERS_P1
         return QString::number(distanceMeters_ / 1000.0, 'f', 1) + " km";
-    case 3: // MILES
+    case 4: // MILES
+    case 5: // MILES_P1
         return QString::number(distanceMeters_ / 1609.34, 'f', 1) + " mi";
-    case 4: // FEET
+    case 6: // FEET
         return QString::number(qRound(distanceMeters_ * 3.28084)) + " ft";
-    case 5: // YARDS
+    case 7: // YARDS
         return QString::number(qRound(distanceMeters_ / 0.9144)) + " yd";
     default:
         return QString::number(distanceMeters_) + " m";
@@ -138,15 +140,17 @@ QString NavigationDataBridge::formattedDistance() const
 
 QString NavigationDataBridge::unitSuffix(int distanceUnit)
 {
-    // AA proto DistanceDisplayUnit enum:
-    // 1=METERS, 2=KILOMETERS, 3=MILES, 4=FEET, 5=YARDS
+    // Audited AA 17.3 DistanceDisplayUnit enum. The P1 variants select
+    // one-decimal phone formatting but retain the same unit suffix.
     // display_text already has correct precision, so we just need the suffix.
     switch (distanceUnit) {
     case 1: return QStringLiteral("m");
     case 2: return QStringLiteral("km");
-    case 3: return QStringLiteral("mi");
-    case 4: return QStringLiteral("ft");
-    case 5: return QStringLiteral("yd");
+    case 3: return QStringLiteral("km");
+    case 4: return QStringLiteral("mi");
+    case 5: return QStringLiteral("mi");
+    case 6: return QStringLiteral("ft");
+    case 7: return QStringLiteral("yd");
     default: return QString();
     }
 }
