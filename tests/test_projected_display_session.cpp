@@ -241,12 +241,14 @@ private slots:
             {QStringLiteral("dpi"), 160},
             {QStringLiteral("content_width"), 600},
             {QStringLiteral("content_height"), 400},
-            {QStringLiteral("turn_data_available"), true},
+            {QStringLiteral("native_turn_card_available"), true},
         }));
         QCOMPARE(requestSpy.count(), 1);
         QCOMPARE(display.profileGeneration(), 1u);
         QCOMPARE(display.requestedClusterProfile().galVersion,
                  oap::aa::kGalVersion4_3);
+        QCOMPARE(display.requestedGalVersion(), QStringLiteral("4.3"));
+        QVERIFY(display.requestedNativeTurnCardAvailable());
         QCOMPARE(display.viewportEncodedWidth(), 800);
         QCOMPARE(display.viewportContentWidth(), 300);
         QCOMPARE(geometrySpy.count(), 0);
@@ -276,7 +278,7 @@ private slots:
             {QStringLiteral("gal_version"), QStringLiteral("5.0")},
         }));
         QVERIFY(!display.applyClusterProfile({
-            {QStringLiteral("turn_data_available"), true},
+            {QStringLiteral("native_turn_card_available"), true},
         }));
         QCOMPARE(requestSpy.count(), 0);
         QCOMPARE(display.profileGeneration(), 0u);
@@ -306,6 +308,8 @@ private slots:
         QCOMPARE(display.profileGeneration(), 2u);
         QCOMPARE(display.requestedClusterProfile().galVersion,
                  oap::aa::kGalVersion1_7);
+        QCOMPARE(display.requestedGalVersion(), QStringLiteral("1.7"));
+        QVERIFY(!display.requestedNativeTurnCardAvailable());
     }
 
     void clusterStateFollowsOnlyItsLifecycle()

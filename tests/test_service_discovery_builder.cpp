@@ -9,6 +9,7 @@
 #include "oaa/input/InputChannelData.pb.h"
 #include "oaa/input/TouchConfigData.pb.h"
 #include "oaa/video/AdditionalVideoConfigData.pb.h"
+#include "oaa/video/VideoConfigData.pb.h"
 #include "oaa/video/DisplayTypeEnum.pb.h"
 #include "oaa/video/VideoFPSEnum.pb.h"
 #include "oaa/video/VideoResolutionEnum.pb.h"
@@ -45,6 +46,26 @@ QList<uint8_t> channelIds(const oaa::SessionConfig& config)
     for (const auto& channel : config.channels)
         ids.append(channel.channelId);
     return ids;
+}
+
+void verifyNoUnsupportedAdditionalFields(
+    const oaa::proto::data::AdditionalVideoConfig& additional)
+{
+    QVERIFY(!additional.has_display_insets());
+    QVERIFY(!additional.has_field_2_insets());
+    QVERIFY(!additional.has_field_3_insets());
+    QVERIFY(!additional.has_ui_theme());
+    QCOMPARE(additional.resize_actions_size(), 0);
+    QCOMPARE(additional.margin_configs_size(), 0);
+    QVERIFY(!additional.has_blended_ui_config());
+}
+
+QByteArray baseVideoConfigBytes(const oaa::proto::data::VideoConfig& source)
+{
+    oaa::proto::data::VideoConfig base = source;
+    base.clear_additional_config();
+    const std::string serialized = base.SerializeAsString();
+    return QByteArray(serialized.data(), static_cast<qsizetype>(serialized.size()));
 }
 
 } // namespace
@@ -351,26 +372,85 @@ private slots:
         QCOMPARE(sessionConfig.sessionConfiguration, static_cast<int32_t>(0));
     }
 
-    void testNoAdditionalVideoConfig() {
-        // VideoConfig must NOT have additional_config — it breaks legacy margins
-        oap::YamlConfig config;
-        config.setValueByPath("navbar.show_during_aa", true);
+    void videoUiFeatureSerializationMatrix_data() {
+        QTest::addColumn<int>("galMajor");
+        QTest::addColumn<int>("galMinor");
+        QTest::addColumn<bool>("navbarDuringAa");
+        QTest::addColumn<bool>("nativeTurnCardAvailable");
+        QTest::addColumn<int>("expectedSessionMask");
+        QTest::addColumn<int>("expectedMainElement");
+        QTest::addColumn<int>("expectedClusterElement");
 
-        oap::aa::ServiceDiscoveryBuilder builder(&config);
-        builder.setDisplayDimensions(1024, 600);
-        auto sessionConfig = builder.build();
+        QTest::newRow("1.7-navbar-on")
+            << 1 << 7 << true << false << 1 << -1 << -1;
+        QTest::newRow("1.7-navbar-off")
+            << 1 << 7 << false << false << 0 << -1 << -1;
+        QTest::newRow("4.3-navbar-on-no-native-turn")
+            << 4 << 3 << true << false << 0
+            << static_cast<int>(oaa::proto::data::UI_ELEMENT_CLOCK) << -1;
+        QTest::newRow("4.3-navbar-off-no-native-turn")
+            << 4 << 3 << false << false << 0 << -1 << -1;
+        QTest::newRow("4.3-navbar-off-native-turn")
+            << 4 << 3 << false << true << 0 << -1
+            << static_cast<int>(
+                   oaa::proto::data::UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE);
+        QTest::newRow("4.3-navbar-on-native-turn")
+            << 4 << 3 << true << true << 0
+            << static_cast<int>(oaa::proto::data::UI_ELEMENT_CLOCK)
+            << static_cast<int>(
+                   oaa::proto::data::UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE);
+    }
 
-        for (const auto& ch : sessionConfig.channels) {
-            if (ch.channelId == 3) {
-                oaa::proto::data::ChannelDescriptor desc;
-                QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
-                auto& vc = desc.av_channel().video_configs(0);
-                QVERIFY2(!vc.has_additional_config(),
-                         "additional_config must NOT be set — it breaks margins");
-                return;
-            }
+    void videoUiFeatureSerializationMatrix() {
+        QFETCH(int, galMajor);
+        QFETCH(int, galMinor);
+        QFETCH(bool, navbarDuringAa);
+        QFETCH(bool, nativeTurnCardAvailable);
+        QFETCH(int, expectedSessionMask);
+        QFETCH(int, expectedMainElement);
+        QFETCH(int, expectedClusterElement);
+
+        oap::YamlConfig yaml;
+        yaml.setValueByPath("navbar.show_during_aa", navbarDuringAa);
+
+        oap::aa::ProjectedClusterConfig cluster;
+        cluster.enabled = true;
+        cluster.profile.galVersion = {
+            static_cast<uint16_t>(galMajor), static_cast<uint16_t>(galMinor)};
+        cluster.profile.nativeTurnCardAvailable = nativeTurnCardAvailable;
+
+        oap::aa::ServiceDiscoveryBuilder builder(&yaml);
+        builder.setProjectedClusterConfig(cluster);
+        const auto session = builder.build();
+
+        QCOMPARE(session.sessionConfiguration, expectedSessionMask);
+        QCOMPARE(session.sessionConfiguration & 16, 0);
+
+        const auto main = descriptorById(session, 3).av_channel();
+        QCOMPARE(main.video_configs_size(), 2);
+        for (const auto& video : main.video_configs()) {
+            QCOMPARE(video.has_additional_config(), expectedMainElement >= 0);
+            if (!video.has_additional_config())
+                continue;
+            const auto& additional = video.additional_config();
+            verifyNoUnsupportedAdditionalFields(additional);
+            QCOMPARE(additional.hidden_ui_elements_size(), 1);
+            QCOMPARE(static_cast<int>(additional.hidden_ui_elements(0)),
+                     expectedMainElement);
         }
-        QFAIL("Video channel not found");
+
+        const auto clusterVideo = descriptorById(session, 12).av_channel();
+        QCOMPARE(clusterVideo.video_configs_size(), 1);
+        QVERIFY(!clusterVideo.has_keycode());
+        const auto& video = clusterVideo.video_configs(0);
+        QCOMPARE(video.has_additional_config(), expectedClusterElement >= 0);
+        if (video.has_additional_config()) {
+            const auto& additional = video.additional_config();
+            verifyNoUnsupportedAdditionalFields(additional);
+            QCOMPARE(additional.hidden_ui_elements_size(), 1);
+            QCOMPARE(static_cast<int>(additional.hidden_ui_elements(0)),
+                     expectedClusterElement);
+        }
     }
 
     void testWifiChannelHasBssid() {
@@ -482,12 +562,13 @@ private slots:
         QCOMPARE(channelById(config, 13)->descriptor, clusterInputDescriptor);
     }
 
-    void runtimeClusterProfileDrivesDescriptorAndTurnCapability() {
+    void runtimeClusterProfileDrivesDescriptorAndNativeTurnCardDeclaration() {
         oap::aa::ServiceDiscoveryBuilder builder;
         oap::aa::ProjectedClusterConfig clusterConfig;
         clusterConfig.enabled = true;
         clusterConfig.profile = {
-            QStringLiteral("720p"), 160, 600, 400, true};
+            QStringLiteral("720p"), 160, 600, 400, true,
+            oap::aa::kGalVersion4_3};
         builder.setProjectedClusterConfig(clusterConfig);
 
         const auto config = builder.build();
@@ -498,7 +579,54 @@ private slots:
         QCOMPARE(videoConfig.dpi(), 160u);
         QCOMPARE(videoConfig.margin_width(), 680u);
         QCOMPARE(videoConfig.margin_height(), 320u);
-        QCOMPARE(config.sessionConfiguration, static_cast<int32_t>(16));
+        QCOMPARE(config.sessionConfiguration, static_cast<int32_t>(0));
+        QCOMPARE(config.sessionConfiguration & 16, 0);
+        QVERIFY(videoConfig.has_additional_config());
+        const auto& additional = videoConfig.additional_config();
+        verifyNoUnsupportedAdditionalFields(additional);
+        QCOMPARE(additional.hidden_ui_elements_size(), 1);
+        QCOMPARE(additional.hidden_ui_elements(0),
+                 oaa::proto::data::UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE);
+    }
+
+    void gal43AdditionalConfigPreservesBaseVideoConfigBytes() {
+        oap::YamlConfig yaml;
+        yaml.setValueByPath("navbar.show_during_aa", true);
+
+        oap::aa::ProjectedClusterConfig legacyCluster;
+        legacyCluster.enabled = true;
+        oap::aa::ServiceDiscoveryBuilder legacyBuilder(&yaml);
+        legacyBuilder.setProjectedClusterConfig(legacyCluster);
+        const auto legacy = legacyBuilder.build();
+
+        auto modernCluster = legacyCluster;
+        modernCluster.profile.galVersion = oap::aa::kGalVersion4_3;
+        modernCluster.profile.nativeTurnCardAvailable = true;
+        oap::aa::ServiceDiscoveryBuilder modernBuilder(&yaml);
+        modernBuilder.setProjectedClusterConfig(modernCluster);
+        const auto modern = modernBuilder.build();
+
+        const auto legacyMain = descriptorById(legacy, 3).av_channel();
+        const auto modernMain = descriptorById(modern, 3).av_channel();
+        QCOMPARE(modernMain.video_configs_size(), legacyMain.video_configs_size());
+        for (int i = 0; i < legacyMain.video_configs_size(); ++i) {
+            QCOMPARE(baseVideoConfigBytes(modernMain.video_configs(i)),
+                     baseVideoConfigBytes(legacyMain.video_configs(i)));
+        }
+
+        const auto legacyClusterVideo = descriptorById(legacy, 12).av_channel();
+        const auto modernClusterVideo = descriptorById(modern, 12).av_channel();
+        QCOMPARE(baseVideoConfigBytes(modernClusterVideo.video_configs(0)),
+                 baseVideoConfigBytes(legacyClusterVideo.video_configs(0)));
+
+        static const QByteArray modernMainGolden = QByteArray::fromHex(
+            "08031a2e080322110802100218002028288c0150035a022801"
+            "22110802100218002028288c0150075a022801300038004803");
+        static const QByteArray modernClusterGolden = QByteArray::fromHex(
+            "080c1a1b080322130801100218f40320b401288c015003"
+            "5a02280530013801");
+        QCOMPARE(channelById(modern, 3)->descriptor, modernMainGolden);
+        QCOMPARE(channelById(modern, 12)->descriptor, modernClusterGolden);
     }
 };
 

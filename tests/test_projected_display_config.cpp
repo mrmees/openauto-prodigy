@@ -75,7 +75,7 @@ private slots:
         QCOMPARE(profile.dpi, 140);
         QCOMPARE(profile.contentWidth, 300);
         QCOMPARE(profile.contentHeight, 300);
-        QVERIFY(!profile.turnDataAvailable);
+        QVERIFY(!profile.nativeTurnCardAvailable);
         QCOMPARE(profile.geometry(), oap::aa::kClusterViewportGeometry);
     }
 
@@ -102,7 +102,7 @@ private slots:
             {QStringLiteral("dpi"), 160},
             {QStringLiteral("content_width"), 600},
             {QStringLiteral("content_height"), 400},
-            {QStringLiteral("turn_data_available"), true},
+            {QStringLiteral("native_turn_card_available"), true},
         };
 
         QVERIFY(oap::aa::applyProjectedClusterProfileUpdate(
@@ -113,7 +113,7 @@ private slots:
         QCOMPARE(updated.dpi, 160);
         QCOMPARE(updated.contentWidth, 600);
         QCOMPARE(updated.contentHeight, 400);
-        QVERIFY(updated.turnDataAvailable);
+        QVERIFY(updated.nativeTurnCardAvailable);
         QCOMPARE(updated.geometry(),
                  (oap::aa::ProjectedViewportGeometry{1280, 720, 600, 400}));
         QCOMPARE(updated.geometry().marginWidth(), 680);
@@ -137,11 +137,11 @@ private slots:
 
         QVERIFY(!oap::aa::applyProjectedClusterProfileUpdate(
             baseline,
-            {{QStringLiteral("turn_data_available"), true}},
+            {{QStringLiteral("native_turn_card_available"), true}},
             &updated, &error));
         QCOMPARE(updated.dpi, 200);
         QCOMPARE(updated.galVersion, oap::aa::kGalVersion1_7);
-        QVERIFY(!updated.turnDataAvailable);
+        QVERIFY(!updated.nativeTurnCardAvailable);
     }
 
     void invalidRuntimeProfileUpdateDoesNotPartiallyMutate()

@@ -11,6 +11,7 @@
 #include "oaa/control/ChannelDescriptorData.pb.h"
 #include "oaa/av/AVChannelData.pb.h"
 #include "oaa/video/VideoConfigData.pb.h"
+#include "oaa/video/AdditionalVideoConfigData.pb.h"
 #include "oaa/av/MediaCodecTypeEnum.pb.h"
 #include "oaa/audio/AudioConfigData.pb.h"
 #include "oaa/input/InputChannelData.pb.h"
@@ -62,6 +63,31 @@ QStringList resolveVideoCodecNames(oap::YamlConfig* yamlConfig)
         resolved.push_back(QStringLiteral("h264"));
     }
     return resolved;
+}
+
+bool navbarShownDuringAa(oap::YamlConfig* yamlConfig)
+{
+    if (!yamlConfig)
+        return false;
+    const QVariant configured =
+        yamlConfig->valueByPath(QStringLiteral("navbar.show_during_aa"));
+    return configured.isNull() || configured.toBool();
+}
+
+void appendHiddenUiElement(
+    oaa::proto::data::VideoConfig* videoConfig,
+    oaa::proto::data::UIElement element)
+{
+    if (!videoConfig)
+        return;
+    if (videoConfig->has_additional_config()) {
+        for (const auto existing
+             : videoConfig->additional_config().hidden_ui_elements()) {
+            if (existing == element)
+                return;
+        }
+    }
+    videoConfig->mutable_additional_config()->add_hidden_ui_elements(element);
 }
 
 } // namespace
@@ -155,10 +181,8 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
     addChannel(11, buildPhoneStatusDescriptor());
 
     // Hide phone's AA status bar elements when our navbar shows them
-    if (yamlConfig_) {
-        QVariant showDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa");
-        bool navbarDuringAA = showDuringAA.isNull() || showDuringAA.toBool();
-        if (navbarDuringAA) {
+    if (galVersion == kGalVersion1_7) {
+        if (navbarShownDuringAa(yamlConfig_)) {
             // session_configuration bitmask (SDR field 13) — does NOT touch AdditionalVideoConfig
             // NOTE: AA 16.2 UI logic (mcr.java) forcibly keeps signal/battery visible when
             // hideClock is set. Can't hide all three. We hide clock only since we render our own.
@@ -166,16 +190,6 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
             config.sessionConfiguration = 1;  // HIDE_CLOCK only
         }
     }
-    if (projectedClusterConfig_.enabled
-        && projectedClusterConfig_.profile.turnDataAvailable) {
-        // Retained lab toggle: AA 17.3 reads only values 1, 2, 4, and 8 from
-        // session_configuration, so value 16 is a confirmed no-op. The
-        // similarly numbered hasClusterTurnCard feature comes from
-        // AdditionalVideoConfig.hidden_ui_elements at requested GAL >= 4.3;
-        // Prodigy currently requests 1.1. See open-android-auto issue #10.
-        config.sessionConfiguration |= 16;
-    }
-
     return config;
 }
 
@@ -313,6 +327,11 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
         cfg->set_margin_height(mH);
         cfg->set_dpi(dpi);
         cfg->set_codec(it.value());
+        if (projectedClusterConfig_.profile.galVersion == kGalVersion4_3
+            && navbarShownDuringAa(yamlConfig_)) {
+            appendHiddenUiElement(
+                cfg, oaa::proto::data::UI_ELEMENT_CLOCK);
+        }
         qCInfo(lcAA) << "config[" << configIdx++ << "]:"
                 << chosen.label << codecName << "margins:" << mW << "x" << mH;
     }
@@ -347,6 +366,12 @@ QByteArray ServiceDiscoveryBuilder::buildClusterVideoDescriptor() const
     config->set_dpi(profile.dpi);
     config->set_codec(
         oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+    if (profile.galVersion == kGalVersion4_3
+        && profile.nativeTurnCardAvailable) {
+        appendHiddenUiElement(
+            config,
+            oaa::proto::data::UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE);
+    }
 
     QByteArray data(desc.ByteSizeLong(), '\0');
     desc.SerializeToArray(data.data(), data.size());

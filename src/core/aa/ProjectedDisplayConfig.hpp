@@ -94,7 +94,7 @@ struct ProjectedClusterProfile {
     int dpi = 140;
     int contentWidth = 300;
     int contentHeight = 300;
-    bool turnDataAvailable = false;
+    bool nativeTurnCardAvailable = false;
     GalVersion galVersion = kGalVersion1_7;
 
     ProjectedViewportGeometry geometry() const;

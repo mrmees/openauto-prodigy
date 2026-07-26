@@ -306,7 +306,8 @@ bool ProjectedDisplaySession::resetClusterProfile()
         {QStringLiteral("dpi"), baseline.dpi},
         {QStringLiteral("content_width"), baseline.contentWidth},
         {QStringLiteral("content_height"), baseline.contentHeight},
-        {QStringLiteral("turn_data_available"), baseline.turnDataAvailable},
+        {QStringLiteral("native_turn_card_available"),
+         baseline.nativeTurnCardAvailable},
     });
 }
 
@@ -326,12 +327,13 @@ void ProjectedDisplaySession::activateRequestedClusterProfile()
         emit viewportGeometryChanged();
     qCInfo(lcAA).noquote()
         << diagnosticPrefix_ << "profile generation=" << profileGeneration_
-        << "gal=" << activeProfile_.galVersion.toString()
+        << "requested_gal=" << activeProfile_.galVersion.toString()
         << "resolution=" << activeProfile_.resolution
         << "dpi=" << activeProfile_.dpi
         << "content=" << activeProfile_.contentWidth << "x"
         << activeProfile_.contentHeight
-        << "turn_data_available=" << activeProfile_.turnDataAvailable;
+        << "native_turn_card_available="
+        << activeProfile_.nativeTurnCardAvailable;
 }
 
 void ProjectedDisplaySession::setAdvertisedVideoConfigCount(uint32_t count)

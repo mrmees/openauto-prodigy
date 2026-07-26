@@ -470,6 +470,7 @@ private slots:
             {QStringLiteral("resolution"), QStringLiteral("720p")},
             {QStringLiteral("content_width"), 600},
             {QStringLiteral("content_height"), 400},
+            {QStringLiteral("native_turn_card_available"), true},
         }));
         QVERIFY(!oap::aa::AndroidAutoOrchestratorTestAccess::pendingReconnect(orch));
         QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::projectedClusterConfig(orch)
@@ -493,6 +494,9 @@ private slots:
         QCOMPARE(orch.clusterDisplay()->viewportEncodedWidth(), 1280);
         QCOMPARE(orch.clusterDisplay()->viewportContentWidth(), 600);
         QCOMPARE(orch.clusterDisplay()->viewportContentHeight(), 400);
+        QCOMPARE(orch.clusterDisplay()->requestedGalVersion(),
+                 QStringLiteral("4.3"));
+        QVERIFY(orch.clusterDisplay()->requestedNativeTurnCardAvailable());
 
         orch.stop();
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);

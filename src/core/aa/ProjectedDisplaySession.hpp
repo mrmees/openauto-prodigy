@@ -45,7 +45,10 @@ class ProjectedDisplaySession : public QObject {
                    NOTIFY profileDiagnosticsChanged)
     Q_PROPERTY(int requestedContentHeight READ requestedContentHeight
                    NOTIFY profileDiagnosticsChanged)
-    Q_PROPERTY(bool requestedTurnDataAvailable READ requestedTurnDataAvailable
+    Q_PROPERTY(QString requestedGalVersion READ requestedGalVersion
+                   NOTIFY profileDiagnosticsChanged)
+    Q_PROPERTY(bool requestedNativeTurnCardAvailable
+                   READ requestedNativeTurnCardAvailable
                    NOTIFY profileDiagnosticsChanged)
     Q_PROPERTY(quint64 profileGeneration READ profileGeneration
                    NOTIFY profileDiagnosticsChanged)
@@ -90,9 +93,13 @@ public:
     int requestedDpi() const { return requestedProfile_.dpi; }
     int requestedContentWidth() const { return requestedProfile_.contentWidth; }
     int requestedContentHeight() const { return requestedProfile_.contentHeight; }
-    bool requestedTurnDataAvailable() const
+    QString requestedGalVersion() const
     {
-        return requestedProfile_.turnDataAvailable;
+        return requestedProfile_.galVersion.toString();
+    }
+    bool requestedNativeTurnCardAvailable() const
+    {
+        return requestedProfile_.nativeTurnCardAvailable;
     }
     quint64 profileGeneration() const { return profileGeneration_; }
     QString profileStatusText() const { return profileStatusText_; }

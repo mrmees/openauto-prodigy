@@ -55,7 +55,7 @@ bool ProjectedClusterProfile::operator==(
     return resolution == other.resolution && dpi == other.dpi
         && contentWidth == other.contentWidth
         && contentHeight == other.contentHeight
-        && turnDataAvailable == other.turnDataAvailable
+        && nativeTurnCardAvailable == other.nativeTurnCardAvailable
         && galVersion == other.galVersion;
 }
 
@@ -80,7 +80,7 @@ bool applyProjectedClusterProfileUpdate(
         QStringLiteral("dpi"),
         QStringLiteral("content_width"),
         QStringLiteral("content_height"),
-        QStringLiteral("turn_data_available"),
+        QStringLiteral("native_turn_card_available"),
         QStringLiteral("gal_version"),
     };
     for (auto it = update.cbegin(); it != update.cend(); ++it) {
@@ -134,16 +134,18 @@ bool applyProjectedClusterProfileUpdate(
         return false;
     }
 
-    if (update.contains(QStringLiteral("turn_data_available"))) {
-        const QVariant value = update.value(QStringLiteral("turn_data_available"));
+    if (update.contains(QStringLiteral("native_turn_card_available"))) {
+        const QVariant value = update.value(
+            QStringLiteral("native_turn_card_available"));
         if (value.metaType().id() != QMetaType::Bool)
-            return reject(QStringLiteral("turn_data_available must be boolean"));
-        candidate.turnDataAvailable = value.toBool();
+            return reject(QStringLiteral(
+                "native_turn_card_available must be boolean"));
+        candidate.nativeTurnCardAvailable = value.toBool();
     }
-    if (candidate.turnDataAvailable
+    if (candidate.nativeTurnCardAvailable
         && candidate.galVersion == kGalVersion1_7) {
         return reject(QStringLiteral(
-            "turn_data_available requires gal_version 4.3"));
+            "native_turn_card_available requires gal_version 4.3"));
     }
 
     if (candidate.dpi < 80 || candidate.dpi > 640)
