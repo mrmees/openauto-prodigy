@@ -78,22 +78,47 @@ bars and fills that viewport. There is no separate fit-mode branch.
 The optional debug overlay maps `TouchHandler`'s content-space coordinates
 back over the rendered viewport. It is diagnostic only and defaults off.
 
-### Experimental CLUSTER square viewport
+### Experimental runtime CLUSTER viewport
 
 When the default-off projected CLUSTER experiment is enabled, its independent
-display keeps the protocol-backed 800×480 H.264 carrier at 30 fps and 140 DPI.
-The CLUSTER video configuration declares total margins of 500 horizontal and
-180 vertical pixels, asking the phone to render a centered 300×300 content
-rectangle at source offset (250, 90). Its paired input descriptor remains
-capability-empty; the widget does not accept touch or other projected input.
+display starts with the accepted 800×480 H.264 carrier at 30 fps and 140 DPI.
+The baseline CLUSTER video configuration declares total margins of 500
+horizontal and 180 vertical pixels, asking the phone to render a centered
+300×300 content rectangle at source offset (250, 90). Its paired input
+descriptor remains capability-empty; the widget does not accept touch or other
+projected input.
+
+Debug Settings provides a runtime CLUSTER lab while the experiment is enabled.
+It can stage 480p or 720p, DPI 80–640, any positive centered content rectangle
+that fits the carrier with even total margins, and the experimental
+`turn_data_available` session flag. A valid change updates one typed snapshot,
+then gracefully reconnects only the Android Auto session when projection is
+active. The replacement discovery descriptor, decoded-frame validation, and
+QML crop all activate from that same generation immediately before the new
+session starts. No YAML edit, Prodigy restart, or `ServiceDiscoveryUpdate` is
+involved; overrides last only for the current application process.
+
+The same path is available to local integrations as
+`aa.cluster.applyProfile` with a map payload (`resolution`, `dpi`,
+`content_width`, `content_height`, and `turn_data_available`) and
+`aa.cluster.resetProfile`. External API v1 can dispatch those registered
+actions with `payload_json`. Invalid and unchanged updates do not reconnect.
 
 The fixed 3×3 dashboard widget uses one `VideoOutput` inside a centered clipped
 square. It uniformly scales and offsets the full decoded carrier so only the
-known 300×300 source rectangle is visible. This is ordinary texture geometry:
+active content rectangle is visible. This is ordinary texture geometry:
 there is no second decoder, CPU frame crop, shader, enhancement, stretch, or
 nonstandard encoded resolution. The path does not change MAIN projection's
-`PreserveAspectCrop` behavior, generalize multi-display configuration, or add
-a public setting.
+`PreserveAspectCrop` behavior or generalize display type/configuration beyond
+the single experimental CLUSTER.
+
+Geometry and DPI are experimental layout inputs, not a claimed map-versus-turn
+card selector. Current Android Auto 17.3 analysis says navigation availability
+and phone policy choose that content, and that runtime message 26 cannot add or
+replace AV/CLUSTER services. The same static analysis finds AUXILIARY to be an
+independent logical display with navigation/turn-card evidence but no confirmed
+media or phone projection path. Those conclusions remain research inputs until
+the Maps/YouTube Music deep dive and live captures answer the open questions.
 
 ## Evdev mapping
 
@@ -154,6 +179,8 @@ without building shell-specific hit testing into the AA touch reader.
 - Resolution, codec configs, video margins, and `touch_screen_config` are fixed
   by the current service-discovery response for the lifetime of a session.
 - `video.resolution` and `video.fps` changes force an active-session reconnect.
+- Runtime CLUSTER profile changes use that same reconnect boundary but do not
+  restart Prodigy or persist to YAML.
 - Navbar edge/visibility changes are not a live AA viewport feature today; the
   settings surface treats visibility as restart-required.
 - Wire ID `0x8012` currently carries the HU's response to phone-supplied theming
@@ -176,4 +203,5 @@ without building shell-specific hit testing into the AA touch reader.
 | `qml/components/Shell.qml` | Navbar-aware plugin viewport |
 | `qml/components/Navbar.qml` | Navbar visibility, edge layout, and popup geometry reporting |
 | `qml/applications/android_auto/` | Projection surface, crop fill mode, and debug overlay |
-| `qml/widgets/AAClusterWidget.qml` | Single-output centered square CLUSTER crop and upsize geometry |
+| `qml/applications/settings/DebugSettings.qml` | Runtime CLUSTER profile controls and diagnostics |
+| `qml/widgets/AAClusterWidget.qml` | Single-output centered CLUSTER crop and upsize geometry |

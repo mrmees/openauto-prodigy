@@ -19,7 +19,14 @@ spike, or research-first feasibility work.
 
 ## Now
 
-- No promoted work is currently active.
+- Android Auto runtime CLUSTER lab — **ACTIVE**. Add process-lifetime Debug
+  Settings and External API controls for 480p/720p carrier resolution, DPI,
+  centered content geometry, and the turn-data capability bit. Valid active
+  changes renegotiate through an AA-only reconnect; MAIN, the default-off
+  policy, and the single-CLUSTER scope remain unchanged. Implementation is
+  locally verified and awaiting the bounded review gate; Pi/phone behavior
+  remains the next live-validation step. Plan:
+  `docs/plans/2026-07-25-aa-runtime-cluster-lab-plan.md`.
 
 ## Done (recent)
 

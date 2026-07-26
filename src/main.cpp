@@ -1011,6 +1011,16 @@ int main(int argc, char *argv[])
         actionRegistry->registerAction("aa.exitToCar", [orch](const QVariant&) {
             orch->requestExitToCar();
         });
+        if (auto* cluster = orch->clusterDisplay(); cluster->isEnabled()) {
+            actionRegistry->registerAction(
+                "aa.cluster.applyProfile", [cluster](const QVariant& payload) {
+                    cluster->applyClusterProfile(payload.toMap());
+                });
+            actionRegistry->registerAction(
+                "aa.cluster.resetProfile", [cluster](const QVariant&) {
+                    cluster->resetClusterProfile();
+                });
+        }
     }
 
     // Widget command egress actions

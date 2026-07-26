@@ -65,6 +65,66 @@ private slots:
         QCOMPARE(oap::aa::kClusterViewportGeometry.contentX(), 250);
         QCOMPARE(oap::aa::kClusterViewportGeometry.contentY(), 90);
     }
+
+    void runtimeProfileDefaultsToAcceptedSquare()
+    {
+        const oap::aa::ProjectedClusterProfile profile;
+        QCOMPARE(profile.resolution, QStringLiteral("480p"));
+        QCOMPARE(profile.dpi, 140);
+        QCOMPARE(profile.contentWidth, 300);
+        QCOMPARE(profile.contentHeight, 300);
+        QVERIFY(!profile.turnDataAvailable);
+        QCOMPARE(profile.geometry(), oap::aa::kClusterViewportGeometry);
+    }
+
+    void validRuntimeProfileUpdateIsNormalizedAtomically()
+    {
+        const oap::aa::ProjectedClusterProfile baseline;
+        oap::aa::ProjectedClusterProfile updated;
+        QString error;
+        const QVariantMap update{
+            {QStringLiteral("resolution"), QStringLiteral("720p")},
+            {QStringLiteral("dpi"), 160},
+            {QStringLiteral("content_width"), 600},
+            {QStringLiteral("content_height"), 400},
+            {QStringLiteral("turn_data_available"), true},
+        };
+
+        QVERIFY(oap::aa::applyProjectedClusterProfileUpdate(
+            baseline, update, &updated, &error));
+        QVERIFY(error.isEmpty());
+        QCOMPARE(updated.resolution, QStringLiteral("720p"));
+        QCOMPARE(updated.dpi, 160);
+        QCOMPARE(updated.contentWidth, 600);
+        QCOMPARE(updated.contentHeight, 400);
+        QVERIFY(updated.turnDataAvailable);
+        QCOMPARE(updated.geometry(),
+                 (oap::aa::ProjectedViewportGeometry{1280, 720, 600, 400}));
+        QCOMPARE(updated.geometry().marginWidth(), 680);
+        QCOMPARE(updated.geometry().marginHeight(), 320);
+    }
+
+    void invalidRuntimeProfileUpdateDoesNotPartiallyMutate()
+    {
+        const oap::aa::ProjectedClusterProfile baseline;
+        oap::aa::ProjectedClusterProfile updated{
+            QStringLiteral("720p"), 200, 500, 400, true};
+        QString error;
+
+        QVERIFY(!oap::aa::applyProjectedClusterProfileUpdate(
+            baseline,
+            {{QStringLiteral("dpi"), 160},
+             {QStringLiteral("content_width"), 301}},
+            &updated, &error));
+        QVERIFY(!error.isEmpty());
+        QCOMPARE(updated,
+                 (oap::aa::ProjectedClusterProfile{
+                     QStringLiteral("720p"), 200, 500, 400, true}));
+
+        QVERIFY(!oap::aa::applyProjectedClusterProfileUpdate(
+            baseline, {}, &updated, &error));
+        QVERIFY(!error.isEmpty());
+    }
 };
 
 QTEST_MAIN(TestProjectedDisplayConfig)

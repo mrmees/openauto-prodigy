@@ -2,7 +2,8 @@
 
 ## Active Plans
 
-- None. New implementation work requires promotion and approval.
+- [2026-07-25-aa-runtime-cluster-lab-plan.md](plans/2026-07-25-aa-runtime-cluster-lab-plan.md)
+  — runtime CLUSTER descriptor/crop profiles with AA-only renegotiation.
 
 ## Start Here
 
@@ -60,7 +61,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- None.
+- [2026-07-25-aa-runtime-cluster-lab-plan.md](plans/2026-07-25-aa-runtime-cluster-lab-plan.md)
 
 ## Pi Configuration (pi-config/)
 

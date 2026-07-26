@@ -25,12 +25,32 @@ class ProjectedDisplaySession : public QObject {
     Q_PROPERTY(int state READ state NOTIFY stateChanged)
     Q_PROPERTY(bool rendering READ isRendering NOTIFY stateChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY stateChanged)
-    Q_PROPERTY(int viewportEncodedWidth READ viewportEncodedWidth CONSTANT)
-    Q_PROPERTY(int viewportEncodedHeight READ viewportEncodedHeight CONSTANT)
-    Q_PROPERTY(int viewportContentX READ viewportContentX CONSTANT)
-    Q_PROPERTY(int viewportContentY READ viewportContentY CONSTANT)
-    Q_PROPERTY(int viewportContentWidth READ viewportContentWidth CONSTANT)
-    Q_PROPERTY(int viewportContentHeight READ viewportContentHeight CONSTANT)
+    Q_PROPERTY(int viewportEncodedWidth READ viewportEncodedWidth
+                   NOTIFY viewportGeometryChanged)
+    Q_PROPERTY(int viewportEncodedHeight READ viewportEncodedHeight
+                   NOTIFY viewportGeometryChanged)
+    Q_PROPERTY(int viewportContentX READ viewportContentX
+                   NOTIFY viewportGeometryChanged)
+    Q_PROPERTY(int viewportContentY READ viewportContentY
+                   NOTIFY viewportGeometryChanged)
+    Q_PROPERTY(int viewportContentWidth READ viewportContentWidth
+                   NOTIFY viewportGeometryChanged)
+    Q_PROPERTY(int viewportContentHeight READ viewportContentHeight
+                   NOTIFY viewportGeometryChanged)
+    Q_PROPERTY(QString requestedResolution READ requestedResolution
+                   NOTIFY profileDiagnosticsChanged)
+    Q_PROPERTY(int requestedDpi READ requestedDpi
+                   NOTIFY profileDiagnosticsChanged)
+    Q_PROPERTY(int requestedContentWidth READ requestedContentWidth
+                   NOTIFY profileDiagnosticsChanged)
+    Q_PROPERTY(int requestedContentHeight READ requestedContentHeight
+                   NOTIFY profileDiagnosticsChanged)
+    Q_PROPERTY(bool requestedTurnDataAvailable READ requestedTurnDataAvailable
+                   NOTIFY profileDiagnosticsChanged)
+    Q_PROPERTY(quint64 profileGeneration READ profileGeneration
+                   NOTIFY profileDiagnosticsChanged)
+    Q_PROPERTY(QString profileStatusText READ profileStatusText
+                   NOTIFY profileDiagnosticsChanged)
     Q_PROPERTY(bool videoSinkAvailable READ isVideoSinkAvailable
                    NOTIFY videoSinkAvailabilityChanged)
 
@@ -53,6 +73,7 @@ public:
                             bool enabled,
                             ProjectedSetupFocus setupFocus,
                             oap::YamlConfig* yamlConfig,
+                            const ProjectedClusterProfile& initialProfile = {},
                             QObject* parent = nullptr);
     ~ProjectedDisplaySession() override;
 
@@ -65,6 +86,16 @@ public:
     int viewportContentY() const;
     int viewportContentWidth() const;
     int viewportContentHeight() const;
+    QString requestedResolution() const { return requestedProfile_.resolution; }
+    int requestedDpi() const { return requestedProfile_.dpi; }
+    int requestedContentWidth() const { return requestedProfile_.contentWidth; }
+    int requestedContentHeight() const { return requestedProfile_.contentHeight; }
+    bool requestedTurnDataAvailable() const
+    {
+        return requestedProfile_.turnDataAvailable;
+    }
+    quint64 profileGeneration() const { return profileGeneration_; }
+    QString profileStatusText() const { return profileStatusText_; }
     bool isVideoSinkAvailable() const { return sink_.isNull(); }
 
     ProjectedDisplayRole role() const { return role_; }
@@ -72,6 +103,10 @@ public:
     uint8_t videoChannelId() const { return videoChannelId_; }
     uint8_t inputChannelId() const { return inputChannelId_; }
     bool isEnabled() const { return enabled_; }
+    const ProjectedClusterProfile& requestedClusterProfile() const
+    {
+        return requestedProfile_;
+    }
 
     oaa::hu::VideoChannelHandler* videoHandler() { return &videoHandler_; }
     oaa::hu::InputChannelHandler* inputHandler() { return &inputHandler_; }
@@ -83,13 +118,19 @@ public:
     void noteChannelOpened(uint8_t channelId);
     void noteChannelClosed(uint8_t channelId);
     void noteChannelRejected(int32_t channelId);
+    void activateRequestedClusterProfile();
 
     Q_INVOKABLE bool attachVideoSink(QVideoSink* sink);
     Q_INVOKABLE void detachVideoSink(QVideoSink* sink);
+    Q_INVOKABLE bool applyClusterProfile(const QVariantMap& update);
+    Q_INVOKABLE bool resetClusterProfile();
 
 signals:
     void stateChanged();
     void videoSinkAvailabilityChanged();
+    void viewportGeometryChanged();
+    void profileDiagnosticsChanged();
+    void clusterProfileChangeRequested();
 
 private:
     void setState(State state, const QString& statusText);
@@ -119,6 +160,11 @@ private:
     quint64 protocolGeneration_ = 0;
     quint64 activeDecoderGeneration_ = 0;
     int focusMode_ = 0;
+
+    ProjectedClusterProfile requestedProfile_;
+    ProjectedClusterProfile activeProfile_;
+    quint64 profileGeneration_ = 0;
+    QString profileStatusText_ = QStringLiteral("Using startup profile");
 
     QPointer<QVideoSink> sink_;
     QMetaObject::Connection sinkDestroyedConnection_;

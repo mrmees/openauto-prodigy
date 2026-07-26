@@ -431,6 +431,25 @@ private slots:
         QCOMPARE(builder.videoConfigCount(
                      oap::aa::ProjectedDisplayRole::Cluster), 1u);
     }
+
+    void runtimeClusterProfileDrivesDescriptorAndTurnCapability() {
+        oap::aa::ServiceDiscoveryBuilder builder;
+        oap::aa::ProjectedClusterConfig clusterConfig;
+        clusterConfig.enabled = true;
+        clusterConfig.profile = {
+            QStringLiteral("720p"), 160, 600, 400, true};
+        builder.setProjectedClusterConfig(clusterConfig);
+
+        const auto config = builder.build();
+        const auto clusterVideo = descriptorById(config, 12).av_channel();
+        const auto& videoConfig = clusterVideo.video_configs(0);
+        QCOMPARE(videoConfig.video_resolution(),
+                 oaa::proto::enums::VideoResolution::VIDEO_1280x720);
+        QCOMPARE(videoConfig.dpi(), 160u);
+        QCOMPARE(videoConfig.margin_width(), 680u);
+        QCOMPARE(videoConfig.margin_height(), 320u);
+        QCOMPARE(config.sessionConfiguration, static_cast<int32_t>(16));
+    }
 };
 
 QTEST_MAIN(TestServiceDiscoveryBuilder)

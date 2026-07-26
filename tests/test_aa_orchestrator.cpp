@@ -189,6 +189,17 @@ public:
         return orchestrator.admissionOpen_;
     }
 
+    static bool pendingReconnect(const AndroidAutoOrchestrator& orchestrator)
+    {
+        return orchestrator.pendingReconnect_;
+    }
+
+    static const ProjectedClusterConfig& projectedClusterConfig(
+        const AndroidAutoOrchestrator& orchestrator)
+    {
+        return orchestrator.projectedClusterConfig_;
+    }
+
     static void notifyPhoneWillConnect(AndroidAutoOrchestrator& orchestrator)
     {
         orchestrator.onPhoneWillConnect();
@@ -444,6 +455,55 @@ private slots:
 
         orch.stop();
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
+
+    void testClusterProfileStagesDisconnectedAndActivatesOnConnection() {
+        StubConfigService cfg;
+        cfg.values["connection.tcp_port"] = 0;
+        const oap::aa::ProjectedClusterConfig clusterConfig{
+            true, oap::aa::ProjectedSetupFocus::ProjectedNoInput};
+        oap::aa::AndroidAutoOrchestrator orch(
+            &cfg, nullptr, nullptr, clusterConfig);
+
+        QVERIFY(orch.clusterDisplay()->applyClusterProfile({
+            {QStringLiteral("resolution"), QStringLiteral("720p")},
+            {QStringLiteral("content_width"), 600},
+            {QStringLiteral("content_height"), 400},
+        }));
+        QVERIFY(!oap::aa::AndroidAutoOrchestratorTestAccess::pendingReconnect(orch));
+        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::projectedClusterConfig(orch)
+                     .profile.resolution,
+                 QStringLiteral("720p"));
+        QCOMPARE(orch.clusterDisplay()->viewportEncodedWidth(), 800);
+
+        orch.start();
+        oap::aa::AndroidAutoOrchestratorTestAccess::disableAutomaticAccept(orch);
+        QTcpSocket socket;
+        socket.connectToHost(
+            QHostAddress::LocalHost,
+            oap::aa::AndroidAutoOrchestratorTestAccess::listenerPort(orch));
+        QVERIFY(socket.waitForConnected());
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::acceptNextConnection(orch));
+        QCOMPARE(orch.clusterDisplay()->viewportEncodedWidth(), 1280);
+        QCOMPARE(orch.clusterDisplay()->viewportContentWidth(), 600);
+        QCOMPARE(orch.clusterDisplay()->viewportContentHeight(), 400);
+
+        orch.stop();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
+
+    void testClusterProfileRequestsReconnectOnlyWhileActive() {
+        StubConfigService cfg;
+        const oap::aa::ProjectedClusterConfig clusterConfig{
+            true, oap::aa::ProjectedSetupFocus::ProjectedNoInput};
+        oap::aa::AndroidAutoOrchestrator orch(
+            &cfg, nullptr, nullptr, clusterConfig);
+
+        oap::aa::AndroidAutoOrchestratorTestAccess::setConnectedForFocusTest(orch);
+        QVERIFY(orch.clusterDisplay()->applyClusterProfile({
+            {QStringLiteral("dpi"), 160},
+        }));
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::pendingReconnect(orch));
     }
 
     void testTeardownEndsBothDisplaysAndNextMainGenerationStarts() {

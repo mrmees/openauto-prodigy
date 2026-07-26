@@ -73,7 +73,8 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
                       oaa::ChannelId::ClusterInput,
                       clusterConfig.enabled,
                       clusterConfig.setupFocus,
-                      yamlConfig)
+                      yamlConfig,
+                      clusterConfig.profile)
 {
     // Wire TouchHandler to InputChannelHandler
     touchHandler_.setHandler(mainDisplay_.inputHandler());
@@ -109,6 +110,17 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
             this, [this](const auto&, qint64) {
                 lastProjectedActivityWasCluster_ = true;
             }, Qt::DirectConnection);
+    connect(&clusterDisplay_,
+            &ProjectedDisplaySession::clusterProfileChangeRequested,
+            this, [this]() {
+                projectedClusterConfig_.profile =
+                    clusterDisplay_.requestedClusterProfile();
+                qCInfo(lcAA).noquote()
+                    << "CLUSTER profile staged generation="
+                    << clusterDisplay_.profileGeneration();
+                if (isAaConnected())
+                    disconnectAndRetrigger();
+            });
 
     // AVInput requests are handled synchronously on this Qt owner thread so an
     // immediate PipeWire failure can be reported honestly before the response.
@@ -372,6 +384,11 @@ void AndroidAutoOrchestrator::onNewConnection()
             break;
         }
     }
+
+    // Switch the crop/decoder snapshot only after the previous session is gone
+    // and immediately before building the matching descriptor.
+    if (projectedClusterConfig_.enabled)
+        clusterDisplay_.activateRequestedClusterProfile();
 
     ServiceDiscoveryBuilder builder(yamlConfig_, btMac,
                                      yamlConfig_ ? yamlConfig_->wifiSsid() : QString(),

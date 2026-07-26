@@ -162,6 +162,10 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
             config.sessionConfiguration = 1;  // HIDE_CLOCK only
         }
     }
+    if (projectedClusterConfig_.enabled
+        && projectedClusterConfig_.profile.turnDataAvailable) {
+        config.sessionConfiguration |= 16;
+    }
 
     return config;
 }
@@ -320,13 +324,16 @@ QByteArray ServiceDiscoveryBuilder::buildClusterVideoDescriptor() const
     avChannel->set_channel_id(kClusterDisplayId);
     avChannel->set_display_type(oaa::proto::enums::DisplayType::CLUSTER);
 
+    const auto& profile = projectedClusterConfig_.profile;
+    const ProjectedViewportGeometry geometry = profile.geometry();
     auto* config = avChannel->add_video_configs();
-    config->set_video_resolution(
-        oaa::proto::enums::VideoResolution::VIDEO_800x480);
+    config->set_video_resolution(profile.resolution == QStringLiteral("720p")
+        ? oaa::proto::enums::VideoResolution::VIDEO_1280x720
+        : oaa::proto::enums::VideoResolution::VIDEO_800x480);
     config->set_video_fps(oaa::proto::enums::VideoFPS::_30);
-    config->set_margin_width(kClusterViewportGeometry.marginWidth());
-    config->set_margin_height(kClusterViewportGeometry.marginHeight());
-    config->set_dpi(140);
+    config->set_margin_width(geometry.marginWidth());
+    config->set_margin_height(geometry.marginHeight());
+    config->set_dpi(profile.dpi);
     config->set_codec(
         oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
 

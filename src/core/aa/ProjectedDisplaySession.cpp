@@ -35,6 +35,7 @@ ProjectedDisplaySession::ProjectedDisplaySession(
     bool enabled,
     ProjectedSetupFocus setupFocus,
     oap::YamlConfig* yamlConfig,
+    const ProjectedClusterProfile& initialProfile,
     QObject* parent)
     : QObject(parent)
     , role_(role)
@@ -48,6 +49,8 @@ ProjectedDisplaySession::ProjectedDisplaySession(
                             .arg(videoChannelId))
     , videoHandler_(videoChannelId, focusModeFor(setupFocus))
     , inputHandler_(inputChannelId)
+    , requestedProfile_(initialProfile)
+    , activeProfile_(initialProfile)
 {
     if (enabled_) {
         decoder_ = std::make_unique<VideoDecoder>();
@@ -163,16 +166,18 @@ ProjectedDisplaySession::ProjectedDisplaySession(
 
                 QVideoFrame frame = decoder_->takeLatestFrame();
                 if (frame.isValid()) {
+                    const ProjectedViewportGeometry geometry =
+                        activeProfile_.geometry();
                     if (role_ == ProjectedDisplayRole::Cluster
                         && (frame.width()
-                                != kClusterViewportGeometry.encodedWidth
+                                != geometry.encodedWidth
                             || frame.height()
-                                != kClusterViewportGeometry.encodedHeight)) {
+                                != geometry.encodedHeight)) {
                         qCWarning(lcAA).noquote()
                             << diagnosticPrefix_
                             << "decoded frame geometry mismatch expected="
-                            << kClusterViewportGeometry.encodedWidth << "x"
-                            << kClusterViewportGeometry.encodedHeight
+                            << geometry.encodedWidth << "x"
+                            << geometry.encodedHeight
                             << "actual=" << frame.width() << "x"
                             << frame.height();
                         enterTerminalState(
@@ -226,37 +231,105 @@ ProjectedDisplaySession::~ProjectedDisplaySession()
 int ProjectedDisplaySession::viewportEncodedWidth() const
 {
     return role_ == ProjectedDisplayRole::Cluster
-        ? kClusterViewportGeometry.encodedWidth : 0;
+        ? activeProfile_.geometry().encodedWidth : 0;
 }
 
 int ProjectedDisplaySession::viewportEncodedHeight() const
 {
     return role_ == ProjectedDisplayRole::Cluster
-        ? kClusterViewportGeometry.encodedHeight : 0;
+        ? activeProfile_.geometry().encodedHeight : 0;
 }
 
 int ProjectedDisplaySession::viewportContentX() const
 {
     return role_ == ProjectedDisplayRole::Cluster
-        ? kClusterViewportGeometry.contentX() : 0;
+        ? activeProfile_.geometry().contentX() : 0;
 }
 
 int ProjectedDisplaySession::viewportContentY() const
 {
     return role_ == ProjectedDisplayRole::Cluster
-        ? kClusterViewportGeometry.contentY() : 0;
+        ? activeProfile_.geometry().contentY() : 0;
 }
 
 int ProjectedDisplaySession::viewportContentWidth() const
 {
     return role_ == ProjectedDisplayRole::Cluster
-        ? kClusterViewportGeometry.contentWidth : 0;
+        ? activeProfile_.geometry().contentWidth : 0;
 }
 
 int ProjectedDisplaySession::viewportContentHeight() const
 {
     return role_ == ProjectedDisplayRole::Cluster
-        ? kClusterViewportGeometry.contentHeight : 0;
+        ? activeProfile_.geometry().contentHeight : 0;
+}
+
+bool ProjectedDisplaySession::applyClusterProfile(const QVariantMap& update)
+{
+    if (role_ != ProjectedDisplayRole::Cluster || !enabled_) {
+        profileStatusText_ = QStringLiteral("CLUSTER display is disabled");
+        emit profileDiagnosticsChanged();
+        return false;
+    }
+
+    ProjectedClusterProfile candidate;
+    QString error;
+    if (!applyProjectedClusterProfileUpdate(
+            requestedProfile_, update, &candidate, &error)) {
+        profileStatusText_ = error;
+        emit profileDiagnosticsChanged();
+        qCWarning(lcAA).noquote() << diagnosticPrefix_
+                                  << "profile rejected:" << error;
+        return false;
+    }
+
+    if (candidate == requestedProfile_) {
+        profileStatusText_ = QStringLiteral("Profile unchanged");
+        emit profileDiagnosticsChanged();
+        return true;
+    }
+
+    requestedProfile_ = candidate;
+    ++profileGeneration_;
+    profileStatusText_ = QStringLiteral("Profile accepted; reconnect pending");
+    emit profileDiagnosticsChanged();
+    emit clusterProfileChangeRequested();
+    return true;
+}
+
+bool ProjectedDisplaySession::resetClusterProfile()
+{
+    const ProjectedClusterProfile baseline;
+    return applyClusterProfile({
+        {QStringLiteral("resolution"), baseline.resolution},
+        {QStringLiteral("dpi"), baseline.dpi},
+        {QStringLiteral("content_width"), baseline.contentWidth},
+        {QStringLiteral("content_height"), baseline.contentHeight},
+        {QStringLiteral("turn_data_available"), baseline.turnDataAvailable},
+    });
+}
+
+void ProjectedDisplaySession::activateRequestedClusterProfile()
+{
+    if (role_ != ProjectedDisplayRole::Cluster
+        || activeProfile_ == requestedProfile_) {
+        return;
+    }
+
+    const ProjectedViewportGeometry oldGeometry = activeProfile_.geometry();
+    activeProfile_ = requestedProfile_;
+    const ProjectedViewportGeometry geometry = activeProfile_.geometry();
+    profileStatusText_ = QStringLiteral("Profile active");
+    emit profileDiagnosticsChanged();
+    if (!(oldGeometry == geometry))
+        emit viewportGeometryChanged();
+    qCInfo(lcAA).noquote()
+        << diagnosticPrefix_ << "profile generation=" << profileGeneration_
+        << "resolution=" << activeProfile_.resolution
+        << "dpi=" << activeProfile_.dpi
+        << "content=" << activeProfile_.contentWidth << "x"
+        << activeProfile_.contentHeight
+        << "turn_data_available=" << activeProfile_.turnDataAvailable;
 }
 
 void ProjectedDisplaySession::setAdvertisedVideoConfigCount(uint32_t count)

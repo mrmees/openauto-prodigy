@@ -257,6 +257,13 @@ Named command dispatch. Actions are synchronous.
 | `app.openSettings` | — | Navigate to settings view |
 | `theme.toggle` | — | Toggle day/night mode |
 | `aa.sendButton` | `int` keycode | Send an AA button press to the phone |
+| `aa.cluster.applyProfile` | map | Stage `resolution`, `dpi`, `content_width`, `content_height`, and/or `turn_data_available`; reconnect active AA for renegotiation |
+| `aa.cluster.resetProfile` | — | Restore the runtime 480p/140-DPI/300×300 CLUSTER baseline |
+
+The `aa.cluster.*` actions are registered only when
+`experimental_cluster_display` was enabled at startup. Profile overrides are
+process-lifetime only. Action dispatch acknowledges that the named handler ran;
+profile validation is reported through CLUSTER diagnostics and logs.
 
 Additional internal actions exist for navbar gesture routing (`navbar.volume.*`, `navbar.clock.*`, `navbar.brightness.*`, `app.minimize`, `app.restart`) but are not part of the plugin API.
 

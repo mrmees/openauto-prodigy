@@ -139,6 +139,12 @@ private slots:
         // Button presses should route through ActionRegistry
         QVERIFY2(source.indexOf(QStringLiteral("ActionRegistry.dispatch")) >= 0,
                  "DebugSettings AA buttons should route through ActionRegistry");
+        QVERIFY2(source.indexOf(QStringLiteral("aa.cluster.applyProfile")) >= 0,
+                 "DebugSettings should expose the runtime CLUSTER profile action");
+        QVERIFY2(source.indexOf(QStringLiteral("aa.cluster.resetProfile")) >= 0,
+                 "DebugSettings should expose the CLUSTER baseline reset action");
+        QVERIFY2(source.indexOf(QStringLiteral("AAClusterDisplay.profileStatusText")) >= 0,
+                 "DebugSettings should show controller-owned CLUSTER diagnostics");
     }
 
     void testSettingsUseSharedScrollHints()

@@ -225,6 +225,60 @@ private slots:
         QCOMPARE(main.viewportContentHeight(), 0);
     }
 
+    void runtimeProfileIsStagedUntilNextSessionSnapshot()
+    {
+        auto display = enabledClusterDisplay();
+        QSignalSpy requestSpy(
+            &display,
+            &oap::aa::ProjectedDisplaySession::clusterProfileChangeRequested);
+        QSignalSpy geometrySpy(
+            &display,
+            &oap::aa::ProjectedDisplaySession::viewportGeometryChanged);
+
+        QVERIFY(display.applyClusterProfile({
+            {QStringLiteral("resolution"), QStringLiteral("720p")},
+            {QStringLiteral("dpi"), 160},
+            {QStringLiteral("content_width"), 600},
+            {QStringLiteral("content_height"), 400},
+            {QStringLiteral("turn_data_available"), true},
+        }));
+        QCOMPARE(requestSpy.count(), 1);
+        QCOMPARE(display.profileGeneration(), 1u);
+        QCOMPARE(display.viewportEncodedWidth(), 800);
+        QCOMPARE(display.viewportContentWidth(), 300);
+        QCOMPARE(geometrySpy.count(), 0);
+
+        display.activateRequestedClusterProfile();
+        QCOMPARE(display.viewportEncodedWidth(), 1280);
+        QCOMPARE(display.viewportEncodedHeight(), 720);
+        QCOMPARE(display.viewportContentX(), 340);
+        QCOMPARE(display.viewportContentY(), 160);
+        QCOMPARE(display.viewportContentWidth(), 600);
+        QCOMPARE(display.viewportContentHeight(), 400);
+        QCOMPARE(geometrySpy.count(), 1);
+    }
+
+    void invalidAndUnchangedProfilesDoNotRequestReconnect()
+    {
+        auto display = enabledClusterDisplay();
+        QSignalSpy requestSpy(
+            &display,
+            &oap::aa::ProjectedDisplaySession::clusterProfileChangeRequested);
+
+        QVERIFY(!display.applyClusterProfile({}));
+        QVERIFY(!display.applyClusterProfile({
+            {QStringLiteral("content_width"), 301},
+        }));
+        QCOMPARE(requestSpy.count(), 0);
+        QCOMPARE(display.profileGeneration(), 0u);
+
+        QVERIFY(display.applyClusterProfile({
+            {QStringLiteral("resolution"), QStringLiteral("480p")},
+        }));
+        QCOMPARE(requestSpy.count(), 0);
+        QCOMPARE(display.profileGeneration(), 0u);
+    }
+
     void clusterStateFollowsOnlyItsLifecycle()
     {
         auto display = enabledClusterDisplay();

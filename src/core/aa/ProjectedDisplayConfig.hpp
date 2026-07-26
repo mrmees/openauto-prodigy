@@ -1,5 +1,8 @@
 #pragma once
 
+#include <QString>
+#include <QVariantMap>
+
 #include <cstdint>
 
 namespace oap { class YamlConfig; }
@@ -16,11 +19,6 @@ enum class ProjectedSetupFocus {
     Projected,
 };
 
-struct ProjectedClusterConfig {
-    bool enabled = false;
-    ProjectedSetupFocus setupFocus = ProjectedSetupFocus::ProjectedNoInput;
-};
-
 struct ProjectedViewportGeometry {
     int encodedWidth;
     int encodedHeight;
@@ -35,10 +33,17 @@ struct ProjectedViewportGeometry {
     {
         return encodedWidth > 0 && encodedHeight > 0
             && contentWidth > 0 && contentHeight > 0
-            && contentWidth == contentHeight
             && contentWidth <= encodedWidth
             && contentHeight <= encodedHeight
             && marginWidth() % 2 == 0 && marginHeight() % 2 == 0;
+    }
+
+    constexpr bool operator==(const ProjectedViewportGeometry& other) const
+    {
+        return encodedWidth == other.encodedWidth
+            && encodedHeight == other.encodedHeight
+            && contentWidth == other.contentWidth
+            && contentHeight == other.contentHeight;
     }
 };
 
@@ -47,6 +52,29 @@ inline constexpr ProjectedViewportGeometry kClusterViewportGeometry{
 };
 
 static_assert(kClusterViewportGeometry.isValid());
+
+struct ProjectedClusterProfile {
+    QString resolution = QStringLiteral("480p");
+    int dpi = 140;
+    int contentWidth = 300;
+    int contentHeight = 300;
+    bool turnDataAvailable = false;
+
+    ProjectedViewportGeometry geometry() const;
+    bool operator==(const ProjectedClusterProfile& other) const;
+};
+
+struct ProjectedClusterConfig {
+    bool enabled = false;
+    ProjectedSetupFocus setupFocus = ProjectedSetupFocus::ProjectedNoInput;
+    ProjectedClusterProfile profile;
+};
+
+bool applyProjectedClusterProfileUpdate(
+    const ProjectedClusterProfile& current,
+    const QVariantMap& update,
+    ProjectedClusterProfile* result,
+    QString* error);
 
 ProjectedClusterConfig resolveProjectedClusterConfig(const oap::YamlConfig& config);
 
