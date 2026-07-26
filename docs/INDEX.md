@@ -2,7 +2,10 @@
 
 ## Active Plans
 
-- None. New implementation work requires promotion and approval.
+- [Android Auto GAL 4.3 display compatibility design](plans/2026-07-26-aa-gal-4-3-display-compatibility-design.md)
+  and [implementation plan](plans/2026-07-26-aa-gal-4-3-display-compatibility-plan.md)
+  — preserve GAL 1.7 while adding a bounded 4.3 handshake and per-video UI
+  feature compatibility experiment for the existing MAIN+CLUSTER lab.
 
 ## Start Here
 

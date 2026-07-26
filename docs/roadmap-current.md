@@ -19,7 +19,14 @@ spike, or research-first feasibility work.
 
 ## Now
 
-- No promoted work is currently active.
+- Android Auto GAL 4.3 display compatibility — **ACTIVE**. Preserve GAL 1.7 as
+  the default while adding a default-off, exact-match 4.3 laboratory mode with
+  complete version-response diagnostics. Prove the 4.3 handshake and current
+  MAIN+CLUSTER media before enabling per-video MAIN clock and lab-only CLUSTER
+  native-turn-card declarations. GAL 5.x/6.x, AUXILIARY, third-display, and
+  native semantic turn-card work remain out of scope. Design and plan:
+  `docs/plans/2026-07-26-aa-gal-4-3-display-compatibility-design.md` and
+  `docs/plans/2026-07-26-aa-gal-4-3-display-compatibility-plan.md`.
 
 ## Done (recent)
 
@@ -49,9 +56,11 @@ spike, or research-first feasibility work.
   Google Maps in every CLUSTER profile: navigation only added route UI, while
   the turn-data toggle and media playback selected no alternate content.
   Issue #10 subsequently confirmed the toggle's `session_configuration` value
-  16 has no AA 17.3 consumer at Prodigy's requested GAL 1.1. Resolution, crop
-  geometry, and DPI visibly changed framing/scale and negotiated the expected
-  carrier.
+  16 has no AA 17.3 consumer. Historical capture notes reported GAL 1.1 while
+  current source requests 1.7; the active GAL 4.3 compatibility plan begins by
+  capturing the deployed request to resolve that discrepancy. Resolution,
+  crop geometry, and DPI visibly changed framing/scale and negotiated the
+  expected carrier.
   Plan:
   `docs/archive/plans/2026-07-25-aa-runtime-cluster-lab-plan.md`.
 

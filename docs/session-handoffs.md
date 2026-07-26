@@ -4,6 +4,43 @@ Newest entries first.
 
 ---
 
+## 2026-07-26 — Android Auto GAL 4.3 display compatibility planning
+
+**What changed:** promoted and documented the next protocol-critical phase in
+an ACTIVE design and implementation plan. The scope preserves GAL 1.7 as the
+default, pins only audited GAL 4.3 as the experimental upgrade, requires full
+version-response diagnostics, and stages a request-only live checkpoint before
+any modern descriptor field is enabled. The final feature boundary is limited
+to version-gated MAIN clock metadata and a lab-only CLUSTER native-turn-card
+declaration. The roadmap and documentation index now point to the active work.
+
+**Why:** current source requests GAL 1.7 while historical capture notes say
+1.1, and Android Auto 17.3 ignores per-video hidden-UI features below requested
+GAL 4.3. Higher versions would also cross unrelated ACK and service behavior,
+so 4.3 is the smallest useful compatibility target. The plan also treats the
+audited open-android-auto schema pin and Prodigy's stale manual AV IDs as
+prerequisites rather than hiding them inside the display experiment.
+
+**Status:** PLANNING COMPLETE; implementation and hardware validation have not
+started. The active artifacts are
+`docs/plans/2026-07-26-aa-gal-4-3-display-compatibility-design.md` and
+`docs/plans/2026-07-26-aa-gal-4-3-display-compatibility-plan.md`. Explicitly
+excluded are GAL 5.x/6.x, ackless media, vehicle energy forecast, AUXILIARY,
+third-display/generalized registry work, a native semantic turn-card widget,
+and edits inside the community proto submodule.
+
+**Verification:** `python3 scripts/check-doc-links.py --scope tracked-live`
+reported zero broken links and `git diff --check` passed. No application build,
+cross-build, Pi deployment, or live feature claim applies to this planning-only
+change.
+
+**Next 1–3 steps:** (1) approve the active design/plan for execution; (2)
+capture the deployed raw 1.7 request and complete response before changing the
+proto pin; (3) execute the schema compatibility and request-only 4.3 checkpoint
+before adding field-11 UI metadata.
+
+---
+
 ## 2026-07-25 — Android Auto AUXILIARY turn-card experiment
 
 **What changed:** a disposable two-commit artifact temporarily advertised the
