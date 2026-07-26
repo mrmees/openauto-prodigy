@@ -82,7 +82,7 @@ void VideoChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
     case oaa::AVMessageId::VIDEO_FOCUS_INDICATION:
         handleVideoFocusIndication(data);
         break;
-    case oaa::AVMessageId::OVERLAY_SESSION_UPDATE: {
+    case oaa::AVMessageId::UI_CONFIG_REQUEST: {
         // 0x8011: UiConfigRequest (Phone->HU) -- Material You theming tokens
         oaa::proto::messages::UiConfigRequest request;
         if (!request.ParseFromArray(data.constData(), data.size())) {
@@ -119,21 +119,16 @@ void VideoChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
         resp.set_status(oaa::proto::messages::THEMING_TOKENS_ACCEPTED);
         QByteArray respData(resp.ByteSizeLong(), '\0');
         resp.SerializeToArray(respData.data(), respData.size());
-        emit sendRequested(channelId(), oaa::AVMessageId::UPDATE_HU_UI_CONFIG_REQUEST, respData);
+        emit sendRequested(channelId(),
+                           oaa::AVMessageId::UPDATE_HU_UI_CONFIG_RESPONSE,
+                           respData);
         break;
     }
-    case oaa::AVMessageId::VIDEO_FOCUS_NOTIFICATION:
-    case oaa::AVMessageId::UPDATE_UI_CONFIG_REQUEST:
-    case oaa::AVMessageId::UPDATE_UI_CONFIG_REPLY:
-    case oaa::AVMessageId::AUDIO_UNDERFLOW:
+    case oaa::AVMessageId::UPDATE_UI_CONFIG_FROM_PHONE:
     case oaa::AVMessageId::ACTION_TAKEN:
     case oaa::AVMessageId::OVERLAY_PARAMETERS:
-    case oaa::AVMessageId::OVERLAY_START:
-    case oaa::AVMessageId::OVERLAY_STOP:
-    case oaa::AVMessageId::UPDATE_HU_UI_CONFIG_REQUEST:
-    case oaa::AVMessageId::UPDATE_HU_UI_CONFIG_RESPONSE:
-    case oaa::AVMessageId::MEDIA_STATS:
     case oaa::AVMessageId::MEDIA_OPTIONS:
+    case oaa::AVMessageId::CRITICAL_UI_NOTIFICATION:
         qDebug() << "[VideoChannel] newer AV message:" << Qt::hex << messageId
                  << "size:" << data.size();
         break;

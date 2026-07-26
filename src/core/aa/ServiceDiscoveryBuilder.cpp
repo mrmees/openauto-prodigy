@@ -11,6 +11,7 @@
 #include "oaa/control/ChannelDescriptorData.pb.h"
 #include "oaa/av/AVChannelData.pb.h"
 #include "oaa/video/VideoConfigData.pb.h"
+#include "oaa/video/AdditionalVideoConfigData.pb.h"
 #include "oaa/av/MediaCodecTypeEnum.pb.h"
 #include "oaa/audio/AudioConfigData.pb.h"
 #include "oaa/input/InputChannelData.pb.h"
@@ -24,7 +25,6 @@
 #include "oaa/navigation/NavigationChannelData.pb.h"
 #include "oaa/navigation/NavigationImageOptionsData.pb.h"
 #include "oaa/media/MediaChannelData.pb.h"
-#include "oaa/av/AVStreamTypeEnum.pb.h"
 #include "oaa/audio/AudioTypeEnum.pb.h"
 #include "oaa/video/VideoResolutionEnum.pb.h"
 #include "oaa/video/VideoFPSEnum.pb.h"
@@ -63,6 +63,40 @@ QStringList resolveVideoCodecNames(oap::YamlConfig* yamlConfig)
         resolved.push_back(QStringLiteral("h264"));
     }
     return resolved;
+}
+
+bool navbarShownDuringAa(oap::YamlConfig* yamlConfig)
+{
+    if (!yamlConfig)
+        return false;
+    const QVariant configured =
+        yamlConfig->valueByPath(QStringLiteral("navbar.show_during_aa"));
+    return configured.isNull() || configured.toBool();
+}
+
+void appendHiddenUiElementWithInsets(
+    oaa::proto::data::VideoConfig* videoConfig,
+    oaa::proto::data::UIElement element,
+    uint32_t marginWidth,
+    uint32_t marginHeight)
+{
+    if (!videoConfig)
+        return;
+
+    auto* additional = videoConfig->mutable_additional_config();
+    auto* insets = additional->mutable_display_insets();
+    const uint32_t left = marginWidth / 2;
+    const uint32_t top = marginHeight / 2;
+    insets->set_left(left);
+    insets->set_right(marginWidth - left);
+    insets->set_top(top);
+    insets->set_bottom(marginHeight - top);
+
+    for (const auto existing : additional->hidden_ui_elements()) {
+        if (existing == element)
+            return;
+    }
+    additional->add_hidden_ui_elements(element);
 }
 
 } // namespace
@@ -115,6 +149,11 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
 {
     oaa::SessionConfig config;
 
+    const GalVersion galVersion = projectedClusterConfig_.profile.galVersion;
+    config.protocolMajor = galVersion.major;
+    config.protocolMinor = galVersion.minor;
+    config.requireMinimumCompatibleProtocolVersion = galVersion == kGalVersion4_3;
+
     // Head unit identity
     // Phone matches on: manufacturer + model + modelyear + vehicleid
     config.headUnitName = "Crankshaft-NG";
@@ -151,10 +190,8 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
     addChannel(11, buildPhoneStatusDescriptor());
 
     // Hide phone's AA status bar elements when our navbar shows them
-    if (yamlConfig_) {
-        QVariant showDuringAA = yamlConfig_->valueByPath("navbar.show_during_aa");
-        bool navbarDuringAA = showDuringAA.isNull() || showDuringAA.toBool();
-        if (navbarDuringAA) {
+    if (galVersion == kGalVersion1_7) {
+        if (navbarShownDuringAa(yamlConfig_)) {
             // session_configuration bitmask (SDR field 13) — does NOT touch AdditionalVideoConfig
             // NOTE: AA 16.2 UI logic (mcr.java) forcibly keeps signal/battery visible when
             // hideClock is set. Can't hide all three. We hide clock only since we render our own.
@@ -162,7 +199,6 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
             config.sessionConfiguration = 1;  // HIDE_CLOCK only
         }
     }
-
     return config;
 }
 
@@ -248,10 +284,11 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
     desc.set_channel_id(3);
 
     auto* avChannel = desc.mutable_av_channel();
-    avChannel->set_stream_type(oaa::proto::enums::AVStreamType::VIDEO);
+    avChannel->set_stream_type(
+        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
     avChannel->set_color_scheme_support(oaa::proto::enums::ColorSchemeSupport::COLOR_SCHEME_MATERIAL_YOU_V3);
     if (projectedClusterConfig_.enabled) {
-        avChannel->set_channel_id(kMainDisplayId);
+        avChannel->set_display_id(kMainDisplayId);
         avChannel->set_display_type(oaa::proto::enums::DisplayType::MAIN);
     }
     // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
@@ -299,6 +336,14 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
         cfg->set_margin_height(mH);
         cfg->set_dpi(dpi);
         cfg->set_codec(it.value());
+        if (projectedClusterConfig_.profile.galVersion == kGalVersion4_3
+            && navbarShownDuringAa(yamlConfig_)) {
+            appendHiddenUiElementWithInsets(
+                cfg,
+                oaa::proto::data::UI_ELEMENT_CLOCK,
+                static_cast<uint32_t>(mW),
+                static_cast<uint32_t>(mH));
+        }
         qCInfo(lcAA) << "config[" << configIdx++ << "]:"
                 << chosen.label << codecName << "margins:" << mW << "x" << mH;
     }
@@ -316,19 +361,31 @@ QByteArray ServiceDiscoveryBuilder::buildClusterVideoDescriptor() const
     desc.set_channel_id(oaa::ChannelId::ClusterVideo);
 
     auto* avChannel = desc.mutable_av_channel();
-    avChannel->set_stream_type(oaa::proto::enums::AVStreamType::VIDEO);
-    avChannel->set_channel_id(kClusterDisplayId);
+    avChannel->set_stream_type(
+        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+    avChannel->set_display_id(kClusterDisplayId);
     avChannel->set_display_type(oaa::proto::enums::DisplayType::CLUSTER);
 
+    const auto& profile = projectedClusterConfig_.profile;
+    const ProjectedViewportGeometry geometry = profile.geometry();
     auto* config = avChannel->add_video_configs();
-    config->set_video_resolution(
-        oaa::proto::enums::VideoResolution::VIDEO_800x480);
+    config->set_video_resolution(profile.resolution == QStringLiteral("720p")
+        ? oaa::proto::enums::VideoResolution::VIDEO_1280x720
+        : oaa::proto::enums::VideoResolution::VIDEO_800x480);
     config->set_video_fps(oaa::proto::enums::VideoFPS::_30);
-    config->set_margin_width(kClusterViewportGeometry.marginWidth());
-    config->set_margin_height(kClusterViewportGeometry.marginHeight());
-    config->set_dpi(140);
+    config->set_margin_width(geometry.marginWidth());
+    config->set_margin_height(geometry.marginHeight());
+    config->set_dpi(profile.dpi);
     config->set_codec(
         oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+    if (profile.galVersion == kGalVersion4_3
+        && profile.nativeTurnCardAvailable) {
+        appendHiddenUiElementWithInsets(
+            config,
+            oaa::proto::data::UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE,
+            static_cast<uint32_t>(geometry.marginWidth()),
+            static_cast<uint32_t>(geometry.marginHeight()));
+    }
 
     QByteArray data(desc.ByteSizeLong(), '\0');
     desc.SerializeToArray(data.data(), data.size());
@@ -341,7 +398,8 @@ QByteArray ServiceDiscoveryBuilder::buildMediaAudioDescriptor() const
     desc.set_channel_id(4);
 
     auto* avChannel = desc.mutable_av_channel();
-    avChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);
+    avChannel->set_stream_type(
+        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_AUDIO_PCM);
     avChannel->set_audio_type(oaa::proto::enums::AudioType::MEDIA);
     // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
 
@@ -361,7 +419,8 @@ QByteArray ServiceDiscoveryBuilder::buildSpeechAudioDescriptor() const
     desc.set_channel_id(5);
 
     auto* avChannel = desc.mutable_av_channel();
-    avChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);
+    avChannel->set_stream_type(
+        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_AUDIO_PCM);
     avChannel->set_audio_type(oaa::proto::enums::AudioType::SPEECH);
     // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
 
@@ -381,7 +440,8 @@ QByteArray ServiceDiscoveryBuilder::buildSystemAudioDescriptor() const
     desc.set_channel_id(6);
 
     auto* avChannel = desc.mutable_av_channel();
-    avChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);
+    avChannel->set_stream_type(
+        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_AUDIO_PCM);
     avChannel->set_audio_type(oaa::proto::enums::AudioType::SYSTEM);
     // Field 5 in APK is uint32, not bool. Omitting has no effect on session.
 
@@ -464,7 +524,7 @@ QByteArray ServiceDiscoveryBuilder::buildSensorDescriptor() const
     auto* sensorChannel = desc.mutable_sensor_channel();
 
     auto addSensor = [&](oaa::proto::enums::SensorType::Enum type) {
-        sensorChannel->add_sensors()->set_type(type);
+        sensorChannel->add_sensors()->set_sensor_type(type);
     };
 
     // Only advertise sensors we can actually populate.
@@ -512,7 +572,8 @@ QByteArray ServiceDiscoveryBuilder::buildAVInputDescriptor() const
     desc.set_channel_id(7);
 
     auto* avInputChannel = desc.mutable_av_input_channel();
-    avInputChannel->set_stream_type(oaa::proto::enums::AVStreamType::AUDIO);
+    avInputChannel->set_stream_type(
+        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_AUDIO_PCM);
     // Field 3 in APK is uint32, not bool. Omitting has no effect on session.
 
     auto* audioConfig = avInputChannel->mutable_audio_config();

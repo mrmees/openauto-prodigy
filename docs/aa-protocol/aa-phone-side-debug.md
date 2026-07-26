@@ -8,6 +8,25 @@
 > for current commands and [Architecture](../architecture.md) for current
 > implementation ownership.
 
+> **Current GAL note (2026-07-26):** the historical `v1.1` request below is
+> not current behavior. Task 0 captured the deployed baseline request as GAL
+> 1.7 with a complete 1.7/MATCH response. The default remains 1.7. The
+> default-off lab may request 4.3; its minimum-compatible policy accepts a
+> MATCH response reporting 4.3 or higher, including the observed 4.3 request →
+> 6.0/MATCH response. Requested 4.3, not reported 6.0, remains authoritative
+> for local descriptor policy. Final Pi/Pixel validation on `d06fa40` also
+> established that every modern field-11 declaration must carry field-1
+> `display_insets` mirroring the unchanged legacy total margins. Hidden-only
+> field 11 selected bottom phone chrome at y=489..599; the companion insets
+> restored side chrome and the exact 1.7 Navbar boundary at y=541..599. The
+> final GAL 4.3/native-false Pi artifact is
+> `ALPHA-26-07-24-01-97-gd06fa40`, SHA-256
+> `4b73d69a40f7e5be4701f1775af53a11fa1d3a7863cb0ddb3d379afad0fded48`.
+> ADB/logcat was unavailable for that rerun, an explicit evidence-source
+> limitation covered by raw version capture, descriptor goldens, Pi logs, and
+> direct MAIN/CLUSTER screenshots. This note corrects current guidance without
+> rewriting the dated capture below.
+
 ## Date: 2026-02-22
 
 ## Setup

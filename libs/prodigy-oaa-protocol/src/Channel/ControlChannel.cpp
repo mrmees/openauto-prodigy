@@ -64,7 +64,7 @@ void ControlChannel::onMessage(uint16_t messageId, const QByteArray& payload, in
     case MSG_VERSION_RESPONSE: {
         // Raw binary: major(2B BE) + minor(2B BE) + status(2B BE)
         if (dataSize < 6) {
-            emit versionReceived(0, 0, false);
+            emit versionResponseMalformed(dataSize);
             return;
         }
         uint16_t major = qFromBigEndian<uint16_t>(
@@ -73,7 +73,8 @@ void ControlChannel::onMessage(uint16_t messageId, const QByteArray& payload, in
             reinterpret_cast<const uchar*>(data + 2));
         uint16_t status = qFromBigEndian<uint16_t>(
             reinterpret_cast<const uchar*>(data + 4));
-        emit versionReceived(major, minor, status == 0x0000);
+        emit versionReceived(major, minor, status,
+                             QByteArray(data + 6, dataSize - 6));
         break;
     }
 

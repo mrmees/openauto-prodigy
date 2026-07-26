@@ -7,6 +7,9 @@ private slots:
     void testDefaultsHaveNoChannels() {
         oaa::SessionConfig config;
         QVERIFY(config.channels.isEmpty());
+        QCOMPARE(config.protocolMajor, uint16_t{1});
+        QCOMPARE(config.protocolMinor, uint16_t{7});
+        QVERIFY(!config.requireMinimumCompatibleProtocolVersion);
         QCOMPARE(config.pingInterval, 5000);
         QCOMPARE(config.pingTimeout, 15000);
     }

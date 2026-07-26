@@ -130,15 +130,89 @@ private slots:
         const QString source = sourceFor(QStringLiteral("qml/applications/settings/DebugSettings.qml"));
         QVERIFY2(!source.isEmpty(), "Failed to read DebugSettings.qml");
 
+        const QString mainSource = sourceFor(QStringLiteral("src/main.cpp"));
+        QVERIFY2(!mainSource.isEmpty(), "Failed to read main.cpp");
+
         // Should use ProjectionStatus provider, not AAOrchestrator global
         QVERIFY2(source.indexOf(QStringLiteral("ProjectionStatus")) >= 0,
                  "DebugSettings should reference ProjectionStatus provider");
         QVERIFY2(source.indexOf(QStringLiteral("AAOrchestrator")) < 0,
                  "DebugSettings should not reference AAOrchestrator global");
 
+        // The lab exposes only the two audited local feature-policy versions.
+        QVERIFY2(source.indexOf(QStringLiteral("model: [\"1.7\", \"4.3\"]")) >= 0,
+                 "DebugSettings should expose only the GAL 1.7 and 4.3 selector labels");
+        QVERIFY2(source.indexOf(QStringLiteral("id: clusterGalVersion")) >= 0,
+                 "DebugSettings should give the bounded GAL selector a stable id");
+
+        // One apply dispatch carries the complete, normalized profile. In
+        // particular, selecting 1.7 cannot emit the 4.3-only declaration.
+        const int applyFunction = source.indexOf(
+            QStringLiteral("function applyClusterProfile()"));
+        const int syncFunction = source.indexOf(
+            QStringLiteral("function syncClusterProfileControls()"));
+        QVERIFY2(applyFunction >= 0 && syncFunction > applyFunction,
+                 "DebugSettings should define bounded apply and sync helpers");
+        const QString applySource = source.mid(applyFunction,
+                                               syncFunction - applyFunction);
+        QCOMPARE(applySource.count(QStringLiteral(
+                     "ActionRegistry.dispatch(\"aa.cluster.applyProfile\"")), 1);
+        QVERIFY2(applySource.indexOf(QStringLiteral(
+                     "\"gal_version\": clusterGalVersion.currentText")) >= 0,
+                 "The profile payload should carry the selected GAL version");
+        QVERIFY2(applySource.indexOf(QStringLiteral(
+                     "\"native_turn_card_available\":")) >= 0,
+                 "The profile payload should use the native turn-card key");
+        QVERIFY2(applySource.indexOf(QStringLiteral(
+                     "clusterGalVersion.currentText === \"4.3\"")) >= 0,
+                 "The profile payload should force the native turn-card flag off below GAL 4.3");
+        QVERIFY2(source.indexOf(QStringLiteral(
+                     "Advertise native HU turn card (lab)")) >= 0,
+                 "DebugSettings should describe the native HU declaration honestly");
+        QVERIFY2(source.indexOf(QStringLiteral("GAL 4.3 only")) >= 0,
+                 "DebugSettings should show that the native turn-card toggle is 4.3-only");
+        QVERIFY2(source.indexOf(QStringLiteral("turn_data_available")) < 0,
+                 "The retired turn_data_available action key must not return");
+        QVERIFY2(source.indexOf(QStringLiteral("bit 16")) < 0,
+                 "The retired session-bit-16 wording must not return");
+
         // Button presses should route through ActionRegistry
         QVERIFY2(source.indexOf(QStringLiteral("ActionRegistry.dispatch")) >= 0,
                  "DebugSettings AA buttons should route through ActionRegistry");
+        QVERIFY2(source.indexOf(QStringLiteral("aa.cluster.applyProfile")) >= 0,
+                 "DebugSettings should expose the runtime CLUSTER profile action");
+        QVERIFY2(source.indexOf(QStringLiteral("aa.cluster.resetProfile")) >= 0,
+                 "DebugSettings should expose the CLUSTER baseline reset action");
+        QVERIFY2(source.indexOf(QStringLiteral("AAClusterDisplay.applyClusterProfile")) < 0,
+                 "DebugSettings must not bypass ActionRegistry for profile changes");
+        QVERIFY2(source.indexOf(QStringLiteral("AAClusterDisplay.resetClusterProfile")) < 0,
+                 "DebugSettings must not bypass ActionRegistry for profile reset");
+        QVERIFY2(mainSource.indexOf(QStringLiteral(
+                     "\"aa.cluster.applyProfile\"")) >= 0,
+                 "main.cpp should retain the apply-profile ActionRegistry adapter");
+        QVERIFY2(mainSource.indexOf(QStringLiteral(
+                     "clusterController->applyClusterProfile")) >= 0,
+                 "The apply-profile action should route to the CLUSTER controller");
+        QVERIFY2(mainSource.indexOf(QStringLiteral(
+                     "\"aa.cluster.resetProfile\"")) >= 0,
+                 "main.cpp should retain the reset-profile ActionRegistry adapter");
+        QVERIFY2(mainSource.indexOf(QStringLiteral(
+                     "clusterController->resetClusterProfile")) >= 0,
+                 "The reset-profile action should route to the CLUSTER controller");
+
+        // All displayed diagnostics come from the provider exposed by main.
+        QVERIFY2(source.indexOf(QStringLiteral("AAClusterDisplay.requestedGalVersion")) >= 0,
+                 "DebugSettings should show provider-owned requested GAL diagnostics");
+        QVERIFY2(source.indexOf(QStringLiteral("AAClusterDisplay.profileGeneration")) >= 0,
+                 "DebugSettings should show provider-owned profile generation");
+        QVERIFY2(source.indexOf(QStringLiteral("AAClusterDisplay.viewportContentWidth")) >= 0,
+                 "DebugSettings should show provider-owned active crop width");
+        QVERIFY2(source.indexOf(QStringLiteral("AAClusterDisplay.viewportContentHeight")) >= 0,
+                 "DebugSettings should show provider-owned active crop height");
+        QVERIFY2(source.indexOf(QStringLiteral("AAClusterDisplay.profileStatusText")) >= 0,
+                 "DebugSettings should show controller-owned CLUSTER diagnostics");
+        QVERIFY2(mainSource.indexOf(QStringLiteral("\"AAClusterDisplay\"")) >= 0,
+                 "main.cpp should expose the CLUSTER diagnostics provider to QML");
     }
 
     void testSettingsUseSharedScrollHints()

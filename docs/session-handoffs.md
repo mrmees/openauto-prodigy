@@ -4,134 +4,246 @@ Newest entries first.
 
 ---
 
-## 2026-07-25 — Android Auto CLUSTER square viewport COMPLETE
+## 2026-07-26 — GAL 4.3 display compatibility COMPLETE
 
-**What changed:** the experimental projected CLUSTER path now asks Android
-Auto to render a centered 300×300 content region inside its standard 800×480
-H.264 carrier by advertising total margins of 500×180. One immutable C++
-geometry contract supplies discovery, role-safe session properties, decoded
-frame validation, QML crop offsets, and focused tests. The dashboard widget is
-fixed at 3×3 and uses one clipped, uniformly scaled and offset `VideoOutput`;
-it does not add another decoder, frame rewrite, shader, stretch, projected
-input, arbitrary resolution, or public setting. A mismatched CLUSTER carrier
-terminates only that display generation before sink delivery, while MAIN keeps
-its existing frame policy and rendering behavior.
+**What changed:** the completed GAL 4.3 design and implementation plan moved to
+`docs/archive/plans/` with `Status: COMPLETED 2026-07-26`. The roadmap now
+records the shipped default-off 4.3 lab under Done, the index points only to
+the archived artifacts, the resolved GAL-obligation backlog item is removed,
+and three evidence-led review follow-ups are recorded without widening the
+completed phase.
 
-**Why:** the completed 2×2 feasibility spike proved that the Pixel would open
-and stream an independent CLUSTER display, but it still showed the full
-landscape carrier inside a square widget. This bounded follow-up tests the
-phone-rendered-margin approach at the desired small cluster shape before any
-generalized multi-display or production-settings work is promoted.
+**Why:** the exact post-bench tree and accepted Pi/Pixel behavior were green,
+and the single required major review found no supported-production blocker.
+The active artifacts therefore no longer represent pending execution guidance.
 
-**Status:** COMPLETE on local `dev` and staged in draft PR #40. The default-off
-product policy remains intact. The accepted Pi bench corresponds to the
-implementation range `b7f6451..7ccdfc4`; it keeps
-`experimental_cluster_display` enabled and the existing
-`org.openauto.aa-cluster-16` placement intentionally migrated from 2×2 to 3×3
-on dashboard page 1. The Pixel opened CLUSTER channels 12/13, decoded the
-required 800×480 carrier, reached Rendering, and produced no geometry-mismatch
-terminal error. Matthew accepted the visible basic square implementation.
-Later review-hardening commits keep the stricter reopen and closed-channel
-lifecycle rules confined to CLUSTER channels 12/13; established legacy-channel
-behavior is unchanged. Those commits have repository and ARM cross-build
-coverage but are not claimed as an additional Pi/Pixel bench pass. The
-pre-deploy binary and configuration remain
-recoverable under stamp `20260725-103337`; the installed and staged binary
-SHA-256 is
-`f2d3f6765f741014e25a43bd1a6475f382202b7586075e6af68dca60ad15dd03`.
+**Review gate:** Fable pass 1 reviewed
+`ba63f9faf9bed0455c875bd0f0c20273429e339a..8ecc514ef1e145bde4b2d6a108012314d369a9d7`
+and reported `BLOCKER=0`, `MAJOR=0`, `MINOR=3`. Adjudication totals are
+confirmed=3, dismissed=0, deferred=3. The confirmed minors are: possible
+warning/`unknownMessage` noise for audited AV IDs with no production consumer
+or repeated accepted-live occurrence; missing metric/imperial hardware
+comparison for the audited navigation distance-unit suffix map; and a
+diagnostic-only chance parse of opaque version-response trailing bytes. All
+three are nonblocking research under the accepted-tree rule and are recorded
+in `docs/engineering-backlog.md`. No remediation review or source churn was
+run.
 
-**Review gate:** Opus reviewed the design and plan before execution; their
-final amended forms passed. The Task 3 independent review found one important
-fixed-square contract issue and one minor coverage issue; both were fixed. Its
-first re-review exposed one conflicting all-six-property coverage requirement,
-which was fixed without weakening the square crop, and the second re-review
-approved the result. The repository Codex gate found one P2 in the Pi rollback
-runbook: trapped signals could restore and then resume deployment. It was
-confirmed and replaced with guarded EXIT cleanup covering SSH hangup and
-termination signals; zero findings were dismissed. The required whole-range
-rerun returned `LGTM — no issues found.` A later live verification command
-exposed Linux's 15-character `pgrep -x` comm-name limit; the runbook now checks
-systemd's MainPID and exact executable path instead.
+**Status:** COMPLETE. Accepted hardware code remains
+`d06fa40a2d9141f4a62155ce75e3bb3d2d2550f3`; the Pi remains on
+`ALPHA-26-07-24-01-97-gd06fa40`, executable SHA-256
+`4b73d69a40f7e5be4701f1775af53a11fa1d3a7863cb0ddb3d379afad0fded48`,
+GAL 4.3/native false. Task 7C is documentation-only, so it does not require a
+build, cross-build, deployment, or hardware rerun. ADB/logcat unavailability
+remains a documented evidence-source limitation, not an unresolved defect.
 
-The later whole-range Opus publication reviews ran with read-only repository
-tools and no turn or wall-clock limit. Across the latest passes, confirmed
-findings were addressed by separating live-bench claims from later hardening,
-validating live-doc links, confining new reopen and closed-channel rules to
-CLUSTER, adding event-driven sink recovery, rate-limiting only validated
-CLUSTER reopen warnings, and documenting/asserting the direct frame callback's
-thread contract. The request to treat an internal Messenger signal change as
-an out-of-tree compatibility break was dismissed: the library is an in-tree
-static target, all repository consumers were migrated, and the frozen
-community proto submodule remained untouched. The earlier request to replace
-fixed CLUSTER channel IDs with registration-time policy was also dismissed for
-this experiment: IDs 12/13 are the explicit frozen `ChannelId` contract and a
-generalized channel-policy API would expand the completed feature without
-changing its behavior. A final unbounded Opus rerun remains the publication
-gate.
+**Verification:** on the final Task 7C documentation tree,
+`python3 scripts/check-doc-links.py --scope tracked-live` reports no broken
+links, `git diff --check` passes, and the hands-off proto worktree remains clean
+at `cabe46ec9c5e1628264427aa77d910b1f574bb34`. Both archived artifacts carry
+the completed status, and no live document links point to their former
+`docs/plans/` paths.
 
-The final pre-publication pair then reported one Codex P2 and five Opus
-findings. Codex's sink-claim reentrancy issue was confirmed and fixed by
-installing destruction tracking before observer-visible state and returning
-failure if a synchronous observer releases the claim. Opus's blocker and its
-documentation consequence were confirmed and fixed by limiting control-typed
-close notifications to CLUSTER and locking legacy dispatch behavior in a
-regression test. Three Opus findings were dismissed: the exact accepted
-hardware range and later repository-only hardening are already disclosed; a
-geometry mismatch intentionally terminates the affected display generation as
-required by the completed fixed-geometry design; and the dormant private codec
-failure seam predates this feature, cannot be armed by production code, and
-its friend definitions live in separate test executables.
+**Next 1–3 steps:** (1) re-research the three deferred backlog leads only if
+fresh live evidence promotes them; (2) continue routine hardware regression
+coverage; (3) select a separately promoted roadmap item before starting new
+feature work. No current execution plan remains.
 
-The incremental reruns also confirmed and corrected the broken AA-reference
-table placement, missing compatibility diagnostics, and verification wording.
-The legacy all-channel close request remained dismissed because it would
-restore the shared lifecycle expansion the whole-range blocker required us to
-remove; the temporary compatibility waiver is one-shot warned and documented
-for separate protocol research.
+---
 
-The remaining review loop focused on hypothetical synchronous observers of
-`VideoDecoder::videoSinkChanged`. A repository-wide search found no production
-consumer that directly mutates the CLUSTER decoder sink: the cluster widget
-uses `ProjectedDisplaySession::attachVideoSink` and `detachVideoSink`. The MAIN
-display remains a separate exception that binds its own decoder sink directly
-and never calls this ownership API. Defensive changes for unsupported direct
-CLUSTER mutation repeatedly created new callback-order cases, so they and their
-fault-injection tests were removed. The retained code covers the supported
-public contract, including an observer that releases through `detachVideoSink`
-during the availability notification.
+## 2026-07-26 — GAL 4.3 final hardware evidence and Task 7A record
 
-The final bounded Codex and Opus reviews reported no supported production P1.
-Their duplicate phantom-claim findings, plus derivative diagnostics and test
-coverage findings, were dismissed because each requires unsupported direct
-mutation of the CLUSTER decoder during a synchronous ownership callback. Their
-shared finding that the ownership wording incorrectly included the MAIN
-display was confirmed and corrected. Opus also correctly identified stale
-verification wording below; the exact final production tree had already passed
-the required gates, so that record is corrected here. No behavior changed in
-this adjudication.
+**What changed:** current guidance now records the corrected modern descriptor
+contract: whenever GAL 4.3 creates field 11, field-1 display insets accompany it
+and mirror the unchanged legacy total margins. MAIN retains total margins
+0x58 and uses top/bottom 29, left/right 0 plus CLOCK; native-true CLUSTER
+retains totals 500x180 and uses left/right 250, top/bottom 90 plus enum 5.
+Fields 2–4 and 6–8 remain absent. GAL 1.7, Navbar-off, and native-false paths
+remain field-11-free. The resolved validation blocker was cleared, and the
+2026-07-25 handoffs were rotated verbatim.
+
+**Why:** direct operator evidence disproved the hidden-only field-11 premise.
+AA selects side versus bottom chrome from the usable aspect ratio. Candidate
+46c5be9 produced bottom chrome at y=489..599; d06fa40 companion insets restored
+side chrome and the exact 1.7 Navbar boundary at y=541..599. Field 1 accompanies
+the legacy margin fields; it does not replace them.
+
+**Status:** hardware validation is complete and the active plan is review
+pending. The full chain covers the Task 0 1.7 baseline, request-only
+`9501bbef239f86301536c7445e090a34f2c77203` 4.3 → 6.0/MATCH checkpoint,
+failing `46c5be998470188c1ef62ac048db5b831d0d753f` field-11 matrix, and the
+`d06fa40a2d9141f4a62155ce75e3bb3d2d2550f3` A/C/D/E remediation rerun.
+Task 0 used repository HEAD
+`ba63f9faf9bed0455c875bd0f0c20273429e339a` and deployed SHA-256
+`6a8a6573ba72b366b87234b5a6e692c61ba3df4b6c77f606dc6fa72abd637e6e`;
+request-only used `ALPHA-26-07-24-01-91-g9501bbe` / SHA-256
+`df2b6b475be4d9ddc99ba1e6e7773a279dcbb37351e7fcf412b3bb6e3d6071c1`;
+and the failing candidate used `ALPHA-26-07-24-01-95-g46c5be9` / SHA-256
+`9b6ed4e3d65c1dc8ed9d44819734cc80e39eaccb1f853ae24d2c75fa9e61081b`.
+CLUSTER false, true, and
+restored false retained identical 364x364 dashboard geometry; the phone
+maneuver banner was
+present, absent with enum 5, then present again with field 11 absent. The Pi is
+healthy on ALPHA-26-07-24-01-97-gd06fa40, executable SHA-256
+4b73d69a40f7e5be4701f1775af53a11fa1d3a7863cb0ddb3d379afad0fded48,
+GAL 4.3/native false, with unchanged config SHA-256
+afd7f1a8cdb1bd2e067563bf16361965a59b841ad767edd05fea9b5f024985a7.
+Rollback is `/var/backups/openauto-prodigy/20260726T185152Z-pre-companion-inset`.
+Evidence is retained beside the repository in
+`gal-4-3-captures-2026-07-26`,
+`gal-4-3-remediation-captures-2026-07-26`,
+`gal-final-matrix-captures-2026-07-26`, and
+`gal-companion-inset-remediation-captures-2026-07-26`. ADB/logcat was
+unavailable for the final rerun; that is an evidence-source limitation, not an
+unresolved defect.
+
+**Verification:** live evidence includes raw version exchange, descriptor
+goldens, service/channel/media/ACK and resource logs, direct MAIN screenshots,
+and direct CLUSTER false/true/restored-false screenshots. The exact
+post-bench documentation commit must pass the full native build, explicit
+openauto-prodigy target, offscreen CTest, ./cross-build.sh, tracked-live
+documentation link check, git diff --check, and clean proto-worktree check
+before the one bounded major review. Exact post-commit results and ARM identity
+are recorded in the Task 7A execution report.
+
+**Next 1–3 steps:** (1) run the single Codex-authored major review on the exact
+Task 7A head; (2) adjudicate within the two-pass limit and rerun only affected
+gates; (3) complete and archive the ACTIVE design/plan in Task 7C after no
+supported-production blocker remains.
+
+---
+
+## 2026-07-26 — Task 6 final GAL matrix blocked before deployment
+
+**What/why:** The final candidate `46c5be998470188c1ef62ac048db5b831d0d753f`
+was checked for the requested Pi/Pixel display matrix. Its local aarch64
+artifact is `ALPHA-26-07-24-01-95-g46c5be9`, SHA-256
+`9b6ed4e3d65c1dc8ed9d44819734cc80e39eaccb1f853ae24d2c75fa9e61081b`.
+
+**Status:** BLOCKED before deployment. `adb devices -l` returned an empty
+device list, so the required phone logcat/provider evidence and route-active /
+route-inactive screenshots for cases C–E cannot be collected. The task brief
+forbids inferring those results from descriptors or Pi logs. No Pi artifact,
+configuration, rollback snapshot, source, or earlier capture was changed.
+
+**Current safe state:** The Pi remains on the known-good checkpoint binary
+`df2b6b475be4d9ddc99ba1e6e7773a279dcbb37351e7fcf412b3bb6e3d6071c1`
+with config `afd7f1a8cdb1bd2e067563bf16361965a59b841ad767edd05fea9b5f024985a7`;
+`openauto-prodigy.service` is active/running with `MainPID=78782`,
+`NRestarts=0`, exact executable
+`/home/matt/openauto-prodigy/build/src/openauto-prodigy`, and startup GAL 1.7.
+The Task 6 report is in the plan workspace.
+
+**Verification:** `python3 scripts/check-doc-links.py --scope tracked-live`
+and `git diff --check` are required for this docs-only blocker record.
+
+**Next 1–3 steps:** (1) reconnect/authorize the Pixel in ADB; (2) rerun the
+full Task 6 A/C/D/E matrix with phone logcat, route transitions, and
+screenshots; (3) only then create the guarded candidate deployment snapshot.
+
+
+---
+
+## 2026-07-26 — GAL 4.3 display compatibility guidance and pre-bench candidate
+
+**What changed:** current AA rendering, settings, plugin-action, phone-debug,
+roadmap, and index guidance now records the GAL 1.7/4.3 policy, bounded
+version-response diagnostics, per-video field-11 scope, removed session bit
+16, and process-lifetime one-reconnect profile semantics. It also records the
+Task 0 deployed 1.7 → 1.7/MATCH baseline and the corrected request-only
+4.3 → 6.0/MATCH checkpoint, with requested 4.3 authoritative locally.
+
+**Why:** live guidance still carried the retired bit-16 lab control and some
+historical GAL 1.1 wording. The native-turn-card flag is now documented as an
+HU availability declaration only, not a content-selection or rendering claim.
+
+**Status:** the pre-bench documentation candidate
+`9c0b7ee38a871a94052d3ca4f6a3f9c795d4388e` completed its repository and ARM
+gate. Its ARM artifact was `ALPHA-26-07-24-01-94-g9c0b7ee`, SHA-256
+`9b4fc2d4e559e9c794d87a2287378d7e8930047d07409ede9915f102e5fd5107`.
+The active design/plan remain ACTIVE. The final hidden-UI/field-11 hardware
+matrix has not passed and no feature completion is claimed.
 
 **Verification:** the full native build, explicit `openauto-prodigy` target,
-`QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, `git diff --check`, and
-the frozen-proto boundary check passed. The tracked live-document link scope
-also passed; the repository-wide checker reported only the known external-tree
-references in the user-owned untracked wishlist baseline, which remained
-untouched. `./cross-build.sh` produced the deployed accepted aarch64
-application with compiled-in QML. The latest production review-fix delta and
-the final contract-bounded production tree were each cross-built successfully.
-Any future production change carries the same verification requirement.
-For the accepted bench,
-local, staged, and installed artifact hashes matched. The guarded config edit
-changed only `col_span` and `row_span`; the target 3×3 cells were
-collision-free. The service remained active with zero restarts and one
-systemd-owned executable. Live journal evidence recorded both CLUSTER channel
-opens, an exact 800×480 first decoded frame, Rendering state, and no geometry
-mismatch.
+and `QT_QPA_PLATFORM=offscreen ctest --output-on-failure` passed. The fast ARM
+`./cross-build.sh` application build passed; `python3
+scripts/check-doc-links.py --scope tracked-live` reported zero broken links;
+`git diff --check` passed; and the frozen proto worktree was clean at
+`cabe46ec9c5e1628264427aa77d910b1f574bb34`. A first report recorded the
+previous artifact hash from an earlier checkpoint; a later re-hash identified
+the artifact as rebuilt after that gate and corrected the candidate hash above.
 
-**Next 1-3 steps:** (1) publish and merge PR #40 after the bounded final review
-and CI are green; (2) verify the CLUSTER-only lifecycle changes during the next
-routine Pi/Pixel session; (3) choose and promote the next bounded item
-from the qualified wishlist rather than extending this completed experiment in
-place.
+**Next 1–3 steps:** (1) complete the pending field-11 hardware matrix; (2)
+retain requested 4.3 as the local policy input while evaluating its evidence;
+(3) do not mark the active work complete before that matrix passes.
+
+---
+
+## 2026-07-26 — GAL 4.3 compatible-response policy remediation
+
+**What changed:** corrected experimental GAL 4.3 version admission to require
+status MATCH plus a phone-reported numeric tuple greater than or equal to the
+requested 4.3 tuple. FSM coverage now locks reported 4.3 and 6.0 success and
+reported 4.2 failure before TLS. The policy flag now names minimum-compatible
+semantics throughout production and tests. Requested 4.3 remains authoritative
+for local feature policy; descriptors, ACK behavior, and response diagnostics
+are unchanged.
+
+**Why:** the live Pixel answered a 4.3 HU request with 6.0/MATCH, and pinned AA
+17.3 analysis shows downstream phone gates retain the HU request separately
+from the compatible reported version. Exact response equality therefore
+rejected a supported negotiation.
+
+**Status:** IMPLEMENTED and native-verified. No proto-submodule, descriptor,
+AdditionalVideoConfig, QML/action, cross-build, deployment, or hardware change
+is part of this remediation.
+
+**Verification:** the focused `test_session_config`, `test_session_fsm`, and
+`test_service_discovery_builder` build and CTest commands passed. The explicit
+`openauto-prodigy` target built successfully.
+`python3 scripts/check-doc-links.py --scope tracked-live` reported zero broken
+links, and `git diff --check` passed.
+
+**Next 1–3 steps:** (1) complete the bounded independent review; (2) cross-build
+and repeat the request-only GAL 4.3 Pi/Pixel checkpoint; (3) begin Task 3 only
+after that checkpoint is accepted.
+
+---
+
+## 2026-07-26 — Android Auto GAL 4.3 display compatibility planning
+
+**What changed:** promoted and documented the next protocol-critical phase in
+an ACTIVE design and implementation plan. The scope preserves GAL 1.7 as the
+default, pins only audited GAL 4.3 as the experimental upgrade, requires full
+version-response diagnostics, and stages a request-only live checkpoint before
+any modern descriptor field is enabled. The final feature boundary is limited
+to version-gated MAIN clock metadata and a lab-only CLUSTER native-turn-card
+declaration. The roadmap and documentation index now point to the active work.
+
+**Why:** current source requests GAL 1.7 while historical capture notes say
+1.1, and Android Auto 17.3 ignores per-video hidden-UI features below requested
+GAL 4.3. Higher versions would also cross unrelated ACK and service behavior,
+so 4.3 is the smallest useful compatibility target. The plan also treats the
+audited open-android-auto schema pin and Prodigy's stale manual AV IDs as
+prerequisites rather than hiding them inside the display experiment.
+
+**Status:** PLANNING COMPLETE; implementation and hardware validation have not
+started. The active artifacts are
+`docs/plans/2026-07-26-aa-gal-4-3-display-compatibility-design.md` and
+`docs/plans/2026-07-26-aa-gal-4-3-display-compatibility-plan.md`. Explicitly
+excluded are GAL 5.x/6.x, ackless media, vehicle energy forecast, AUXILIARY,
+third-display/generalized registry work, a native semantic turn-card widget,
+and edits inside the community proto submodule.
+
+**Verification:** `python3 scripts/check-doc-links.py --scope tracked-live`
+reported zero broken links and `git diff --check` passed. No application build,
+cross-build, Pi deployment, or live feature claim applies to this planning-only
+change.
+
+**Next 1–3 steps:** (1) approve the active design/plan for execution; (2)
+capture the deployed raw 1.7 request and complete response before changing the
+proto pin; (3) execute the schema compatibility and request-only 4.3 checkpoint
+before adding field-11 UI metadata.
 
 ---
 

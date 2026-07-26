@@ -21,6 +21,19 @@ Flickable {
         property bool aaConnected: typeof ProjectionStatus !== "undefined"
                                   && ProjectionStatus !== null
                                   && ProjectionStatus.projectionState === 3
+        property bool clusterAvailable: typeof AAClusterDisplay !== "undefined"
+                                      && AAClusterDisplay !== null
+                                      && AAClusterDisplay.state !== 0
+        property int clusterGeneration: clusterAvailable
+                                      ? AAClusterDisplay.profileGeneration : 0
+        property string clusterStatus: clusterAvailable
+                                     ? AAClusterDisplay.profileStatusText : ""
+        property string clusterRequestedGal: clusterAvailable
+                                             ? AAClusterDisplay.requestedGalVersion : ""
+        property int clusterActiveWidth: clusterAvailable
+                                       ? AAClusterDisplay.viewportContentWidth : 0
+        property int clusterActiveHeight: clusterAvailable
+                                        ? AAClusterDisplay.viewportContentHeight : 0
 
         SectionHeader { text: "Video Decoding" }
 
@@ -393,10 +406,227 @@ Flickable {
                 }
             }
         }
+
+        SectionHeader {
+            text: "Projected CLUSTER Lab"
+            visible: content.clusterAvailable
+        }
+
+        SettingsRow {
+            rowIndex: 0
+            visible: content.clusterAvailable
+            interactive: true
+            onClicked: root.showClusterLab = !root.showClusterLab
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: UiMetrics.marginRow
+                anchors.rightMargin: UiMetrics.marginRow
+                spacing: UiMetrics.gap
+
+                Text {
+                    text: "Runtime profile"
+                    font.pixelSize: UiMetrics.fontBody
+                    color: ThemeService.onSurface
+                    Layout.fillWidth: true
+                }
+
+                Text {
+                    text: "gen " + content.clusterGeneration
+                    font.pixelSize: UiMetrics.fontSmall
+                    color: ThemeService.onSurfaceVariant
+                }
+
+                MaterialIcon {
+                    icon: root.showClusterLab ? "\ue5ce" : "\ue5cf"
+                    size: UiMetrics.iconSmall
+                    color: ThemeService.onSurfaceVariant
+                }
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.leftMargin: UiMetrics.marginRow
+            Layout.rightMargin: UiMetrics.marginRow
+            spacing: UiMetrics.spacing
+            visible: content.clusterAvailable && root.showClusterLab
+
+            GridLayout {
+                Layout.fillWidth: true
+                columns: 4
+                columnSpacing: UiMetrics.gap
+                rowSpacing: UiMetrics.spacing
+
+                Text { text: "GAL"; color: ThemeService.onSurfaceVariant }
+                ComboBox {
+                    id: clusterGalVersion
+                    model: ["1.7", "4.3"]
+                    Layout.fillWidth: true
+                    onActivated: {
+                        if (currentText === "1.7")
+                            clusterNativeTurnCard.checked = false
+                    }
+                }
+                Item { Layout.fillWidth: true }
+                Item { Layout.fillWidth: true }
+
+                Text { text: "Resolution"; color: ThemeService.onSurfaceVariant }
+                ComboBox {
+                    id: clusterResolution
+                    model: ["480p", "720p"]
+                    Layout.fillWidth: true
+                }
+                Text { text: "DPI"; color: ThemeService.onSurfaceVariant }
+                SpinBox {
+                    id: clusterDpi
+                    from: 80
+                    to: 640
+                    editable: true
+                    Layout.fillWidth: true
+                }
+
+                Text { text: "Content W"; color: ThemeService.onSurfaceVariant }
+                SpinBox {
+                    id: clusterContentWidth
+                    from: 2
+                    to: clusterResolution.currentText === "720p" ? 1280 : 800
+                    stepSize: 2
+                    editable: true
+                    Layout.fillWidth: true
+                }
+                Text { text: "Content H"; color: ThemeService.onSurfaceVariant }
+                SpinBox {
+                    id: clusterContentHeight
+                    from: 2
+                    to: clusterResolution.currentText === "720p" ? 720 : 480
+                    stepSize: 2
+                    editable: true
+                    Layout.fillWidth: true
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                ColumnLayout {
+                    spacing: 0
+                    Layout.fillWidth: true
+
+                    Text {
+                        text: "Advertise native HU turn card (lab)"
+                        font.pixelSize: UiMetrics.fontBody
+                        color: ThemeService.onSurface
+                    }
+                    Text {
+                        text: "GAL 4.3 only"
+                        font.pixelSize: UiMetrics.fontSmall
+                        color: ThemeService.onSurfaceVariant
+                    }
+                }
+                Switch {
+                    id: clusterNativeTurnCard
+                    enabled: clusterGalVersion.currentText === "4.3"
+                    opacity: enabled ? 1.0 : 0.4
+                    Material.accent: ThemeService.primaryContainer
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: UiMetrics.spacing
+
+                ElevatedButton {
+                    Layout.fillWidth: true
+                    text: "300 Square"
+                    onClicked: {
+                        clusterResolution.currentIndex = 0
+                        clusterDpi.value = 140
+                        clusterContentWidth.value = 300
+                        clusterContentHeight.value = 300
+                        clusterNativeTurnCard.checked = false
+                        root.applyClusterProfile()
+                    }
+                }
+                ElevatedButton {
+                    Layout.fillWidth: true
+                    text: "Full Frame"
+                    onClicked: {
+                        clusterContentWidth.value = clusterResolution.currentText === "720p" ? 1280 : 800
+                        clusterContentHeight.value = clusterResolution.currentText === "720p" ? 720 : 480
+                        root.applyClusterProfile()
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: UiMetrics.spacing
+
+                ElevatedButton {
+                    Layout.fillWidth: true
+                    text: "Apply + Reconnect AA"
+                    onClicked: root.applyClusterProfile()
+                }
+                ElevatedButton {
+                    Layout.fillWidth: true
+                    text: "Reset"
+                    onClicked: ActionRegistry.dispatch("aa.cluster.resetProfile")
+                }
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: "requested GAL " + content.clusterRequestedGal
+                      + " · gen " + content.clusterGeneration
+                      + " · active crop "
+                      + content.clusterActiveWidth + "×"
+                      + content.clusterActiveHeight
+                      + " · " + content.clusterStatus
+                wrapMode: Text.Wrap
+                font.pixelSize: UiMetrics.fontSmall
+                color: ThemeService.onSurfaceVariant
+            }
+        }
     }
 
     // Property for accordion toggle (accessible from the SettingsRow)
     property bool showTestButtons: false
+    property bool showClusterLab: false
+
+    function applyClusterProfile() {
+        ActionRegistry.dispatch("aa.cluster.applyProfile", {
+            "gal_version": clusterGalVersion.currentText,
+            "resolution": clusterResolution.currentText,
+            "dpi": clusterDpi.value,
+            "content_width": clusterContentWidth.value,
+            "content_height": clusterContentHeight.value,
+            "native_turn_card_available":
+                clusterGalVersion.currentText === "4.3"
+                && clusterNativeTurnCard.checked
+        })
+    }
+
+    function syncClusterProfileControls() {
+        if (!content.clusterAvailable)
+            return
+        clusterResolution.currentIndex =
+            AAClusterDisplay.requestedResolution === "720p" ? 1 : 0
+        clusterGalVersion.currentIndex =
+            AAClusterDisplay.requestedGalVersion === "4.3" ? 1 : 0
+        clusterDpi.value = AAClusterDisplay.requestedDpi
+        clusterContentWidth.value = AAClusterDisplay.requestedContentWidth
+        clusterContentHeight.value = AAClusterDisplay.requestedContentHeight
+        clusterNativeTurnCard.checked =
+            AAClusterDisplay.requestedNativeTurnCardAvailable
+    }
+
+    Connections {
+        target: content.clusterAvailable ? AAClusterDisplay : null
+        function onProfileDiagnosticsChanged() {
+            root.syncClusterProfileControls()
+        }
+    }
 
     // --- Decoder picker dialog ---
     Dialog {
@@ -552,6 +782,7 @@ Flickable {
 
     // --- Load saved config into model on startup ---
     Component.onCompleted: {
+        syncClusterProfileControls()
         if (typeof CodecCapabilityModel === "undefined") return
 
         // Load enabled codecs from config

@@ -73,7 +73,8 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
                       oaa::ChannelId::ClusterInput,
                       clusterConfig.enabled,
                       clusterConfig.setupFocus,
-                      yamlConfig)
+                      yamlConfig,
+                      clusterConfig.profile)
 {
     // Wire TouchHandler to InputChannelHandler
     touchHandler_.setHandler(mainDisplay_.inputHandler());
@@ -109,6 +110,19 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
             this, [this](const auto&, qint64) {
                 lastProjectedActivityWasCluster_ = true;
             }, Qt::DirectConnection);
+    connect(&clusterDisplay_,
+            &ProjectedDisplaySession::clusterProfileChangeRequested,
+            this, [this]() {
+                projectedClusterConfig_.profile =
+                    clusterDisplay_.requestedClusterProfile();
+                qCInfo(lcAA).noquote()
+                    << "CLUSTER profile staged generation="
+                    << clusterDisplay_.profileGeneration()
+                    << "gal="
+                    << projectedClusterConfig_.profile.galVersion.toString();
+                if (isAaConnected())
+                    disconnectAndRetrigger();
+            });
 
     // AVInput requests are handled synchronously on this Qt owner thread so an
     // immediate PipeWire failure can be reported honestly before the response.
@@ -373,6 +387,11 @@ void AndroidAutoOrchestrator::onNewConnection()
         }
     }
 
+    // Switch the crop/decoder snapshot only after the previous session is gone
+    // and immediately before building the matching descriptor.
+    if (projectedClusterConfig_.enabled)
+        clusterDisplay_.activateRequestedClusterProfile();
+
     ServiceDiscoveryBuilder builder(yamlConfig_, btMac,
                                      yamlConfig_ ? yamlConfig_->wifiSsid() : QString(),
                                      yamlConfig_ ? yamlConfig_->wifiPassword() : QString(),
@@ -394,7 +413,10 @@ void AndroidAutoOrchestrator::onNewConnection()
 
     qCInfo(lcAA) << "Projected display descriptor:"
                  << "role=MAIN display=0 video_ch=3 input_ch=1 configs="
-                 << builder.videoConfigCount(ProjectedDisplayRole::Main);
+                 << builder.videoConfigCount(ProjectedDisplayRole::Main)
+                 << "profile_generation=" << clusterDisplay_.profileGeneration()
+                 << "requested_gal="
+                 << projectedClusterConfig_.profile.galVersion.toString();
     if (projectedClusterConfig_.enabled) {
         qCInfo(lcAA) << "Projected display descriptor:"
                      << "role=CLUSTER display=1 video_ch=12 input_ch=13 configs="

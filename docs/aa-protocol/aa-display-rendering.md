@@ -78,22 +78,151 @@ bars and fills that viewport. There is no separate fit-mode branch.
 The optional debug overlay maps `TouchHandler`'s content-space coordinates
 back over the rendered viewport. It is diagnostic only and defaults off.
 
-### Experimental CLUSTER square viewport
+### Experimental runtime CLUSTER viewport
 
 When the default-off projected CLUSTER experiment is enabled, its independent
-display keeps the protocol-backed 800×480 H.264 carrier at 30 fps and 140 DPI.
-The CLUSTER video configuration declares total margins of 500 horizontal and
-180 vertical pixels, asking the phone to render a centered 300×300 content
-rectangle at source offset (250, 90). Its paired input descriptor remains
-capability-empty; the widget does not accept touch or other projected input.
+display starts with the accepted 800×480 H.264 carrier at 30 fps and 140 DPI.
+The baseline CLUSTER video configuration declares total margins of 500
+horizontal and 180 vertical pixels, asking the phone to render a centered
+300×300 content rectangle at source offset (250, 90). Its paired input
+descriptor remains capability-empty; the widget does not accept touch or other
+projected input.
+
+Debug Settings provides a runtime CLUSTER lab while the experiment is enabled.
+It can stage 480p or 720p, DPI 80–640, any positive centered content rectangle
+that fits the carrier with even total margins, a bounded requested GAL choice
+(`1.7` or `4.3`), and the 4.3-only `native_turn_card_available` declaration.
+One accepted complete profile updates one typed snapshot and, only when it is a
+real change while projection is active, gracefully reconnects the Android Auto
+session. The replacement discovery descriptor, decoded-frame validation, and
+QML crop activate from that same generation immediately before the new session
+starts. Invalid and unchanged profiles do not reconnect. No YAML edit, Prodigy
+restart, or `ServiceDiscoveryUpdate` is involved; overrides last only for the
+current application process and reset returns to its startup profile.
+
+The same path is available to local integrations as
+`aa.cluster.applyProfile` with a complete map payload (`resolution`, `dpi`,
+`content_width`, `content_height`, `gal_version`, and
+`native_turn_card_available`) and `aa.cluster.resetProfile`. External API v1
+can dispatch those registered actions with `payload_json`; dispatch confirms
+that the handler ran, while the provider diagnostics describe profile
+acceptance. `native_turn_card_available` is an honest HU declaration only: it
+says that the CLUSTER descriptor can host the native turn-card UI element. It
+does not render a turn card, select phone content, or promise that the phone
+will use the declaration.
+
+### GAL and per-video UI policy
+
+The requested tuple, not the phone-reported compatible tuple, is the sole
+local input to descriptor and UI-feature policy:
+
+| Requested GAL | Version-response admission | Session clock | `VideoConfig` field 11 |
+|---|---|---|---|
+| 1.7 (default) | Raw status `MATCH` is sufficient; the reported tuple is legacy status-only. | Existing navbar clock bit is set only when the Navbar clock is enabled. | Absent from every MAIN and CLUSTER configuration. Native-turn-card true is rejected. |
+| 4.3 (lab) | Raw status `MATCH` plus a numerically equal-or-higher reported tuple. | The session bit is clear. | Each selectable MAIN codec configuration gets field-1 companion insets plus one `UI_ELEMENT_CLOCK` only when the Navbar clock is enabled. The CLUSTER configuration gets field-1 companion insets plus one `UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE` only when `native_turn_card_available` is true. |
+
+The removed session-configuration value 16 is never emitted. Field 11 is
+limited to those two hidden-UI declarations and their required field-1
+`display_insets`. Whenever field 11 is created, field 1 mirrors rather than
+replaces the unchanged legacy total margins: left is
+`floor(margin_width / 2)`, right gets the remainder, and top/bottom split
+`margin_height` the same way. All four edges are explicit. The live 480p MAIN
+descriptor therefore keeps total margins `0x58` and carries top/bottom 29,
+left/right 0, plus CLOCK. Native-true CLUSTER keeps totals 500x180 and carries
+left/right 250, top/bottom 90, plus enum 5. Fields 2–4 and 6–8 remain absent.
+GAL 1.7, Navbar-off, and native-false CLUSTER paths remain field-11-free; no
+inset-only submessage is created. This policy does not alter display roles,
+select a turn-card service, or change the established video, input, audio,
+ACK, focus, or touch contracts.
+
+Version diagnostics retain the complete fixed response prefix: reported major,
+minor, raw 16-bit status, and every byte after that six-byte prefix. A short
+prefix is reported as malformed and fails before TLS without fabricated values.
+For a parseable prefix, logs include requested/reported tuples, raw status,
+trailing length, a bounded parsed configuration summary when applicable, and a
+bounded opaque-byte prefix; trailing bytes are non-fatal.
+
+Task 0's deployed Pi/Pixel baseline captured request `1.7`, response
+`1.7/MATCH`, no trailing bytes, and healthy simultaneous MAIN+CLUSTER media.
+The corrected request-only checkpoint at `9501bbef` then captured requested
+`4.3` with the same Pixel reporting `6.0/MATCH`; that compatible response
+proceeded through the established projection path before any modern descriptor
+output, while requested `4.3` remained authoritative locally.
+
+The first complete field-11 candidate, `46c5be9`, exposed the disproven
+hidden-only assumption. AA chooses side versus bottom phone chrome from the
+usable aspect ratio. With field 11 but no companion insets, the capture had
+bottom chrome at y=489..599 and no left phone chrome. Remediation `d06fa40`
+kept the legacy margins and copied them into field 1 whenever field 11 existed.
+Fresh 1.7 and 4.3/native-false captures then matched exactly: side phone chrome
+was present and the Prodigy Navbar occupied y=541..599. Native true retained
+the same corrected MAIN composition. Field 1 accompanies the legacy margin
+fields; it does not replace them.
+
+The independent dashboard closure directly observed the CLUSTER surface. The
+false, true, and restored-false runs each decoded the 800x480 carrier and
+rendered the centered 300x300 content window into the identical 364x364 crop
+at x=23..386/y=27..390. Native false showed the phone-rendered maneuver banner;
+native true omitted it with enum 5 present; restored false brought it back with
+field 11 absent. Normal CLUSTER ACK cadence continued throughout.
+
+The final Pi state is service healthy on
+`ALPHA-26-07-24-01-97-gd06fa40`, source
+`d06fa40a2d9141f4a62155ce75e3bb3d2d2550f3`, executable SHA-256
+`4b73d69a40f7e5be4701f1775af53a11fa1d3a7863cb0ddb3d379afad0fded48`,
+GAL 4.3/native false. Configuration remained unchanged at SHA-256
+`afd7f1a8cdb1bd2e067563bf16361965a59b841ad767edd05fea9b5f024985a7`;
+rollback is
+`/var/backups/openauto-prodigy/20260726T185152Z-pre-companion-inset`.
+Evidence is retained outside tracked source in
+`gal-4-3-captures-2026-07-26`,
+`gal-4-3-remediation-captures-2026-07-26`,
+`gal-final-matrix-captures-2026-07-26`,
+and `gal-companion-inset-remediation-captures-2026-07-26` beside the repository.
+The Pi had no ADB/logcat source for the final rerun. That is an explicit
+evidence limitation, not an unresolved display defect; the result rests on raw
+version capture, exact descriptor goldens, Pi lifecycle/ACK/resource evidence,
+and direct MAIN and CLUSTER screenshots.
 
 The fixed 3×3 dashboard widget uses one `VideoOutput` inside a centered clipped
-square. It uniformly scales and offsets the full decoded carrier so only the
-known 300×300 source rectangle is visible. This is ordinary texture geometry:
+viewport sized to the active content aspect (a square for the 300×300
+baseline). It uniformly scales and offsets the full decoded carrier so only
+the active content rectangle is visible. This is ordinary texture geometry:
 there is no second decoder, CPU frame crop, shader, enhancement, stretch, or
 nonstandard encoded resolution. The path does not change MAIN projection's
-`PreserveAspectCrop` behavior, generalize multi-display configuration, or add
-a public setting.
+`PreserveAspectCrop` behavior or generalize display type/configuration beyond
+the single experimental CLUSTER.
+
+Geometry and DPI are experimental layout inputs, not a claimed map-versus-turn
+card selector. A 2026-07-25 Pixel 8/Android Auto 17.3 live matrix exercised the
+baseline, turn-data bit, 480p/720p carriers, full-frame/square geometry, and
+80/140/280 DPI under three phone states: active Maps route, no route, and no
+route with YouTube Music actively playing. All 24 captures remained Google
+Maps. Active navigation added the route UI; stopping navigation removed it;
+media playback never replaced the map. The turn-data bit did not produce a
+visible mode change. Resolution, geometry, and DPI changed framing or scale as
+advertised. This hardware result agrees with the static finding that phone
+policy selects CLUSTER content and runtime message 26 cannot add or replace
+AV/CLUSTER services.
+
+The follow-up AUXILIARY role-swap produced a different, deterministic result.
+AA 17.3 accepted MAIN ID 0 plus AUXILIARY ID 1 on the existing channel 12/13
+pair. With AV field 8 omitted (`KEYCODE_UNKNOWN`), the phone opened and started
+the stream but sent only the codec header and no decodable frame. Advertising
+`KEYCODE_TURN_CARD` (65544) kept the stream idle without a route, including
+while YouTube Music played, then produced a compact maneuver card as soon as a
+Maps route became active. Media never replaced or populated the AUXILIARY
+surface. The session-bit-16 A/B made no content change, matching the corrected
+17.3 trace.
+
+Maps 26.30.05 publishes separate CLUSTER and AUXILIARY projection services.
+Its decompiled routing path identifies AV field 8 as the AUXILIARY initial
+content selector: `KEYCODE_NAVIGATION` (65538) selects a limited navigation
+map and `KEYCODE_TURN_CARD` selects a turn-card service/fallback. The local
+hands-off protocol enum lacks `KEYCODE_NAVIGATION`, and the available Maps
+report traces this selector through AA 16.2/16.4 rather than 17.3. The current
+17.3 confirmation and enum/provenance update are tracked upstream in
+open-android-auto issue #14; Prodigy has not patched the submodule locally.
 
 ## Evdev mapping
 
@@ -154,6 +283,8 @@ without building shell-specific hit testing into the AA touch reader.
 - Resolution, codec configs, video margins, and `touch_screen_config` are fixed
   by the current service-discovery response for the lifetime of a session.
 - `video.resolution` and `video.fps` changes force an active-session reconnect.
+- Runtime CLUSTER profile changes use that same reconnect boundary but do not
+  restart Prodigy or persist to YAML.
 - Navbar edge/visibility changes are not a live AA viewport feature today; the
   settings surface treats visibility as restart-required.
 - Wire ID `0x8012` currently carries the HU's response to phone-supplied theming
@@ -176,4 +307,5 @@ without building shell-specific hit testing into the AA touch reader.
 | `qml/components/Shell.qml` | Navbar-aware plugin viewport |
 | `qml/components/Navbar.qml` | Navbar visibility, edge layout, and popup geometry reporting |
 | `qml/applications/android_auto/` | Projection surface, crop fill mode, and debug overlay |
-| `qml/widgets/AAClusterWidget.qml` | Single-output centered square CLUSTER crop and upsize geometry |
+| `qml/applications/settings/DebugSettings.qml` | Runtime CLUSTER profile controls and diagnostics |
+| `qml/widgets/AAClusterWidget.qml` | Single-output centered CLUSTER crop and upsize geometry |

@@ -30,7 +30,9 @@ public:
     void sendVoiceSessionRequest(int sessionType);
 
 signals:
-    void versionReceived(uint16_t major, uint16_t minor, bool match);
+    void versionReceived(uint16_t major, uint16_t minor, uint16_t rawStatus,
+                         const QByteArray& trailingBytes);
+    void versionResponseMalformed(int payloadSize);
     void sslHandshakeData(const QByteArray& data);
     void serviceDiscoveryRequested(const QByteArray& payload);
     void channelOpenRequested(int32_t channelId, const QByteArray& payload);

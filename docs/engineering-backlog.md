@@ -101,6 +101,55 @@ limits, and a verification command before implementation.
 
 ## Android Auto, Calls, and Core Lifecycle
 
+- **Runtime CLUSTER action validation is not observable over External API** —
+  Evidence: **CODE-CONFIRMED 2026-07-25**. ActionRegistry reports whether an
+  action ID was dispatched, while the CLUSTER controller's accepted/rejected
+  result is available only through its QML diagnostics and application log.
+  Candidate deliverable: if the experimental lab becomes a supported remote
+  surface, add an additive profile/result publisher or an action-result
+  contract without weakening the frozen External API rails.
+
+- **Audited AV message IDs may still produce diagnostic warning noise** —
+  Evidence: **REVIEW-CONFIRMED 2026-07-26; RE-RESEARCH REQUIRED**. The audited
+  ID remap leaves `AUDIO_UNDERFLOW` (`0x800B`), `MEDIA_STATS` (`0x8013`),
+  `OVERLAY_START`/`OVERLAY_STOP` (`0x800E`/`0x800F`), and possibly `0x8009`
+  outside debug-classified handler branches. A received message can therefore
+  reach warning/`unknownMessage` diagnostics, but no production consumer exists
+  and the accepted live GAL evidence showed no repeated occurrence. Re-check
+  current live journals before proposing any rate-limit or classification
+  change; do not infer a protocol failure from reachability alone.
+
+- **Navigation distance-unit suffixes need metric/imperial hardware
+  comparison** — Evidence: **REVIEW-CONFIRMED 2026-07-26; HARDWARE
+  REVALIDATION REQUIRED**. `NavigationDataBridge` maps the audited AA 17.3
+  `DistanceDisplayUnit` values: 2/3 to km, 4/5 to mi, 6 to ft, and 7 to yd. The
+  final GAL hardware matrix did not compare rendered suffixes with Maps under
+  imperial and metric phone configurations. A bounded hardware comparison is
+  required before changing the audited mapping; there is no evidence that the
+  current map is wrong.
+
+- **Successful parsing of opaque version-response trailing bytes can mislead
+  diagnostics** — Evidence: **REVIEW-CONFIRMED 2026-07-26; RE-RESEARCH
+  REQUIRED**. Opaque trailing bytes can protobuf-parse by chance and produce a
+  plausible control-configuration summary. This path is bounded and diagnostic
+  only; it never feeds `SessionConfig` or local feature policy. Re-research
+  whether successful-parse logs should also retain the bounded raw prefix so an
+  operator can distinguish a real wrapper from an accidental parse.
+
+- **AUXILIARY/NAVIGATION selector needs AA 17.3 provenance and an upstream enum
+  update** — Evidence: **AUXILIARY/TURN_CARD LIVE-CONFIRMED; MAPS 26.30.05
+  STATIC TRACE; AA 17.3 NAVIGATION PATH PENDING**. A Pixel 8 accepted a
+  MAIN+AUXILIARY role swap on the existing display/channel topology.
+  AUXILIARY/UNKNOWN produced no decodable content; AUXILIARY/TURN_CARD was idle
+  without navigation and rendered a compact maneuver card during an active
+  route. YouTube Music never populated or replaced the auxiliary surface. Maps
+  26.30.05 and AA 16.2/16.4 traces identify AV field 8 values 65538 and 65544 as
+  connection-time NAVIGATION and TURN_CARD selectors, respectively, but the
+  hands-off protocol enum omits `KEYCODE_NAVIGATION = 65538`. Candidate
+  deliverable: resolve open-android-auto issue #14's AA 17.3 consumer trace and
+  enum/provenance update, then run a bounded AUXILIARY/NAVIGATION capture before
+  designing any runtime role/content selector or simultaneous third display.
+
 - **AA EventBus connections accumulate across sessions** — Evidence:
   **CODE-CONFIRMED 2026-07-24**. Navigation and media-status value-member
   handlers are connected during each new session but omitted from teardown's
@@ -205,6 +254,15 @@ limits, and a verification command before implementation.
   pins plus a documented/regression-checked regeneration procedure.
 
 ## Release Engineering and Documentation
+
+- **Fable review-gate invocation needs a reproducible readiness/progress
+  check** — Evidence: **LOCAL TOOLING OBSERVATION 2026-07-25**. Two Fable
+  launches created the pinned prompt/diff and a live companion/Claude process
+  but no raw output or completion signal during polling; the user authorized
+  an Opus fallback, which completed the same immutable review range. Candidate
+  deliverable: distinguish slow healthy execution from model/runtime failure,
+  expose job progress without direct process inspection, and verify the
+  `claude-fable-5` invocation used by `review-gate.sh`.
 
 - **Prebuilt installs do not own the wait-online boot policy** — Evidence:
   **INSTALLER GAP CONFIRMED 2026-07-24; FRESH-IMAGE VALIDATION REQUIRED**. The

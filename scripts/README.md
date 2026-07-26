@@ -1,7 +1,11 @@
 # scripts/
 
-Development helper scripts. All are safe to run — none mutate the repo or remote state.
+Development helper scripts. None mutate tracked files or remote state unless
+their description explicitly says so. Review artifacts and state are written
+only under gitignored `reviews/`.
 
-- **`codex-review.sh`** — pre-push Codex review gate (see AGENTS.md § Review gate). Reviews `@{upstream}..HEAD` in a read-only sandbox; pass an explicit base ref to override the range (`bash scripts/codex-review.sh <base-ref>`). Findings land as structured P1/P2/P3 verdicts in `reviews/` (gitignored). Exit codes: `0` ok/empty findings, `1` usage error, `2` codex CLI not installed, `4` codex run failed.
+- **`review-gate.sh`** — author-aware pre-push review gate (see AGENTS.md § One bounded review gate). It routes Codex work to Opus (Fable for `--major`) and Claude work to Codex, captures immutable SHAs, pins `high` effort, and enforces one initial plus one remediation pass. Reviews have no wall-clock autokill. State and structured verdicts land in `reviews/`. A changed base requires an explicit user-authorized reset. Exit codes distinguish usage, missing runtimes, reviewer failure, pass-limit refusal, duplicate HEAD, changed history/base, and tracked dirty state. Runtime dependency: `jq`; the test additionally requires `git`, `bash`, and standard POSIX text tools.
+- **`codex-review.sh`** — legacy entry point for the same stateful gate. It consumes the feature's single review/remediation budget; it is not an extra stateless second opinion. New workflows should use `review-gate.sh --author ...` so reviewer independence is preserved. The former uncommitted-diff fallback is intentionally removed because only committed immutable ranges are reviewable.
+- **`tests/test_review_gate.sh`** — standalone isolated fake-reviewer test for routing, immutable ranges, dirty-tree and duplicate rejection, deliberate feature reset, pass-two delta scope, and hard pass-three refusal. It is intentionally outside application CTest because it validates host agent tooling rather than the application build.
 - **`validate-resolutions.sh`** — launches the app at target resolutions for visual testing. Interactive Xvfb+VNC per resolution by default; `--screenshot` for automated captures; `--native` for a local display; `-r WxH` for a single resolution. Xvfb modes refuse an occupied `:99` display without signaling its owner; cleanup is limited to children launched by the current invocation.
-- **`check-doc-links.py`** — verifies relative markdown links in live docs resolve (archive dirs exempt). Run from anywhere: `python3 scripts/check-doc-links.py`; exits non-zero on broken links.
+- **`check-doc-links.py`** — verifies relative markdown links in live docs resolve (archive dirs exempt). Run from anywhere: `python3 scripts/check-doc-links.py`; add `--scope tracked-live` to exclude untracked user files. Exits non-zero on broken links or invalid arguments.

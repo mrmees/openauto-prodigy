@@ -160,6 +160,29 @@ private slots:
         QCOMPARE(spy[0][2].toString(), QString("123 Elm Street")); // destination
     }
 
+    void testAuditedCurrentPositionDistanceUsesFieldOne() {
+        oaa::hu::NavigationChannelHandler handler;
+        QSignalSpy spy(
+            &handler,
+            &oaa::hu::NavigationChannelHandler::navigationDistanceChanged);
+
+        oaa::proto::messages::NavigationNextTurnDistanceEvent message;
+        auto* distance = message.mutable_step_distance()->mutable_distance();
+        distance->set_display_text("0.3");
+        distance->set_distance_unit(
+            oaa::proto::messages::DISTANCE_UNIT_MILES_P1);
+
+        QByteArray payload(message.ByteSizeLong(), '\0');
+        QVERIFY(message.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(0x8007, payload);
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy[0][0].toString(), QStringLiteral("0.3"));
+        QCOMPARE(spy[0][1].toInt(),
+                 static_cast<int>(
+                     oaa::proto::messages::DISTANCE_UNIT_MILES_P1));
+    }
+
     // testFocusIndicationEmitsSignal / testFocusIndicationUpdatesState removed —
     // NavigationFocusIndication proto retracted in v1.1 (nav focus is on Control channel)
 };

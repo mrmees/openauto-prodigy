@@ -265,7 +265,7 @@ private slots:
         QByteArray payload(request.ByteSizeLong(), '\0');
         request.SerializeToArray(payload.data(), payload.size());
 
-        handler.onMessage(oaa::AVMessageId::OVERLAY_SESSION_UPDATE, payload);
+        handler.onMessage(0x8011, payload);
 
         // Verify uiConfigTokensReceived emitted once
         QCOMPARE(tokenSpy.count(), 1);
@@ -283,8 +283,7 @@ private slots:
 
         // Verify ACCEPTED response (0x8012) sent
         QCOMPARE(sendSpy.count(), 1);
-        QCOMPARE(sendSpy[0][1].value<uint16_t>(),
-                 static_cast<uint16_t>(oaa::AVMessageId::UPDATE_HU_UI_CONFIG_REQUEST));
+        QCOMPARE(sendSpy[0][1].value<uint16_t>(), uint16_t{0x8012});
 
         // Parse the response payload to verify ACCEPTED status
         QByteArray respPayload = sendSpy[0][2].toByteArray();
@@ -308,7 +307,7 @@ private slots:
         QByteArray payload(request.ByteSizeLong(), '\0');
         request.SerializeToArray(payload.data(), payload.size());
 
-        handler.onMessage(oaa::AVMessageId::OVERLAY_SESSION_UPDATE, payload);
+        handler.onMessage(0x8011, payload);
 
         // Should still emit with empty maps (no crash)
         QCOMPARE(tokenSpy.count(), 1);
@@ -320,6 +319,24 @@ private slots:
 
         // Should still send ACCEPTED response
         QCOMPARE(sendSpy.count(), 1);
+    }
+
+    void testAuditedModernRawIdsAreExplicitlyClassified() {
+        oaa::hu::VideoChannelHandler handler;
+        QSignalSpy unknownSpy(&handler,
+                              &oaa::hu::VideoChannelHandler::unknownMessage);
+
+        const QByteArray opaque("\x08\x01", 2);
+        for (const uint16_t id : {uint16_t{0x800A}, uint16_t{0x800C},
+                                  uint16_t{0x800D}, uint16_t{0x8014},
+                                  uint16_t{0x8015}}) {
+            handler.onMessage(id, opaque);
+        }
+        QCOMPARE(unknownSpy.count(), 0);
+
+        handler.onMessage(0x8010, opaque);
+        QCOMPARE(unknownSpy.count(), 1);
+        QCOMPARE(unknownSpy[0][0].value<uint16_t>(), uint16_t{0x8010});
     }
 };
 

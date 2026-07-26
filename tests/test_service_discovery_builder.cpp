@@ -9,6 +9,7 @@
 #include "oaa/input/InputChannelData.pb.h"
 #include "oaa/input/TouchConfigData.pb.h"
 #include "oaa/video/AdditionalVideoConfigData.pb.h"
+#include "oaa/video/VideoConfigData.pb.h"
 #include "oaa/video/DisplayTypeEnum.pb.h"
 #include "oaa/video/VideoFPSEnum.pb.h"
 #include "oaa/video/VideoResolutionEnum.pb.h"
@@ -45,6 +46,39 @@ QList<uint8_t> channelIds(const oaa::SessionConfig& config)
     for (const auto& channel : config.channels)
         ids.append(channel.channelId);
     return ids;
+}
+
+void verifyCompanionInsets(
+    const oaa::proto::data::AdditionalVideoConfig& additional,
+    uint32_t marginWidth,
+    uint32_t marginHeight)
+{
+    QVERIFY(additional.has_display_insets());
+    const auto& insets = additional.display_insets();
+    QVERIFY(insets.has_top());
+    QVERIFY(insets.has_bottom());
+    QVERIFY(insets.has_left());
+    QVERIFY(insets.has_right());
+    QCOMPARE(insets.left(), marginWidth / 2);
+    QCOMPARE(insets.right(), marginWidth - marginWidth / 2);
+    QCOMPARE(insets.top(), marginHeight / 2);
+    QCOMPARE(insets.bottom(), marginHeight - marginHeight / 2);
+    QCOMPARE(insets.left() + insets.right(), marginWidth);
+    QCOMPARE(insets.top() + insets.bottom(), marginHeight);
+    QVERIFY(!additional.has_field_2_insets());
+    QVERIFY(!additional.has_field_3_insets());
+    QVERIFY(!additional.has_ui_theme());
+    QCOMPARE(additional.resize_actions_size(), 0);
+    QCOMPARE(additional.margin_configs_size(), 0);
+    QVERIFY(!additional.has_blended_ui_config());
+}
+
+QByteArray baseVideoConfigBytes(const oaa::proto::data::VideoConfig& source)
+{
+    oaa::proto::data::VideoConfig base = source;
+    base.clear_additional_config();
+    const std::string serialized = base.SerializeAsString();
+    return QByteArray(serialized.data(), static_cast<qsizetype>(serialized.size()));
 }
 
 } // namespace
@@ -106,6 +140,34 @@ private slots:
         // (AASession.cpp set_sw_build/set_sw_version) — the phone logs them.
         QCOMPARE(config.swBuild, QString::fromLatin1(OAP_VERSION));
         QCOMPARE(config.swVersion, QString::fromLatin1(OAP_VERSION));
+        QCOMPARE(config.protocolMajor, uint16_t{1});
+        QCOMPARE(config.protocolMinor, uint16_t{7});
+        QVERIFY(!config.requireMinimumCompatibleProtocolVersion);
+    }
+
+    void galSelectionChangesOnlySessionVersionPolicy() {
+        oap::aa::ProjectedClusterConfig legacyCluster;
+        legacyCluster.enabled = true;
+
+        oap::aa::ServiceDiscoveryBuilder legacyBuilder;
+        legacyBuilder.setProjectedClusterConfig(legacyCluster);
+        const auto legacy = legacyBuilder.build();
+
+        auto modernCluster = legacyCluster;
+        modernCluster.profile.galVersion = oap::aa::kGalVersion4_3;
+        oap::aa::ServiceDiscoveryBuilder modernBuilder;
+        modernBuilder.setProjectedClusterConfig(modernCluster);
+        const auto modern = modernBuilder.build();
+
+        QCOMPARE(modern.protocolMajor, uint16_t{4});
+        QCOMPARE(modern.protocolMinor, uint16_t{3});
+        QVERIFY(modern.requireMinimumCompatibleProtocolVersion);
+        QCOMPARE(modern.sessionConfiguration, legacy.sessionConfiguration);
+        QCOMPARE(modern.channels.size(), legacy.channels.size());
+        for (int i = 0; i < legacy.channels.size(); ++i) {
+            QCOMPARE(modern.channels[i].channelId, legacy.channels[i].channelId);
+            QCOMPARE(modern.channels[i].descriptor, legacy.channels[i].descriptor);
+        }
     }
 
     void testVideoChannelDescriptor() {
@@ -123,7 +185,7 @@ private slots:
                 QCOMPARE(desc.channel_id(), 3u);
                 QVERIFY(desc.has_av_channel());
                 QCOMPARE(desc.av_channel().stream_type(),
-                         static_cast<int>(oaa::proto::enums::AVStreamType::VIDEO));
+                         oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
                 break;
             }
         }
@@ -142,6 +204,12 @@ private slots:
                 QVERIFY(desc.has_sensor_channel());
                 // Night, driving, parking brake = 3 sensors (only what we can populate)
                 QCOMPARE(desc.sensor_channel().sensors_size(), 3);
+                QCOMPARE(desc.sensor_channel().sensors(0).sensor_type(),
+                         oaa::proto::enums::SensorType::NIGHT_DATA);
+                QCOMPARE(desc.sensor_channel().sensors(1).sensor_type(),
+                         oaa::proto::enums::SensorType::DRIVING_STATUS);
+                QCOMPARE(desc.sensor_channel().sensors(2).sensor_type(),
+                         oaa::proto::enums::SensorType::PARKING_BRAKE);
                 return;
             }
         }
@@ -160,7 +228,7 @@ private slots:
                                     ch.descriptor.size());
                 QVERIFY(desc.has_av_channel());
                 QCOMPARE(desc.av_channel().stream_type(),
-                         static_cast<int>(oaa::proto::enums::AVStreamType::AUDIO));
+                         oaa::proto::enums::MediaCodecType::MEDIA_CODEC_AUDIO_PCM);
                 audioChannelCount++;
             }
         }
@@ -317,26 +385,87 @@ private slots:
         QCOMPARE(sessionConfig.sessionConfiguration, static_cast<int32_t>(0));
     }
 
-    void testNoAdditionalVideoConfig() {
-        // VideoConfig must NOT have additional_config — it breaks legacy margins
-        oap::YamlConfig config;
-        config.setValueByPath("navbar.show_during_aa", true);
+    void videoUiFeatureSerializationMatrix_data() {
+        QTest::addColumn<int>("galMajor");
+        QTest::addColumn<int>("galMinor");
+        QTest::addColumn<bool>("navbarDuringAa");
+        QTest::addColumn<bool>("nativeTurnCardAvailable");
+        QTest::addColumn<int>("expectedSessionMask");
+        QTest::addColumn<int>("expectedMainElement");
+        QTest::addColumn<int>("expectedClusterElement");
 
-        oap::aa::ServiceDiscoveryBuilder builder(&config);
-        builder.setDisplayDimensions(1024, 600);
-        auto sessionConfig = builder.build();
+        QTest::newRow("1.7-navbar-on")
+            << 1 << 7 << true << false << 1 << -1 << -1;
+        QTest::newRow("1.7-navbar-off")
+            << 1 << 7 << false << false << 0 << -1 << -1;
+        QTest::newRow("4.3-navbar-on-no-native-turn")
+            << 4 << 3 << true << false << 0
+            << static_cast<int>(oaa::proto::data::UI_ELEMENT_CLOCK) << -1;
+        QTest::newRow("4.3-navbar-off-no-native-turn")
+            << 4 << 3 << false << false << 0 << -1 << -1;
+        QTest::newRow("4.3-navbar-off-native-turn")
+            << 4 << 3 << false << true << 0 << -1
+            << static_cast<int>(
+                   oaa::proto::data::UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE);
+        QTest::newRow("4.3-navbar-on-native-turn")
+            << 4 << 3 << true << true << 0
+            << static_cast<int>(oaa::proto::data::UI_ELEMENT_CLOCK)
+            << static_cast<int>(
+                   oaa::proto::data::UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE);
+    }
 
-        for (const auto& ch : sessionConfig.channels) {
-            if (ch.channelId == 3) {
-                oaa::proto::data::ChannelDescriptor desc;
-                QVERIFY(desc.ParseFromArray(ch.descriptor.constData(), ch.descriptor.size()));
-                auto& vc = desc.av_channel().video_configs(0);
-                QVERIFY2(!vc.has_additional_config(),
-                         "additional_config must NOT be set — it breaks margins");
-                return;
-            }
+    void videoUiFeatureSerializationMatrix() {
+        QFETCH(int, galMajor);
+        QFETCH(int, galMinor);
+        QFETCH(bool, navbarDuringAa);
+        QFETCH(bool, nativeTurnCardAvailable);
+        QFETCH(int, expectedSessionMask);
+        QFETCH(int, expectedMainElement);
+        QFETCH(int, expectedClusterElement);
+
+        oap::YamlConfig yaml;
+        yaml.setValueByPath("navbar.show_during_aa", navbarDuringAa);
+
+        oap::aa::ProjectedClusterConfig cluster;
+        cluster.enabled = true;
+        cluster.profile.galVersion = {
+            static_cast<uint16_t>(galMajor), static_cast<uint16_t>(galMinor)};
+        cluster.profile.nativeTurnCardAvailable = nativeTurnCardAvailable;
+
+        oap::aa::ServiceDiscoveryBuilder builder(&yaml);
+        builder.setProjectedClusterConfig(cluster);
+        const auto session = builder.build();
+
+        QCOMPARE(session.sessionConfiguration, expectedSessionMask);
+        QCOMPARE(session.sessionConfiguration & 16, 0);
+
+        const auto main = descriptorById(session, 3).av_channel();
+        QCOMPARE(main.video_configs_size(), 2);
+        for (const auto& video : main.video_configs()) {
+            QCOMPARE(video.has_additional_config(), expectedMainElement >= 0);
+            if (!video.has_additional_config())
+                continue;
+            const auto& additional = video.additional_config();
+            verifyCompanionInsets(
+                additional, video.margin_width(), video.margin_height());
+            QCOMPARE(additional.hidden_ui_elements_size(), 1);
+            QCOMPARE(static_cast<int>(additional.hidden_ui_elements(0)),
+                     expectedMainElement);
         }
-        QFAIL("Video channel not found");
+
+        const auto clusterVideo = descriptorById(session, 12).av_channel();
+        QCOMPARE(clusterVideo.video_configs_size(), 1);
+        QVERIFY(!clusterVideo.has_keycode());
+        const auto& video = clusterVideo.video_configs(0);
+        QCOMPARE(video.has_additional_config(), expectedClusterElement >= 0);
+        if (video.has_additional_config()) {
+            const auto& additional = video.additional_config();
+            verifyCompanionInsets(
+                additional, video.margin_width(), video.margin_height());
+            QCOMPARE(additional.hidden_ui_elements_size(), 1);
+            QCOMPARE(static_cast<int>(additional.hidden_ui_elements(0)),
+                     expectedClusterElement);
+        }
     }
 
     void testWifiChannelHasBssid() {
@@ -381,7 +510,7 @@ private slots:
         QCOMPARE(channelById(config, 1)->descriptor, legacyInput);
 
         const auto video = descriptorById(config, 3).av_channel();
-        QVERIFY(!video.has_channel_id());
+        QVERIFY(!video.has_display_id());
         QVERIFY(!video.has_display_type());
         const auto input = descriptorById(config, 1).input_channel();
         QVERIFY(!input.has_display_id());
@@ -394,7 +523,7 @@ private slots:
         const auto config = builder.build();
 
         const auto mainVideo = descriptorById(config, 3).av_channel();
-        QCOMPARE(mainVideo.channel_id(), 0u);
+        QCOMPARE(mainVideo.display_id(), 0u);
         QCOMPARE(mainVideo.display_type(),
                  oaa::proto::enums::DisplayType::MAIN);
 
@@ -404,9 +533,10 @@ private slots:
                  oaa::proto::enums::DisplayType::MAIN);
 
         const auto clusterVideo = descriptorById(config, 12).av_channel();
-        QCOMPARE(clusterVideo.channel_id(), 1u);
+        QCOMPARE(clusterVideo.display_id(), 1u);
         QCOMPARE(clusterVideo.display_type(),
                  oaa::proto::enums::DisplayType::CLUSTER);
+        QVERIFY(!clusterVideo.has_keycode());
         QCOMPARE(clusterVideo.video_configs_size(), 1);
         const auto& videoConfig = clusterVideo.video_configs(0);
         QCOMPARE(videoConfig.video_resolution(),
@@ -430,6 +560,151 @@ private slots:
         QCOMPARE(clusterInput.supported_haptic_types_size(), 0);
         QCOMPARE(builder.videoConfigCount(
                      oap::aa::ProjectedDisplayRole::Cluster), 1u);
+
+        static const QByteArray pairedMainVideo = QByteArray::fromHex(
+            "08031a260803220d0802100218002028288c015003"
+            "220d0802100218002028288c015007300038004803");
+        static const QByteArray pairedMainInput = QByteArray::fromHex(
+            "0801221b0a0d030454555657587e7fdb01e701"
+            "120808800a10a80518002800");
+        static const QByteArray clusterVideoDescriptor = QByteArray::fromHex(
+            "080c1a170803220f0801100218f40320b401288c01500330013801");
+        static const QByteArray clusterInputDescriptor = QByteArray::fromHex(
+            "080d22022801");
+        QCOMPARE(channelById(config, 3)->descriptor, pairedMainVideo);
+        QCOMPARE(channelById(config, 1)->descriptor, pairedMainInput);
+        QCOMPARE(channelById(config, 12)->descriptor, clusterVideoDescriptor);
+        QCOMPARE(channelById(config, 13)->descriptor, clusterInputDescriptor);
+    }
+
+    void runtimeClusterProfileDrivesDescriptorAndNativeTurnCardDeclaration() {
+        oap::aa::ServiceDiscoveryBuilder builder;
+        oap::aa::ProjectedClusterConfig clusterConfig;
+        clusterConfig.enabled = true;
+        clusterConfig.profile = {
+            QStringLiteral("720p"), 160, 600, 400, true,
+            oap::aa::kGalVersion4_3};
+        builder.setProjectedClusterConfig(clusterConfig);
+
+        const auto config = builder.build();
+        const auto clusterVideo = descriptorById(config, 12).av_channel();
+        const auto& videoConfig = clusterVideo.video_configs(0);
+        QCOMPARE(videoConfig.video_resolution(),
+                 oaa::proto::enums::VideoResolution::VIDEO_1280x720);
+        QCOMPARE(videoConfig.dpi(), 160u);
+        QCOMPARE(videoConfig.margin_width(), 680u);
+        QCOMPARE(videoConfig.margin_height(), 320u);
+        QCOMPARE(config.sessionConfiguration, static_cast<int32_t>(0));
+        QCOMPARE(config.sessionConfiguration & 16, 0);
+        QVERIFY(videoConfig.has_additional_config());
+        const auto& additional = videoConfig.additional_config();
+        verifyCompanionInsets(
+            additional, videoConfig.margin_width(), videoConfig.margin_height());
+        QCOMPARE(additional.display_insets().left(), 340u);
+        QCOMPARE(additional.display_insets().right(), 340u);
+        QCOMPARE(additional.display_insets().top(), 160u);
+        QCOMPARE(additional.display_insets().bottom(), 160u);
+        QCOMPARE(additional.hidden_ui_elements_size(), 1);
+        QCOMPARE(additional.hidden_ui_elements(0),
+                 oaa::proto::data::UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE);
+    }
+
+    void gal43AdditionalConfigPreservesBaseVideoConfigBytes() {
+        oap::YamlConfig yaml;
+        yaml.setVideoResolution(QStringLiteral("480p"));
+        yaml.setValueByPath("navbar.show_during_aa", true);
+
+        oap::aa::ProjectedClusterConfig legacyCluster;
+        legacyCluster.enabled = true;
+        oap::aa::ServiceDiscoveryBuilder legacyBuilder(&yaml);
+        legacyBuilder.setDisplayDimensions(1024, 600);
+        legacyBuilder.setNavbarThickness(60);
+        legacyBuilder.setProjectedClusterConfig(legacyCluster);
+        const auto legacy = legacyBuilder.build();
+
+        auto modernCluster = legacyCluster;
+        modernCluster.profile.galVersion = oap::aa::kGalVersion4_3;
+        modernCluster.profile.nativeTurnCardAvailable = true;
+        oap::aa::ServiceDiscoveryBuilder modernBuilder(&yaml);
+        modernBuilder.setDisplayDimensions(1024, 600);
+        modernBuilder.setNavbarThickness(60);
+        modernBuilder.setProjectedClusterConfig(modernCluster);
+        const auto modern = modernBuilder.build();
+
+        const auto legacyMain = descriptorById(legacy, 3).av_channel();
+        const auto modernMain = descriptorById(modern, 3).av_channel();
+        QCOMPARE(modernMain.video_configs_size(), legacyMain.video_configs_size());
+        for (int i = 0; i < legacyMain.video_configs_size(); ++i) {
+            const auto& modernVideo = modernMain.video_configs(i);
+            QCOMPARE(modernVideo.margin_width(), 0u);
+            QCOMPARE(modernVideo.margin_height(), 58u);
+            QVERIFY(modernVideo.has_additional_config());
+            verifyCompanionInsets(
+                modernVideo.additional_config(), 0u, 58u);
+            QCOMPARE(modernVideo.additional_config().display_insets().top(), 29u);
+            QCOMPARE(modernVideo.additional_config().display_insets().bottom(), 29u);
+            QCOMPARE(baseVideoConfigBytes(modernMain.video_configs(i)),
+                     baseVideoConfigBytes(legacyMain.video_configs(i)));
+        }
+
+        const auto legacyClusterVideo = descriptorById(legacy, 12).av_channel();
+        const auto modernClusterVideo = descriptorById(modern, 12).av_channel();
+        const auto& modernClusterConfig = modernClusterVideo.video_configs(0);
+        QVERIFY(modernClusterConfig.has_additional_config());
+        verifyCompanionInsets(
+            modernClusterConfig.additional_config(), 500u, 180u);
+        QCOMPARE(
+            modernClusterConfig.additional_config().display_insets().left(),
+            250u);
+        QCOMPARE(
+            modernClusterConfig.additional_config().display_insets().right(),
+            250u);
+        QCOMPARE(
+            modernClusterConfig.additional_config().display_insets().top(),
+            90u);
+        QCOMPARE(
+            modernClusterConfig.additional_config().display_insets().bottom(),
+            90u);
+        QCOMPARE(baseVideoConfigBytes(modernClusterVideo.video_configs(0)),
+                 baseVideoConfigBytes(legacyClusterVideo.video_configs(0)));
+
+        static const QByteArray modernMainGolden = QByteArray::fromHex(
+            "08031a420803221b080110021800203a288c015003"
+            "5a0c0a08081d101d180020002801"
+            "221b080110021800203a288c015007"
+            "5a0c0a08081d101d180020002801300038004803");
+        static const QByteArray modernClusterGolden = QByteArray::fromHex(
+            "080c1a270803221f0801100218f40320b401288c015003"
+            "5a0e0a0a085a105a18fa0120fa01280530013801");
+        QCOMPARE(channelById(modern, 3)->descriptor, modernMainGolden);
+        QCOMPARE(channelById(modern, 12)->descriptor, modernClusterGolden);
+    }
+
+    void gal43CompanionInsetsPreserveOddMarginTotals() {
+        oap::YamlConfig yaml;
+        yaml.setVideoResolution(QStringLiteral("480p"));
+        yaml.setValueByPath("navbar.show_during_aa", true);
+
+        oap::aa::ProjectedClusterConfig cluster;
+        cluster.enabled = true;
+        cluster.profile.galVersion = oap::aa::kGalVersion4_3;
+
+        oap::aa::ServiceDiscoveryBuilder builder(&yaml);
+        builder.setDisplayDimensions(1024, 600);
+        builder.setNavbarThickness(2);
+        builder.setProjectedClusterConfig(cluster);
+        const auto session = builder.build();
+
+        const auto main = descriptorById(session, 3).av_channel();
+        for (const auto& video : main.video_configs()) {
+            QCOMPARE(video.margin_width(), 0u);
+            QCOMPARE(video.margin_height(), 13u);
+            QVERIFY(video.has_additional_config());
+            const auto& insets = video.additional_config().display_insets();
+            QCOMPARE(insets.top(), 6u);
+            QCOMPARE(insets.bottom(), 7u);
+            QCOMPARE(insets.top() + insets.bottom(), 13u);
+        }
     }
 };
 

@@ -164,7 +164,7 @@ private slots:
         oap::aa::NavigationDataBridge bridge;
         bridge.connectToHandler(&handler);
 
-        emit handler.navigationTurnEvent("", 0, 0, QByteArray(), 1609, 3);
+        emit handler.navigationTurnEvent("", 0, 0, QByteArray(), 1609, 4);
         QCOMPARE(bridge.formattedDistance(), QString("1.0 mi"));
     }
 
@@ -173,7 +173,7 @@ private slots:
         oap::aa::NavigationDataBridge bridge;
         bridge.connectToHandler(&handler);
 
-        emit handler.navigationTurnEvent("", 0, 0, QByteArray(), 500, 3);
+        emit handler.navigationTurnEvent("", 0, 0, QByteArray(), 500, 5);
         QCOMPARE(bridge.formattedDistance(), QString("0.3 mi"));
     }
 
@@ -182,7 +182,7 @@ private slots:
         oap::aa::NavigationDataBridge bridge;
         bridge.connectToHandler(&handler);
 
-        emit handler.navigationTurnEvent("", 0, 0, QByteArray(), 3, 4);
+        emit handler.navigationTurnEvent("", 0, 0, QByteArray(), 3, 6);
         QCOMPARE(bridge.formattedDistance(), QString("10 ft"));
     }
 
@@ -191,7 +191,7 @@ private slots:
         oap::aa::NavigationDataBridge bridge;
         bridge.connectToHandler(&handler);
 
-        emit handler.navigationTurnEvent("", 0, 0, QByteArray(), 1, 5);
+        emit handler.navigationTurnEvent("", 0, 0, QByteArray(), 1, 7);
         QCOMPARE(bridge.formattedDistance(), QString("1 yd"));
     }
 
@@ -211,7 +211,7 @@ private slots:
         oap::aa::NavigationDataBridge bridge;
         bridge.connectToHandler(&handler);
 
-        emit handler.navigationDistanceChanged("0.3", 3); // MILES
+        emit handler.navigationDistanceChanged("0.3", 5); // MILES_P1
         QCOMPARE(bridge.formattedDistance(), QString("0.3 mi"));
     }
 
@@ -220,7 +220,7 @@ private slots:
         oap::aa::NavigationDataBridge bridge;
         bridge.connectToHandler(&handler);
 
-        emit handler.navigationDistanceChanged("500", 4); // FEET
+        emit handler.navigationDistanceChanged("500", 6); // FEET
         QCOMPARE(bridge.formattedDistance(), QString("500 ft"));
     }
 
@@ -229,7 +229,7 @@ private slots:
         oap::aa::NavigationDataBridge bridge;
         bridge.connectToHandler(&handler);
 
-        emit handler.navigationDistanceChanged("200", 5); // YARDS
+        emit handler.navigationDistanceChanged("200", 7); // YARDS
         QCOMPARE(bridge.formattedDistance(), QString("200 yd"));
     }
 
@@ -242,15 +242,13 @@ private slots:
         QCOMPARE(bridge.formattedDistance(), QString("1.5 km"));
     }
 
-    void testModernDistanceUnknownUnit6() {
-        // DISTANCE_UNIT_UNKNOWN_6 observed on wire (stationary, display_text="0").
-        // Phone controls the text — we return it as-is without a suffix.
+    void testModernDistanceKilometersP1() {
         oaa::hu::NavigationChannelHandler handler;
         oap::aa::NavigationDataBridge bridge;
         bridge.connectToHandler(&handler);
 
-        emit handler.navigationDistanceChanged("0", 6);
-        QCOMPARE(bridge.formattedDistance(), QString("0"));
+        emit handler.navigationDistanceChanged("0.3", 3); // KILOMETERS_P1
+        QCOMPARE(bridge.formattedDistance(), QString("0.3 km"));
     }
 
     void testModernDistanceOverridesLegacy() {
@@ -260,11 +258,11 @@ private slots:
         bridge.connectToHandler(&handler);
 
         // Set legacy data: 1609m with MILES unit → "1.0 mi"
-        emit handler.navigationTurnEvent("", 0, 0, QByteArray(), 1609, 3);
+        emit handler.navigationTurnEvent("", 0, 0, QByteArray(), 1609, 4);
         QCOMPARE(bridge.formattedDistance(), QString("1.0 mi"));
 
         // Modern data with different text proves phoneDistanceText_ wins
-        emit handler.navigationDistanceChanged("0.8", 3);
+        emit handler.navigationDistanceChanged("0.8", 5);
         QCOMPARE(bridge.formattedDistance(), QString("0.8 mi"));
     }
 
