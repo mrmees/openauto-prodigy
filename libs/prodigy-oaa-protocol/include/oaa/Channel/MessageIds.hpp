@@ -68,6 +68,7 @@ namespace NavigationMessageId {
     constexpr uint16_t NAV_TURN_EVENT       = 0x8004;
     constexpr uint16_t NAV_STEP             = 0x8006;
     constexpr uint16_t NAV_DISTANCE         = 0x8007;
+    constexpr uint16_t VEHICLE_ENERGY_FORECAST = 0x8008;
 }
 
 /// Media status channel messages (CAR.GAL.INST, GAL type 11)

@@ -314,6 +314,8 @@ std::string ProtocolLogger::messageName(uint8_t channelId, uint16_t msgId)
             case NavigationMessageId::NAV_TURN_EVENT:       return "NAVIGATION_TURN_EVENT";
             case NavigationMessageId::NAV_STEP:             return "NAVIGATION_NOTIFICATION";
             case NavigationMessageId::NAV_DISTANCE:         return "NAVIGATION_DISTANCE";
+            case NavigationMessageId::VEHICLE_ENERGY_FORECAST:
+                return "VEHICLE_ENERGY_FORECAST";
             default: break;
         }
     }

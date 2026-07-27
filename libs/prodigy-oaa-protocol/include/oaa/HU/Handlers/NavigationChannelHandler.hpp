@@ -37,11 +37,15 @@ signals:
     void navigationNotificationReceived(int stepCount, int laneCount,
                                          const QString& destination, const QString& eta);
 
+    void vehicleEnergyForecastReceived(bool innerParsed,
+                                       const QString& boundedSummary);
+
 private:
     void handleNavState(const QByteArray& payload);
     void handleNavStep(const QByteArray& payload);
     void handleNavDistance(const QByteArray& payload);
     void handleTurnEvent(const QByteArray& payload);
+    void handleVehicleEnergyForecast(const QByteArray& payload);
     bool navActive_ = false;
 };
 

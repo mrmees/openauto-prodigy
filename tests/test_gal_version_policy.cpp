@@ -22,11 +22,14 @@ private slots:
         QVERIFY(oap::aa::parseSupportedGalVersion(QStringLiteral("5.0"),
                                                   &parsed));
         QCOMPARE(parsed, oaa::kGalVersion5_0);
+        QVERIFY(oap::aa::parseSupportedGalVersion(QStringLiteral("5.1"),
+                                                  &parsed));
+        QCOMPARE(parsed, oaa::kGalVersion5_1);
 
         const QStringList rejected{
             QString(), QStringLiteral(" 4.3"), QStringLiteral("4.3 "),
             QStringLiteral("4.03"),
-            QStringLiteral("5.1"), QStringLiteral("6.0"),
+            QStringLiteral("6.0"),
             QStringLiteral("6.1")};
         for (const QString& text : rejected) {
             parsed = {9, 9};
@@ -49,11 +52,12 @@ private slots:
     void productionAllowlistStopsAtHighestAcceptedVersion()
     {
         QCOMPARE(oap::aa::kHighestAcceptedGalVersion,
-                 oaa::kGalVersion5_0);
+                 oaa::kGalVersion5_1);
         QCOMPARE(oap::aa::supportedGalVersionStrings(),
                  QStringList({QStringLiteral("1.7"),
                               QStringLiteral("4.3"),
-                              QStringLiteral("5.0")}));
+                              QStringLiteral("5.0"),
+                              QStringLiteral("5.1")}));
     }
 
     void missingPersistedSettingUsesHighestAcceptedVersion()
@@ -69,21 +73,21 @@ private slots:
         oap::YamlConfig config;
         config.load(path);
         QCOMPARE(oap::aa::resolveConfiguredGalVersion(config),
-                 oaa::kGalVersion5_0);
+                 oaa::kGalVersion5_1);
     }
 
     void invalidOrFutureSettingUsesHighestAcceptedVersion()
     {
         oap::YamlConfig config;
         QVERIFY(config.setValueByPath(QStringLiteral("connection.gal_version"),
-                                      QStringLiteral("5.1")));
+                                      QStringLiteral("6.0")));
         QCOMPARE(oap::aa::resolveConfiguredGalVersion(config),
-                 oaa::kGalVersion5_0);
+                 oaa::kGalVersion5_1);
 
         QVERIFY(config.setValueByPath(QStringLiteral("connection.gal_version"),
                                       QStringLiteral("not-a-version")));
         QCOMPARE(oap::aa::resolveConfiguredGalVersion(config),
-                 oaa::kGalVersion5_0);
+                 oaa::kGalVersion5_1);
     }
 
     void explicitLegacyDowngradeRemainsPinned()
@@ -98,6 +102,11 @@ private slots:
                                       QStringLiteral("4.3")));
         QCOMPARE(oap::aa::resolveConfiguredGalVersion(config),
                  oaa::kGalVersion4_3);
+
+        QVERIFY(config.setValueByPath(QStringLiteral("connection.gal_version"),
+                                      QStringLiteral("5.0")));
+        QCOMPARE(oap::aa::resolveConfiguredGalVersion(config),
+                 oaa::kGalVersion5_0);
     }
 };
 

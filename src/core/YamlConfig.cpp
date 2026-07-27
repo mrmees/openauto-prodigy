@@ -43,7 +43,7 @@ void YamlConfig::initDefaults()
 
     root_["connection"]["auto_connect_aa"] = true;
     root_["connection"]["bt_discoverable"] = true;
-    root_["connection"]["gal_version"] = "5.0";
+    root_["connection"]["gal_version"] = "5.1";
     root_["connection"]["wifi_ap"]["interface"] = "wlan0";
     root_["connection"]["wifi_ap"]["ssid"] = "OpenAutoProdigy";
     root_["connection"]["wifi_ap"]["password"] = "prodigy";

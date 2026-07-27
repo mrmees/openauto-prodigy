@@ -153,7 +153,7 @@ private slots:
                      "configPath: \"connection.gal_version\"")) >= 0,
                  "The production GAL picker should persist through ConfigService");
         QVERIFY2(aaSource.indexOf(QStringLiteral(
-                     "options: [\"1.7\", \"4.3\", \"5.0\"]")) >= 0,
+                     "options: [\"1.7\", \"4.3\", \"5.0\", \"5.1\"]")) >= 0,
                  "The production picker should expose only accepted versions");
         QVERIFY2(source.indexOf(QStringLiteral("clusterGalVersion")) < 0,
                  "DebugSettings must not retain a CLUSTER GAL picker");

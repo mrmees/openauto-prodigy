@@ -12,7 +12,7 @@ class YamlConfig;
 namespace oap::aa {
 
 inline constexpr oaa::ProtocolVersion kHighestAcceptedGalVersion =
-    oaa::kGalVersion5_0;
+    oaa::kGalVersion5_1;
 
 QString galVersionToString(oaa::ProtocolVersion version);
 bool parseSupportedGalVersion(const QString& text,
