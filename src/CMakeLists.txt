@@ -28,6 +28,7 @@ add_library(openauto-core STATIC
     core/aa/GpioNightMode.cpp
     core/aa/CodecCapability.cpp
     core/aa/WirelessAaConfig.cpp
+    core/aa/GalVersionPolicy.cpp
     core/aa/ProjectedDisplayConfig.cpp
     core/aa/ProjectedDisplaySession.cpp
     core/aa/ServiceDiscoveryBuilder.cpp

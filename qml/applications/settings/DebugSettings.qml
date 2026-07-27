@@ -28,8 +28,6 @@ Flickable {
                                       ? AAClusterDisplay.profileGeneration : 0
         property string clusterStatus: clusterAvailable
                                      ? AAClusterDisplay.profileStatusText : ""
-        property string clusterRequestedGal: clusterAvailable
-                                             ? AAClusterDisplay.requestedGalVersion : ""
         property int clusterActiveWidth: clusterAvailable
                                        ? AAClusterDisplay.viewportContentWidth : 0
         property int clusterActiveHeight: clusterAvailable
@@ -458,19 +456,6 @@ Flickable {
                 columnSpacing: UiMetrics.gap
                 rowSpacing: UiMetrics.spacing
 
-                Text { text: "GAL"; color: ThemeService.onSurfaceVariant }
-                ComboBox {
-                    id: clusterGalVersion
-                    model: ["1.7", "4.3"]
-                    Layout.fillWidth: true
-                    onActivated: {
-                        if (currentText === "1.7")
-                            clusterNativeTurnCard.checked = false
-                    }
-                }
-                Item { Layout.fillWidth: true }
-                Item { Layout.fillWidth: true }
-
                 Text { text: "Resolution"; color: ThemeService.onSurfaceVariant }
                 ComboBox {
                     id: clusterResolution
@@ -519,15 +504,13 @@ Flickable {
                         color: ThemeService.onSurface
                     }
                     Text {
-                        text: "GAL 4.3 only"
+                        text: "Serialized for modern sessions"
                         font.pixelSize: UiMetrics.fontSmall
                         color: ThemeService.onSurfaceVariant
                     }
                 }
                 Switch {
                     id: clusterNativeTurnCard
-                    enabled: clusterGalVersion.currentText === "4.3"
-                    opacity: enabled ? 1.0 : 0.4
                     Material.accent: ThemeService.primaryContainer
                 }
             }
@@ -577,8 +560,7 @@ Flickable {
 
             Text {
                 Layout.fillWidth: true
-                text: "requested GAL " + content.clusterRequestedGal
-                      + " · gen " + content.clusterGeneration
+                text: "gen " + content.clusterGeneration
                       + " · active crop "
                       + content.clusterActiveWidth + "×"
                       + content.clusterActiveHeight
@@ -596,14 +578,11 @@ Flickable {
 
     function applyClusterProfile() {
         ActionRegistry.dispatch("aa.cluster.applyProfile", {
-            "gal_version": clusterGalVersion.currentText,
             "resolution": clusterResolution.currentText,
             "dpi": clusterDpi.value,
             "content_width": clusterContentWidth.value,
             "content_height": clusterContentHeight.value,
-            "native_turn_card_available":
-                clusterGalVersion.currentText === "4.3"
-                && clusterNativeTurnCard.checked
+            "native_turn_card_available": clusterNativeTurnCard.checked
         })
     }
 
@@ -612,8 +591,6 @@ Flickable {
             return
         clusterResolution.currentIndex =
             AAClusterDisplay.requestedResolution === "720p" ? 1 : 0
-        clusterGalVersion.currentIndex =
-            AAClusterDisplay.requestedGalVersion === "4.3" ? 1 : 0
         clusterDpi.value = AAClusterDisplay.requestedDpi
         clusterContentWidth.value = AAClusterDisplay.requestedContentWidth
         clusterContentHeight.value = AAClusterDisplay.requestedContentHeight

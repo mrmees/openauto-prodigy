@@ -29,7 +29,16 @@ public:
         : IChannelHandler(parent), id_(id) {}
 
     uint8_t channelId() const override { return id_; }
-    void onChannelOpened() override { opened = true; openCount++; }
+    void configureSession(const oaa::SessionProtocolPolicy& policy) override {
+        configuredPolicies.append(policy.requestedVersion());
+    }
+    void onChannelOpened() override {
+        opened = true;
+        openCount++;
+        policyAtLastOpen = configuredPolicies.isEmpty()
+            ? oaa::ProtocolVersion{0, 0}
+            : configuredPolicies.constLast();
+    }
     void onChannelClosed() override { closed = true; closeCount++; }
     void onMessage(uint16_t messageId, const QByteArray& payload, int dataOffset = 0) override {
         lastMessageId = messageId;
@@ -44,6 +53,8 @@ public:
     uint16_t lastMessageId = 0;
     QByteArray lastPayload;
     int messageCount = 0;
+    QList<oaa::ProtocolVersion> configuredPolicies;
+    oaa::ProtocolVersion policyAtLastOpen{0, 0};
 
 private:
     uint8_t id_;
@@ -102,10 +113,14 @@ private:
         return frame;
     }
 
-    void advanceToActive(oaa::AASession& session) {
+    void advanceToActive(oaa::AASession& session,
+                         uint16_t reportedMajor = 1,
+                         uint16_t reportedMinor = 7) {
         QByteArray versionResponse(6, '\0');
-        qToBigEndian<uint16_t>(1, reinterpret_cast<uchar*>(versionResponse.data()));
-        qToBigEndian<uint16_t>(7, reinterpret_cast<uchar*>(versionResponse.data() + 2));
+        qToBigEndian<uint16_t>(reportedMajor,
+                               reinterpret_cast<uchar*>(versionResponse.data()));
+        qToBigEndian<uint16_t>(reportedMinor,
+                               reinterpret_cast<uchar*>(versionResponse.data() + 2));
         qToBigEndian<uint16_t>(0, reinterpret_cast<uchar*>(versionResponse.data() + 4));
         session.messenger()->messageReceived(
             0, 0x0002, versionResponse, 0, oaa::MessageType::Specific);
@@ -218,7 +233,6 @@ private slots:
         oaa::SessionConfig config;
         config.protocolMajor = 4;
         config.protocolMinor = 3;
-        config.requireMinimumCompatibleProtocolVersion = true;
         oaa::AASession session(&transport, config);
         QSignalSpy disconnectSpy(&session, &oaa::AASession::disconnected);
 
@@ -239,7 +253,6 @@ private slots:
         oaa::SessionConfig config;
         config.protocolMajor = 4;
         config.protocolMinor = 3;
-        config.requireMinimumCompatibleProtocolVersion = true;
         oaa::AASession session(&transport, config);
 
         transport.simulateConnect();
@@ -255,7 +268,6 @@ private slots:
         oaa::SessionConfig config;
         config.protocolMajor = 4;
         config.protocolMinor = 3;
-        config.requireMinimumCompatibleProtocolVersion = true;
         oaa::AASession session(&transport, config);
 
         transport.simulateConnect();
@@ -263,6 +275,48 @@ private slots:
         transport.feedData(makeVersionResponseFrame(6, 0, 0x0000));
 
         QTRY_COMPARE(session.state(), oaa::SessionState::TLSHandshake);
+    }
+
+    void testModernRequestedVersionAdmission_data() {
+        QTest::addColumn<int>("requestedMajor");
+        QTest::addColumn<int>("requestedMinor");
+        QTest::addColumn<int>("reportedMajor");
+        QTest::addColumn<int>("reportedMinor");
+        QTest::addColumn<bool>("accepted");
+
+        QTest::newRow("5.0-lower") << 5 << 0 << 4 << 3 << false;
+        QTest::newRow("5.0-equal") << 5 << 0 << 5 << 0 << true;
+        QTest::newRow("5.0-higher") << 5 << 0 << 5 << 1 << true;
+        QTest::newRow("5.1-lower") << 5 << 1 << 5 << 0 << false;
+        QTest::newRow("5.1-equal") << 5 << 1 << 5 << 1 << true;
+        QTest::newRow("5.1-higher") << 5 << 1 << 6 << 0 << true;
+        QTest::newRow("6.0-lower") << 6 << 0 << 5 << 1 << false;
+        QTest::newRow("6.0-equal") << 6 << 0 << 6 << 0 << true;
+        QTest::newRow("6.0-higher") << 6 << 0 << 6 << 1 << true;
+    }
+
+    void testModernRequestedVersionAdmission() {
+        QFETCH(int, requestedMajor);
+        QFETCH(int, requestedMinor);
+        QFETCH(int, reportedMajor);
+        QFETCH(int, reportedMinor);
+        QFETCH(bool, accepted);
+
+        oaa::ReplayTransport transport;
+        oaa::SessionConfig config;
+        config.protocolMajor = static_cast<uint16_t>(requestedMajor);
+        config.protocolMinor = static_cast<uint16_t>(requestedMinor);
+        oaa::AASession session(&transport, config);
+
+        transport.simulateConnect();
+        session.start();
+        transport.feedData(makeVersionResponseFrame(
+            static_cast<uint16_t>(reportedMajor),
+            static_cast<uint16_t>(reportedMinor), 0x0000));
+
+        QTRY_COMPARE(session.state(), accepted
+            ? oaa::SessionState::TLSHandshake
+            : oaa::SessionState::Disconnected);
     }
 
     void testEveryTruncatedVersionPrefixFailsImmediately() {
@@ -317,6 +371,45 @@ private slots:
         // Verify we can retrieve messenger
         QVERIFY(session.messenger() != nullptr);
         QVERIFY(session.controlChannel() != nullptr);
+    }
+
+    void testRegistrationConfiguresReusedHandlerBeforeReplacementOpen() {
+        oaa::ReplayTransport oldTransport;
+        oaa::SessionConfig legacyConfig;
+        MockChannelHandler handler(3);
+        oaa::AASession oldSession(&oldTransport, legacyConfig);
+        oldSession.registerChannel(3, &handler);
+
+        QCOMPARE(handler.configuredPolicies,
+                 QList<oaa::ProtocolVersion>{oaa::kGalVersion1_7});
+        oldSession.finalize();
+
+        oaa::ReplayTransport replacementTransport;
+        oaa::SessionConfig modernConfig;
+        modernConfig.protocolMajor = 4;
+        modernConfig.protocolMinor = 3;
+        oaa::AASession replacementSession(&replacementTransport, modernConfig);
+        replacementSession.registerChannel(3, &handler);
+
+        QCOMPARE(handler.configuredPolicies,
+                 (QList<oaa::ProtocolVersion>{oaa::kGalVersion1_7,
+                                              oaa::kGalVersion4_3}));
+        QCOMPARE(handler.openCount, 0);
+
+        replacementTransport.simulateConnect();
+        replacementSession.start();
+        advanceToActive(replacementSession, 4, 3);
+
+        oaa::proto::messages::ChannelOpenRequest request;
+        request.set_channel_id(3);
+        request.set_priority(1);
+        QByteArray payload(request.ByteSizeLong(), '\0');
+        QVERIFY(request.SerializeToArray(payload.data(), payload.size()));
+        replacementSession.messenger()->messageReceived(
+            3, 0x0007, payload, 0, oaa::MessageType::Control);
+
+        QCOMPARE(handler.openCount, 1);
+        QCOMPARE(handler.policyAtLastOpen, oaa::kGalVersion4_3);
     }
 
     void testStopFromIdleIsNoop() {

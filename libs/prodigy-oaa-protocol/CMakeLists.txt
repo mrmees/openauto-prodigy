@@ -66,6 +66,7 @@ add_library(prodigy-oaa-protocol STATIC
     include/oaa/Channel/IAVChannelHandler.hpp
     include/oaa/Channel/ControlChannel.hpp
     include/oaa/Session/SessionState.hpp
+    include/oaa/Session/SessionProtocolPolicy.hpp
     include/oaa/Session/SessionConfig.hpp
     include/oaa/Session/AASession.hpp
     src/Channel/IChannelHandler.cpp

@@ -142,26 +142,21 @@ private slots:
         QCOMPARE(config.swVersion, QString::fromLatin1(OAP_VERSION));
         QCOMPARE(config.protocolMajor, uint16_t{1});
         QCOMPARE(config.protocolMinor, uint16_t{7});
-        QVERIFY(!config.requireMinimumCompatibleProtocolVersion);
+        QVERIFY(!config.protocolPolicy().requiresMinimumCompatibleResponse());
     }
 
-    void galSelectionChangesOnlySessionVersionPolicy() {
-        oap::aa::ProjectedClusterConfig legacyCluster;
-        legacyCluster.enabled = true;
-
+    void galSelectionIsSessionWideWhenClusterIsDisabled() {
         oap::aa::ServiceDiscoveryBuilder legacyBuilder;
-        legacyBuilder.setProjectedClusterConfig(legacyCluster);
+        legacyBuilder.setProtocolVersion(oaa::kGalVersion1_7);
         const auto legacy = legacyBuilder.build();
 
-        auto modernCluster = legacyCluster;
-        modernCluster.profile.galVersion = oap::aa::kGalVersion4_3;
         oap::aa::ServiceDiscoveryBuilder modernBuilder;
-        modernBuilder.setProjectedClusterConfig(modernCluster);
+        modernBuilder.setProtocolVersion(oaa::kGalVersion4_3);
         const auto modern = modernBuilder.build();
 
         QCOMPARE(modern.protocolMajor, uint16_t{4});
         QCOMPARE(modern.protocolMinor, uint16_t{3});
-        QVERIFY(modern.requireMinimumCompatibleProtocolVersion);
+        QVERIFY(modern.protocolPolicy().requiresMinimumCompatibleResponse());
         QCOMPARE(modern.sessionConfiguration, legacy.sessionConfiguration);
         QCOMPARE(modern.channels.size(), legacy.channels.size());
         for (int i = 0; i < legacy.channels.size(); ++i) {
@@ -428,11 +423,11 @@ private slots:
 
         oap::aa::ProjectedClusterConfig cluster;
         cluster.enabled = true;
-        cluster.profile.galVersion = {
-            static_cast<uint16_t>(galMajor), static_cast<uint16_t>(galMinor)};
         cluster.profile.nativeTurnCardAvailable = nativeTurnCardAvailable;
 
         oap::aa::ServiceDiscoveryBuilder builder(&yaml);
+        builder.setProtocolVersion({static_cast<uint16_t>(galMajor),
+                                    static_cast<uint16_t>(galMinor)});
         builder.setProjectedClusterConfig(cluster);
         const auto session = builder.build();
 
@@ -582,8 +577,8 @@ private slots:
         oap::aa::ProjectedClusterConfig clusterConfig;
         clusterConfig.enabled = true;
         clusterConfig.profile = {
-            QStringLiteral("720p"), 160, 600, 400, true,
-            oap::aa::kGalVersion4_3};
+            QStringLiteral("720p"), 160, 600, 400, true};
+        builder.setProtocolVersion(oaa::kGalVersion4_3);
         builder.setProjectedClusterConfig(clusterConfig);
 
         const auto config = builder.build();
@@ -617,15 +612,16 @@ private slots:
         oap::aa::ProjectedClusterConfig legacyCluster;
         legacyCluster.enabled = true;
         oap::aa::ServiceDiscoveryBuilder legacyBuilder(&yaml);
+        legacyBuilder.setProtocolVersion(oaa::kGalVersion1_7);
         legacyBuilder.setDisplayDimensions(1024, 600);
         legacyBuilder.setNavbarThickness(60);
         legacyBuilder.setProjectedClusterConfig(legacyCluster);
         const auto legacy = legacyBuilder.build();
 
         auto modernCluster = legacyCluster;
-        modernCluster.profile.galVersion = oap::aa::kGalVersion4_3;
         modernCluster.profile.nativeTurnCardAvailable = true;
         oap::aa::ServiceDiscoveryBuilder modernBuilder(&yaml);
+        modernBuilder.setProtocolVersion(oaa::kGalVersion4_3);
         modernBuilder.setDisplayDimensions(1024, 600);
         modernBuilder.setNavbarThickness(60);
         modernBuilder.setProjectedClusterConfig(modernCluster);
@@ -687,9 +683,9 @@ private slots:
 
         oap::aa::ProjectedClusterConfig cluster;
         cluster.enabled = true;
-        cluster.profile.galVersion = oap::aa::kGalVersion4_3;
 
         oap::aa::ServiceDiscoveryBuilder builder(&yaml);
+        builder.setProtocolVersion(oaa::kGalVersion4_3);
         builder.setDisplayDimensions(1024, 600);
         builder.setNavbarThickness(2);
         builder.setProjectedClusterConfig(cluster);

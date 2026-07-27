@@ -129,6 +129,12 @@ private slots:
     {
         const QString source = sourceFor(QStringLiteral("qml/applications/settings/DebugSettings.qml"));
         QVERIFY2(!source.isEmpty(), "Failed to read DebugSettings.qml");
+        const QString aaSource = sourceFor(
+            QStringLiteral("qml/applications/settings/AASettings.qml"));
+        QVERIFY2(!aaSource.isEmpty(), "Failed to read AASettings.qml");
+        const QString pluginSource = sourceFor(
+            QStringLiteral("src/plugins/android_auto/AndroidAutoPlugin.cpp"));
+        QVERIFY2(!pluginSource.isEmpty(), "Failed to read AndroidAutoPlugin.cpp");
 
         const QString mainSource = sourceFor(QStringLiteral("src/main.cpp"));
         QVERIFY2(!mainSource.isEmpty(), "Failed to read main.cpp");
@@ -139,14 +145,27 @@ private slots:
         QVERIFY2(source.indexOf(QStringLiteral("AAOrchestrator")) < 0,
                  "DebugSettings should not reference AAOrchestrator global");
 
-        // The lab exposes only the two audited local feature-policy versions.
-        QVERIFY2(source.indexOf(QStringLiteral("model: [\"1.7\", \"4.3\"]")) >= 0,
-                 "DebugSettings should expose only the GAL 1.7 and 4.3 selector labels");
-        QVERIFY2(source.indexOf(QStringLiteral("id: clusterGalVersion")) >= 0,
-                 "DebugSettings should give the bounded GAL selector a stable id");
+        // Production GAL is durable Android Auto configuration, not CLUSTER
+        // laboratory state.
+        QVERIFY2(aaSource.indexOf(QStringLiteral("label: \"GAL Version\"")) >= 0,
+                 "AASettings should own the production GAL picker");
+        QVERIFY2(aaSource.indexOf(QStringLiteral(
+                     "configPath: \"connection.gal_version\"")) >= 0,
+                 "The production GAL picker should persist through ConfigService");
+        QVERIFY2(aaSource.indexOf(QStringLiteral(
+                     "options: [\"1.7\", \"4.3\"]")) >= 0,
+                 "The production picker should expose only accepted versions");
+        QVERIFY2(source.indexOf(QStringLiteral("clusterGalVersion")) < 0,
+                 "DebugSettings must not retain a CLUSTER GAL picker");
+        QVERIFY2(source.indexOf(QStringLiteral("gal_version")) < 0,
+                 "The CLUSTER lab must not dispatch the production GAL key");
+        QVERIFY2(source.indexOf(QStringLiteral("requestedGalVersion")) < 0,
+                 "DebugSettings must not retain CLUSTER-owned GAL diagnostics");
+        QVERIFY2(pluginSource.indexOf(QStringLiteral(
+                     "connection.gal_version")) >= 0,
+                 "Changing production GAL should trigger AA renegotiation");
 
-        // One apply dispatch carries the complete, normalized profile. In
-        // particular, selecting 1.7 cannot emit the 4.3-only declaration.
+        // One apply dispatch carries the complete, normalized CLUSTER profile.
         const int applyFunction = source.indexOf(
             QStringLiteral("function applyClusterProfile()"));
         const int syncFunction = source.indexOf(
@@ -157,20 +176,14 @@ private slots:
                                                syncFunction - applyFunction);
         QCOMPARE(applySource.count(QStringLiteral(
                      "ActionRegistry.dispatch(\"aa.cluster.applyProfile\"")), 1);
-        QVERIFY2(applySource.indexOf(QStringLiteral(
-                     "\"gal_version\": clusterGalVersion.currentText")) >= 0,
-                 "The profile payload should carry the selected GAL version");
+        QVERIFY2(applySource.indexOf(QStringLiteral("gal_version")) < 0,
+                 "The CLUSTER profile payload must not carry session GAL");
         QVERIFY2(applySource.indexOf(QStringLiteral(
                      "\"native_turn_card_available\":")) >= 0,
                  "The profile payload should use the native turn-card key");
-        QVERIFY2(applySource.indexOf(QStringLiteral(
-                     "clusterGalVersion.currentText === \"4.3\"")) >= 0,
-                 "The profile payload should force the native turn-card flag off below GAL 4.3");
         QVERIFY2(source.indexOf(QStringLiteral(
                      "Advertise native HU turn card (lab)")) >= 0,
                  "DebugSettings should describe the native HU declaration honestly");
-        QVERIFY2(source.indexOf(QStringLiteral("GAL 4.3 only")) >= 0,
-                 "DebugSettings should show that the native turn-card toggle is 4.3-only");
         QVERIFY2(source.indexOf(QStringLiteral("turn_data_available")) < 0,
                  "The retired turn_data_available action key must not return");
         QVERIFY2(source.indexOf(QStringLiteral("bit 16")) < 0,
@@ -200,9 +213,7 @@ private slots:
                      "clusterController->resetClusterProfile")) >= 0,
                  "The reset-profile action should route to the CLUSTER controller");
 
-        // All displayed diagnostics come from the provider exposed by main.
-        QVERIFY2(source.indexOf(QStringLiteral("AAClusterDisplay.requestedGalVersion")) >= 0,
-                 "DebugSettings should show provider-owned requested GAL diagnostics");
+        // Remaining CLUSTER diagnostics come from the provider exposed by main.
         QVERIFY2(source.indexOf(QStringLiteral("AAClusterDisplay.profileGeneration")) >= 0,
                  "DebugSettings should show provider-owned profile generation");
         QVERIFY2(source.indexOf(QStringLiteral("AAClusterDisplay.viewportContentWidth")) >= 0,

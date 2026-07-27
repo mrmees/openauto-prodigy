@@ -98,8 +98,8 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
             this, &AndroidAutoPlugin::gestureTriggered,
             Qt::QueuedConnection);
 
-    // Watch for video setting changes — disconnect active session so phone
-    // reconnects and renegotiates with the updated config
+    // Watch for session-negotiation changes — disconnect an active session so
+    // the phone reconnects and renegotiates with the updated config.
     if (hostContext_ && hostContext_->configService()) {
         auto* cfgSvc = static_cast<oap::ConfigService*>(hostContext_->configService());
         connect(cfgSvc, &oap::ConfigService::configChanged,
@@ -117,11 +117,12 @@ bool AndroidAutoPlugin::initialize(IHostContext* context)
 
 void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& value)
 {
-    static const QStringList videoSettings = {
+    static const QStringList sessionSettings = {
         QStringLiteral("video.resolution"),
         QStringLiteral("video.fps"),
+        QStringLiteral("connection.gal_version"),
     };
-    if (!videoSettings.contains(path))
+    if (!sessionSettings.contains(path))
         return;
 
     // Update touch coordinate mapping for the new resolution
@@ -140,7 +141,8 @@ void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& val
     if (state != CS::Connected && state != CS::Backgrounded)
         return;
 
-    qCInfo(lcAA) << "Video setting changed (" << path << ") — reconnecting for renegotiation";
+    qCInfo(lcAA) << "AA session setting changed (" << path
+                 << ") — reconnecting for renegotiation";
     QMetaObject::invokeMethod(aaService_, [this]() {
         aaService_->disconnectAndRetrigger();
     }, Qt::QueuedConnection);

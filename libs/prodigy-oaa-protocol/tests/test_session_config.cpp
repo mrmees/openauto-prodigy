@@ -9,9 +9,22 @@ private slots:
         QVERIFY(config.channels.isEmpty());
         QCOMPARE(config.protocolMajor, uint16_t{1});
         QCOMPARE(config.protocolMinor, uint16_t{7});
-        QVERIFY(!config.requireMinimumCompatibleProtocolVersion);
+        QCOMPARE(config.protocolPolicy().requestedVersion(),
+                 oaa::kGalVersion1_7);
+        QVERIFY(!config.protocolPolicy().requiresMinimumCompatibleResponse());
         QCOMPARE(config.pingInterval, 5000);
         QCOMPARE(config.pingTimeout, 15000);
+    }
+
+    void testProtocolPolicyIsDerivedFromSerializedTuple() {
+        oaa::SessionConfig config;
+        config.protocolMajor = 4;
+        config.protocolMinor = 3;
+
+        QCOMPARE(config.protocolPolicy().requestedVersion(),
+                 oaa::kGalVersion4_3);
+        QVERIFY(config.protocolPolicy().requiresMinimumCompatibleResponse());
+        QVERIFY(config.protocolPolicy().usesModernDisplayPolicy());
     }
 
     void testPingCadenceAndDeadlineAreIndependentSettings() {

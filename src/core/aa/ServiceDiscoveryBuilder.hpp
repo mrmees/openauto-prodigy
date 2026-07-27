@@ -29,6 +29,7 @@ public:
     uint32_t videoConfigCount() const;
     uint32_t videoConfigCount(ProjectedDisplayRole role) const;
 
+    void setProtocolVersion(oaa::ProtocolVersion version);
     void setProjectedClusterConfig(const ProjectedClusterConfig& config);
 
     /// Override display dimensions for margin calculations (detected > config fallback).
@@ -73,6 +74,7 @@ private:
     QString wifiPassword_;
     QString wifiBssid_;
     QStringList videoCodecNames_;
+    oaa::ProtocolVersion protocolVersion_ = oaa::kGalVersion1_7;
     ProjectedClusterConfig projectedClusterConfig_;
     int overrideDisplayW_ = 0;  // 0 = use yamlConfig values
     int overrideDisplayH_ = 0;

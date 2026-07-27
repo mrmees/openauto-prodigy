@@ -128,6 +128,11 @@ uint32_t ServiceDiscoveryBuilder::videoConfigCount(ProjectedDisplayRole role) co
     return videoConfigCount();
 }
 
+void ServiceDiscoveryBuilder::setProtocolVersion(oaa::ProtocolVersion version)
+{
+    protocolVersion_ = version;
+}
+
 void ServiceDiscoveryBuilder::setProjectedClusterConfig(
     const ProjectedClusterConfig& config)
 {
@@ -149,10 +154,9 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
 {
     oaa::SessionConfig config;
 
-    const GalVersion galVersion = projectedClusterConfig_.profile.galVersion;
-    config.protocolMajor = galVersion.major;
-    config.protocolMinor = galVersion.minor;
-    config.requireMinimumCompatibleProtocolVersion = galVersion == kGalVersion4_3;
+    const oaa::SessionProtocolPolicy policy(protocolVersion_);
+    config.protocolMajor = protocolVersion_.major;
+    config.protocolMinor = protocolVersion_.minor;
 
     // Head unit identity
     // Phone matches on: manufacturer + model + modelyear + vehicleid
@@ -190,7 +194,7 @@ oaa::SessionConfig ServiceDiscoveryBuilder::build() const
     addChannel(11, buildPhoneStatusDescriptor());
 
     // Hide phone's AA status bar elements when our navbar shows them
-    if (galVersion == kGalVersion1_7) {
+    if (!policy.usesModernDisplayPolicy()) {
         if (navbarShownDuringAa(yamlConfig_)) {
             // session_configuration bitmask (SDR field 13) — does NOT touch AdditionalVideoConfig
             // NOTE: AA 16.2 UI logic (mcr.java) forcibly keeps signal/battery visible when
@@ -336,7 +340,8 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
         cfg->set_margin_height(mH);
         cfg->set_dpi(dpi);
         cfg->set_codec(it.value());
-        if (projectedClusterConfig_.profile.galVersion == kGalVersion4_3
+        if (oaa::SessionProtocolPolicy(protocolVersion_)
+                .usesModernDisplayPolicy()
             && navbarShownDuringAa(yamlConfig_)) {
             appendHiddenUiElementWithInsets(
                 cfg,
@@ -378,7 +383,7 @@ QByteArray ServiceDiscoveryBuilder::buildClusterVideoDescriptor() const
     config->set_dpi(profile.dpi);
     config->set_codec(
         oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
-    if (profile.galVersion == kGalVersion4_3
+    if (oaa::SessionProtocolPolicy(protocolVersion_).usesModernDisplayPolicy()
         && profile.nativeTurnCardAvailable) {
         appendHiddenUiElementWithInsets(
             config,
