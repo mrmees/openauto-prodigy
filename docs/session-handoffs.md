@@ -4,6 +4,39 @@ Newest entries first.
 
 ---
 
+## 2026-07-26 — GAL 5.0–6.0 production compatibility planning
+
+**What changed:** added an ACTIVE design and staged implementation plan for
+restoring the released OAA consumer boundary, moving GAL selection out of the
+CLUSTER lab, and promoting evidence-backed GAL 5.0, 5.1, and 6.0 support. The
+roadmap and index now identify this as the current promoted work.
+
+**Why:** open-android-auto `v1.5` now publishes the audited schemas through
+minimal `dist` commit `5ff4aa218dd33913237993f2968bf70e16dc464e` from tagged
+main `61eab61c5f9968154ff1a80faa8c0a427b208479`. Prodigy's current temporary
+main pin is descriptor-identical, so the dependency boundary can be corrected
+before adding higher-version behavior. The user also clarified that accepted
+higher GALs must become production capabilities and the highest accepted
+version—not GAL 1.7—must be the final default.
+
+**Status:** PLANNING COMPLETE; implementation and new hardware validation have
+not started. The plan requires sequential 5.0, 5.1, and 6.0 hardware-accepted
+SHAs. Final scope ends at GAL 6.0 and explicitly excludes 6.1, semantic use of
+unresolved MediaOptions, EV UI, outgoing media stats, integrated overlays,
+AUXILIARY, and third-display work.
+
+**Verification:** the OAA remote refs were fetched explicitly: annotated tag
+`v1.5` dereferences to `61eab61c`, remote `dist` is `5ff4aa2`, and its tree has
+248 protos plus README and LICENSE. Planning-only verification is the tracked
+live doc-link check and `git diff --check`; application/ARM/hardware gates
+begin with Task 0.
+
+**Next 1–3 steps:** (1) commit the approved planning baseline and record its
+SHA; (2) execute Task 0's exact `v1.5` `dist` gitlink update; (3) extract the
+session-wide policy and production 4.3 default before implementing GAL 5.0.
+
+---
+
 ## 2026-07-26 — GAL 4.3 display compatibility COMPLETE
 
 **What changed:** the completed GAL 4.3 design and implementation plan moved to

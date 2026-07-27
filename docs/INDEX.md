@@ -2,7 +2,10 @@
 
 ## Active Plans
 
-- None.
+- [Android Auto GAL 5.0–6.0 production compatibility design](plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-design.md)
+  and [implementation plan](plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-plan.md)
+  — staged production promotion through GAL 6.0 on the released OAA `v1.5`
+  protocol baseline, with the highest hardware-accepted version as default.
 
 ## Start Here
 
@@ -60,7 +63,8 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- None.
+- [2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-design.md](plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-design.md)
+- [2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-plan.md](plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-plan.md)
 
 ## Pi Configuration (pi-config/)
 

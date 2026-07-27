@@ -19,7 +19,21 @@ spike, or research-first feasibility work.
 
 ## Now
 
-No work is currently promoted for execution.
+- Android Auto GAL 5.0–6.0 production compatibility — **ACTIVE**. Restore the
+  released open-android-auto `v1.5` `dist` boundary, move GAL selection out of
+  the CLUSTER laboratory into durable session-wide configuration, then advance
+  through separately hardware-accepted 5.0, 5.1, and 6.0 checkpoints. Each
+  accepted version becomes a supported production choice and the shipped
+  default advances to the highest accepted tuple, ending at 6.0. The work adds
+  ackless audio and single-codec display policy at 5.0, typed MediaOptions and
+  energy-forecast tolerance at 5.1, typed modern video options plus measured
+  H.264/H.265 selection at 6.0, while retaining requested-version authority
+  and explicit lower-version fallbacks. GAL 6.1, semantic unresolved options,
+  EV UI, outgoing media stats, overlays, AUXILIARY, and third-display work are
+  excluded. Design and plan:
+  `docs/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-design.md`
+  and
+  `docs/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-plan.md`.
 
 ## Done (recent)
 
