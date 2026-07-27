@@ -66,6 +66,12 @@ thread.
   messages, and 3-finger gesture detection. The device is grabbed only while
   projection owns input.
 - `BluetoothDiscoveryService`, night-mode providers, navigation/media data bridges.
+  The discovery service watches the `org.bluez` D-Bus owner. BlueZ loss retires
+  the current listener, client socket, SDP registration, buffer, and retry
+  state; BlueZ return builds a fresh RFCOMM listener and SDP registration only
+  if discovery is still desired. Because legacy SDP records do not survive a
+  BlueZ daemon restart, this epoch boundary restores phone discovery without
+  restarting Prodigy and prevents a stopped service from resurrecting.
   The selected night provider is evaluated and explicitly seeds the sensor
   handler before the AA session starts. The handler retains that latest value
   independently of channel/subscription readiness, sends it when the phone
@@ -214,7 +220,9 @@ Wireless AA session path (high-level):
    hands out AP credentials). `BluetoothDiscoveryService` retries a transient
    RFCOMM listener startup failure on its bounded timer and registers the
    legacy BlueZ SDP record only after the listener returns a nonzero channel;
-   listener and SDP retries are separate lifecycle owners.
+   listener and SDP retries are separate lifecycle owners. If `org.bluez`
+   disappears, the service retires that entire discovery epoch; when BlueZ
+   returns, it rebuilds RFCOMM and SDP only while discovery remains desired.
 2. Phone joins the Pi's WiFi AP and connects to the HU TCP port.
 3. `AndroidAutoOrchestrator` creates `oaa::AASession` and registers channel handlers.
 4. Video/audio/input/sensor events flow through handlers into app services.
