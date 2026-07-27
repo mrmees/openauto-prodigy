@@ -421,8 +421,8 @@ private slots:
         QSignalSpy sentSpy(session->messenger(), &oaa::Messenger::messageSent);
 
         QByteArray versionResponse(6, '\0');
-        qToBigEndian<uint16_t>(5, reinterpret_cast<uchar*>(versionResponse.data()));
-        qToBigEndian<uint16_t>(1, reinterpret_cast<uchar*>(versionResponse.data() + 2));
+        qToBigEndian<uint16_t>(6, reinterpret_cast<uchar*>(versionResponse.data()));
+        qToBigEndian<uint16_t>(0, reinterpret_cast<uchar*>(versionResponse.data() + 2));
         qToBigEndian<uint16_t>(0, reinterpret_cast<uchar*>(versionResponse.data() + 4));
         session->messenger()->messageReceived(
             0, 0x0002, versionResponse, 0, oaa::MessageType::Specific);
@@ -529,7 +529,7 @@ private slots:
         QVERIFY(socket.waitForConnected());
         QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::acceptNextConnection(orch));
         QTRY_VERIFY_WITH_TIMEOUT(socket.bytesAvailable() >= 10, 1000);
-        QCOMPARE(socket.readAll(), QByteArray::fromHex("00030006000100050001"));
+        QCOMPARE(socket.readAll(), QByteArray::fromHex("00030006000100060000"));
         QCOMPARE(orch.clusterDisplay()->viewportEncodedWidth(), 1280);
         QCOMPARE(orch.clusterDisplay()->viewportContentWidth(), 600);
         QCOMPARE(orch.clusterDisplay()->viewportContentHeight(), 400);
@@ -712,8 +712,8 @@ private slots:
         auto* firstSession = oap::aa::AndroidAutoOrchestratorTestAccess::session(orch);
 
         QByteArray versionResponse(6, '\0');
-        qToBigEndian<uint16_t>(5, reinterpret_cast<uchar*>(versionResponse.data()));
-        qToBigEndian<uint16_t>(1, reinterpret_cast<uchar*>(versionResponse.data() + 2));
+        qToBigEndian<uint16_t>(6, reinterpret_cast<uchar*>(versionResponse.data()));
+        qToBigEndian<uint16_t>(0, reinterpret_cast<uchar*>(versionResponse.data() + 2));
         qToBigEndian<uint16_t>(0, reinterpret_cast<uchar*>(versionResponse.data() + 4));
         firstSession->messenger()->messageReceived(
             0, 0x0002, versionResponse, 0, oaa::MessageType::Specific);

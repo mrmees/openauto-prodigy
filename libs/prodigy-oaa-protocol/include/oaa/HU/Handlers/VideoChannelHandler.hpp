@@ -42,6 +42,10 @@ signals:
     void handlerError(const QString& message);
     void videoFrameData(std::shared_ptr<const QByteArray> data, qint64 enqueueTimeNs);
     void streamStarted(int32_t session, uint32_t configIndex);
+    void streamStartDetailsReceived(int32_t sessionId, uint32_t configIndex,
+                                    int sessionType, bool hasMediaConfig,
+                                    QString mediaConfigSummary);
+    void mediaOptionsReceived(const QString& boundedSummary);
     void streamStopped();
     void videoFocusChanged(int focusMode, bool unrequested);
     void uiConfigTokensReceived(const QMap<QString, uint32_t>& dayTokens,
@@ -50,6 +54,7 @@ signals:
 private:
     void handleSetupRequest(const QByteArray& payload);
     void handleStartIndication(const QByteArray& payload);
+    void handleMediaOptions(const QByteArray& payload);
     void handleStopIndication();
     void handleVideoFocusRequest(const QByteArray& payload);
     void handleVideoFocusIndication(const QByteArray& payload);

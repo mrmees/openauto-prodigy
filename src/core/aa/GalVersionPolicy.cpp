@@ -26,6 +26,8 @@ bool parseSupportedGalVersion(const QString& text,
         parsed = oaa::kGalVersion5_0;
     } else if (text == QStringLiteral("5.1")) {
         parsed = oaa::kGalVersion5_1;
+    } else if (text == QStringLiteral("6.0")) {
+        parsed = oaa::kGalVersion6_0;
     } else {
         return false;
     }
@@ -54,7 +56,8 @@ oaa::ProtocolVersion resolveConfiguredGalVersion(
 QStringList supportedGalVersionStrings()
 {
     return {QStringLiteral("1.7"), QStringLiteral("4.3"),
-            QStringLiteral("5.0"), QStringLiteral("5.1")};
+            QStringLiteral("5.0"), QStringLiteral("5.1"),
+            QStringLiteral("6.0")};
 }
 
 } // namespace oap::aa

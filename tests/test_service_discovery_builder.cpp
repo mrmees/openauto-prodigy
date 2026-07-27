@@ -220,6 +220,54 @@ private slots:
                  expectedCodec);
     }
 
+    void gal60KeepsExplicitSingleCodecCandidates_data() {
+        QTest::addColumn<QString>("codecYaml");
+        QTest::addColumn<int>("expectedCodec");
+
+        QTest::newRow("H.264 only")
+            << QStringLiteral("[h264]")
+            << static_cast<int>(
+                   oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+        QTest::newRow("H.265 only")
+            << QStringLiteral("[h265]")
+            << static_cast<int>(
+                   oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H265);
+    }
+
+    void gal60KeepsExplicitSingleCodecCandidates() {
+        QFETCH(QString, codecYaml);
+        QFETCH(int, expectedCodec);
+
+        QTemporaryFile file;
+        QVERIFY(file.open());
+        const QByteArray yaml = "video:\n  codecs: " + codecYaml.toUtf8() + "\n";
+        QCOMPARE(file.write(yaml), yaml.size());
+        file.flush();
+
+        oap::YamlConfig yamlConfig;
+        yamlConfig.load(file.fileName());
+        oap::aa::ServiceDiscoveryBuilder builder(&yamlConfig);
+        builder.setProtocolVersion(oaa::kGalVersion6_0);
+        builder.setProjectedClusterConfig({true, {}});
+
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Main), 1u);
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Cluster), 1u);
+
+        const auto session = builder.build();
+        const auto main = descriptorById(session, 3).av_channel();
+        const auto cluster = descriptorById(session, 12).av_channel();
+        QCOMPARE(main.video_configs_size(), 1);
+        QCOMPARE(cluster.video_configs_size(), 1);
+        QCOMPARE(static_cast<int>(main.stream_type()), expectedCodec);
+        QCOMPARE(static_cast<int>(cluster.stream_type()), expectedCodec);
+        QCOMPARE(static_cast<int>(main.video_configs(0).codec()),
+                 expectedCodec);
+        QCOMPARE(static_cast<int>(cluster.video_configs(0).codec()),
+                 expectedCodec);
+    }
+
     void testDefaultBuildProducesAllChannels() {
         oap::aa::ServiceDiscoveryBuilder builder;
         oaa::SessionConfig config = builder.build();

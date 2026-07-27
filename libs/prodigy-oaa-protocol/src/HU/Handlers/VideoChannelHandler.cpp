@@ -11,6 +11,7 @@ Q_DECLARE_METATYPE(std::shared_ptr<const QByteArray>)
 #include "oaa/av/AVChannelSetupStatusEnum.pb.h"
 #include "oaa/av/AVChannelStartIndicationMessage.pb.h"
 #include "oaa/av/AVChannelStopIndicationMessage.pb.h"
+#include "oaa/av/AVChannelMediaOptionsMessage.pb.h"
 #include "oaa/av/AVMediaAckIndicationMessage.pb.h"
 #include "oaa/video/VideoFocusRequestMessage.pb.h"
 #include "oaa/video/VideoFocusIndicationMessage.pb.h"
@@ -124,10 +125,12 @@ void VideoChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
                            respData);
         break;
     }
+    case oaa::AVMessageId::MEDIA_OPTIONS:
+        handleMediaOptions(data);
+        break;
     case oaa::AVMessageId::UPDATE_UI_CONFIG_FROM_PHONE:
     case oaa::AVMessageId::ACTION_TAKEN:
     case oaa::AVMessageId::OVERLAY_PARAMETERS:
-    case oaa::AVMessageId::MEDIA_OPTIONS:
     case oaa::AVMessageId::CRITICAL_UI_NOTIFICATION:
         qDebug() << "[VideoChannel] newer AV message:" << Qt::hex << messageId
                  << "size:" << data.size();
@@ -193,10 +196,39 @@ void VideoChannelHandler::handleStartIndication(const QByteArray& payload)
     session_ = start.session();
     streaming_ = true;
 
+    const int sessionType = start.has_session_type()
+        ? static_cast<int>(start.session_type())
+        : -1;
+    const bool hasMediaConfig = start.has_media_config();
+    const QString mediaConfigSummary = hasMediaConfig
+        ? QString::fromStdString(start.media_config().ShortDebugString())
+              .left(512)
+        : QString{};
+
     qInfo() << "[VideoChannel] stream started, session:" << session_
             << "config:" << start.config()
+            << "session type:" << sessionType
+            << "media config:" << mediaConfigSummary
             << "(of" << numVideoConfigs_ << "offered)";
     emit streamStarted(session_, start.config());
+    emit streamStartDetailsReceived(session_, start.config(), sessionType,
+                                    hasMediaConfig, mediaConfigSummary);
+}
+
+void VideoChannelHandler::handleMediaOptions(const QByteArray& payload)
+{
+    oaa::proto::messages::AVChannelMediaOptions options;
+    if (!options.ParseFromArray(payload.constData(), payload.size())) {
+        qWarning() << "[VideoChannel] failed to parse MediaOptions, size:"
+                   << payload.size();
+        return;
+    }
+
+    const QString summary = QString::fromStdString(
+        options.ShortDebugString()).left(512);
+    qDebug() << "[VideoChannel] media options, size:" << payload.size()
+             << "summary:" << summary;
+    emit mediaOptionsReceived(summary);
 }
 
 void VideoChannelHandler::handleStopIndication()
