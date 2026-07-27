@@ -99,6 +99,22 @@ void appendHiddenUiElementWithInsets(
     additional->add_hidden_ui_elements(element);
 }
 
+oaa::proto::enums::MediaCodecType::Enum videoCodecType(
+    const QString& codecName)
+{
+    using Codec = oaa::proto::enums::MediaCodecType;
+    static const QMap<QString, Codec::Enum> codecMap = {
+        {QStringLiteral("h264"), Codec::MEDIA_CODEC_VIDEO_H264_BP},
+        {QStringLiteral("h265"), Codec::MEDIA_CODEC_VIDEO_H265},
+        {QStringLiteral("vp9"), Codec::MEDIA_CODEC_VIDEO_VP9},
+        {QStringLiteral("av1"), Codec::MEDIA_CODEC_VIDEO_AV1},
+    };
+
+    const auto it = codecMap.find(codecName.toLower());
+    Q_ASSERT(it != codecMap.end());
+    return it.value();
+}
+
 } // namespace
 
 ServiceDiscoveryBuilder::ServiceDiscoveryBuilder(
@@ -118,6 +134,10 @@ ServiceDiscoveryBuilder::ServiceDiscoveryBuilder(
 
 uint32_t ServiceDiscoveryBuilder::videoConfigCount() const
 {
+    if (oaa::SessionProtocolPolicy(protocolVersion_)
+            .requiresSingleVideoCodecPerDisplay()) {
+        return 1;
+    }
     return static_cast<uint32_t>(videoCodecNames_.size());
 }
 
@@ -289,7 +309,10 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
 
     auto* avChannel = desc.mutable_av_channel();
     avChannel->set_stream_type(
-        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+        oaa::SessionProtocolPolicy(protocolVersion_)
+                .requiresSingleVideoCodecPerDisplay()
+            ? videoCodecType(videoCodecNames_.front())
+            : oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
     avChannel->set_color_scheme_support(oaa::proto::enums::ColorSchemeSupport::COLOR_SCHEME_MATERIAL_YOU_V3);
     if (projectedClusterConfig_.enabled) {
         avChannel->set_display_id(kMainDisplayId);
@@ -311,15 +334,6 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
     // Advertise only the configured resolution with codecs from config.
     // Config populated by capability detection (Task 6) or defaults to H.264+H.265.
     using Res = oaa::proto::enums::VideoResolution;
-    using Codec = oaa::proto::enums::MediaCodecType;
-
-    // Map codec name strings to protobuf enum values
-    static const QMap<QString, Codec::Enum> codecMap = {
-        { "h264", Codec::MEDIA_CODEC_VIDEO_H264_BP },
-        { "h265", Codec::MEDIA_CODEC_VIDEO_H265 },
-        { "vp9",  Codec::MEDIA_CODEC_VIDEO_VP9 },
-        { "av1",  Codec::MEDIA_CODEC_VIDEO_AV1 },
-    };
 
     struct ResInfo { Res::Enum res; int w; int h; const char* label; };
     ResInfo chosen = { Res::VIDEO_1280x720, 1280, 720, "720p" };
@@ -330,16 +344,19 @@ QByteArray ServiceDiscoveryBuilder::buildVideoDescriptor() const
     calcMargins(chosen.w, chosen.h, mW, mH);
 
     int configIdx = 0;
-    for (const auto& codecName : videoCodecNames_) {
-        auto it = codecMap.find(codecName.toLower());
-        Q_ASSERT(it != codecMap.end());
+    const qsizetype codecCount = oaa::SessionProtocolPolicy(protocolVersion_)
+                                        .requiresSingleVideoCodecPerDisplay()
+        ? 1
+        : videoCodecNames_.size();
+    for (qsizetype i = 0; i < codecCount; ++i) {
+        const QString& codecName = videoCodecNames_.at(i);
         auto* cfg = avChannel->add_video_configs();
         cfg->set_video_resolution(chosen.res);
         cfg->set_video_fps(fpsEnum);
         cfg->set_margin_width(mW);
         cfg->set_margin_height(mH);
         cfg->set_dpi(dpi);
-        cfg->set_codec(it.value());
+        cfg->set_codec(videoCodecType(codecName));
         if (oaa::SessionProtocolPolicy(protocolVersion_)
                 .usesModernDisplayPolicy()
             && navbarShownDuringAa(yamlConfig_)) {
@@ -367,7 +384,10 @@ QByteArray ServiceDiscoveryBuilder::buildClusterVideoDescriptor() const
 
     auto* avChannel = desc.mutable_av_channel();
     avChannel->set_stream_type(
-        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+        oaa::SessionProtocolPolicy(protocolVersion_)
+                .requiresSingleVideoCodecPerDisplay()
+            ? videoCodecType(videoCodecNames_.front())
+            : oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
     avChannel->set_display_id(kClusterDisplayId);
     avChannel->set_display_type(oaa::proto::enums::DisplayType::CLUSTER);
 
@@ -382,7 +402,10 @@ QByteArray ServiceDiscoveryBuilder::buildClusterVideoDescriptor() const
     config->set_margin_height(geometry.marginHeight());
     config->set_dpi(profile.dpi);
     config->set_codec(
-        oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+        oaa::SessionProtocolPolicy(protocolVersion_)
+                .requiresSingleVideoCodecPerDisplay()
+            ? videoCodecType(videoCodecNames_.front())
+            : oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
     if (oaa::SessionProtocolPolicy(protocolVersion_).usesModernDisplayPolicy()
         && profile.nativeTurnCardAvailable) {
         appendHiddenUiElementWithInsets(

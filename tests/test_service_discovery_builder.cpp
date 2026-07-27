@@ -124,6 +124,102 @@ private slots:
         QFAIL("Video descriptor missing");
     }
 
+    void lowerGalVersionsRetainConfiguredCodecDescriptors_data() {
+        QTest::addColumn<int>("galMajor");
+        QTest::addColumn<int>("galMinor");
+
+        QTest::newRow("GAL 1.7") << 1 << 7;
+        QTest::newRow("GAL 4.3") << 4 << 3;
+    }
+
+    void lowerGalVersionsRetainConfiguredCodecDescriptors() {
+        QFETCH(int, galMajor);
+        QFETCH(int, galMinor);
+
+        QTemporaryFile file;
+        QVERIFY(file.open());
+        const QByteArray yaml = "video:\n  codecs: [h265, h264]\n";
+        QCOMPARE(file.write(yaml), yaml.size());
+        file.flush();
+
+        oap::YamlConfig yamlConfig;
+        yamlConfig.load(file.fileName());
+        oap::aa::ServiceDiscoveryBuilder builder(&yamlConfig);
+        builder.setProtocolVersion({static_cast<uint16_t>(galMajor),
+                                    static_cast<uint16_t>(galMinor)});
+        builder.setProjectedClusterConfig({true, {}});
+
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Main), 2u);
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Cluster), 1u);
+
+        const auto session = builder.build();
+        const auto main = descriptorById(session, 3).av_channel();
+        QCOMPARE(main.video_configs_size(), 2);
+        QCOMPARE(main.video_configs(0).codec(),
+                 oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H265);
+        QCOMPARE(main.video_configs(1).codec(),
+                 oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+
+        const auto cluster = descriptorById(session, 12).av_channel();
+        QCOMPARE(cluster.video_configs_size(), 1);
+        QCOMPARE(cluster.video_configs(0).codec(),
+                 oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+    }
+
+    void gal50UsesOneSharedFirstConfiguredCodec_data() {
+        QTest::addColumn<QString>("codecYaml");
+        QTest::addColumn<int>("expectedCodec");
+
+        QTest::newRow("shipped H.264 first")
+            << QStringLiteral("[h264, h265]")
+            << static_cast<int>(
+                   oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+        QTest::newRow("configured H.265 first")
+            << QStringLiteral("[h265, h264]")
+            << static_cast<int>(
+                   oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H265);
+        QTest::newRow("unknown skipped before H.264")
+            << QStringLiteral("[bogus, h264, h265]")
+            << static_cast<int>(
+                   oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+    }
+
+    void gal50UsesOneSharedFirstConfiguredCodec() {
+        QFETCH(QString, codecYaml);
+        QFETCH(int, expectedCodec);
+
+        QTemporaryFile file;
+        QVERIFY(file.open());
+        const QByteArray yaml = "video:\n  codecs: " + codecYaml.toUtf8() + "\n";
+        QCOMPARE(file.write(yaml), yaml.size());
+        file.flush();
+
+        oap::YamlConfig yamlConfig;
+        yamlConfig.load(file.fileName());
+        oap::aa::ServiceDiscoveryBuilder builder(&yamlConfig);
+        builder.setProtocolVersion(oaa::kGalVersion5_0);
+        builder.setProjectedClusterConfig({true, {}});
+
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Main), 1u);
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Cluster), 1u);
+
+        const auto session = builder.build();
+        const auto main = descriptorById(session, 3).av_channel();
+        const auto cluster = descriptorById(session, 12).av_channel();
+        QCOMPARE(main.video_configs_size(), 1);
+        QCOMPARE(cluster.video_configs_size(), 1);
+        QCOMPARE(static_cast<int>(main.stream_type()), expectedCodec);
+        QCOMPARE(static_cast<int>(cluster.stream_type()), expectedCodec);
+        QCOMPARE(static_cast<int>(main.video_configs(0).codec()),
+                 expectedCodec);
+        QCOMPARE(static_cast<int>(cluster.video_configs(0).codec()),
+                 expectedCodec);
+    }
+
     void testDefaultBuildProducesAllChannels() {
         oap::aa::ServiceDiscoveryBuilder builder;
         oaa::SessionConfig config = builder.build();

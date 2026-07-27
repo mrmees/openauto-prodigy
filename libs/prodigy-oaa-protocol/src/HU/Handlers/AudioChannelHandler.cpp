@@ -17,6 +17,12 @@ AudioChannelHandler::AudioChannelHandler(uint8_t channelId, QObject* parent)
 {
 }
 
+void AudioChannelHandler::configureSession(
+    const oaa::SessionProtocolPolicy& policy)
+{
+    protocolPolicy_ = policy;
+}
+
 void AudioChannelHandler::onChannelOpened()
 {
     channelOpen_ = true;
@@ -96,9 +102,23 @@ void AudioChannelHandler::handleStartIndication(const QByteArray& payload)
     session_ = start.session();
     streaming_ = true;
 
+    const int sessionType = start.has_session_type()
+        ? static_cast<int>(start.session_type())
+        : -1;
+    const bool hasMediaConfig = start.has_media_config();
+    const QString mediaConfigSummary = hasMediaConfig
+        ? QString::fromStdString(start.media_config().ShortDebugString())
+              .left(512)
+        : QString{};
+
     qDebug() << "[AudioChannel" << channelId_
-             << "] stream started, session:" << session_;
+             << "] stream started, session:" << session_
+             << "config:" << start.config()
+             << "session type:" << sessionType
+             << "media config:" << mediaConfigSummary;
     emit streamStarted(session_);
+    emit streamStartDetailsReceived(session_, start.config(), sessionType,
+                                    hasMediaConfig, mediaConfigSummary);
 }
 
 void AudioChannelHandler::handleStopIndication()
@@ -115,9 +135,11 @@ void AudioChannelHandler::onMediaData(const QByteArray& data, uint64_t timestamp
 
     emit audioDataReceived(data, timestamp);
 
-    // Each accepted frame consumes one of the advertised permits. Return one
-    // immediately so the phone retains the remaining pipeline headroom.
-    sendAck();
+    if (!protocolPolicy_.usesAcklessAudio()) {
+        // Each accepted frame consumes one of the advertised permits. Return
+        // one immediately so the phone retains the remaining pipeline headroom.
+        sendAck();
+    }
 }
 
 void AudioChannelHandler::sendAck()

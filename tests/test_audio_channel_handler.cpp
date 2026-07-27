@@ -7,6 +7,7 @@
 #include "oaa/av/AVMediaAckIndicationMessage.pb.h"
 #include "oaa/av/MediaCodecTypeEnum.pb.h"
 #include "oaa/av/AVChannelStartIndicationMessage.pb.h"
+#include <google/protobuf/unknown_field_set.h>
 
 class TestAudioChannelHandler : public QObject {
     Q_OBJECT
@@ -52,6 +53,9 @@ private slots:
     void testStartIndicationEmitsSignal() {
         oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
         QSignalSpy startSpy(&handler, &oaa::hu::AudioChannelHandler::streamStarted);
+        QSignalSpy detailsSpy(
+            &handler,
+            &oaa::hu::AudioChannelHandler::streamStartDetailsReceived);
 
         handler.onChannelOpened();
 
@@ -65,11 +69,73 @@ private slots:
 
         QCOMPARE(startSpy.count(), 1);
         QCOMPARE(startSpy[0][0].value<int32_t>(), 42);
+        QCOMPARE(detailsSpy.count(), 1);
+        QCOMPARE(detailsSpy[0][0].value<int32_t>(), 42);
+        QCOMPARE(detailsSpy[0][1].value<uint32_t>(), 0u);
+        QCOMPARE(detailsSpy[0][2].toInt(), -1);
+        QCOMPARE(detailsSpy[0][3].toBool(), false);
+        QVERIFY(detailsSpy[0][4].toString().isEmpty());
         QVERIFY(handler.canAcceptMedia());
     }
 
-    void testMediaDataEmitsSignalAndAck() {
+    void testExtendedStartIndicationEmitsBoundedDetails() {
         oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
+        QSignalSpy startSpy(&handler,
+                            &oaa::hu::AudioChannelHandler::streamStarted);
+        QSignalSpy detailsSpy(
+            &handler,
+            &oaa::hu::AudioChannelHandler::streamStartDetailsReceived);
+
+        handler.onChannelOpened();
+
+        oaa::proto::messages::AVChannelStartIndication start;
+        start.set_session(73);
+        start.set_config(2);
+        start.set_session_type(
+            oaa::proto::enums::AVChannelSessionType::SESSION_TYPE_ALTERNATE);
+        auto* mediaConfig = start.mutable_media_config();
+        mediaConfig->set_feature_flag_1(true);
+        mediaConfig->set_config_value(37);
+        mediaConfig->GetReflection()
+            ->MutableUnknownFields(mediaConfig)
+            ->AddLengthDelimited(100, std::string(800, 'x'));
+
+        QByteArray payload(start.ByteSizeLong(), '\0');
+        start.SerializeToArray(payload.data(), payload.size());
+        handler.onMessage(oaa::AVMessageId::START_INDICATION, payload);
+
+        QCOMPARE(startSpy.count(), 1);
+        QCOMPARE(startSpy[0][0].value<int32_t>(), 73);
+        QCOMPARE(detailsSpy.count(), 1);
+        QCOMPARE(detailsSpy[0][0].value<int32_t>(), 73);
+        QCOMPARE(detailsSpy[0][1].value<uint32_t>(), 2u);
+        QCOMPARE(detailsSpy[0][2].toInt(), 2);
+        QCOMPARE(detailsSpy[0][3].toBool(), true);
+        const QString summary = detailsSpy[0][4].toString();
+        QCOMPARE(summary.size(), 512);
+        QVERIFY(summary.contains(QStringLiteral("config_value: 37")));
+    }
+
+    void testMediaDataAckPolicy_data() {
+        QTest::addColumn<int>("galMajor");
+        QTest::addColumn<int>("galMinor");
+        QTest::addColumn<int>("expectedAckCount");
+
+        QTest::newRow("GAL 1.7") << 1 << 7 << 3;
+        QTest::newRow("GAL 4.3") << 4 << 3 << 3;
+        QTest::newRow("GAL 5.0") << 5 << 0 << 0;
+        QTest::newRow("GAL 5.1") << 5 << 1 << 0;
+    }
+
+    void testMediaDataAckPolicy() {
+        QFETCH(int, galMajor);
+        QFETCH(int, galMinor);
+        QFETCH(int, expectedAckCount);
+
+        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
+        handler.configureSession(oaa::SessionProtocolPolicy({
+            static_cast<uint16_t>(galMajor),
+            static_cast<uint16_t>(galMinor)}));
         handler.onChannelOpened();
 
         // Start the stream
@@ -91,7 +157,7 @@ private slots:
         QCOMPARE(dataSpy.count(), 3);
         QCOMPARE(dataSpy[0][0].toByteArray().size(), 960);
 
-        QCOMPARE(sendSpy.count(), 3);
+        QCOMPARE(sendSpy.count(), expectedAckCount);
         for (const auto& emission : sendSpy) {
             QCOMPARE(emission[1].value<uint16_t>(),
                      static_cast<uint16_t>(oaa::AVMessageId::ACK_INDICATION));

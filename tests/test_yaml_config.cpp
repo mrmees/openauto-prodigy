@@ -77,7 +77,7 @@ void TestYamlConfig::testLoadDefaults()
     QCOMPARE(config.videoFps(), 30);
     QCOMPARE(config.autoConnectAA(), true);
     QCOMPARE(config.valueByPath("connection.gal_version").toString(),
-             QString("4.3"));
+             QString("5.0"));
     QCOMPARE(config.masterVolume(), 80);
     QCOMPARE(config.audioBufferMs("media"), 500);
     QCOMPARE(config.audioBufferMs("speech"), 500);
@@ -378,15 +378,17 @@ void TestYamlConfig::testGalVersionDefaultAndRoundTrip()
 {
     oap::YamlConfig config;
     QCOMPARE(config.valueByPath("connection.gal_version").toString(),
-             QString("4.3"));
-    QVERIFY(config.setValueByPath("connection.gal_version", QString("1.7")));
+             QString("5.0"));
+    QVERIFY(config.setValueByPath("connection.gal_version", QString("5.0")));
+    QCOMPARE(config.valueByPath("connection.gal_version").toString(),
+             QString("5.0"));
 
     const QString path = QDir::tempPath() + "/oap_test_gal_version.yaml";
     QVERIFY(config.save(path));
     oap::YamlConfig loaded;
     loaded.load(path);
     QCOMPARE(loaded.valueByPath("connection.gal_version").toString(),
-             QString("1.7"));
+             QString("5.0"));
     QFile::remove(path);
 }
 

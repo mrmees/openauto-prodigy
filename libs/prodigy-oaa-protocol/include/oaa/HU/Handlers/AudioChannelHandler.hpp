@@ -2,6 +2,7 @@
 
 #include <oaa/Channel/IAVChannelHandler.hpp>
 #include <oaa/Channel/MessageIds.hpp>
+#include <QString>
 
 namespace oaa {
 namespace hu {
@@ -11,6 +12,7 @@ class AudioChannelHandler : public oaa::IAVChannelHandler {
 public:
     explicit AudioChannelHandler(uint8_t channelId, QObject* parent = nullptr);
 
+    void configureSession(const oaa::SessionProtocolPolicy& policy) override;
     uint8_t channelId() const override { return channelId_; }
     void onChannelOpened() override;
     void onChannelClosed() override;
@@ -23,6 +25,9 @@ public:
 signals:
     void audioDataReceived(const QByteArray& data, uint64_t timestamp);
     void streamStarted(int32_t session);
+    void streamStartDetailsReceived(int32_t sessionId, uint32_t configIndex,
+                                    int sessionType, bool hasMediaConfig,
+                                    QString mediaConfigSummary);
     void streamStopped();
 private:
     static constexpr uint32_t MAX_UNACKED = 10;
@@ -33,6 +38,7 @@ private:
     void sendAck();
 
     uint8_t channelId_;
+    oaa::SessionProtocolPolicy protocolPolicy_;
     int32_t session_ = -1;
     bool channelOpen_ = false;
     bool streaming_ = false;

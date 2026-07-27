@@ -43,7 +43,7 @@ void YamlConfig::initDefaults()
 
     root_["connection"]["auto_connect_aa"] = true;
     root_["connection"]["bt_discoverable"] = true;
-    root_["connection"]["gal_version"] = "4.3";
+    root_["connection"]["gal_version"] = "5.0";
     root_["connection"]["wifi_ap"]["interface"] = "wlan0";
     root_["connection"]["wifi_ap"]["ssid"] = "OpenAutoProdigy";
     root_["connection"]["wifi_ap"]["password"] = "prodigy";
@@ -1270,11 +1270,14 @@ void YamlConfig::setGridSavedDims(int cols, int rows)
 
 // --- Generic dot-path access ---
 
-static QVariant yamlScalarToVariant(const YAML::Node& node)
+static QVariant yamlScalarToVariant(const YAML::Node& node,
+                                    bool preserveString = false)
 {
     if (!node.IsScalar()) return {};
 
     const std::string s = node.Scalar();
+    if (preserveString)
+        return QVariant(QString::fromStdString(s));
 
     if (s == "true") return QVariant(true);
     if (s == "false") return QVariant(false);
@@ -1303,7 +1306,8 @@ QVariant YamlConfig::valueByPath(const QString& dottedKey) const
         if (!node.IsDefined() || node.IsNull()) return {};
     }
 
-    return yamlScalarToVariant(node);
+    return yamlScalarToVariant(
+        node, dottedKey == QStringLiteral("connection.gal_version"));
 }
 
 YAML::Node YamlConfig::buildDefaultsNode()
