@@ -23,7 +23,7 @@ void TestConfigService::testReadTopLevelValues()
     QCOMPARE(svc.value("display.brightness").toInt(), 80);
     QCOMPARE(svc.value("audio.master_volume").toInt(), 80);
     QCOMPARE(svc.value("connection.wifi_ap.ssid").toString(), QString("OpenAutoProdigy"));
-    QCOMPARE(svc.value("connection.gal_version").toString(), QString("4.3"));
+    QCOMPARE(svc.value("connection.gal_version").toString(), QString("5.0"));
     QCOMPARE(svc.value("video.fps").toInt(), 30);
     QCOMPARE(svc.value("hardware_profile").toString(), QString("rpi4"));
     QCOMPARE(svc.value("api.tcp_port").toInt(), 9810);
