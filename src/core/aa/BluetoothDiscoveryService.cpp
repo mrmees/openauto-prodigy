@@ -4,6 +4,8 @@
 #include <QBluetoothLocalDevice>
 #include <QBluetoothUuid>
 #include <QDataStream>
+#include <QDBusConnection>
+#include <QDBusServiceWatcher>
 #include <QNetworkInterface>
 #include <limits>
 #include "../Logging.hpp"
@@ -28,6 +30,7 @@ namespace aa {
 // Android Auto Wireless projection UUID
 static const QBluetoothUuid kAAWirelessUuid(
     QStringLiteral("4de17a00-52cb-11e6-bdf4-0800200c9a66"));
+static const QString kBlueZService = QStringLiteral("org.bluez");
 
 // RFCOMM handshake message IDs (AA wireless projection protocol)
 static constexpr uint16_t kMsgWifiStartRequest = 1;      // HU -> Phone: IP + port
@@ -67,6 +70,17 @@ BluetoothDiscoveryService::BluetoothDiscoveryService(
     sdpRetryTimer_->setInterval(kStartupRetryIntervalMs);
     connect(sdpRetryTimer_, &QTimer::timeout,
             this, &BluetoothDiscoveryService::attemptSdpRegistration);
+
+    bluezServiceWatcher_ = new QDBusServiceWatcher(
+        kBlueZService,
+        QDBusConnection::systemBus(),
+        QDBusServiceWatcher::WatchForRegistration
+            | QDBusServiceWatcher::WatchForUnregistration,
+        this);
+    connect(bluezServiceWatcher_, &QDBusServiceWatcher::serviceRegistered,
+            this, &BluetoothDiscoveryService::handleBlueZServiceRegistered);
+    connect(bluezServiceWatcher_, &QDBusServiceWatcher::serviceUnregistered,
+            this, &BluetoothDiscoveryService::handleBlueZServiceUnregistered);
 }
 
 BluetoothDiscoveryService::~BluetoothDiscoveryService()
@@ -76,9 +90,15 @@ BluetoothDiscoveryService::~BluetoothDiscoveryService()
 
 void BluetoothDiscoveryService::start()
 {
-    if (startupStage_ != StartupStage::Stopped)
+    serviceDesired_ = true;
+    if (bluezRestartPending_ || startupStage_ != StartupStage::Stopped)
         return;
 
+    beginStartupEpoch();
+}
+
+void BluetoothDiscoveryService::beginStartupEpoch()
+{
     listenerRetryCount_ = 0;
     sdpRetryCount_ = 0;
     rfcommPort_ = 0;
@@ -173,6 +193,15 @@ void BluetoothDiscoveryService::attemptSdpRegistration()
 
 void BluetoothDiscoveryService::stop()
 {
+    serviceDesired_ = false;
+    bluezRestartPending_ = false;
+    retireDiscoveryEpoch();
+
+    qCInfo(lcBT) << "Stopped";
+}
+
+void BluetoothDiscoveryService::retireDiscoveryEpoch()
+{
     listenerRetryTimer_->stop();
     sdpRetryTimer_->stop();
     startupStage_ = StartupStage::Stopped;
@@ -189,8 +218,26 @@ void BluetoothDiscoveryService::stop()
 
     rfcommServer_->close();
     buffer_.clear();
+}
 
-    qCInfo(lcBT) << "Stopped";
+void BluetoothDiscoveryService::handleBlueZServiceUnregistered()
+{
+    if (!serviceDesired_)
+        return;
+
+    qCInfo(lcBT) << "BlueZ disappeared — retiring AA discovery epoch";
+    bluezRestartPending_ = true;
+    retireDiscoveryEpoch();
+}
+
+void BluetoothDiscoveryService::handleBlueZServiceRegistered()
+{
+    if (!serviceDesired_ || !bluezRestartPending_)
+        return;
+
+    qCInfo(lcBT) << "BlueZ returned — rebuilding AA discovery";
+    bluezRestartPending_ = false;
+    beginStartupEpoch();
 }
 
 QString BluetoothDiscoveryService::localAddress() const

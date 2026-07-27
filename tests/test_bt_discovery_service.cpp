@@ -1,8 +1,77 @@
 #include <QTest>
 #include <QSignalSpy>
 #include <QTimer>
+#include <QBluetoothSocket>
+#include <QDBusServiceWatcher>
 #include "core/aa/BluetoothDiscoveryService.hpp"
 #include "core/services/IConfigService.hpp"
+
+namespace oap::aa {
+
+class BluetoothDiscoveryServiceTestAccess {
+public:
+    static bool isStopped(const BluetoothDiscoveryService& service)
+    {
+        return service.startupStage_ == BluetoothDiscoveryService::StartupStage::Stopped;
+    }
+
+    static bool isRegisteringSdp(const BluetoothDiscoveryService& service)
+    {
+        return service.startupStage_ == BluetoothDiscoveryService::StartupStage::Sdp;
+    }
+
+    static bool isReady(const BluetoothDiscoveryService& service)
+    {
+        return service.startupStage_ == BluetoothDiscoveryService::StartupStage::Ready;
+    }
+
+    static uint8_t rfcommPort(const BluetoothDiscoveryService& service)
+    {
+        return service.rfcommPort_;
+    }
+
+    static uint32_t sdpRecordHandle(const BluetoothDiscoveryService& service)
+    {
+        return service.sdpRecordHandle_;
+    }
+
+    static void setSdpRecordHandle(BluetoothDiscoveryService& service, uint32_t handle)
+    {
+        service.sdpRecordHandle_ = handle;
+    }
+
+    static void setSocket(BluetoothDiscoveryService& service, QBluetoothSocket* socket)
+    {
+        service.socket_ = socket;
+    }
+
+    static bool hasSocket(const BluetoothDiscoveryService& service)
+    {
+        return service.socket_ != nullptr;
+    }
+
+    static bool rfcommServerIsListening(const BluetoothDiscoveryService& service)
+    {
+        return service.rfcommServer_->isListening();
+    }
+
+    static bool hasBlueZWatcher(const BluetoothDiscoveryService& service)
+    {
+        return service.bluezServiceWatcher_ != nullptr;
+    }
+
+    static void notifyBlueZUnregistered(BluetoothDiscoveryService& service)
+    {
+        service.bluezServiceWatcher_->serviceUnregistered(QStringLiteral("org.bluez"));
+    }
+
+    static void notifyBlueZRegistered(BluetoothDiscoveryService& service)
+    {
+        service.bluezServiceWatcher_->serviceRegistered(QStringLiteral("org.bluez"));
+    }
+};
+
+} // namespace oap::aa
 
 // Stub IConfigService for testing
 class StubConfigService : public oap::IConfigService {
@@ -44,7 +113,11 @@ protected:
     bool registerSdpRecord(uint8_t rfcommChannel) override
     {
         registeredPorts.append(rfcommChannel);
-        return sdpResults.isEmpty() ? false : sdpResults.takeFirst();
+        const bool registered = sdpResults.isEmpty() ? false : sdpResults.takeFirst();
+        if (registered)
+            oap::aa::BluetoothDiscoveryServiceTestAccess::setSdpRecordHandle(
+                *this, 0x20000u + static_cast<uint32_t>(registeredPorts.size()));
+        return registered;
     }
 };
 
@@ -205,6 +278,109 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(
             &sdpPending, "attemptSdpRegistration", Qt::DirectConnection));
         QCOMPARE(sdpPending.registeredPorts, QList<quint16>{12});
+    }
+
+    void testBlueZLossFromReadyRetiresEpochAndRebuildsDiscovery() {
+        StubConfigService cfg;
+        ScriptedBluetoothDiscoveryService svc(&cfg);
+        svc.listenerResults = {11, 23};
+        svc.sdpResults = {true, true};
+        svc.start();
+
+        QVERIFY(oap::aa::BluetoothDiscoveryServiceTestAccess::isReady(svc));
+        QCOMPARE(oap::aa::BluetoothDiscoveryServiceTestAccess::rfcommPort(svc),
+                 uint8_t{11});
+        QVERIFY(oap::aa::BluetoothDiscoveryServiceTestAccess::sdpRecordHandle(svc) != 0);
+        QVERIFY(oap::aa::BluetoothDiscoveryServiceTestAccess::hasBlueZWatcher(svc));
+
+        oap::aa::BluetoothDiscoveryServiceTestAccess::setSocket(
+            svc, new QBluetoothSocket(&svc));
+
+        oap::aa::BluetoothDiscoveryServiceTestAccess::notifyBlueZUnregistered(svc);
+
+        QVERIFY(oap::aa::BluetoothDiscoveryServiceTestAccess::isStopped(svc));
+        QCOMPARE(oap::aa::BluetoothDiscoveryServiceTestAccess::rfcommPort(svc),
+                 uint8_t{0});
+        QCOMPARE(oap::aa::BluetoothDiscoveryServiceTestAccess::sdpRecordHandle(svc), 0u);
+        QVERIFY(!oap::aa::BluetoothDiscoveryServiceTestAccess::hasSocket(svc));
+        QVERIFY(!oap::aa::BluetoothDiscoveryServiceTestAccess::rfcommServerIsListening(svc));
+        QVERIFY(!svc.findChild<QTimer*>("rfcommListenerRetryTimer")->isActive());
+        QVERIFY(!svc.findChild<QTimer*>("sdpRetryTimer")->isActive());
+
+        // Late callbacks from the retired epoch cannot do any work.
+        QVERIFY(QMetaObject::invokeMethod(
+            &svc, "attemptListenerStart", Qt::DirectConnection));
+        QVERIFY(QMetaObject::invokeMethod(
+            &svc, "attemptSdpRegistration", Qt::DirectConnection));
+        QCOMPARE(svc.listenerAttempts, 1);
+        QCOMPARE(svc.registeredPorts, QList<quint16>{11});
+
+        oap::aa::BluetoothDiscoveryServiceTestAccess::notifyBlueZRegistered(svc);
+
+        QCOMPARE(svc.listenerAttempts, 2);
+        QCOMPARE(svc.registeredPorts, (QList<quint16>{11, 23}));
+        QVERIFY(oap::aa::BluetoothDiscoveryServiceTestAccess::isReady(svc));
+        QCOMPARE(oap::aa::BluetoothDiscoveryServiceTestAccess::rfcommPort(svc),
+                 uint8_t{23});
+        QVERIFY(oap::aa::BluetoothDiscoveryServiceTestAccess::sdpRecordHandle(svc) != 0);
+        QVERIFY(!svc.findChild<QTimer*>("rfcommListenerRetryTimer")->isActive());
+        QVERIFY(!svc.findChild<QTimer*>("sdpRetryTimer")->isActive());
+
+        // A duplicate registration signal is not another recovery epoch.
+        oap::aa::BluetoothDiscoveryServiceTestAccess::notifyBlueZRegistered(svc);
+        QCOMPARE(svc.listenerAttempts, 2);
+        QCOMPARE(svc.registeredPorts, (QList<quint16>{11, 23}));
+    }
+
+    void testBlueZLossDuringSdpRetryCancelsStaleAttemptAndStartsFreshEpoch() {
+        StubConfigService cfg;
+        ScriptedBluetoothDiscoveryService svc(&cfg);
+        svc.listenerResults = {13, 29};
+        svc.sdpResults = {false, true};
+        svc.start();
+
+        QVERIFY(oap::aa::BluetoothDiscoveryServiceTestAccess::isRegisteringSdp(svc));
+        QCOMPARE(svc.registeredPorts, QList<quint16>{13});
+        QVERIFY(svc.findChild<QTimer*>("sdpRetryTimer")->isActive());
+
+        oap::aa::BluetoothDiscoveryServiceTestAccess::notifyBlueZUnregistered(svc);
+
+        QVERIFY(oap::aa::BluetoothDiscoveryServiceTestAccess::isStopped(svc));
+        QCOMPARE(oap::aa::BluetoothDiscoveryServiceTestAccess::rfcommPort(svc),
+                 uint8_t{0});
+        QVERIFY(!svc.findChild<QTimer*>("rfcommListenerRetryTimer")->isActive());
+        QVERIFY(!svc.findChild<QTimer*>("sdpRetryTimer")->isActive());
+
+        QVERIFY(QMetaObject::invokeMethod(
+            &svc, "attemptSdpRegistration", Qt::DirectConnection));
+        QCOMPARE(svc.registeredPorts, QList<quint16>{13});
+
+        oap::aa::BluetoothDiscoveryServiceTestAccess::notifyBlueZRegistered(svc);
+        QCOMPARE(svc.listenerAttempts, 2);
+        QCOMPARE(svc.registeredPorts, (QList<quint16>{13, 29}));
+        QVERIFY(oap::aa::BluetoothDiscoveryServiceTestAccess::isReady(svc));
+        QCOMPARE(oap::aa::BluetoothDiscoveryServiceTestAccess::rfcommPort(svc),
+                 uint8_t{29});
+    }
+
+    void testStopDuringBlueZOutageSuppressesRestartOnReturn() {
+        StubConfigService cfg;
+        ScriptedBluetoothDiscoveryService svc(&cfg);
+        svc.listenerResults = {17, 31};
+        svc.sdpResults = {true, true};
+        svc.start();
+
+        oap::aa::BluetoothDiscoveryServiceTestAccess::notifyBlueZUnregistered(svc);
+        svc.stop();
+        oap::aa::BluetoothDiscoveryServiceTestAccess::notifyBlueZRegistered(svc);
+
+        QCOMPARE(svc.listenerAttempts, 1);
+        QCOMPARE(svc.registeredPorts, QList<quint16>{17});
+        QVERIFY(oap::aa::BluetoothDiscoveryServiceTestAccess::isStopped(svc));
+        QCOMPARE(oap::aa::BluetoothDiscoveryServiceTestAccess::rfcommPort(svc),
+                 uint8_t{0});
+        QVERIFY(!svc.findChild<QTimer*>("rfcommListenerRetryTimer")->isActive());
+        QVERIFY(!svc.findChild<QTimer*>("sdpRetryTimer")->isActive());
     }
 };
 

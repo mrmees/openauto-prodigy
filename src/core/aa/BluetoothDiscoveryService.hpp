@@ -10,11 +10,15 @@
 #include "oaa/wifi/WifiStartRequestMessage.pb.h"
 #include "oaa/wifi/WifiSecurityResponseMessage.pb.h"
 
+class QDBusServiceWatcher;
+
 namespace oap {
 
 class IConfigService;
 
 namespace aa {
+
+class BluetoothDiscoveryServiceTestAccess;
 
 class BluetoothDiscoveryService : public QObject
 {
@@ -54,6 +58,8 @@ private slots:
     void readSocket();
     void attemptListenerStart();
     void attemptSdpRegistration();
+    void handleBlueZServiceRegistered();
+    void handleBlueZServiceUnregistered();
 
 protected:
     /// Narrow startup seams used to exercise the production retry state
@@ -62,6 +68,8 @@ protected:
     virtual bool registerSdpRecord(uint8_t rfcommChannel);
 
 private:
+    friend class BluetoothDiscoveryServiceTestAccess;
+
     enum class StartupStage {
         Stopped,
         Listener,
@@ -70,6 +78,8 @@ private:
         Failed,
     };
 
+    void beginStartupEpoch();
+    void retireDiscoveryEpoch();
     void sendMessage(const google::protobuf::Message& message, uint16_t type);
     void sendWifiStartRequest();
     void handleWifiCredentialRequest();
@@ -86,10 +96,13 @@ private:
     uint32_t sdpRecordHandle_ = 0;
     QTimer* listenerRetryTimer_ = nullptr;
     QTimer* sdpRetryTimer_ = nullptr;
+    QDBusServiceWatcher* bluezServiceWatcher_ = nullptr;
     uint8_t rfcommPort_ = 0;
     int listenerRetryCount_ = 0;
     int sdpRetryCount_ = 0;
     StartupStage startupStage_ = StartupStage::Stopped;
+    bool serviceDesired_ = false;
+    bool bluezRestartPending_ = false;
 };
 
 } // namespace aa
