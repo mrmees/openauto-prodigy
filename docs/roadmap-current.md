@@ -26,11 +26,16 @@ spike, or research-first feasibility work.
   accepted version becomes a supported production choice and the shipped
   default advances to the highest accepted tuple, ending at 6.0. The work adds
   ackless audio and single-codec display policy at 5.0, typed MediaOptions and
-  energy-forecast tolerance at 5.1, typed modern video options plus measured
-  H.264/H.265 selection at 6.0, while retaining requested-version authority
-  and explicit lower-version fallbacks. GAL 6.1, semantic unresolved options,
-  EV UI, outgoing media stats, overlays, AUXILIARY, and third-display work are
-  excluded. Design and plan:
+  energy-forecast tolerance at 5.1, and typed modern video options at 6.0.
+  H.265 remains the accepted production codec from repeated live validation;
+  the default order is restored to H.265 then H.264 after GAL 5.0 accidentally
+  made the legacy H.264-first list decisive. H.264 GAL 6.0 fallback behavior is
+  proven on `2bc574e`. The remaining hardware gate is one H.265 matrix with
+  independent operator checkpoints, three reconnects, a second-phone smoke,
+  and lower-GAL smokes—not a new codec A/B or comparative resource threshold.
+  Requested-version authority and explicit lower-version fallbacks remain.
+  GAL 6.1, semantic unresolved options, EV UI, outgoing media stats, overlays,
+  AUXILIARY, and third-display work are excluded. Design and plan:
   `docs/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-design.md`
   and
   `docs/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-plan.md`.

@@ -53,8 +53,8 @@ supported wireless Android Auto workflow on the Pi:
 5. every evidenced phone-to-HU message enabled through GAL 6.0 is typed and
    bounded locally, even when Prodigy does not consume its application meaning;
 6. each advertised display has one codec type at GAL 5.0 and above;
-7. H.264 and H.265 are measured on the Pi under GAL 6.0 and the safer proven
-   default is selected; and
+7. the existing hardware-accepted H.265 product default remains first while
+   H.264 remains a supported explicit fallback; and
 8. explicit lower-version choices continue to use only the obligations of
    their requested version.
 
@@ -164,7 +164,7 @@ below the expected threshold.
 | 4.5+ | No new HU wire message; telephone-key behavior changes on the phone and is regression-tested |
 | 5.0+ | Ackless audio, extended audio-start tolerance, and one codec type per display |
 | 5.1+ | Typed audio MediaOptions and navigation VehicleEnergyForecast handling |
-| 6.0+ | Typed extended video start and standalone video MediaOptions handling; conditional H.265 evaluation |
+| 6.0+ | Typed extended video start and standalone video MediaOptions handling; accepted H.265 default with H.264 fallback |
 
 The 5.0 gate is audio-specific in the current evidence. Video continues its
 per-packet receive ACKs through GAL 6.0 unless new framed evidence establishes
@@ -230,7 +230,7 @@ At requested 5.0 and above:
   `config`, optional `session_type`, and optional 13-field `media_config`;
 - each display advertises exactly one codec type; and
 - MAIN and CLUSTER use the same first recognized configured codec, with the
-  shipped ordering making H.264 the baseline.
+  shipped ordering making H.265 the default and H.264 the fallback.
 
 Setup response `max_unacked` remains unchanged unless live framed evidence
 shows it must differ. The current evidence proves that the phone stops
@@ -259,7 +259,7 @@ identity causes the phone not to deliver them live. The live checkpoint still
 proves route, music, assistant, display, input, and reconnect health before
 5.1 becomes the default.
 
-### Stage 4 — GAL 6.0 and codec decision
+### Stage 4 — GAL 6.0 and H.265 regression acceptance
 
 Video start indications parse and diagnose optional `session_type` and
 `media_config`. Standalone video `0x8014` parses the same audited options
@@ -273,22 +273,21 @@ schema's presentation, drop, cadence, and unit semantics are not sufficiently
 proven to send truthful stats, and current evidence does not establish that
 GAL 6.0 requires them.
 
-The first GAL 6.0 checkpoint uses one H.264 configuration per display. After
-that is healthy, the same resolution, FPS, route, display set, and phone are
-repeated with one H.265 configuration per display. Stability outranks codec
-novelty. H.265 becomes the shipped codec default only if it:
+H.265 is an existing accepted product decision, repeatedly validated in live
+Pi/phone projection before this GAL program. GAL 5.0's single-codec rule made
+the legacy H.264-first capability list decisive by accident; it did not expose
+a new codec, decoder, render, framing, or ACK constraint. Restore the compiled
+ordering to H.265 then H.264. Explicit configuration order remains
+authoritative, and the H.264 GAL 6.0 fallback was proven on `2bc574e`.
 
-- completes the same sustained and reconnect matrix without protocol,
-  decoder, visual-corruption, or application-restart regressions;
-- does not reduce delivered FPS or increase sustained decoder queue depth;
-- does not increase median receive-to-frame-storage time by more than 5 ms;
-  and
-- improves at least one measured resource dimension by 10 percent or more
-  (application CPU or captured wire bytes over the matched interval).
-
-Otherwise H.264 remains the codec default while H.265 remains a supported
-explicit codec choice. GAL 6.0 still becomes the protocol default after the
-full matrix passes; codec selection and GAL selection are independent.
+The GAL 6.0 hardware gate therefore runs one H.265 regression/acceptance
+matrix, not a new codec bake-off. The operator checks negotiation and one
+H.265 descriptor per MAIN/CLUSTER display, projection and visual health, every
+audio role, Assistant, navigation, input, focus, and service stability as
+independent checkpoints. The matrix also includes three AA-only reconnects, a
+second-phone connection/media/reconnect smoke, and explicit lower-GAL smokes
+before restoring 6.0. Diagnostics remain evidence, but there is no timed
+functional choreography or comparative resource threshold.
 
 ## Error handling and diagnostics
 

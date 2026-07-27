@@ -360,8 +360,8 @@ QT_QPA_PLATFORM=offscreen ctest --test-dir ~/builds/openauto-prodigy \
    closed/not-streaming behavior unchanged.
 4. Add builder tests proving every display has exactly one codec type at 5.0+
    while 1.7/4.3 retain their configured codec list. MAIN and CLUSTER use the
-   same first recognized configured codec; the shipped H.264-first default
-   yields one H.264 config on each enabled display.
+   same first recognized configured codec. The shipped order is H.265 then
+   H.264; explicit H.264-first configuration remains order-authoritative.
 5. Add 5.0 to the production picker/allowlist and advance the candidate
    default to 5.0.
 6. Run the focused command and commit:
@@ -554,44 +554,46 @@ git commit -m "feat(aa): add GAL 6.0 video compatibility"
 **Acceptance:** GAL 6.0 extended video messages are typed and bounded, video
 ACK behavior remains explicit, and both single-codec candidates are testable.
 
-## Task 7 — Hardware-accept GAL 6.0 and select the codec default
+## Task 7 — Hardware-accept GAL 6.0 with the accepted H.265 default
 
 **Files:**
 
-- Modify only if H.265 wins: `src/core/YamlConfig.cpp`
-- Modify only if H.265 wins: affected YAML/config tests
 - Update: `docs/session-handoffs.md`
 - Update only if evidence is incomplete: `docs/validation-current.md`
 
-1. Run the full native/app/CTest and ARM gate, create rollback artifacts,
-   deploy the exact candidate, and record executable/config/service identity.
-2. Capture request 6.0 and require MATCH with reported tuple at least 6.0.
-3. Run an H.264 MAIN+CLUSTER interval for twenty sustained minutes at the
-   configured resolution/FPS with a fixed route and repeatable UI activity.
-4. Record protocol errors, restarts, received/ACK counts, FPS, decoder queue,
-   decode/copy/total timing, `pidstat` application CPU, and matched-interval
-   capture bytes. Exercise audio roles, Assistant, input, focus, and three
-   reconnects during the matrix.
-5. Configure one H.265 codec per display and repeat the identical twenty-minute
-   interval and reconnect sequence on the same phone.
-6. Choose H.265 only if it meets every design criterion: no stability/visual
-   regression, no lower FPS or sustained queue increase, total time no more
-   than 5 ms worse, and at least 10 percent lower CPU or wire bytes. Otherwise
-   retain H.264 as default. Record the raw comparison; do not average away
-   failed intervals.
-7. If H.265 wins, update the default codec ordering and its focused tests in a
-   coherent commit. If H.264 wins, make no source mutation solely to record
-   the decision.
-8. On another available project test phone, run request/response,
-   MAIN video/audio/input, and one reconnect using the selected defaults.
-9. Run explicit 1.7, 4.3, 5.0, and 5.1 connection/media smoke tests, then
-   restore 6.0.
-10. Record the hardware-accepted GAL 6.0 SHA and selected codec. On required
-    failure, restore accepted 5.1 and stop.
+H.265 is already the accepted product codec from repeated live Pi/phone
+validation. GAL 5.0 accidentally made the legacy H.264-first list decisive
+when it introduced one codec per display; GAL 6.0 did not change compressed
+video framing, decoding, rendering, or video ACKs. The corrected default is
+H.265 then H.264, while explicit order remains authoritative and the H.264 GAL
+6.0 fallback is proven on `2bc574e`.
 
-**Acceptance:** GAL 6.0 is the validated production default, the selected
-codec is evidence-backed, the Pixel completes the full matrix, a second phone
-passes the production smoke, and every lower supported request remains usable.
+1. Run the full native/app/CTest and ARM gate, create rollback artifacts,
+   deploy the exact H.265-default candidate, and record executable,
+   configuration, and service identity.
+2. Capture request 6.0, require MATCH with a reported tuple at least 6.0, and
+   prove MAIN and CLUSTER each advertise exactly one H.265 config/stream type.
+3. Run independent operator checkpoints for MAIN+CLUSTER projection and visual
+   health, media/speech/system audio, Assistant microphone/response,
+   navigation start/change/stop, MAIN input and phone keys, focus exit/return,
+   and service/process stability. Do not replace these checkpoints with a
+   timer-based functional choreography.
+4. Record protocol errors, restarts, video receive/ACK counts, FPS, decoder
+   queue, and decode/copy/total timing as regression diagnostics. No
+   comparative resource threshold decides the already accepted codec default.
+5. Complete three AA-only disconnect/reconnect cycles without restarting the
+   application.
+6. On another available project test phone, run request/response, MAIN
+   video/audio/input, and one reconnect with the H.265 default.
+7. Run explicit 1.7, 4.3, 5.0, and 5.1 connection/media smokes, then restore
+   6.0.
+8. Record the hardware-accepted GAL 6.0 SHA and H.265 result. On any required
+   failure, restore accepted 5.1 and stop.
+
+**Acceptance:** GAL 6.0 with the accepted H.265 default passes every
+independent Pixel checkpoint and three reconnects, a second phone passes the
+production smoke, and every lower supported request remains usable. H.264
+remains the proven explicit fallback.
 
 ## Task 8 — Reconcile documentation and run the final gate
 
@@ -610,7 +612,7 @@ passes the production smoke, and every lower supported request remains usable.
 1. Document the production setting, exact supported list, highest-accepted
    default rule, requested-versus-reported authority, version thresholds,
    single-codec behavior, ackless-audio/video-ACK split, typed 5.1/6.0
-   tolerance, and selected codec result.
+   tolerance, and the H.265 regression-acceptance result.
 2. Remove live guidance that calls GAL 4.3 a default-off lab or says GAL is
    owned by the CLUSTER profile. Preserve archived history unchanged.
 3. Record each accepted SHA, hardware evidence location, and OAA `v1.5`

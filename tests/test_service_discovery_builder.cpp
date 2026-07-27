@@ -172,7 +172,7 @@ private slots:
         QTest::addColumn<QString>("codecYaml");
         QTest::addColumn<int>("expectedCodec");
 
-        QTest::newRow("shipped H.264 first")
+        QTest::newRow("configured H.264 first")
             << QStringLiteral("[h264, h265]")
             << static_cast<int>(
                    oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
@@ -266,6 +266,32 @@ private slots:
                  expectedCodec);
         QCOMPARE(static_cast<int>(cluster.video_configs(0).codec()),
                  expectedCodec);
+    }
+
+    void gal60DefaultUsesOneH265ConfigPerDisplay() {
+        oap::YamlConfig yamlConfig;
+        oap::aa::ServiceDiscoveryBuilder builder(&yamlConfig);
+        builder.setProtocolVersion(oaa::kGalVersion6_0);
+        builder.setProjectedClusterConfig({true, {}});
+
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Main), 1u);
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Cluster), 1u);
+
+        const auto session = builder.build();
+        const auto main = descriptorById(session, 3).av_channel();
+        const auto cluster = descriptorById(session, 12).av_channel();
+        QCOMPARE(main.video_configs_size(), 1);
+        QCOMPARE(cluster.video_configs_size(), 1);
+        QCOMPARE(main.stream_type(),
+                 oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H265);
+        QCOMPARE(cluster.stream_type(),
+                 oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H265);
+        QCOMPARE(main.video_configs(0).codec(),
+                 oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H265);
+        QCOMPARE(cluster.video_configs(0).codec(),
+                 oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H265);
     }
 
     void testDefaultBuildProducesAllChannels() {
@@ -809,9 +835,9 @@ private slots:
                  baseVideoConfigBytes(legacyClusterVideo.video_configs(0)));
 
         static const QByteArray modernMainGolden = QByteArray::fromHex(
-            "08031a420803221b080110021800203a288c015003"
+            "08031a420803221b080110021800203a288c015007"
             "5a0c0a08081d101d180020002801"
-            "221b080110021800203a288c015007"
+            "221b080110021800203a288c015003"
             "5a0c0a08081d101d180020002801300038004803");
         static const QByteArray modernClusterGolden = QByteArray::fromHex(
             "080c1a270803221f0801100218f40320b401288c015003"

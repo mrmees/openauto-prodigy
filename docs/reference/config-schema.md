@@ -84,7 +84,7 @@ video:
   fps: 30
   resolution: 720p
   dpi: 140
-  codecs: [h264, h265]
+  codecs: [h265, h264]
   decoder:
     h264: auto
     h265: auto
@@ -276,7 +276,7 @@ The following maps or sequences are not writable as whole values through
 
 | Path | Default / Shape | Owner |
 |---|---|---|
-| `video.codecs` | `[h264, h265]` | Service-discovery codec list read by the typed `videoCodecs()` accessor. Edit it in YAML: the current QML scalar bridge cannot read or write the sequence. Keep it to H.264/H.265 because the decoder does not identify VP9/AV1 streams. |
+| `video.codecs` | `[h265, h264]` | Ordered service-discovery codec list read by the typed `videoCodecs()` accessor. At GAL 5.0+, the first recognized entry is the single codec advertised for MAIN and CLUSTER; the accepted default is H.265 first, while H.264 remains the supported fallback. Explicit YAML order is authoritative. Edit it in YAML: the current QML scalar bridge cannot read or write the sequence. Keep it to H.264/H.265 because the decoder does not identify VP9/AV1 streams. |
 | `logging.debug_categories` | `[]` of strings | Selective debug categories using the canonical values `aa`, `bt`, `audio`, `plugin`, `ui`, `core`, and `eq`; `aa` also enables the Android Auto protocol library category. Owned by the typed `loggingDebugCategories()` / `setLoggingDebugCategories()` accessors. Generic dot-path access remains scalar-only. |
 | `audio.equalizer.streams.<stream>.gains` | Optional list of exactly ten finite values, clamped to ±12 dB | `EqualizerService` dedicated accessors. |
 | `audio.equalizer.streams.<stream>.bypassed` | Optional bool, effectively `false` when absent | `EqualizerService` dedicated accessors. |

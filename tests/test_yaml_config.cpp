@@ -16,6 +16,7 @@ private slots:
     void testIdentityDefaults();
     void testIdentityFromFile();
     void testVideoDpi();
+    void testVideoCodecDefaults();
     void testSensorsDefaults();
     void testSensorsFromFile();
     void testMicDefaults();
@@ -97,6 +98,13 @@ void TestYamlConfig::testLoadFromFile()
     auto enabled = config.enabledPlugins();
     QCOMPARE(enabled.size(), 2);
     QCOMPARE(enabled[0], QString("org.openauto.android-auto"));
+}
+
+void TestYamlConfig::testVideoCodecDefaults()
+{
+    oap::YamlConfig config;
+    QCOMPARE(config.videoCodecs(),
+             QStringList({QStringLiteral("h265"), QStringLiteral("h264")}));
 }
 
 void TestYamlConfig::testSaveAndReload()
