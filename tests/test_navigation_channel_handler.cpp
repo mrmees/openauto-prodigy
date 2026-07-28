@@ -119,6 +119,9 @@ private slots:
     void testNotificationMultiStepWithLanes() {
         oaa::hu::NavigationChannelHandler handler;
         QSignalSpy spy(&handler, &oaa::hu::NavigationChannelHandler::navigationNotificationReceived);
+        QSignalSpy laneSpy(
+            &handler,
+            &oaa::hu::NavigationChannelHandler::navigationLaneGuidanceChanged);
 
         oaa::proto::messages::NavigationNotification msg;
 
@@ -159,6 +162,56 @@ private slots:
         QCOMPARE(spy[0][0].toInt(), 2);         // stepCount
         QCOMPARE(spy[0][1].toInt(), 2);         // total lane count across steps
         QCOMPARE(spy[0][2].toString(), QString("123 Elm Street")); // destination
+        QCOMPARE(laneSpy.count(), 1);
+        const auto lanes = qvariant_cast<oaa::hu::NavigationLaneGuidance>(
+            laneSpy[0][0]);
+        QCOMPARE(lanes.size(), 1);
+        QCOMPARE(lanes[0].directions.size(), 1);
+        QCOMPARE(lanes[0].directions[0].shape, 1);
+        QVERIFY(lanes[0].directions[0].recommended);
+    }
+
+    void testNotificationLaneSnapshotPreservesDirectionsAndClears() {
+        oaa::hu::NavigationChannelHandler handler;
+        QSignalSpy laneSpy(
+            &handler,
+            &oaa::hu::NavigationChannelHandler::navigationLaneGuidanceChanged);
+
+        oaa::proto::messages::NavigationNotification withLanes;
+        auto* lane = withLanes.add_steps()->add_lanes();
+        auto* first = lane->add_directions();
+        first->set_shape(
+            static_cast<oaa::proto::enums::LaneShape::Enum>(1));
+        first->set_is_recommended(false);
+        auto* second = lane->add_directions();
+        second->set_shape(
+            static_cast<oaa::proto::enums::LaneShape::Enum>(5));
+        second->set_is_recommended(true);
+
+        QByteArray payload(withLanes.ByteSizeLong(), '\0');
+        QVERIFY(withLanes.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(oaa::NavigationMessageId::NAV_STEP, payload);
+
+        QCOMPARE(laneSpy.count(), 1);
+        const auto firstSnapshot =
+            qvariant_cast<oaa::hu::NavigationLaneGuidance>(laneSpy[0][0]);
+        QCOMPARE(firstSnapshot.size(), 1);
+        QCOMPARE(firstSnapshot[0].directions.size(), 2);
+        QCOMPARE(firstSnapshot[0].directions[0].shape, 1);
+        QCOMPARE(firstSnapshot[0].directions[0].recommended, false);
+        QCOMPARE(firstSnapshot[0].directions[1].shape, 5);
+        QCOMPARE(firstSnapshot[0].directions[1].recommended, true);
+
+        oaa::proto::messages::NavigationNotification withoutLanes;
+        withoutLanes.add_steps();
+        payload = QByteArray(withoutLanes.ByteSizeLong(), '\0');
+        QVERIFY(withoutLanes.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(oaa::NavigationMessageId::NAV_STEP, payload);
+
+        QCOMPARE(laneSpy.count(), 2);
+        const auto emptySnapshot =
+            qvariant_cast<oaa::hu::NavigationLaneGuidance>(laneSpy[1][0]);
+        QVERIFY(emptySnapshot.isEmpty());
     }
 
     void testAuditedCurrentPositionDistanceUsesFieldOne() {
@@ -285,5 +338,5 @@ private slots:
     // NavigationFocusIndication proto retracted in v1.1 (nav focus is on Control channel)
 };
 
-QTEST_MAIN(TestNavigationChannelHandler)
+QTEST_GUILESS_MAIN(TestNavigationChannelHandler)
 #include "test_navigation_channel_handler.moc"

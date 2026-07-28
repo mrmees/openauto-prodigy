@@ -8,6 +8,7 @@ namespace aa {
 
 NavigationDataBridge::NavigationDataBridge(QObject* parent)
     : INavigationProvider(parent)
+    , laneModel_(std::make_unique<NavigationLaneModel>())
 {
 }
 
@@ -25,6 +26,9 @@ void NavigationDataBridge::connectToHandler(oaa::hu::NavigationChannelHandler* h
             this, &NavigationDataBridge::onNavigationStepChanged);
     connect(handler, &oaa::hu::NavigationChannelHandler::navigationDistanceChanged,
             this, &NavigationDataBridge::onNavigationDistanceChanged);
+    connect(handler,
+            &oaa::hu::NavigationChannelHandler::navigationLaneGuidanceChanged,
+            this, &NavigationDataBridge::onNavigationLaneGuidanceChanged);
 }
 
 void NavigationDataBridge::setManeuverIconProvider(ManeuverIconProvider* provider)
@@ -48,10 +52,14 @@ void NavigationDataBridge::onNavigationStateChanged(bool active)
         distanceUnit_ = 0;
         instruction_.clear();
         phoneDistanceText_.clear();
+        hasDistance_ = false;
         currentIcon_.clear();
+        laneModel_->clear();
         if (iconProvider_)
             iconProvider_->updateIcon(QByteArray());
         emit turnDataChanged();
+        emit distanceChanged();
+        emit laneGuidanceChanged();
     }
 
     emit navActiveChanged();
@@ -66,6 +74,8 @@ void NavigationDataBridge::onNavigationTurnEvent(const QString& roadName, int ma
     turnDirection_ = turnDirection;
     distanceMeters_ = distanceMeters;
     distanceUnit_ = distanceUnit;
+    if (distanceMeters >= 0)
+        hasDistance_ = true;
 
     if (!turnIcon.isEmpty()) {
         currentIcon_ = turnIcon;
@@ -75,6 +85,7 @@ void NavigationDataBridge::onNavigationTurnEvent(const QString& roadName, int ma
     }
 
     emit turnDataChanged();
+    emit distanceChanged();
 }
 
 void NavigationDataBridge::onNavigationStepChanged(const QString& instruction,
@@ -99,9 +110,37 @@ void NavigationDataBridge::onNavigationDistanceChanged(const QString& displayTex
     // NavigationNextTurnDistanceEvent (0x8007) — phone sends numeric display_text
     // (e.g. "0", "0.3") plus distance_unit enum. We combine them.
     phoneDistanceText_ = displayText;
+    if (!displayText.isEmpty())
+        hasDistance_ = true;
     if (unit != 0)
         distanceUnit_ = unit;
     emit distanceChanged();
+}
+
+void NavigationDataBridge::onNavigationLaneGuidanceChanged(
+    const oaa::hu::NavigationLaneGuidance& lanes)
+{
+    LanePresentationList presentation;
+    presentation.reserve(lanes.size());
+    for (const auto& lane : lanes) {
+        LanePresentation directions;
+        directions.reserve(lane.directions.size());
+        for (const auto& direction : lane.directions) {
+            directions.append({
+                laneShapeToken(direction.shape),
+                direction.recommended,
+            });
+        }
+        presentation.append(directions);
+    }
+
+    laneModel_->replaceLanes(presentation);
+    emit laneGuidanceChanged();
+}
+
+bool NavigationDataBridge::hasLaneGuidance() const
+{
+    return laneModel_->rowCount() > 0;
 }
 
 QString NavigationDataBridge::formattedDistance() const
@@ -152,6 +191,23 @@ QString NavigationDataBridge::unitSuffix(int distanceUnit)
     case 6: return QStringLiteral("ft");
     case 7: return QStringLiteral("yd");
     default: return QString();
+    }
+}
+
+QString NavigationDataBridge::laneShapeToken(int shape)
+{
+    switch (shape) {
+    case 0: return QStringLiteral("unknown");
+    case 1: return QStringLiteral("straight");
+    case 2: return QStringLiteral("slight_left");
+    case 3: return QStringLiteral("slight_right");
+    case 4: return QStringLiteral("normal_left");
+    case 5: return QStringLiteral("normal_right");
+    case 6: return QStringLiteral("sharp_left");
+    case 7: return QStringLiteral("sharp_right");
+    case 8: return QStringLiteral("u_turn_left");
+    case 9: return QStringLiteral("u_turn_right");
+    default: return QStringLiteral("unknown_future");
     }
 }
 

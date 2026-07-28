@@ -1,10 +1,13 @@
 #pragma once
 
+#include <memory>
+
 #include <QString>
 #include <QByteArray>
-#include "core/services/INavigationProvider.hpp"
+#include <oaa/HU/Handlers/NavigationChannelHandler.hpp>
 
-namespace oaa { namespace hu { class NavigationChannelHandler; } }
+#include "NavigationLaneModel.hpp"
+#include "core/services/INavigationProvider.hpp"
 
 namespace oap {
 namespace aa {
@@ -20,6 +23,10 @@ class NavigationDataBridge : public INavigationProvider {
     Q_PROPERTY(QString formattedDistance READ formattedDistance NOTIFY distanceChanged)
     Q_PROPERTY(bool hasManeuverIcon READ hasManeuverIcon NOTIFY turnDataChanged)
     Q_PROPERTY(int iconVersion READ iconVersion NOTIFY turnDataChanged)
+    Q_PROPERTY(QAbstractItemModel* laneModel READ laneModel CONSTANT)
+    Q_PROPERTY(bool hasLaneGuidance READ hasLaneGuidance
+               NOTIFY laneGuidanceChanged)
+    Q_PROPERTY(bool hasDistance READ hasDistance NOTIFY distanceChanged)
 
 public:
     explicit NavigationDataBridge(QObject* parent = nullptr);
@@ -36,11 +43,15 @@ public:
     QString instruction() const { return instruction_; }
     bool hasManeuverIcon() const override { return !currentIcon_.isEmpty(); }
     int iconVersion() const override { return iconVersion_; }
+    QAbstractItemModel* laneModel() const override { return laneModel_.get(); }
+    bool hasLaneGuidance() const override;
+    bool hasDistance() const override { return hasDistance_; }
 
 signals:
     void navActiveChanged();
     void turnDataChanged();
     void distanceChanged();
+    void laneGuidanceChanged();
 
 private slots:
     void onNavigationStateChanged(bool active);
@@ -50,6 +61,8 @@ private slots:
     void onNavigationStepChanged(const QString& instruction, const QString& destination,
                                   int maneuverType);
     void onNavigationDistanceChanged(const QString& displayText, int unit);
+    void onNavigationLaneGuidanceChanged(
+        const oaa::hu::NavigationLaneGuidance& lanes);
 
 private:
     bool navActive_ = false;
@@ -63,8 +76,11 @@ private:
     QByteArray currentIcon_;
     int iconVersion_ = 0;
     ManeuverIconProvider* iconProvider_ = nullptr;
+    std::unique_ptr<NavigationLaneModel> laneModel_;
+    bool hasDistance_ = false;
 
     static QString unitSuffix(int distanceUnit);
+    static QString laneShapeToken(int shape);
 };
 
 } // namespace aa

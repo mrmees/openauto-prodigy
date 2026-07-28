@@ -18,6 +18,9 @@ private slots:
         QCOMPARE(bridge.hasManeuverIcon(), false);
         QCOMPARE(bridge.iconVersion(), 0);
         QCOMPARE(bridge.formattedDistance(), QString("0 m"));
+        QVERIFY(bridge.laneModel() != nullptr);
+        QCOMPARE(bridge.hasLaneGuidance(), false);
+        QCOMPARE(bridge.hasDistance(), false);
     }
 
     void testNavActiveFromHandler() {
@@ -266,6 +269,117 @@ private slots:
         QCOMPARE(bridge.formattedDistance(), QString("0.8 mi"));
     }
 
+    void testLaneSnapshotPublishesSemanticDirectionsAndClearsOnDeactivate() {
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge bridge;
+        bridge.connectToHandler(&handler);
+
+        emit handler.navigationStateChanged(true);
+        oaa::hu::NavigationLaneGuidance lanes{
+            {{{1, false}, {5, true}}},
+            {{{8, true}}},
+        };
+        emit handler.navigationLaneGuidanceChanged(lanes);
+
+        QVERIFY(bridge.hasLaneGuidance());
+        QCOMPARE(bridge.laneModel()->rowCount(), 2);
+        const int directionsRole = bridge.laneModel()->roleNames().key(
+            QByteArrayLiteral("directions"), -1);
+        QVERIFY(directionsRole >= Qt::UserRole);
+        const QVariantList directions = bridge.laneModel()->data(
+            bridge.laneModel()->index(0, 0), directionsRole).toList();
+        QCOMPARE(directions.size(), 2);
+        QCOMPARE(directions[0].toMap().value(QStringLiteral("shape")).toString(),
+                 QStringLiteral("straight"));
+        QCOMPARE(directions[0].toMap()
+                     .value(QStringLiteral("recommended")).toBool(),
+                 false);
+        QCOMPARE(directions[1].toMap().value(QStringLiteral("shape")).toString(),
+                 QStringLiteral("normal_right"));
+        QCOMPARE(directions[1].toMap()
+                     .value(QStringLiteral("recommended")).toBool(),
+                 true);
+
+        emit handler.navigationStateChanged(false);
+
+        QCOMPARE(bridge.hasLaneGuidance(), false);
+        QCOMPARE(bridge.laneModel()->rowCount(), 0);
+    }
+
+    void testLaneShapeTokensAreStableAndExhaustive() {
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge bridge;
+        bridge.connectToHandler(&handler);
+
+        const QStringList expected{
+            QStringLiteral("unknown"),
+            QStringLiteral("straight"),
+            QStringLiteral("slight_left"),
+            QStringLiteral("slight_right"),
+            QStringLiteral("normal_left"),
+            QStringLiteral("normal_right"),
+            QStringLiteral("sharp_left"),
+            QStringLiteral("sharp_right"),
+            QStringLiteral("u_turn_left"),
+            QStringLiteral("u_turn_right"),
+            QStringLiteral("unknown_future"),
+        };
+        oaa::hu::NavigationLaneGuidance lanes;
+        for (int shape = 0; shape < expected.size(); ++shape)
+            lanes.append({{{shape, shape % 2 == 0}}});
+
+        emit handler.navigationLaneGuidanceChanged(lanes);
+
+        QCOMPARE(bridge.laneModel()->rowCount(), expected.size());
+        const int directionsRole = bridge.laneModel()->roleNames().key(
+            QByteArrayLiteral("directions"), -1);
+        for (int row = 0; row < expected.size(); ++row) {
+            const QVariantMap direction = bridge.laneModel()->data(
+                bridge.laneModel()->index(row, 0), directionsRole)
+                                              .toList()[0].toMap();
+            QCOMPARE(direction.value(QStringLiteral("shape")).toString(),
+                     expected[row]);
+            QCOMPARE(direction.value(QStringLiteral("recommended")).toBool(),
+                     row % 2 == 0);
+        }
+
+        emit handler.navigationLaneGuidanceChanged({});
+        QCOMPARE(bridge.hasLaneGuidance(), false);
+        QCOMPARE(bridge.laneModel()->rowCount(), 0);
+    }
+
+    void testLegacyDistancePresenceRequiresNonnegativeDistance() {
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge bridge;
+        bridge.connectToHandler(&handler);
+
+        emit handler.navigationTurnEvent("", 0, 0, QByteArray(), -1, 1);
+        QCOMPARE(bridge.hasDistance(), false);
+
+        emit handler.navigationTurnEvent("", 0, 0, QByteArray(), 0, 1);
+        QCOMPARE(bridge.hasDistance(), true);
+
+        emit handler.navigationStateChanged(true);
+        emit handler.navigationStateChanged(false);
+        QCOMPARE(bridge.hasDistance(), false);
+    }
+
+    void testModernDistancePresenceRequiresDisplayText() {
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge bridge;
+        bridge.connectToHandler(&handler);
+
+        emit handler.navigationDistanceChanged(QString(), 1);
+        QCOMPARE(bridge.hasDistance(), false);
+
+        emit handler.navigationDistanceChanged(QStringLiteral("0"), 1);
+        QCOMPARE(bridge.hasDistance(), true);
+
+        emit handler.navigationStateChanged(true);
+        emit handler.navigationStateChanged(false);
+        QCOMPARE(bridge.hasDistance(), false);
+    }
+
     void testImplementsINavigationProvider() {
         oap::aa::NavigationDataBridge bridge;
         oap::INavigationProvider* provider = &bridge;
@@ -274,6 +388,9 @@ private slots:
         QCOMPARE(provider->roadName(), QString());
         QCOMPARE(provider->turnDirection(), 0);
         QCOMPARE(provider->hasManeuverIcon(), false);
+        QCOMPARE(provider->laneModel(), bridge.laneModel());
+        QCOMPARE(provider->hasLaneGuidance(), false);
+        QCOMPARE(provider->hasDistance(), false);
     }
 };
 

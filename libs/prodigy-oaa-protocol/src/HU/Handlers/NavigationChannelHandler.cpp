@@ -12,6 +12,7 @@ namespace hu {
 NavigationChannelHandler::NavigationChannelHandler(QObject* parent)
     : oaa::IChannelHandler(parent)
 {
+    qRegisterMetaType<oaa::hu::NavigationLaneGuidance>();
 }
 
 void NavigationChannelHandler::onChannelOpened()
@@ -148,6 +149,23 @@ void NavigationChannelHandler::handleNavStep(const QByteArray& payload)
     QString instruction;
     int maneuverType = 0;
     QString destination;
+    NavigationLaneGuidance laneGuidance;
+
+    if (msg.steps_size() > 0) {
+        const auto& currentStep = msg.steps(0);
+        for (int l = 0; l < currentStep.lanes_size(); ++l) {
+            NavigationLaneData laneData;
+            const auto& lane = currentStep.lanes(l);
+            for (int d = 0; d < lane.directions_size(); ++d) {
+                const auto& direction = lane.directions(d);
+                laneData.directions.append({
+                    static_cast<int>(direction.shape()),
+                    direction.is_recommended(),
+                });
+            }
+            laneGuidance.append(laneData);
+        }
+    }
 
     // Extract data from all steps (multi-step lookahead)
     for (int i = 0; i < msg.steps_size(); ++i) {
@@ -194,6 +212,8 @@ void NavigationChannelHandler::handleNavStep(const QByteArray& payload)
 
     // Emit original signal for backward compatibility
     emit navigationStepChanged(instruction, destination, maneuverType);
+
+    emit navigationLaneGuidanceChanged(laneGuidance);
 
     // Emit enhanced notification signal
     emit navigationNotificationReceived(stepCount, totalLanes, destination, QString());

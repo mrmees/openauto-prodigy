@@ -35,6 +35,7 @@ add_library(openauto-core STATIC
     core/aa/AVInputCaptureBridge.cpp
     core/aa/AndroidAutoOrchestrator.cpp
     core/aa/MediaDataBridge.cpp
+    core/aa/NavigationLaneModel.cpp
     core/aa/NavigationDataBridge.cpp
     core/aa/AndroidAutoRuntimeBridge.cpp
     ui/ApplicationController.cpp

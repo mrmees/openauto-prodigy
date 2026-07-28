@@ -4,8 +4,22 @@
 #include <oaa/Channel/ChannelId.hpp>
 #include <oaa/Channel/MessageIds.hpp>
 
+#include <QList>
+#include <QMetaType>
+
 namespace oaa {
 namespace hu {
+
+struct NavigationLaneDirectionData {
+    int shape = 0;
+    bool recommended = false;
+};
+
+struct NavigationLaneData {
+    QList<NavigationLaneDirectionData> directions;
+};
+
+using NavigationLaneGuidance = QList<NavigationLaneData>;
 
 class NavigationChannelHandler : public oaa::IChannelHandler {
     Q_OBJECT
@@ -37,6 +51,9 @@ signals:
     void navigationNotificationReceived(int stepCount, int laneCount,
                                          const QString& destination, const QString& eta);
 
+    void navigationLaneGuidanceChanged(
+        const oaa::hu::NavigationLaneGuidance& lanes);
+
     void vehicleEnergyForecastReceived(bool innerParsed,
                                        const QString& boundedSummary);
 
@@ -51,3 +68,5 @@ private:
 
 } // namespace hu
 } // namespace oaa
+
+Q_DECLARE_METATYPE(oaa::hu::NavigationLaneGuidance)
