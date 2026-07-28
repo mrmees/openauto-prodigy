@@ -4,6 +4,77 @@ Newest entries first.
 
 ---
 
+## 2026-07-27 — GAL 6.0 H.265 hardware acceptance
+
+**What changed:** Task 7 hardware-accepted implementation
+`c362ac62df56a99f1509b872bd3d385f719c22cd` (`fix(aa): restore H.265
+as the video default`) with the clean protocol gitlink
+`5ff4aa218dd33913237993f2968bf70e16dc464e`. The Pi ran
+`ALPHA-26-07-24-01-112-gc362ac6`; the deployed and running executable
+SHA-256 was
+`c5d1ca03b9ef609457cae88c752702203cb2f030a417ec5009f91b78d8e97d46`.
+
+**Status:** ACCEPTED. The restored final configuration is GAL 6.0,
+`[h265,h264]`, 720p, and 30 fps, SHA-256
+`0e4008a0dd5217bc662c3b5ae2ce3f23b77f1700eb9f2dc79eb3df44f32f5073`.
+The operator intentionally chose 720p because 480p placed Android Auto's
+navigation chrome at the bottom rather than at the side. The final session
+requested 6.0, received 6.0/MATCH, advertised one H.265 configuration for
+each MAIN and CLUSTER display, and selected codec 7 on both.
+
+**Hardware evidence:** both displays used FFmpeg `hevc` with a DRM hardware
+context and the Pi V4L2 stateless request decoder at `/dev/video19`. The
+decoder produced DMABuf-backed DRM_PRIME format 178 frames and logged hardware
+first frames at 1280x720 MAIN and 800x480 CLUSTER without a software fallback.
+The one physical screen cannot show both surfaces at once: protocol capture
+proved concurrent independent ch3/ch12 receive and video-ACK traffic, while
+the operator correctly checked MAIN projection and the homescreen CLUSTER
+widget sequentially.
+
+**Live matrix:** independent Pixel 8 checks passed MAIN and CLUSTER visual
+health, music, navigation start/change/stop with duck/recovery, two Assistant
+cycles, MAIN touch plus Back/Home/TEL/direct-dialer return, and focus
+exit/return. Three manual Pixel reconnects passed without restarting the app.
+The second project phone was operator-identified as an S25+ and exposed by
+BlueZ as `MATTHEW's S25 Ultra`; its initial connection/media/input smoke and
+Bluetooth-off/Bluetooth-on wireless BT discovery -> WiFi -> TCP reconnect
+passed. Explicit Pixel 1.7, 4.3, 5.0, and 5.1 connection/media smokes passed
+before the final 6.0 restoration. GAL 1.7/4.3 retained per-frame audio and
+video ACKs; GAL 5.0/5.1/6.0 emitted no audio ACKs while retaining video ACK
+parity. The explicit GAL 6.0 H.264 fallback remains proven on `2bc574e`.
+
+**Evidence limits and diagnosis:** system audio opened and completed setup but
+the phone did not deliver its conditional stream, matching the accepted GAL
+5.1 run; synthetic coverage remains the evidence. Optional `0x8014` and
+`0x8008` were not delivered live and retain typed synthetic coverage. The
+initial S25 pairing was non-seamless and the operator restarted Prodigy once.
+The old process received no S25 pairing, RFCOMM, WiFi, or TCP attempt, while
+its listeners had just passed the Pixel reconnects; the new process then
+handled a new S25 pairing through the normal wireless chain. This is a
+nonblocking single-active-phone/startup-transition observation, not evidence
+of a supported TCP/session defect. Debug Settings' separate automatic-decoder
+label defect is recorded in the engineering backlog; runtime HEVC hardware use
+was conclusive.
+
+**Verification:** `cd ~/builds/openauto-prodigy && cmake --build . -j$(nproc)`,
+`cmake --build . --target openauto-prodigy -j$(nproc)`,
+`QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, and
+`./cross-build.sh` passed before deployment. Final state retained app PID
+32716 with the one operator-requested restart (`NRestarts=1`, active since
+2026-07-27 19:35:58 CDT), BlueZ PID 4413 with `NRestarts=0` since 15:28:23
+CDT, and boot ID `bf4f1de6-5201-480f-beab-00b91fc2f4a0`.
+
+**Evidence:** H.264 and H.265 captures are under
+`/home/matt/gal-6-0-captures-2026-07-27/20260727T222347Z-2bc574e/`;
+the accepted GAL 5.1 rollback is
+`/var/backups/openauto-prodigy/20260727T222245Z-pre-2bc574e-gal-6-0`.
+
+**Next 1–3 steps:** perform Task 8 documentation reconciliation and its one
+bounded final gate; re-research the decoder-label backlog item separately if
+selected. Do not change the hardware-accepted Task 7 tree while closing docs.
+
+---
+
 ## 2026-07-27 — GAL 5.1 hardware acceptance
 
 **What changed:** Task 5 accepted implementation HEAD

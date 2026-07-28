@@ -26,6 +26,19 @@ limits, and a verification command before implementation.
   only H.264/H.265. Candidate deliverable: typed sequence persistence and
   decoder-aligned advertisement.
 
+- **Debug decoder mode misreports automatic HEVC hardware decode** — Evidence:
+  **HARDWARE- AND CODE-CONFIRMED 2026-07-27; NONBLOCKING**.
+  DebugSettings/CodecCapabilityModel classifies the generic FFmpeg `hevc` name
+  as software and defaults its display state to software when the persisted
+  decoder preference is `auto`. Runtime intentionally uses that generic codec
+  front-end with a DRM hardware context: live Pi evidence showed the V4L2
+  stateless request decoder at `/dev/video19`, DMABuf output, DRM_PRIME format
+  178 hardware frames, and no software fallback. The supported settings UI
+  therefore misreports status even though hardware decoding is proven.
+  Candidate deliverable: distinguish configuration preference from live
+  runtime decoder telemetry and label the automatic DRM hardware path
+  accurately.
+
 - **Installers write unsupported display dimensions** — Evidence:
   **CODE-CONFIRMED 2026-07-24**. Both installers emit display.width and
   display.height, which are absent from runtime defaults and typed access;
