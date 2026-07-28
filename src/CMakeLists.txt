@@ -366,6 +366,16 @@ set_source_files_properties(../qml/widgets/AAClusterWidget.qml PROPERTIES
     QT_RESOURCE_ALIAS "AAClusterWidget.qml"
     QT_QML_SKIP_CACHEGEN TRUE
 )
+set_source_files_properties(../qml/widgets/NavigationManeuverGlyph.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "NavigationManeuverGlyph"
+    QT_RESOURCE_ALIAS "NavigationManeuverGlyph.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
+set_source_files_properties(../qml/widgets/NavigationLaneDirectionGlyph.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "NavigationLaneDirectionGlyph"
+    QT_RESOURCE_ALIAS "NavigationLaneDirectionGlyph.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
 set_source_files_properties(../qml/widgets/WeatherWidget.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "WeatherWidget"
     QT_RESOURCE_ALIAS "WeatherWidget.qml"
@@ -513,6 +523,8 @@ qt_add_qml_module(openauto-prodigy
         ../qml/widgets/CompanionStatusWidget.qml
         ../qml/widgets/AAFocusToggleWidget.qml
         ../qml/widgets/AAClusterWidget.qml
+        ../qml/widgets/NavigationManeuverGlyph.qml
+        ../qml/widgets/NavigationLaneDirectionGlyph.qml
         ../qml/widgets/WeatherWidget.qml
         ../qml/widgets/WebWidgetHost.qml
 

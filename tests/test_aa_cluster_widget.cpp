@@ -104,13 +104,46 @@ class TestAAClusterWidget : public QObject {
     Q_OBJECT
 
 private:
-    static QString qmlSource()
+    static QString qmlSource(const QString& fileName =
+                                 QStringLiteral("AAClusterWidget.qml"))
     {
-        QFile file(QStringLiteral(TEST_SOURCE_DIR
-                                  "/qml/widgets/AAClusterWidget.qml"));
+        QFile file(QStringLiteral(TEST_SOURCE_DIR "/qml/widgets/") + fileName);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             return {};
         return QString::fromUtf8(file.readAll());
+    }
+
+    static bool writeFile(const QTemporaryDir& dir, const QString& name,
+                          const QByteArray& contents)
+    {
+        QSaveFile file(dir.filePath(name));
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+            return false;
+        if (file.write(contents) != contents.size())
+            return false;
+        return file.commit();
+    }
+
+    static QQmlComponent* createGlyphComponent(QQmlEngine& engine,
+                                                QTemporaryDir& dir,
+                                                const QString& fileName)
+    {
+        const QByteArray materialIconStub = QByteArrayLiteral(
+            "import QtQuick\n"
+            "Item { property string icon; property real size; property color "
+            "color; property int weight; implicitWidth: size; implicitHeight: "
+            "size }\n");
+        if (!writeFile(dir, QStringLiteral("MaterialIcon.qml"),
+                       materialIconStub))
+            return nullptr;
+
+        const QString source = qmlSource(fileName);
+        if (!source.isEmpty()
+            && !writeFile(dir, fileName, source.toUtf8()))
+            return nullptr;
+
+        return new QQmlComponent(&engine,
+                                 QUrl::fromLocalFile(dir.filePath(fileName)));
     }
 
 private slots:
@@ -159,6 +192,126 @@ private slots:
             registry, {true, {}}, false));
         QVERIFY(!registry.descriptor(QStringLiteral("org.openauto.aa-cluster"))
                      .has_value());
+    }
+
+    void maneuverGlyphMapsEveryDefinedValueAndFallsBackSafely()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QQmlEngine engine;
+        QScopedPointer<QQmlComponent> component(createGlyphComponent(
+            engine, dir, QStringLiteral("NavigationManeuverGlyph.qml")));
+        QVERIFY(component);
+        QVERIFY2(component->isReady(), qPrintable(component->errorString()));
+        QScopedPointer<QObject> glyph(component->create());
+        QVERIFY2(glyph, qPrintable(component->errorString()));
+
+        QList<int> defined;
+        for (int value = 0; value <= 29; ++value)
+            defined.append(value);
+        for (int value = 32; value <= 50; ++value)
+            defined.append(value);
+
+        for (const int value : defined) {
+            QVERIFY(glyph->setProperty("maneuverType", value));
+            QVERIFY2(!glyph->property("isFallback").toBool(),
+                     qPrintable(QStringLiteral(
+                         "Defined maneuver %1 used the fallback").arg(value)));
+            QVERIFY2(!glyph->property("primaryGlyph").toString().isEmpty(),
+                     qPrintable(QStringLiteral(
+                         "Defined maneuver %1 had no primary glyph").arg(value)));
+        }
+
+        for (const int value : {30, 31, -1, 999}) {
+            QVERIFY(glyph->setProperty("maneuverType", value));
+            QVERIFY2(glyph->property("isFallback").toBool(),
+                     qPrintable(QStringLiteral(
+                         "Undefined maneuver %1 did not fall back").arg(value)));
+            QVERIFY(!glyph->property("primaryGlyph").toString().isEmpty());
+        }
+
+        const QList<QPair<int, int>> directionalPairs{
+            {3, 4},   {5, 6},   {7, 8},   {9, 10},  {11, 12},
+            {13, 14}, {15, 16}, {17, 18}, {19, 20}, {21, 22},
+            {23, 24}, {25, 26}, {27, 28}, {32, 34}, {33, 35},
+            {41, 42}, {43, 45}, {44, 46}, {47, 48}, {49, 50},
+        };
+        const auto signature = [&glyph](int value) {
+            glyph->setProperty("maneuverType", value);
+            return QStringLiteral("%1|%2|%3")
+                .arg(glyph->property("primaryGlyph").toString(),
+                     glyph->property("badgeGlyph").toString(),
+                     glyph->property("mirrorPrimary").toBool()
+                         ? QStringLiteral("mirrored")
+                         : QStringLiteral("normal"));
+        };
+        for (const auto& pair : directionalPairs) {
+            const QString left = signature(pair.first);
+            const QString right = signature(pair.second);
+            QVERIFY2(left != right,
+                     qPrintable(QStringLiteral(
+                         "Directional maneuvers %1 and %2 collapsed to %3")
+                                    .arg(pair.first)
+                                    .arg(pair.second)
+                                    .arg(left)));
+        }
+    }
+
+    void laneDirectionGlyphMapsStableTokensAndFallsBackSafely()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QQmlEngine engine;
+        QScopedPointer<QQmlComponent> component(createGlyphComponent(
+            engine, dir, QStringLiteral("NavigationLaneDirectionGlyph.qml")));
+        QVERIFY(component);
+        QVERIFY2(component->isReady(), qPrintable(component->errorString()));
+        QScopedPointer<QObject> glyph(component->create());
+        QVERIFY2(glyph, qPrintable(component->errorString()));
+
+        const QStringList defined{
+            QStringLiteral("unknown"),      QStringLiteral("straight"),
+            QStringLiteral("slight_left"),  QStringLiteral("slight_right"),
+            QStringLiteral("normal_left"),  QStringLiteral("normal_right"),
+            QStringLiteral("sharp_left"),   QStringLiteral("sharp_right"),
+            QStringLiteral("u_turn_left"),  QStringLiteral("u_turn_right"),
+        };
+        for (const QString& token : defined) {
+            QVERIFY(glyph->setProperty("shapeToken", token));
+            QVERIFY2(!glyph->property("isFallback").toBool(),
+                     qPrintable(QStringLiteral(
+                         "Defined lane token %1 used the fallback").arg(token)));
+            if (token == QStringLiteral("unknown")) {
+                QVERIFY(glyph->property("drawNeutralStem").toBool());
+                QVERIFY(glyph->property("glyph").toString().isEmpty());
+            } else {
+                QVERIFY(!glyph->property("drawNeutralStem").toBool());
+                QVERIFY2(!glyph->property("glyph").toString().isEmpty(),
+                         qPrintable(QStringLiteral(
+                             "Defined lane token %1 had no glyph").arg(token)));
+            }
+        }
+
+        QVERIFY(glyph->setProperty("recommended", false));
+        QVERIFY(glyph->setProperty("shapeToken", QStringLiteral("straight")));
+        auto* directionVisual =
+            glyph->findChild<QObject*>(QStringLiteral("laneDirectionGlyph"));
+        QVERIFY(directionVisual);
+        QCOMPARE(directionVisual->property("opacity").toReal(), 1.0);
+
+        QVERIFY(glyph->setProperty("shapeToken", QStringLiteral("unknown")));
+        auto* neutralStem =
+            glyph->findChild<QObject*>(QStringLiteral("laneNeutralStem"));
+        QVERIFY(neutralStem);
+        QCOMPARE(neutralStem->property("opacity").toReal(), 1.0);
+
+        for (const QString& token : {QStringLiteral("unknown_future"),
+                                     QStringLiteral("sideways")}) {
+            QVERIFY(glyph->setProperty("shapeToken", token));
+            QVERIFY(glyph->property("isFallback").toBool());
+            QVERIFY(glyph->property("drawNeutralStem").toBool());
+            QVERIFY(glyph->property("glyph").toString().isEmpty());
+        }
     }
 
     void qmlOwnsOneNonInteractivePreserveAspectSink()
