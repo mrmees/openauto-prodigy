@@ -424,7 +424,8 @@ void AndroidAutoOrchestrator::onNewConnection()
                  << "profile_generation=" << clusterDisplay_.profileGeneration();
     if (projectedClusterConfig_.enabled) {
         qCInfo(lcAA) << "Projected display descriptor:"
-                     << "role=CLUSTER display=1 video_ch=12 input_ch=13 configs="
+                     << "role=AUXILIARY selector=NAVIGATION display=1"
+                        " video_ch=12 input_ch=13 configs="
                      << builder.videoConfigCount(ProjectedDisplayRole::Cluster);
     }
 

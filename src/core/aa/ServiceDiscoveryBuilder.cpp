@@ -10,6 +10,7 @@
 // oaa proto headers
 #include "oaa/control/ChannelDescriptorData.pb.h"
 #include "oaa/av/AVChannelData.pb.h"
+#include "oaa/av/AndroidKeycodeEnum.pb.h"
 #include "oaa/video/VideoConfigData.pb.h"
 #include "oaa/video/AdditionalVideoConfigData.pb.h"
 #include "oaa/av/MediaCodecTypeEnum.pb.h"
@@ -389,7 +390,9 @@ QByteArray ServiceDiscoveryBuilder::buildClusterVideoDescriptor() const
             ? videoCodecType(videoCodecNames_.front())
             : oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
     avChannel->set_display_id(kClusterDisplayId);
-    avChannel->set_display_type(oaa::proto::enums::DisplayType::CLUSTER);
+    avChannel->set_display_type(oaa::proto::enums::DisplayType::AUXILIARY);
+    avChannel->set_keycode(
+        oaa::proto::enums::AndroidKeycode::KEYCODE_NAVIGATION);
 
     const auto& profile = projectedClusterConfig_.profile;
     const ProjectedViewportGeometry geometry = profile.geometry();
