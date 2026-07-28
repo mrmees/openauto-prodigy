@@ -19,11 +19,6 @@ enum class ProjectedSetupFocus {
     Projected,
 };
 
-enum class ProjectedSecondaryContent {
-    NavigationMap,
-    TurnCard,
-};
-
 struct ProjectedViewportGeometry {
     int encodedWidth;
     int encodedHeight;
@@ -72,8 +67,6 @@ struct ProjectedClusterProfile {
 struct ProjectedClusterConfig {
     bool enabled = false;
     ProjectedSetupFocus setupFocus = ProjectedSetupFocus::ProjectedNoInput;
-    ProjectedSecondaryContent content =
-        ProjectedSecondaryContent::NavigationMap;
     ProjectedClusterProfile profile;
 };
 

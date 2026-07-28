@@ -120,7 +120,6 @@ void AndroidAutoPlugin::onConfigChanged(const QString& path, const QVariant& val
     static const QStringList sessionSettings = {
         QStringLiteral("video.resolution"),
         QStringLiteral("video.fps"),
-        QStringLiteral("video.secondary_display_content"),
         QStringLiteral("connection.gal_version"),
     };
     if (!sessionSettings.contains(path))

@@ -177,8 +177,8 @@ private slots:
                      "values: [\"map\", \"turn_card\"]")) >= 0,
                  "The picker should persist stable protocol-independent values");
         QVERIFY2(pluginSource.indexOf(QStringLiteral(
-                     "video.secondary_display_content")) >= 0,
-                 "Changing secondary content should trigger AA renegotiation");
+                     "video.secondary_display_content")) < 0,
+                 "Dashboard presentation must not trigger AA renegotiation");
 
         // One apply dispatch carries the complete, normalized CLUSTER profile.
         const int applyFunction = source.indexOf(

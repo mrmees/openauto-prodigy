@@ -147,14 +147,6 @@ ProjectedClusterConfig resolveProjectedClusterConfig(const oap::YamlConfig& conf
     if (focus == QStringLiteral("projected"))
         resolved.setupFocus = ProjectedSetupFocus::Projected;
 
-    const QString content = config.valueByPath(
-        QStringLiteral("video.secondary_display_content"))
-                                .toString()
-                                .trimmed()
-                                .toLower();
-    if (content == QStringLiteral("turn_card"))
-        resolved.content = ProjectedSecondaryContent::TurnCard;
-
     return resolved;
 }
 
