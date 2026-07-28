@@ -141,7 +141,10 @@ descriptor; a later input `ButtonEvent` with either numeric keycode is not a
 content switch. In turn-card mode the phone may open and start the secondary
 stream without sending display frames until a route is active. The dashboard
 widget presents a local “Start navigation” placeholder during that intentional
-frame-idle state.
+frame-idle state. The 2026-07-28 production-selector bench instead received a
+low-rate phone-rendered Maps icon while no route was active; Prodigy preserves
+that valid native idle surface. Starting a route replaced it immediately with
+the compact maneuver display.
 
 ### GAL and per-video UI policy
 
