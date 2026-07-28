@@ -7,7 +7,9 @@
 #include <QTemporaryDir>
 #include <QTest>
 #include <QVideoSink>
+#include <oaa/HU/Handlers/NavigationChannelHandler.hpp>
 
+#include "core/aa/NavigationDataBridge.hpp"
 #include "core/aa/ProjectedDisplayConfig.hpp"
 #include "core/widget/WidgetRegistry.hpp"
 #include "plugins/android_auto/AAClusterWidgetRegistration.hpp"
@@ -100,6 +102,47 @@ private:
     bool current_ = false;
 };
 
+class FakeConfigService : public QObject {
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE QVariant value(const QString&) const { return mode_; }
+    void setMode(const QString& mode)
+    {
+        mode_ = mode;
+        emit configChanged(QStringLiteral("video.secondary_display_content"),
+                           mode_);
+    }
+
+signals:
+    void configChanged(const QString& path, const QVariant& value);
+
+private:
+    QString mode_ = QStringLiteral("map");
+};
+
+class FakeProjectionStatus : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(int projectionState READ projectionState WRITE setProjectionState
+                   NOTIFY projectionStateChanged)
+
+public:
+    int projectionState() const { return state_; }
+    void setProjectionState(int state)
+    {
+        if (state_ == state)
+            return;
+        state_ = state;
+        emit projectionStateChanged();
+    }
+
+signals:
+    void projectionStateChanged();
+
+private:
+    int state_ = 0;
+};
+
 class TestAAClusterWidget : public QObject {
     Q_OBJECT
 
@@ -144,6 +187,65 @@ private:
 
         return new QQmlComponent(&engine,
                                  QUrl::fromLocalFile(dir.filePath(fileName)));
+    }
+
+    static bool writeRuntimeQmlFiles(const QTemporaryDir& dir)
+    {
+        for (const QString& fileName : {
+                 QStringLiteral("AAClusterWidget.qml"),
+                 QStringLiteral("NativeNavigationCard.qml"),
+                 QStringLiteral("NavigationLaneGuidanceBand.qml"),
+                 QStringLiteral("NavigationManeuverGlyph.qml"),
+                 QStringLiteral("NavigationLaneDirectionGlyph.qml")}) {
+            const QString source = qmlSource(fileName);
+            if (!source.isEmpty()
+                && !writeFile(dir, fileName, source.toUtf8())) {
+                return false;
+            }
+        }
+
+        return writeFile(
+                   dir, QStringLiteral("MaterialIcon.qml"),
+                   QByteArrayLiteral(
+                       "import QtQuick\nItem { property string icon; property "
+                       "real size; property color color; property int weight; "
+                       "implicitWidth: size; implicitHeight: size }\n"))
+            && writeFile(dir, QStringLiteral("NormalText.qml"),
+                         QByteArrayLiteral("import QtQuick\nText {}\n"));
+    }
+
+    static void exposeRuntimeContext(QQmlEngine& engine,
+                                     FakeClusterDisplay& display,
+                                     FakeConfigService& config,
+                                     FakeProjectionStatus& projection,
+                                     oap::aa::NavigationDataBridge& navigation)
+    {
+        engine.rootContext()->setContextProperty(
+            QStringLiteral("AAClusterDisplay"), &display);
+        engine.rootContext()->setContextProperty(QStringLiteral("ConfigService"),
+                                                 &config);
+        engine.rootContext()->setContextProperty(
+            QStringLiteral("ProjectionStatus"), &projection);
+        engine.rootContext()->setContextProperty(
+            QStringLiteral("NavigationProvider"), &navigation);
+        engine.rootContext()->setContextProperty(
+            QStringLiteral("UiMetrics"),
+            QVariantMap{{QStringLiteral("spacing"), 8},
+                        {QStringLiteral("iconSize"), 24},
+                        {QStringLiteral("fontBody"), 16}});
+        engine.rootContext()->setContextProperty(
+            QStringLiteral("ThemeService"),
+            QVariantMap{
+                {QStringLiteral("surfaceContainerHigh"),
+                 QStringLiteral("#202124")},
+                {QStringLiteral("surfaceContainerLow"),
+                 QStringLiteral("#17181a")},
+                {QStringLiteral("onSurface"), QStringLiteral("#ffffff")},
+                {QStringLiteral("onSurfaceVariant"),
+                 QStringLiteral("#c4c7c5")},
+                {QStringLiteral("primary"), QStringLiteral("#8ab4f8")},
+                {QStringLiteral("outlineVariant"),
+                 QStringLiteral("#5f6368")}});
     }
 
 private slots:
@@ -314,6 +416,177 @@ private slots:
         }
     }
 
+    void laneBandIsContinuousNonInteractiveAndDimsAtComponentLevel()
+    {
+        const QString source =
+            qmlSource(QStringLiteral("NavigationLaneGuidanceBand.qml"));
+        QVERIFY2(!source.isEmpty(),
+                 "NavigationLaneGuidanceBand.qml has not been implemented");
+        QVERIFY(source.contains(QStringLiteral("property var laneModel")));
+        QVERIFY(source.contains(QStringLiteral(
+            "opacity: direction.recommended ? 1.0 : 0.48")));
+        QVERIFY(source.contains(QStringLiteral("ThemeService.primary")));
+        QVERIFY(source.contains(
+            QStringLiteral("ThemeService.onSurfaceVariant")));
+
+        for (const QString& forbidden : {
+                 QStringLiteral("MouseArea"), QStringLiteral("TapHandler"),
+                 QStringLiteral("Button {"), QStringLiteral("Flickable")}) {
+            QVERIFY2(!source.contains(forbidden),
+                     qPrintable(QStringLiteral("Forbidden lane-band token: %1")
+                                    .arg(forbidden)));
+        }
+    }
+
+    void currentWidgetSwitchesLocallyBetweenMapAndNativeCard()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QVERIFY(writeRuntimeQmlFiles(dir));
+
+        FakeClusterDisplay display;
+        FakeConfigService config;
+        FakeProjectionStatus projection;
+        projection.setProjectionState(3);
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge navigation;
+        navigation.connectToHandler(&handler);
+
+        QQmlEngine engine;
+        exposeRuntimeContext(engine, display, config, projection, navigation);
+        QQmlComponent component(
+            &engine, QUrl::fromLocalFile(
+                         dir.filePath(QStringLiteral("AAClusterWidget.qml"))));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        QScopedPointer<QObject> widget(component.create());
+        QVERIFY2(widget, qPrintable(component.errorString()));
+        widget->setProperty("width", 1024.0);
+        widget->setProperty("height", 600.0);
+
+        FakeWidgetContext context;
+        context.setIsCurrentPage(true);
+        QVERIFY(widget->setProperty(
+            "widgetContext", QVariant::fromValue<QObject*>(&context)));
+        QTRY_VERIFY(widget->property("ownsSink").toBool());
+        auto* video =
+            widget->findChild<QQuickItem*>(QStringLiteral("clusterVideoOutput"));
+        auto* card = widget->findChild<QQuickItem*>(
+            QStringLiteral("nativeNavigationCard"));
+        QVERIFY(video);
+        QVERIFY(card);
+        QVERIFY(!card->isVisible());
+
+        config.setMode(QStringLiteral("turn_card"));
+        QTRY_VERIFY(!widget->property("ownsSink").toBool());
+        QVERIFY(!display.sink());
+        QTRY_VERIFY(card->isVisible());
+        QCOMPARE(widget->findChild<QQuickItem*>(
+                     QStringLiteral("clusterVideoOutput")),
+                 video);
+        QCOMPARE(projection.projectionState(), 3);
+
+        config.setMode(QStringLiteral("map"));
+        QTRY_VERIFY(widget->property("ownsSink").toBool());
+        QVERIFY(display.sink());
+        QVERIFY(!card->isVisible());
+
+        config.setMode(QStringLiteral("not-a-real-mode"));
+        QTRY_COMPARE(widget->property("dashboardNavigationMode").toString(),
+                     QStringLiteral("map"));
+        QVERIFY(widget->property("ownsSink").toBool());
+    }
+
+    void nativeCardDistinguishesConnectionStatesAndShowsActiveLanes()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QVERIFY(writeRuntimeQmlFiles(dir));
+
+        FakeClusterDisplay display;
+        FakeConfigService config;
+        config.setMode(QStringLiteral("turn_card"));
+        FakeProjectionStatus projection;
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge navigation;
+        navigation.connectToHandler(&handler);
+
+        QQmlEngine engine;
+        exposeRuntimeContext(engine, display, config, projection, navigation);
+        QQmlComponent component(
+            &engine, QUrl::fromLocalFile(
+                         dir.filePath(QStringLiteral("AAClusterWidget.qml"))));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        QScopedPointer<QObject> widget(component.create());
+        QVERIFY2(widget, qPrintable(component.errorString()));
+        widget->setProperty("width", 1024.0);
+        widget->setProperty("height", 600.0);
+
+        FakeWidgetContext context;
+        context.setIsCurrentPage(true);
+        QVERIFY(widget->setProperty(
+            "widgetContext", QVariant::fromValue<QObject*>(&context)));
+        auto* stateText =
+            widget->findChild<QQuickItem*>(QStringLiteral("navigationStateText"));
+        auto* band = widget->findChild<QQuickItem*>(
+            QStringLiteral("laneGuidanceBand"));
+        QVERIFY(stateText);
+        QVERIFY(band);
+        QCOMPARE(stateText->property("text").toString(),
+                 QStringLiteral("Connect Android Auto"));
+
+        projection.setProjectionState(3);
+        QTRY_COMPARE(stateText->property("text").toString(),
+                     QStringLiteral("Start a route in Android Auto"));
+
+        emit handler.navigationStateChanged(true);
+        auto* maneuver = widget->findChild<QQuickItem*>(
+            QStringLiteral("maneuverGlyph"));
+        auto* distance =
+            widget->findChild<QQuickItem*>(QStringLiteral("distanceText"));
+        auto* distanceUnit = widget->findChild<QQuickItem*>(
+            QStringLiteral("distanceUnitText"));
+        auto* road = widget->findChild<QQuickItem*>(QStringLiteral("roadText"));
+        auto* secondaryCue = widget->findChild<QQuickItem*>(
+            QStringLiteral("secondaryCueText"));
+        auto* nextLabel =
+            widget->findChild<QQuickItem*>(QStringLiteral("nextLabel"));
+        QVERIFY(maneuver);
+        QVERIFY(distance);
+        QVERIFY(distanceUnit);
+        QVERIFY(road);
+        QVERIFY(secondaryCue);
+        QVERIFY(nextLabel);
+        QTRY_VERIFY(maneuver->isVisible());
+        QVERIFY(!distance->isVisible());
+        QVERIFY(!road->isVisible());
+        QVERIFY(!band->isVisible());
+
+        emit handler.navigationTurnEvent(QStringLiteral("Main Street"), 8, 1,
+                                         QByteArray(), 250, 1);
+        emit handler.navigationDistanceChanged(QStringLiteral("250"), 1);
+        emit handler.navigationLaneGuidanceChanged({
+            {{{1, false}, {5, true}}},
+            {{{5, true}}},
+        });
+        QTRY_VERIFY(band->isVisible());
+        QVERIFY(maneuver->isVisible());
+        QVERIFY(distance->isVisible());
+        QVERIFY(road->isVisible());
+        QCOMPARE(distance->property("text").toString(), QStringLiteral("250"));
+        const int distancePixels =
+            distance->property("font").value<QFont>().pixelSize();
+        QVERIFY(distancePixels >= 92);
+        QVERIFY(distancePixels <= 100);
+        QCOMPARE(distanceUnit->property("font").value<QFont>().pixelSize(), 38);
+        QCOMPARE(road->property("text").toString(), QStringLiteral("Main Street"));
+        QCOMPARE(road->property("font").value<QFont>().pixelSize(), 40);
+        QCOMPARE(secondaryCue->property("font").value<QFont>().pixelSize(), 28);
+        QVERIFY(nextLabel->property("font").value<QFont>().pixelSize() >= 22);
+
+        projection.setProjectionState(4);
+        QTRY_VERIFY(maneuver->isVisible());
+    }
+
     void qmlOwnsOneNonInteractivePreserveAspectSink()
     {
         const QString source = qmlSource();
@@ -325,8 +598,7 @@ private slots:
             QStringLiteral("fillMode: VideoOutput.PreserveAspectFit")));
         QVERIFY(source.contains(QStringLiteral("AAClusterDisplay.rendering")));
         QVERIFY(source.contains(QStringLiteral("AAClusterDisplay.awaitingContent")));
-        QVERIFY(source.contains(QStringLiteral(
-            "Start navigation to see turn-by-turn directions")));
+        QVERIFY(source.contains(QStringLiteral("Waiting for map")));
         QVERIFY(source.contains(QStringLiteral(
             "attachVideoSink(videoOutput.videoSink)")));
         QVERIFY(source.contains(QStringLiteral(
@@ -335,7 +607,8 @@ private slots:
         QVERIFY(source.contains(QStringLiteral("onIsCurrentPageChanged")));
         QVERIFY(source.contains(
             QStringLiteral("onVideoSinkAvailabilityChanged")));
-        QVERIFY(source.contains(QStringLiteral("if (!isCurrentPage)")));
+        QVERIFY(source.contains(
+            QStringLiteral("if (!isCurrentPage || !isMapMode)")));
         QVERIFY(source.contains(QStringLiteral(
             "root.sinkClaimAttempts < root.maxSinkClaimAttempts")));
         QVERIFY(source.contains(QStringLiteral(
@@ -378,39 +651,14 @@ private slots:
     {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
-        const auto writeFile = [&dir](const QString& name,
-                                      const QByteArray& contents) {
-            QSaveFile file(dir.filePath(name));
-            if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-                return false;
-            if (file.write(contents) != contents.size())
-                return false;
-            return file.commit();
-        };
-        QVERIFY(writeFile(QStringLiteral("AAClusterWidget.qml"),
-                          qmlSource().toUtf8()));
-        QVERIFY(writeFile(
-            QStringLiteral("MaterialIcon.qml"),
-            QByteArrayLiteral(
-                "import QtQuick\nItem { property string icon; property real "
-                "size; property color color; implicitWidth: size; "
-                "implicitHeight: size }\n")));
-        QVERIFY(writeFile(QStringLiteral("NormalText.qml"),
-                          QByteArrayLiteral("import QtQuick\nText {}\n")));
+        QVERIFY(writeRuntimeQmlFiles(dir));
 
         FakeClusterDisplay display;
+        FakeConfigService config;
+        FakeProjectionStatus projection;
+        oap::aa::NavigationDataBridge navigation;
         QQmlEngine engine;
-        engine.rootContext()->setContextProperty(
-            QStringLiteral("AAClusterDisplay"), &display);
-        engine.rootContext()->setContextProperty(
-            QStringLiteral("UiMetrics"),
-            QVariantMap{{QStringLiteral("spacing"), 8},
-                        {QStringLiteral("iconSize"), 24},
-                        {QStringLiteral("fontBody"), 16}});
-        engine.rootContext()->setContextProperty(
-            QStringLiteral("ThemeService"),
-            QVariantMap{{QStringLiteral("onSurfaceVariant"),
-                         QStringLiteral("#ffffff")}});
+        exposeRuntimeContext(engine, display, config, projection, navigation);
 
         QQmlComponent component(
             &engine, QUrl::fromLocalFile(
@@ -492,39 +740,14 @@ private slots:
     {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
-        const auto writeFile = [&dir](const QString& name,
-                                      const QByteArray& contents) {
-            QSaveFile file(dir.filePath(name));
-            if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-                return false;
-            if (file.write(contents) != contents.size())
-                return false;
-            return file.commit();
-        };
-        QVERIFY(writeFile(QStringLiteral("AAClusterWidget.qml"),
-                          qmlSource().toUtf8()));
-        QVERIFY(writeFile(
-            QStringLiteral("MaterialIcon.qml"),
-            QByteArrayLiteral(
-                "import QtQuick\nItem { property string icon; property real "
-                "size; property color color; implicitWidth: size; "
-                "implicitHeight: size }\n")));
-        QVERIFY(writeFile(QStringLiteral("NormalText.qml"),
-                          QByteArrayLiteral("import QtQuick\nText {}\n")));
+        QVERIFY(writeRuntimeQmlFiles(dir));
 
         FakeClusterDisplay display;
+        FakeConfigService config;
+        FakeProjectionStatus projection;
+        oap::aa::NavigationDataBridge navigation;
         QQmlEngine engine;
-        engine.rootContext()->setContextProperty(
-            QStringLiteral("AAClusterDisplay"), &display);
-        engine.rootContext()->setContextProperty(
-            QStringLiteral("UiMetrics"),
-            QVariantMap{{QStringLiteral("spacing"), 8},
-                        {QStringLiteral("iconSize"), 24},
-                        {QStringLiteral("fontBody"), 16}});
-        engine.rootContext()->setContextProperty(
-            QStringLiteral("ThemeService"),
-            QVariantMap{{QStringLiteral("onSurfaceVariant"),
-                         QStringLiteral("#ffffff")}});
+        exposeRuntimeContext(engine, display, config, projection, navigation);
 
         QQmlComponent component(
             &engine, QUrl::fromLocalFile(
