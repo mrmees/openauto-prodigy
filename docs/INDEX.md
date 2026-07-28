@@ -1,12 +1,11 @@
 # Documentation Index
 
-## Active Plans
+## Recently Completed Plans
 
-- [Android Auto GAL 5.0–6.0 production compatibility design](plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-design.md)
-  and [implementation plan](plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-plan.md)
-  — GAL 6.0/H.265 is hardware-accepted on the released OAA v1.5 main/tag
-  `61eab61c` and exact dist `5ff4aa2`; the plans remain active through final
-  verification and review.
+- [Android Auto GAL 5.0–6.0 production compatibility design](archive/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-design.md)
+  and [implementation plan](archive/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-plan.md)
+  — completed 2026-07-27 with GAL 6.0/H.265 hardware-accepted on the released
+  OAA v1.5 main/tag `61eab61c` and exact dist `5ff4aa2`.
 
 ## Start Here
 
@@ -64,8 +63,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- [2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-design.md](plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-design.md)
-- [2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-plan.md](plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-plan.md)
+None.
 
 ## Pi Configuration (pi-config/)
 

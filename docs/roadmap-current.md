@@ -19,30 +19,33 @@ spike, or research-first feasibility work.
 
 ## Now
 
-- Android Auto GAL 5.0–6.0 production compatibility — **ACTIVE, HARDWARE
-  ACCEPTED; AWAITING FINAL VERIFICATION/REVIEW**. The released
-  open-android-auto v1.5 boundary is pinned at main/tag `61eab61c` and exact
-  dist/submodule `5ff4aa2`. Hardware-accepted implementations are GAL 5.0
-  `a2b8aa8`, GAL 5.1 `ce08f8f`, and GAL 6.0/H.265 `c362ac6`.
-  `connection.gal_version` is now durable and session-wide, independent of the
-  CLUSTER lab, with exact choices 1.7, 4.3, 5.0, 5.1, and 6.0; missing or
-  invalid values resolve to the 6.0 production default. Requested GAL remains
-  the sole local policy authority. The staged policy adds modern display
-  metadata at 4.3, ackless audio and one shared codec per display at 5.0,
-  diagnostic-only typed audio/energy messages at 5.1, and typed bounded video
-  messages at 6.0. Video retains one ACK per accepted packet through 6.0.
-  The accepted codec order is H.265 then H.264, with H.264 as explicit
-  fallback. Pi acceptance proved the H.265 V4L2 stateless/DRM_PRIME hardware
-  path; independent ch3/ch12 counters proved concurrent MAIN/CLUSTER streams,
-  while the one-screen rig required sequential visual inspection. The active
-  design and plan remain in place until the final gate and bounded review are
-  complete; GAL 6.1, semantic unresolved options, EV UI, outgoing media stats,
-  overlays, AUXILIARY, and third-display work remain excluded. Design and plan:
-  `docs/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-design.md`
-  and
-  `docs/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-plan.md`.
+No promoted work is currently active.
 
 ## Done (recent)
+
+- Android Auto GAL 5.0–6.0 production compatibility — **COMPLETED 2026-07-27;
+  HARDWARE ACCEPTED**. The released open-android-auto v1.5 boundary is pinned
+  at main/tag `61eab61c` and exact dist/submodule `5ff4aa2`.
+  Hardware-accepted implementations are GAL 5.0 `a2b8aa8`, GAL 5.1 `ce08f8f`,
+  and GAL 6.0/H.265 `c362ac6`. `connection.gal_version` is durable and
+  session-wide, independent of the CLUSTER lab, with exact choices 1.7, 4.3,
+  5.0, 5.1, and 6.0; missing or invalid values resolve to the 6.0 production
+  default. Requested GAL remains the sole local policy authority. The staged
+  policy adds modern display metadata at 4.3, ackless audio and the same single
+  first-recognized configured codec on MAIN and CLUSTER at 5.0,
+  diagnostic-only typed audio/energy messages at 5.1, and typed bounded video
+  messages at 6.0. Video retains one ACK per accepted packet through 6.0. The
+  accepted codec order is H.265 then H.264, with H.264 as explicit fallback.
+  Pi acceptance proved the H.265 V4L2 stateless/DRM_PRIME hardware path;
+  independent ch3/ch12 counters proved concurrent MAIN/CLUSTER streams, while
+  the one-screen rig required sequential visual inspection. The full
+  native/app/offscreen CTest/ARM gate passed, and the bounded two-pass Fable
+  review closed with no pass-2 findings.
+  GAL 6.1, semantic unresolved options, EV UI, outgoing media stats, overlays,
+  AUXILIARY, and third-display work remain excluded. Archived design and plan:
+  `docs/archive/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-design.md`
+  and
+  `docs/archive/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-plan.md`.
 
 - Android Auto GAL 4.3 display compatibility — **HISTORICAL CHECKPOINT,
   SUPERSEDED — COMPLETE 2026-07-26** (Pi/Pixel live-validated). At that

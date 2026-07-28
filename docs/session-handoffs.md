@@ -4,6 +4,34 @@ Newest entries first.
 
 ---
 
+## 2026-07-27 — GAL 6.0 compatibility program closure
+
+**What changed:** Fable pass 2 reviewed immutable remediation range
+`e28ef88eee1d7a0a9d9a200485a2c7b42c18d208..a59c0656d66b450646db6d26080c2bac0242db2f`
+and returned BLOCKER=0, MAJOR=0, MINOR=0. Across both passes, pass 1 began at
+BLOCKER=0, MAJOR=1, MINOR=3; one MAJOR and two MINOR findings were confirmed,
+while one MINOR was deferred because the tested single-key string-preservation
+case has no second real consumer. Both compatibility design/plan records are
+now `COMPLETED 2026-07-27` and archived with reciprocal links intact.
+
+**Status:** COMPLETED. The accepted production code anchor remains
+`c362ac62df56a99f1509b872bd3d385f719c22cd`. The full native build, explicit
+app target, offscreen CTest, and ARM cross-build gate passed on `e28ef88` before
+the docs-only pass-1 remediation and this archival closure. No push, tag, or
+release was performed.
+
+**Verification:** `python3 scripts/check-doc-links.py --scope tracked-live` and
+`git diff --check` passed. The corrected nested gitlink checks
+`git -C libs/prodigy-oaa-protocol/proto rev-parse HEAD` and
+`git -C libs/prodigy-oaa-protocol/proto status --short` confirmed the protocol
+submodule clean at `5ff4aa218dd33913237993f2968bf70e16dc464e`.
+
+**Next 1–3 steps:** inspect the closure commit in the primary session; keep any
+push, tag, or release as separate user-authorized publication work; select the
+next promoted roadmap priority separately.
+
+---
+
 ## 2026-07-27 — GAL 6.0 Fable pass-1 documentation remediation
 
 **What changed:** adjudicated the bounded Fable pass-1 review of immutable
