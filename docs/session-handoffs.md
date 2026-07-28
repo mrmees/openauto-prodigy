@@ -16,21 +16,24 @@ directions per lane, and a continuous roadway-style lane band with no
 button-like cells. Stage 2 retains explicit rerouting, distinct road and
 instruction text, roundabout detail, ETA/destination data, and lookahead.
 
-**Status:** DESIGN APPROVED; implementation plan not yet written. The design is
-grounded on `15a45c1` and lives at
-`docs/plans/2026-07-28-native-dashboard-turn-card-design.md`. No runtime,
-configuration, QML, protocol-library, or proto-submodule files changed in this
-documentation step.
+**Status:** DESIGN APPROVED; STAGE 1 PLAN WRITTEN; AWAITING EXECUTION
+AUTHORIZATION. The design is grounded on `15a45c1` and lives at
+`docs/plans/2026-07-28-native-dashboard-turn-card-design.md`. The executable
+Stage 1 plan is grounded on design commit `4439c29` and lives at
+`docs/plans/2026-07-28-native-dashboard-turn-card-stage-1-plan.md`. It stops
+after Stage 1 hardware acceptance and preserves Stage 2 as evidence-gated work.
+No runtime, configuration, QML, protocol-library, or proto-submodule files
+changed in this documentation step.
 
-**Verification:** the design self-review found no placeholders, contradictory
-requirements, unresolved choices, or scope leakage. `python3
-scripts/check-doc-links.py --scope tracked-live`, `git diff --check`, and the
-final staged-diff whitespace check passed. No application build was run for
-this documentation-only step.
+**Verification:** design and Stage 1 plan self-review found no placeholders,
+contradictory requirements, unresolved choices, or Stage 2 scope leakage.
+`python3 scripts/check-doc-links.py --scope tracked-live`, `git diff --check`,
+and the final staged-diff whitespace check passed. No application build was
+run for this documentation-only step.
 
-**Next 1–3 steps:** review the written design with the user; write the staged
-implementation plan after approval; execute Stage 1 red-first with the required
-native/app/CTest/ARM and Pi/phone gates.
+**Next 1–3 steps:** review the Stage 1 plan with the user; execute it red-first
+after authorization; write the Stage 2 plan only from recorded live-delivery
+evidence.
 
 ---
 

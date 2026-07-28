@@ -26,7 +26,8 @@ spike, or research-first feasibility work.
   roadway-style lane-guidance band without reconnecting AA; Stage 2 promotes
   live-proven rerouting, road/instruction, roundabout, ETA/destination, and
   lookahead semantics without reducing the primary in-dash typography. Active
-  design: `docs/plans/2026-07-28-native-dashboard-turn-card-design.md`.
+  design: `docs/plans/2026-07-28-native-dashboard-turn-card-design.md`. Stage 1
+  plan: `docs/plans/2026-07-28-native-dashboard-turn-card-stage-1-plan.md`.
 
 ## Done (recent)
 

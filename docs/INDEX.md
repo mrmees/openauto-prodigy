@@ -64,9 +64,10 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 Active plans:
 
 - [Native Android Auto dashboard turn card design](plans/2026-07-28-native-dashboard-turn-card-design.md)
-  — approved staged design for immediate local Map/Turn card switching,
-  exhaustive maneuver and lane-shape coverage, and a theme-aware native card
-  with continuous roadway-style lane guidance.
+  and [Stage 1 implementation plan](plans/2026-07-28-native-dashboard-turn-card-stage-1-plan.md)
+  — approved staged design and executable first-stage plan for immediate local
+  Map/Turn card switching, exhaustive maneuver and lane-shape coverage, and a
+  theme-aware native card with continuous roadway-style lane guidance.
 
 ## Pi Configuration (pi-config/)
 
