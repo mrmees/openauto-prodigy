@@ -19,7 +19,14 @@ spike, or research-first feasibility work.
 
 ## Now
 
-No promoted work is currently active.
+- Native Android Auto dashboard turn card — **ACTIVE; DESIGN APPROVED
+  2026-07-28**. Replace the phone-rendered grey maneuver card with an immediate,
+  theme-aware Prodigy card while retaining the hardware-accepted projected map
+  provider. Stage 1 delivers exhaustive maneuver presentation and a continuous
+  roadway-style lane-guidance band without reconnecting AA; Stage 2 promotes
+  live-proven rerouting, road/instruction, roundabout, ETA/destination, and
+  lookahead semantics without reducing the primary in-dash typography. Active
+  design: `docs/plans/2026-07-28-native-dashboard-turn-card-design.md`.
 
 ## Done (recent)
 

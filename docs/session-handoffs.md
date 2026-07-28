@@ -4,6 +4,36 @@ Newest entries first.
 
 ---
 
+## 2026-07-28 — Native dashboard turn-card design
+
+**What changed:** promoted and documented the approved staged replacement for
+the phone-rendered dashboard turn card. The design keeps the phone auxiliary
+provider on the accepted map path, makes `map`/`turn_card` an immediate local
+presentation switch, and defines a theme-aware instrument card with explicit
+1024x600 typography floors. Stage 1 now includes an intentional mapping for
+every defined maneuver, transport and rendering for every lane shape, multiple
+directions per lane, and a continuous roadway-style lane band with no
+button-like cells. Stage 2 retains explicit rerouting, distinct road and
+instruction text, roundabout detail, ETA/destination data, and lookahead.
+
+**Status:** DESIGN APPROVED; implementation plan not yet written. The design is
+grounded on `15a45c1` and lives at
+`docs/plans/2026-07-28-native-dashboard-turn-card-design.md`. No runtime,
+configuration, QML, protocol-library, or proto-submodule files changed in this
+documentation step.
+
+**Verification:** the design self-review found no placeholders, contradictory
+requirements, unresolved choices, or scope leakage. `python3
+scripts/check-doc-links.py --scope tracked-live`, `git diff --check`, and the
+final staged-diff whitespace check passed. No application build was run for
+this documentation-only step.
+
+**Next 1–3 steps:** review the written design with the user; write the staged
+implementation plan after approval; execute Stage 1 red-first with the required
+native/app/CTest/ARM and Pi/phone gates.
+
+---
+
 ## 2026-07-28 — Selectable projected dashboard navigation
 
 **What changed:** hardware probe `76d631e` proved that AA accepts
