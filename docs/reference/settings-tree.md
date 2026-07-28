@@ -45,7 +45,7 @@ plugin ID, although the fixed menu does not currently add dynamic plugin rows.
 | Picker | Resolution | `video.resolution` | `480p`, `720p`, or `1080p`. |
 | Slider | DPI | `video.dpi` | 80–400, step 10; restart required. |
 | Picker | GAL Version | `connection.gal_version` | Durable session-wide policy with selectable values `1.7`, `4.3`, `5.0`, `5.1`, and `6.0`; `6.0` is the highest accepted value and default. Missing or invalid persisted values resolve to `6.0`. A real change gracefully reconnects active AA. This setting is independent of the projected CLUSTER lab. |
-| Picker | Dashboard Navigation | `video.secondary_display_content` | Visible when the projected dashboard display is enabled. `Map` selects the auxiliary navigation-map provider; `Turn card` selects compact maneuver cards. The durable default/fallback is `Map`. A real change gracefully reconnects active AA because the phone consumes the selector during service discovery. |
+| Picker | Dashboard Navigation | `video.secondary_display_content` | Visible when the projected dashboard display is enabled. `Map` (the default/fallback) immediately shows the live decoded map; `Turn card` immediately shows the native semantic maneuver card and continuous lane-guidance band. This local presentation switch does not reconnect AA, alter the invariant AUXILIARY/NAVIGATION descriptor, or stop the map decoder. Stage 2 fields remain evidence-gated. |
 | Toggle | Auto-connect | `connection.auto_connect_aa` | Enables automatic AA connection. |
 
 Decoder selection and protocol diagnostics live on the Debug page.

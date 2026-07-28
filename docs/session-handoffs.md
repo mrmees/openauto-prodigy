@@ -4,6 +4,33 @@ Newest entries first.
 
 ---
 
+## 2026-07-28 — Native dashboard turn-card Stage 1 guidance
+
+**What changed:** reconciled current Android Auto documentation with the Stage
+1 native dashboard behavior. The auxiliary descriptor is now invariantly
+`AUXILIARY`/`KEYCODE_NAVIGATION`; `video.secondary_display_content` immediately
+selects local map or native turn-card presentation without reconnecting AA.
+Map mode uses the live decoded map, while the native card keeps that decoder
+live and renders NavigationProvider semantics with a continuous lane band.
+Stage 2 data remains explicitly evidence-gated.
+
+**Status:** DOCUMENTATION RECONCILED; Stage 1 awaits hardware acceptance. The
+completed runtime anchor is `8f2df93219dbfbb3c80823a0f3e32d513999b43f`.
+The completed projected-dashboard fallback-wording item was removed from the
+engineering backlog; the settings-striping and CLUSTER/AUXILIARY terminology
+entries remain separate follow-up leads.
+
+**Verification:** `cmake --build /home/matt/builds/openauto-prodigy --target
+test_aa_cluster_widget -j$(nproc)` and `QT_QPA_PLATFORM=offscreen ctest
+--test-dir /home/matt/builds/openauto-prodigy --output-on-failure -R
+'^test_aa_cluster_widget$'` passed. The full native/app/CTest/ARM gate is run
+from the final documentation commit before deployment or publication.
+
+**Next 1–3 steps:** record the final gate artifact hash; obtain focused Stage
+1 Pi acceptance; only propose Stage 2 from captured phone delivery evidence.
+
+---
+
 ## 2026-07-28 — Native dashboard turn-card design
 
 **What changed:** promoted and documented the approved staged replacement for

@@ -128,23 +128,23 @@ will use the declaration.
 ### Projected dashboard content selection
 
 An enabled projected dashboard display is advertised as `AUXILIARY` display 1
-on the established video/input channel pair 12/13. The durable
-`video.secondary_display_content` setting selects its initial phone provider:
-`map` (the default and invalid-value fallback) serializes
-`KEYCODE_NAVIGATION` (65538), while `turn_card` serializes
-`KEYCODE_TURN_CARD` (65544). Both modes retain the same display type, channel
-IDs, carrier geometry, codec policy, decoder, and dashboard widget.
+on the established video/input channel pair 12/13. Its descriptor always
+serializes `KEYCODE_NAVIGATION` (65538); it does not select a phone turn-card
+provider. `video.secondary_display_content` is a local immediate presentation
+setting: `map` (the default and invalid-value fallback) attaches the existing
+decoded map surface, while `turn_card` hides that surface and renders the
+native card. Switching the setting does not reconnect AA, change the
+descriptor, carrier geometry, channels, codec policy, or decoder lifecycle.
+The map decoder remains live while the native card is visible.
 
-The selector is consumed from AV field 8 during service discovery. Changing it
-therefore gracefully reconnects an active AA session and sends a fresh
-descriptor; a later input `ButtonEvent` with either numeric keycode is not a
-content switch. In turn-card mode the phone may open and start the secondary
-stream without sending display frames until a route is active. The dashboard
-widget presents a local “Start navigation” placeholder during that intentional
-frame-idle state. The 2026-07-28 production-selector bench instead received a
-low-rate phone-rendered Maps icon while no route was active; Prodigy preserves
-that valid native idle surface. Starting a route replaced it immediately with
-the compact maneuver display.
+The native card consumes `NavigationProvider` semantics: route activity,
+maneuver, formatted distance, road name, and lane guidance. Its lane guidance
+is one continuous roadway-style band that can show multiple directions per
+lane, not a row of button-like cells. Its disconnected and no-route states are
+local presentation states. Stage 1 deliberately does not infer rerouting,
+distinct instruction versus road text, roundabout detail, ETA/destination, or
+lookahead; those Stage 2 fields remain evidence-gated on recorded phone
+delivery before any implementation is planned.
 
 ### GAL and per-video UI policy
 
@@ -276,6 +276,8 @@ policy selects CLUSTER content and runtime message 26 cannot add or replace
 AV/CLUSTER services.
 
 The follow-up AUXILIARY role-swap produced a different, deterministic result.
+This is historical provider-selection evidence, superseded by the Stage 1
+local-native-card policy above.
 AA 17.3 accepted MAIN ID 0 plus AUXILIARY ID 1 on the existing channel 12/13
 pair. With AV field 8 omitted (`KEYCODE_UNKNOWN`), the phone opened and started
 the stream but sent only the codec header and no decodable frame. Advertising
@@ -293,8 +295,9 @@ hands-off protocol submodule rather than a local proto patch. A 2026-07-28
 Pi/phone probe advertised AUXILIARY/NAVIGATION on channels 12/13; the phone
 opened both channels, streamed H.265 with normal ACK flow, decoded the expected
 800×480 carrier, and rendered the navigation map normally. Together with the
-earlier live TURN_CARD route/no-route result, this establishes the two durable
-content choices without a runtime display-role mutation.
+earlier live TURN_CARD route/no-route result, this established the former
+phone-provider experiment. Current production descriptors retain the invariant
+NAVIGATION provider and make the map/turn-card choice locally.
 
 ## Evdev mapping
 
@@ -360,6 +363,9 @@ without building shell-specific hit testing into the AA touch reader.
   1.7, 4.3, 5.0, 5.1, and 6.0; missing or invalid values resolve to 6.0.
 - Runtime CLUSTER profile changes use that same reconnect boundary but do not
   restart Prodigy or persist to YAML.
+- `video.secondary_display_content` is separate from those discovery settings:
+  it switches local map versus native-card presentation immediately, without an
+  AA reconnect or descriptor change; the decoder remains live.
 - Navbar edge/visibility changes are not a live AA viewport feature today; the
   settings surface treats visibility as restart-required.
 - Wire ID `0x8012` currently carries the HU's response to phone-supplied theming
