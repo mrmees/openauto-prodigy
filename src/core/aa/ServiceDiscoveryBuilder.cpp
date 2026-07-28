@@ -392,7 +392,9 @@ QByteArray ServiceDiscoveryBuilder::buildClusterVideoDescriptor() const
     avChannel->set_display_id(kClusterDisplayId);
     avChannel->set_display_type(oaa::proto::enums::DisplayType::AUXILIARY);
     avChannel->set_keycode(
-        oaa::proto::enums::AndroidKeycode::KEYCODE_NAVIGATION);
+        projectedClusterConfig_.content == ProjectedSecondaryContent::TurnCard
+            ? oaa::proto::enums::AndroidKeycode::KEYCODE_TURN_CARD
+            : oaa::proto::enums::AndroidKeycode::KEYCODE_NAVIGATION);
 
     const auto& profile = projectedClusterConfig_.profile;
     const ProjectedViewportGeometry geometry = profile.geometry();

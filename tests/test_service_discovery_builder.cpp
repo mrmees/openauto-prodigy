@@ -749,6 +749,32 @@ private slots:
         QCOMPARE(channelById(config, 13)->descriptor, clusterInputDescriptor);
     }
 
+    void auxiliaryContentSelectionChoosesConnectionTimeKeycode() {
+        struct Case {
+            oap::aa::ProjectedSecondaryContent content;
+            oaa::proto::enums::AndroidKeycode::Enum keycode;
+        };
+        const QList<Case> cases{
+            {oap::aa::ProjectedSecondaryContent::NavigationMap,
+             oaa::proto::enums::AndroidKeycode::KEYCODE_NAVIGATION},
+            {oap::aa::ProjectedSecondaryContent::TurnCard,
+             oaa::proto::enums::AndroidKeycode::KEYCODE_TURN_CARD},
+        };
+
+        for (const auto& testCase : cases) {
+            oap::aa::ProjectedClusterConfig cluster;
+            cluster.enabled = true;
+            cluster.content = testCase.content;
+            oap::aa::ServiceDiscoveryBuilder builder;
+            builder.setProjectedClusterConfig(cluster);
+
+            const auto secondary = descriptorById(builder.build(), 12).av_channel();
+            QCOMPARE(secondary.display_type(),
+                     oaa::proto::enums::DisplayType::AUXILIARY);
+            QCOMPARE(secondary.keycode(), testCase.keycode);
+        }
+    }
+
     void runtimeClusterProfileDrivesDescriptorAndNativeTurnCardDeclaration() {
         oap::aa::ServiceDiscoveryBuilder builder;
         oap::aa::ProjectedClusterConfig clusterConfig;

@@ -37,6 +37,14 @@ Hard-won protocol behavior for the Android Auto runtime. Root `AGENTS.md` holds 
 - **Accepted H.265 is hardware decode, not software fallback.** Pi acceptance
   used FFmpeg `hevc` with a DRM hardware context, `/dev/video19`, V4L2
   stateless request decode, and DMABuf/DRM_PRIME frames.
+- **Projected dashboard content is selected during service discovery.** When
+  the secondary display is enabled, it remains `AUXILIARY` display 1 on
+  channels 12/13. Durable `video.secondary_display_content` accepts `map`
+  (default/fallback, `KEYCODE_NAVIGATION`) or `turn_card`
+  (`KEYCODE_TURN_CARD`). A real change reconnects AA so the replacement
+  descriptor can select the provider; sending the same keycode later as an
+  input event does not switch content. A turn-card stream may intentionally
+  remain frame-idle until navigation starts.
 
 ## Production GAL session policy
 

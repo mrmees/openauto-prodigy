@@ -16,6 +16,7 @@ class FakeClusterDisplay : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool rendering READ rendering CONSTANT)
     Q_PROPERTY(QString statusText READ statusText CONSTANT)
+    Q_PROPERTY(bool awaitingContent READ awaitingContent CONSTANT)
     Q_PROPERTY(int viewportEncodedWidth READ viewportEncodedWidth
                    NOTIFY viewportGeometryChanged)
     Q_PROPERTY(int viewportEncodedHeight READ viewportEncodedHeight
@@ -34,6 +35,7 @@ class FakeClusterDisplay : public QObject {
 public:
     bool rendering() const { return false; }
     QString statusText() const { return QStringLiteral("Waiting"); }
+    bool awaitingContent() const { return true; }
     int viewportEncodedWidth() const { return geometry_.encodedWidth; }
     int viewportEncodedHeight() const { return geometry_.encodedHeight; }
     int viewportContentX() const { return geometry_.contentX(); }
@@ -169,6 +171,9 @@ private slots:
         QVERIFY(source.contains(
             QStringLiteral("fillMode: VideoOutput.PreserveAspectFit")));
         QVERIFY(source.contains(QStringLiteral("AAClusterDisplay.rendering")));
+        QVERIFY(source.contains(QStringLiteral("AAClusterDisplay.awaitingContent")));
+        QVERIFY(source.contains(QStringLiteral(
+            "Start navigation to see turn-by-turn directions")));
         QVERIFY(source.contains(QStringLiteral(
             "attachVideoSink(videoOutput.videoSink)")));
         QVERIFY(source.contains(QStringLiteral(

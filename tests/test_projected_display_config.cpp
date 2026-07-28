@@ -14,6 +14,8 @@ private slots:
         QVERIFY(!config.enabled);
         QCOMPARE(config.setupFocus,
                  oap::aa::ProjectedSetupFocus::ProjectedNoInput);
+        QCOMPARE(config.content,
+                 oap::aa::ProjectedSecondaryContent::NavigationMap);
     }
 
     void readsDottedPluginIdThroughPluginValue()
@@ -37,6 +39,22 @@ private slots:
 
         QCOMPARE(oap::aa::resolveProjectedClusterConfig(yaml).setupFocus,
                  oap::aa::ProjectedSetupFocus::ProjectedNoInput);
+    }
+
+    void resolvesDurableSecondaryContentSelection()
+    {
+        oap::YamlConfig yaml;
+        QVERIFY(yaml.setValueByPath(
+            QStringLiteral("video.secondary_display_content"),
+            QStringLiteral("turn_card")));
+        QCOMPARE(oap::aa::resolveProjectedClusterConfig(yaml).content,
+                 oap::aa::ProjectedSecondaryContent::TurnCard);
+
+        QVERIFY(yaml.setValueByPath(
+            QStringLiteral("video.secondary_display_content"),
+            QStringLiteral("invalid")));
+        QCOMPARE(oap::aa::resolveProjectedClusterConfig(yaml).content,
+                 oap::aa::ProjectedSecondaryContent::NavigationMap);
     }
 
     void clusterViewportGeometryIsCenteredAndFlagIndependent()

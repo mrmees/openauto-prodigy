@@ -161,20 +161,6 @@ limits, and a verification command before implementation.
   whether successful-parse logs should also retain the bounded raw prefix so an
   operator can distinguish a real wrapper from an accidental parse.
 
-- **AUXILIARY/NAVIGATION selector needs AA 17.3 provenance and an upstream enum
-  update** — Evidence: **AUXILIARY/TURN_CARD LIVE-CONFIRMED; MAPS 26.30.05
-  STATIC TRACE; AA 17.3 NAVIGATION PATH PENDING**. A Pixel 8 accepted a
-  MAIN+AUXILIARY role swap on the existing display/channel topology.
-  AUXILIARY/UNKNOWN produced no decodable content; AUXILIARY/TURN_CARD was idle
-  without navigation and rendered a compact maneuver card during an active
-  route. YouTube Music never populated or replaced the auxiliary surface. Maps
-  26.30.05 and AA 16.2/16.4 traces identify AV field 8 values 65538 and 65544 as
-  connection-time NAVIGATION and TURN_CARD selectors, respectively, but the
-  hands-off protocol enum omits `KEYCODE_NAVIGATION = 65538`. Candidate
-  deliverable: resolve open-android-auto issue #14's AA 17.3 consumer trace and
-  enum/provenance update, then run a bounded AUXILIARY/NAVIGATION capture before
-  designing any runtime role/content selector or simultaneous third display.
-
 - **AA EventBus connections accumulate across sessions** — Evidence:
   **CODE-CONFIRMED 2026-07-24**. Navigation and media-status value-member
   handlers are connected during each new session but omitted from teardown's

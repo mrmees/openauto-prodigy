@@ -388,8 +388,13 @@ void AndroidAutoOrchestrator::onNewConnection()
 
     // Switch the crop/decoder snapshot only after the previous session is gone
     // and immediately before building the matching descriptor.
-    if (projectedClusterConfig_.enabled)
+    if (projectedClusterConfig_.enabled) {
+        if (yamlConfig_) {
+            projectedClusterConfig_.content =
+                resolveProjectedClusterConfig(*yamlConfig_).content;
+        }
         clusterDisplay_.activateRequestedClusterProfile();
+    }
 
     ServiceDiscoveryBuilder builder(yamlConfig_, btMac,
                                      yamlConfig_ ? yamlConfig_->wifiSsid() : QString(),
@@ -423,10 +428,17 @@ void AndroidAutoOrchestrator::onNewConnection()
                  << builder.videoConfigCount(ProjectedDisplayRole::Main)
                  << "profile_generation=" << clusterDisplay_.profileGeneration();
     if (projectedClusterConfig_.enabled) {
-        qCInfo(lcAA) << "Projected display descriptor:"
-                     << "role=AUXILIARY selector=NAVIGATION display=1"
-                        " video_ch=12 input_ch=13 configs="
-                     << builder.videoConfigCount(ProjectedDisplayRole::Cluster);
+        const QString selector = projectedClusterConfig_.content
+                == ProjectedSecondaryContent::TurnCard
+            ? QStringLiteral("TURN_CARD")
+            : QStringLiteral("NAVIGATION");
+        qCInfo(lcAA).noquote()
+            << "Projected display descriptor:"
+            << QStringLiteral(
+                   "role=AUXILIARY selector=%1 display=1 video_ch=12 "
+                   "input_ch=13 configs=")
+                   .arg(selector)
+            << builder.videoConfigCount(ProjectedDisplayRole::Cluster);
     }
 
     // Register all known channel handlers.

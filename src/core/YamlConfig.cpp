@@ -74,6 +74,7 @@ void YamlConfig::initDefaults()
     root_["video"]["fps"] = 30;
     root_["video"]["resolution"] = "720p";
     root_["video"]["dpi"] = 140;
+    root_["video"]["secondary_display_content"] = "map";
 
     root_["video"]["codecs"] = YAML::Node(YAML::NodeType::Sequence);
     root_["video"]["codecs"].push_back("h265");

@@ -90,7 +90,9 @@ Item {
             font.pixelSize: UiMetrics.fontBody
             text: root.localStatusText.length > 0
                   ? root.localStatusText
-                  : AAClusterDisplay.statusText
+                  : AAClusterDisplay.awaitingContent
+                    ? "Start navigation to see turn-by-turn directions"
+                    : AAClusterDisplay.statusText
         }
     }
 

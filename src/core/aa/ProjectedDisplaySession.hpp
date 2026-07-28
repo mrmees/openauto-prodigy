@@ -24,6 +24,7 @@ class ProjectedDisplaySession : public QObject {
     Q_OBJECT
     Q_PROPERTY(int state READ state NOTIFY stateChanged)
     Q_PROPERTY(bool rendering READ isRendering NOTIFY stateChanged)
+    Q_PROPERTY(bool awaitingContent READ isAwaitingContent NOTIFY stateChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY stateChanged)
     Q_PROPERTY(int viewportEncodedWidth READ viewportEncodedWidth
                    NOTIFY viewportGeometryChanged)
@@ -80,6 +81,7 @@ public:
 
     int state() const { return static_cast<int>(state_); }
     bool isRendering() const { return state_ == Rendering; }
+    bool isAwaitingContent() const { return state_ == WaitingForFrames; }
     QString statusText() const { return statusText_; }
     int viewportEncodedWidth() const;
     int viewportEncodedHeight() const;

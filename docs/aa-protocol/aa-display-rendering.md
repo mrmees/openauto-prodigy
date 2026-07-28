@@ -125,6 +125,24 @@ says that the CLUSTER descriptor can host the native turn-card UI element. It
 does not render a turn card, select phone content, or promise that the phone
 will use the declaration.
 
+### Projected dashboard content selection
+
+An enabled projected dashboard display is advertised as `AUXILIARY` display 1
+on the established video/input channel pair 12/13. The durable
+`video.secondary_display_content` setting selects its initial phone provider:
+`map` (the default and invalid-value fallback) serializes
+`KEYCODE_NAVIGATION` (65538), while `turn_card` serializes
+`KEYCODE_TURN_CARD` (65544). Both modes retain the same display type, channel
+IDs, carrier geometry, codec policy, decoder, and dashboard widget.
+
+The selector is consumed from AV field 8 during service discovery. Changing it
+therefore gracefully reconnects an active AA session and sends a fresh
+descriptor; a later input `ButtonEvent` with either numeric keycode is not a
+content switch. In turn-card mode the phone may open and start the secondary
+stream without sending display frames until a route is active. The dashboard
+widget presents a local “Start navigation” placeholder during that intentional
+frame-idle state.
+
 ### GAL and per-video UI policy
 
 The requested tuple, not the phone-reported compatible tuple, is the sole
@@ -265,13 +283,15 @@ surface. The session-bit-16 A/B made no content change, matching the corrected
 17.3 trace.
 
 Maps 26.30.05 publishes separate CLUSTER and AUXILIARY projection services.
-Its decompiled routing path identifies AV field 8 as the AUXILIARY initial
-content selector: `KEYCODE_NAVIGATION` (65538) selects a limited navigation
-map and `KEYCODE_TURN_CARD` selects a turn-card service/fallback. The local
-hands-off protocol enum lacks `KEYCODE_NAVIGATION`, and the available Maps
-report traces this selector through AA 16.2/16.4 rather than 17.3. The current
-17.3 confirmation and enum/provenance update are tracked upstream in
-open-android-auto issue #14; Prodigy has not patched the submodule locally.
+Its routing path and the resolved AA 17.3 consumer trace identify AV field 8
+as the AUXILIARY initial-content selector. Open-android-auto v1.5 now carries
+the confirmed `KEYCODE_NAVIGATION` enum, so Prodigy consumes it through the
+hands-off protocol submodule rather than a local proto patch. A 2026-07-28
+Pi/phone probe advertised AUXILIARY/NAVIGATION on channels 12/13; the phone
+opened both channels, streamed H.265 with normal ACK flow, decoded the expected
+800×480 carrier, and rendered the navigation map normally. Together with the
+earlier live TURN_CARD route/no-route result, this establishes the two durable
+content choices without a runtime display-role mutation.
 
 ## Evdev mapping
 
