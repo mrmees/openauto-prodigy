@@ -60,6 +60,18 @@ limits, and a verification command before implementation.
 
 ## Bluetooth, Boot, and Audio Recovery
 
+- **Late initial BlueZ registration does not restart failed AA discovery** —
+  Evidence: **CODE-CONFIRMED 2026-07-27; NONBLOCKING**. If Prodigy starts while
+  `org.bluez` is absent and bounded listener/SDP retries reach
+  `StartupStage::Failed`, a later service registration is ignored because
+  `handleBlueZServiceRegistered()` requires `bluezRestartPending_`, which is
+  set only after an observed unregistration edge. Accepted hardware covered a
+  BlueZ restart after successful startup, not late initial registration. On
+  this boot-order path, wireless AA discovery cannot recover without restarting
+  Prodigy. Candidate deliverable: a late registration while discovery is still
+  desired starts one bounded recovery epoch from `Failed`, without duplicating
+  the already-proven restart recovery path.
+
 - **Initial BlueZ snapshots do not self-retry after failure** — Evidence:
   **CODE-CONFIRMED 2026-07-24** and explicitly left open by the PR #33 review.
   BluetoothManager and BtAudioPlugin retain state and log a failed initial

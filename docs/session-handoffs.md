@@ -4,6 +4,35 @@ Newest entries first.
 
 ---
 
+## 2026-07-27 — GAL 6.0 Fable pass-1 documentation remediation
+
+**What changed:** adjudicated the bounded Fable pass-1 review of immutable
+range `25cd71f..e28ef88`. The initial result was BLOCKER=0, MAJOR=1, MINOR=3.
+One MAJOR and two MINOR findings were confirmed: the stale plugin-reference
+GAL list/default and codec-fallback documentation gap were corrected, while the
+late-initial-BlueZ registration recovery gap was code-confirmed as nonblocking
+and recorded only as an engineering-backlog lead. The remaining one MINOR—the
+hard-coded `connection.gal_version` string-preservation key—is deferred with no
+edit or backlog item: it is correct and tested for the only current
+numeric-looking string consumer, and no second consumer justifies an
+abstraction.
+
+**Status:** PASS-1 FINDINGS REMEDIATED; AWAITING THE ONE ALLOWED REMEDIATION
+REVIEW. Pass 1 reported no blocker. The accepted code anchor remains unchanged
+at `c362ac62df56a99f1509b872bd3d385f719c22cd`; this is documentation-only
+remediation pending Fable pass 2 in the primary session.
+
+**Verification:** `python3 scripts/check-doc-links.py --scope tracked-live` and
+`git diff --check` passed; the protocol submodule remained clean at
+`5ff4aa218dd33913237993f2968bf70e16dc464e`.
+
+**Next 1–3 steps:** inspect the bounded four-file diff in the primary session;
+run the one allowed Fable remediation review without changing its immutable
+feature base; adjudicate pass 2 before completing and archiving the active
+plans.
+
+---
+
 ## 2026-07-27 — GAL 6.0 live-document reconciliation
 
 **What changed:** reconciled the eight live AA policy, rendering, protocol,

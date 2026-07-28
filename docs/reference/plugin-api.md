@@ -270,9 +270,10 @@ application log for acceptance or rejection in this phase.
 
 GAL is not part of either `aa.cluster.*` action. The durable, session-wide
 `connection.gal_version` setting lives in normal Android Auto Settings, offers
-1.7, 4.3, and 5.0, and defaults to the highest accepted value, 5.0. The
-requested tuple remains the only local feature-policy input; 4.3+ admission
-requires MATCH plus a numerically equal-or-higher reported tuple. Under 4.3+
+exactly 1.7, 4.3, 5.0, 5.1, and 6.0, and defaults to the highest accepted
+value, 6.0. The requested tuple remains the only local feature-policy input;
+modern 4.3+ admission requires MATCH plus a numerically equal-or-higher
+reported tuple. Under 4.3+
 policy, the native-turn declaration writes the CLUSTER `VideoConfig` field-11
 hidden UI availability element plus field-1 companion insets that mirror the
 unchanged legacy margins. The default 300x300 CLUSTER uses left/right 250 and
