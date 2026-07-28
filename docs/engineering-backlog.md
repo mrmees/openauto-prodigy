@@ -161,6 +161,32 @@ limits, and a verification command before implementation.
   whether successful-parse logs should also retain the bounded raw prefix so an
   operator can distinguish a real wrapper from an accidental parse.
 
+- **Projected-dashboard fallback wording is turn-card-specific in Map mode** —
+  Evidence: **REVIEW-CONFIRMED 2026-07-28; HARDWARE-ACCEPTED TREE
+  NONBLOCKING**. While the secondary session is waiting for its first frame,
+  `AAClusterWidget.qml` shows “Start navigation to see turn-by-turn
+  directions” regardless of whether the durable selector is `map` or
+  `turn_card`. The tested phone delivered a valid native surface quickly in
+  both modes, so this is a transient/fallback wording issue rather than a
+  projection failure. Candidate deliverable: use neutral copy or expose the
+  active selector to QML without changing phone-rendered idle surfaces.
+
+- **Hidden Dashboard Navigation row breaks Android Auto settings striping** —
+  Evidence: **REVIEW-CONFIRMED 2026-07-28; COSMETIC**. When projected dashboard
+  display support is disabled, its invisible row retains index 3 and
+  Auto-connect retains index 4, leaving adjacent visible rows with the same
+  background stripe. Candidate deliverable: derive the following row index
+  from the picker's visibility in a focused UI cleanup.
+
+- **Projected secondary-display terminology remains internally split** —
+  Evidence: **REVIEW-CONFIRMED 2026-07-28; NONFUNCTIONAL**. Service discovery
+  and product documentation now correctly call the wire role `AUXILIARY` and
+  the user surface a projected dashboard display, while the internal role,
+  diagnostic prefix, provider, action names, and Debug Settings lab still use
+  `CLUSTER`. Candidate deliverable: choose one internal product-neutral name
+  and perform a separately reviewed mechanical rename without changing channel
+  IDs or wire descriptors.
+
 - **AA EventBus connections accumulate across sessions** — Evidence:
   **CODE-CONFIRMED 2026-07-24**. Navigation and media-status value-member
   handlers are connected during each new session but omitted from teardown's

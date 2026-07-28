@@ -4,6 +4,53 @@ Newest entries first.
 
 ---
 
+## 2026-07-28 — Selectable projected dashboard navigation
+
+**What changed:** hardware probe `76d631e` proved that AA accepts
+AUXILIARY/NAVIGATION on the existing secondary display and renders the map.
+Production code anchor `1b1086480608ca7a58dcbc1c36f18d8ca8f6afa9` adds the
+durable `video.secondary_display_content` setting, a visible Map/Turn card
+picker when the projected dashboard is enabled, connection-time
+`KEYCODE_NAVIGATION`/`KEYCODE_TURN_CARD` descriptor selection, automatic AA
+renegotiation on a real change, and a local fallback while a phone sends no
+frames. The hands-off protocol submodule remains unchanged at OAA v1.5.
+
+**Status:** COMPLETED and HARDWARE ACCEPTED. The Pi ran
+`ALPHA-26-07-24-01-120-g1b10864`, executable SHA-256
+`1b6b0ee2064e930a4253cf8c47e9b1224920e892f51a41f40714ed2b2f2f9f98`.
+The operator independently confirmed Map mode, Turn card mode after the
+automatic reconnect, the phone-rendered no-route Maps icon, its immediate
+transition to a compact maneuver card when a route started, and restoration
+to the full map after selecting Map again. Final runtime state was GAL 6.0,
+720p, `secondary_display_content: map`, app PID 91361, and `NRestarts=0`.
+
+**Verification:** focused tests were written red-first and passed. Then
+`cmake --build /home/matt/builds/openauto-prodigy -j$(nproc)`,
+`cmake --build /home/matt/builds/openauto-prodigy --target openauto-prodigy -j$(nproc)`,
+`QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, and
+`./cross-build.sh` passed on the accepted code tree. The exact local/remote ARM
+hashes matched. `python3 scripts/check-doc-links.py --scope tracked-live` and
+`git diff --check` passed for documentation.
+
+**Review:** the standard Opus pass reviewed immutable range
+`fff66b261de74b6e96809e44c91c6a141e78cf2a..b08e0ccd844de523cfd5d4a1e1e03b02b3f4ca91`
+with accepted anchor `1b10864`: BLOCKER=0, MAJOR=1, MINOR=2. All three findings
+were confirmed but nonblocking and deferred under the accepted-tree rule: one
+fallback-copy issue, one hidden-row striping issue, and one internal naming
+cleanup. They are recorded in `docs/engineering-backlog.md`; no remediation
+pass was needed.
+
+**Evidence and rollback:** pre-probe accepted binary:
+`/var/backups/openauto-prodigy/20260728-073214-pre-aux-navigation/openauto-prodigy`;
+pre-production-selector probe binary:
+`/var/backups/openauto-prodigy/20260728-074813-pre-dashboard-selector/openauto-prodigy`.
+
+**Next 1–3 steps:** publish the completed branch only with user authorization;
+select any deferred UI/naming cleanup as a separate follow-up feature; keep the
+current phone-rendered idle surface unchanged.
+
+---
+
 ## 2026-07-27 — GAL 6.0 compatibility program closure
 
 **What changed:** Fable pass 2 reviewed immutable remediation range

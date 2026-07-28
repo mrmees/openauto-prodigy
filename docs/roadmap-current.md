@@ -23,6 +23,21 @@ No promoted work is currently active.
 
 ## Done (recent)
 
+- Selectable Android Auto projected dashboard navigation — **COMPLETED
+  2026-07-28; HARDWARE ACCEPTED** at code anchor `1b10864`. When the existing
+  projected dashboard display is enabled, Prodigy now advertises one stable
+  AUXILIARY display on channels 12/13 and exposes a durable Android Auto
+  setting for `Map` (`KEYCODE_NAVIGATION`, the default/fallback) or `Turn card`
+  (`KEYCODE_TURN_CARD`). A real selection change performs an AA-only reconnect
+  so the phone consumes a fresh service-discovery descriptor; later input
+  keycodes are not treated as content switches. The Pi/phone bench confirmed
+  Map → Turn card → Map reconnects, full map rendering, a native no-route Maps
+  icon, and its immediate replacement by the compact maneuver display when a
+  route started. The native build, explicit app target, offscreen CTest, and
+  ARM cross-build passed. The bounded Opus gate returned no blocker; its one
+  major and two minor findings were confirmed, judged nonblocking after the
+  hardware-accepted anchor, and recorded in the engineering backlog.
+
 - Android Auto GAL 5.0–6.0 production compatibility — **COMPLETED 2026-07-27;
   HARDWARE ACCEPTED**. The released open-android-auto v1.5 boundary is pinned
   at main/tag `61eab61c` and exact dist/submodule `5ff4aa2`.
