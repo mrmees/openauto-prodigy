@@ -39,6 +39,7 @@ connection:
   bt_name: OpenAutoProdigy       # written by the installer; read as the adapter alias
   auto_connect_aa: true
   bt_discoverable: true
+  gal_version: "6.0"
   wifi_ap:
     interface: wlan0
     ssid: OpenAutoProdigy
@@ -186,6 +187,7 @@ therefore readable and writable with `ConfigService` dot paths.
 |---|---|---|---|
 | `connection.auto_connect_aa` | bool | `true` | Automatically connect when the phone's AA service is available. |
 | `connection.bt_discoverable` | bool | `true` | Bluetooth discoverability preference. |
+| `connection.gal_version` | string | `6.0` | Durable session-wide requested GAL policy, independent of the CLUSTER lab. Accepted values are exactly `1.7`, `4.3`, `5.0`, `5.1`, and `6.0`; missing or invalid values resolve to the highest accepted value (`6.0`). A real change gracefully reconnects active AA. |
 | `connection.wifi_ap.interface` | string | `wlan0` | AP network interface. |
 | `connection.wifi_ap.ssid` | string | `OpenAutoProdigy` | AP SSID; runtime startup may synchronize it from hostapd. |
 | `connection.wifi_ap.password` | string | `prodigy` | AP passphrase; runtime startup may synchronize it from hostapd. |

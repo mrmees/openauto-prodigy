@@ -19,32 +19,35 @@ spike, or research-first feasibility work.
 
 ## Now
 
-- Android Auto GAL 5.0–6.0 production compatibility — **ACTIVE**. Restore the
-  released open-android-auto `v1.5` `dist` boundary, move GAL selection out of
-  the CLUSTER laboratory into durable session-wide configuration, then advance
-  through separately hardware-accepted 5.0, 5.1, and 6.0 checkpoints. Each
-  accepted version becomes a supported production choice and the shipped
-  default advances to the highest accepted tuple, ending at 6.0. The work adds
-  ackless audio and single-codec display policy at 5.0, typed MediaOptions and
-  energy-forecast tolerance at 5.1, and typed modern video options at 6.0.
-  H.265 remains the accepted production codec from repeated live validation;
-  the default order is restored to H.265 then H.264 after GAL 5.0 accidentally
-  made the legacy H.264-first list decisive. H.264 GAL 6.0 fallback behavior is
-  proven on `2bc574e`. The remaining hardware gate is one H.265 matrix with
-  independent operator checkpoints, three reconnects, a second-phone smoke,
-  and lower-GAL smokes—not a new codec A/B or comparative resource threshold.
-  Requested-version authority and explicit lower-version fallbacks remain.
-  GAL 6.1, semantic unresolved options, EV UI, outgoing media stats, overlays,
-  AUXILIARY, and third-display work are excluded. Design and plan:
+- Android Auto GAL 5.0–6.0 production compatibility — **ACTIVE, HARDWARE
+  ACCEPTED; AWAITING FINAL VERIFICATION/REVIEW**. The released
+  open-android-auto v1.5 boundary is pinned at main/tag `61eab61c` and exact
+  dist/submodule `5ff4aa2`. Hardware-accepted implementations are GAL 5.0
+  `a2b8aa8`, GAL 5.1 `ce08f8f`, and GAL 6.0/H.265 `c362ac6`.
+  `connection.gal_version` is now durable and session-wide, independent of the
+  CLUSTER lab, with exact choices 1.7, 4.3, 5.0, 5.1, and 6.0; missing or
+  invalid values resolve to the 6.0 production default. Requested GAL remains
+  the sole local policy authority. The staged policy adds modern display
+  metadata at 4.3, ackless audio and one shared codec per display at 5.0,
+  diagnostic-only typed audio/energy messages at 5.1, and typed bounded video
+  messages at 6.0. Video retains one ACK per accepted packet through 6.0.
+  The accepted codec order is H.265 then H.264, with H.264 as explicit
+  fallback. Pi acceptance proved the H.265 V4L2 stateless/DRM_PRIME hardware
+  path; independent ch3/ch12 counters proved concurrent MAIN/CLUSTER streams,
+  while the one-screen rig required sequential visual inspection. The active
+  design and plan remain in place until the final gate and bounded review are
+  complete; GAL 6.1, semantic unresolved options, EV UI, outgoing media stats,
+  overlays, AUXILIARY, and third-display work remain excluded. Design and plan:
   `docs/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-design.md`
   and
   `docs/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-plan.md`.
 
 ## Done (recent)
 
-- Android Auto GAL 4.3 display compatibility — **COMPLETE 2026-07-26**
-  (Pi/Pixel live-validated). Prodigy retains GAL 1.7 as its default and adds a
-  default-off 4.3 laboratory profile. A requested 4.3 session accepts a MATCH
+- Android Auto GAL 4.3 display compatibility — **HISTORICAL CHECKPOINT,
+  SUPERSEDED — COMPLETE 2026-07-26** (Pi/Pixel live-validated). At that
+  checkpoint Prodigy retained GAL 1.7 as its default and added a default-off
+  4.3 laboratory profile. A requested 4.3 session accepts a MATCH
   response reporting 4.3 or higher, while the requested tuple remains the sole
   local feature-policy input. Every modern field-11 declaration carries field-1
   companion insets that preserve the legacy margins and AA's usable-aspect
@@ -84,11 +87,10 @@ spike, or research-first feasibility work.
   Google Maps in every CLUSTER profile: navigation only added route UI, while
   the turn-data toggle and media playback selected no alternate content.
   Issue #10 subsequently confirmed the toggle's `session_configuration` value
-  16 has no AA 17.3 consumer. Historical capture notes reported GAL 1.1 while
-  current source requests 1.7; the active GAL 4.3 compatibility plan begins by
-  capturing the deployed request to resolve that discrepancy. Resolution,
-  crop geometry, and DPI visibly changed framing/scale and negotiated the
-  expected carrier.
+  16 has no AA 17.3 consumer. Historical capture notes reported GAL 1.1; the
+  superseding GAL compatibility program later captured and resolved the actual
+  requested-version behavior. Resolution, crop geometry, and DPI visibly
+  changed framing/scale and negotiated the expected carrier.
   Plan:
   `docs/archive/plans/2026-07-25-aa-runtime-cluster-lab-plan.md`.
 

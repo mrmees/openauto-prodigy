@@ -4,6 +4,42 @@ Newest entries first.
 
 ---
 
+## 2026-07-27 — GAL 6.0 live-document reconciliation
+
+**What changed:** reconciled the eight live AA policy, rendering, protocol,
+configuration, Settings, roadmap, index, and handoff documents against the
+hardware-accepted production tree. Current guidance now describes durable
+session-wide `connection.gal_version`, requested-version authority, the exact
+1.7/4.3/5.0/5.1/6.0 list and thresholds, audio/video/AVInput flow-control
+boundaries, diagnostic-only modern messages, and the accepted H.265-first
+codec policy with H.264 fallback. Historical 4.3/5.0 defaults are explicitly
+superseded rather than presented as live configuration.
+
+**Status:** DOCUMENTATION RECONCILED; AWAITING FINAL VERIFICATION/REVIEW. The
+active design and implementation plan remain active and in place until the
+primary session completes the repository/ARM gate and bounded final review.
+
+**Anchors:** planning base `25cd71f`; OAA v1.5 main/tag
+`61eab61c5f9968154ff1a80faa8c0a427b208479`; exact dist/submodule
+`5ff4aa218dd33913237993f2968bf70e16dc464e`; accepted GAL 5.0 `a2b8aa8`, GAL
+5.1 `ce08f8f`, and GAL 6.0/H.265
+`c362ac62df56a99f1509b872bd3d385f719c22cd`. The acceptance entries below
+retain the evidence paths and artifact identities without duplicating their
+raw logs. The one-screen visual limitation is preserved: independent ch3/ch12
+counters prove concurrent streams, while MAIN and the homescreen CLUSTER
+widget were inspected sequentially.
+
+**Verification:** `python3 scripts/check-doc-links.py --scope tracked-live` and
+`git diff --check` passed; the protocol submodule was clean at
+`5ff4aa218dd33913237993f2968bf70e16dc464e`.
+
+**Next 1–3 steps:** run the full native/app/CTest/ARM gate in the primary
+session; run the one bounded final review against the immutable planning and
+accepted anchors; only after a clear review, complete/archive the two active
+plans and refresh their links.
+
+---
+
 ## 2026-07-27 — GAL 6.0 H.265 hardware acceptance
 
 **What changed:** Task 7 hardware-accepted implementation
@@ -82,11 +118,13 @@ selected. Do not change the hardware-accepted Task 7 tree while closing docs.
 `ALPHA-26-07-24-01-109-gce08f8f`, ARM executable SHA-256
 `77aa748005212dcb16c1c2d8db9db98c94c9683000c590eff17a18cc25a90409`.
 
-**Status:** ACCEPTED. GAL negotiation requested 5.1 and received 6.0/MATCH,
-with one H.264 configuration per display and simultaneous MAIN+CLUSTER
-rendering. Active ch4 emitted zero audio ACKs while MAIN and CLUSTER video ACKs
-advanced. The full operator live matrix passed, as did three manual reconnect
-cycles, an explicit GAL 5.0 regression, and the final GAL 5.1 restoration.
+**Historical status (superseded by GAL 6.0 above):** ACCEPTED. GAL negotiation
+requested 5.1 and received 6.0/MATCH, with one H.264 configuration per display
+and concurrent independent MAIN+CLUSTER streams confirmed by their counters.
+On the one-screen rig, the two surfaces were inspected sequentially. Active
+ch4 emitted zero audio ACKs while MAIN and CLUSTER video ACKs advanced. The
+full operator live matrix passed, as did three manual reconnect cycles, an
+explicit GAL 5.0 regression, and the final GAL 5.1 restoration.
 Messages `0x8014` and `0x8008` were not delivered during the live run; their
 synthetic coverage passed, so this conditional non-delivery is nonblocking.
 
@@ -103,25 +141,28 @@ retained PID 4413, `NRestarts=0`, and its 2026-07-27 15:28:23 CDT start time.
 rollback
 `/var/backups/openauto-prodigy/20260727T213826Z-pre-ce08f8f-gal-5-1`.
 
-**Next 1–3 steps:** Task 6 is GAL 6 implementation.
+**Historical next step (completed above):** Task 6 was GAL 6 implementation.
 
 ---
 
 ## 2026-07-27 — GAL 5.0 hardware acceptance
 
-**What changed:** implementation and hardware acceptance are complete at
-`a2b8aa8`, with the released protocol pin `5ff4aa2`. GAL is now a durable,
-session-wide Android Auto setting independent of the CLUSTER lab; selectable
-1.7/4.3/5.0 behavior remains available and 5.0 is the accepted default.
+**What changed:** this historical implementation and hardware checkpoint
+completed at `a2b8aa8`, with the released protocol pin `5ff4aa2`. GAL became a
+durable, session-wide Android Auto setting independent of the CLUSTER lab;
+selectable 1.7/4.3/5.0 behavior became available and 5.0 was the accepted
+default at this checkpoint. The later entries above supersede that default.
 
-**Status:** ACCEPTED. The Pi runs
+**Historical status (superseded by GAL 5.1/6.0 above):** ACCEPTED. The Pi runs
 `ALPHA-26-07-24-01-105-ga2b8aa8`, executable SHA-256
 `8ad6da18072ec97af00f8b8272ab99aaa137b0d909cd1367f593a9336e6cb30f`.
 A BlueZ service restart rebuilt discovery and AA reconnected automatically
 without restarting Prodigy; PID 4171 and `NRestarts=0` stayed unchanged. Three
 consecutive manual phone disconnect/reconnect returns also passed. The operator
 confirmed ch4/ch5/ch6 audio roles, Assistant mic/response, MAIN touch plus
-Back/Home/TEL direct dialer, simultaneous MAIN+CLUSTER video, and exit/return.
+Back/Home/TEL direct dialer, and exit/return. Independent counters confirmed
+concurrent MAIN+CLUSTER video; their surfaces were inspected sequentially on
+the one-screen rig.
 
 **Verification:** `cd ~/builds/openauto-prodigy && cmake --build . -j$(nproc)`,
 `cmake --build . --target openauto-prodigy -j$(nproc)`,
@@ -139,6 +180,6 @@ Intermittent brief audio skips correlated with phone/UI activity and were also
 seen at GAL 1.7; current evidence does not support a GAL 5.0 regression, a
 blocker, or a Pi-side fix claim.
 
-**Next 1–3 steps:** Task 4 is GAL 5.1 typed tolerance. No 5.1 work has begun.
+**Historical next step (completed above):** Task 4 was GAL 5.1 typed tolerance.
 
 ---
