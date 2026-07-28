@@ -23,6 +23,7 @@ void TestConfigService::testReadTopLevelValues()
     QCOMPARE(svc.value("display.brightness").toInt(), 80);
     QCOMPARE(svc.value("audio.master_volume").toInt(), 80);
     QCOMPARE(svc.value("connection.wifi_ap.ssid").toString(), QString("OpenAutoProdigy"));
+    QCOMPARE(svc.value("connection.gal_version").toString(), QString("6.0"));
     QCOMPARE(svc.value("video.fps").toInt(), 30);
     QCOMPARE(svc.value("hardware_profile").toString(), QString("rpi4"));
     QCOMPARE(svc.value("api.tcp_port").toInt(), 9810);
@@ -40,6 +41,9 @@ void TestConfigService::testWriteTopLevelValues()
 
     svc.setValue("audio.master_volume", 30);
     QCOMPARE(svc.value("audio.master_volume").toInt(), 30);
+
+    svc.setValue("connection.gal_version", QString("1.7"));
+    QCOMPARE(svc.value("connection.gal_version").toString(), QString("1.7"));
 }
 
 void TestConfigService::testChangeSignalOnlyForAcceptedScalarWrites()

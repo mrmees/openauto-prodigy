@@ -50,6 +50,8 @@ private slots:
                  std::string("NAVIGATION_NOTIFICATION"));
         QCOMPARE(oaa::ProtocolLogger::messageName(oaa::ChannelId::Navigation, oaa::NavigationMessageId::NAV_DISTANCE),
                  std::string("NAVIGATION_DISTANCE"));
+        QCOMPARE(oaa::ProtocolLogger::messageName(oaa::ChannelId::Navigation, 0x8008),
+                 std::string("VEHICLE_ENERGY_FORECAST"));
         QCOMPARE(oaa::ProtocolLogger::messageName(oaa::ChannelId::MediaStatus, oaa::MediaStatusMessageId::PLAYBACK_STATUS),
                  std::string("MEDIA_PLAYBACK_STATUS"));
         QCOMPARE(oaa::ProtocolLogger::messageName(oaa::ChannelId::MediaStatus, oaa::MediaStatusMessageId::PLAYBACK_METADATA),

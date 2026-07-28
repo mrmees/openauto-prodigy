@@ -8,6 +8,7 @@
 #include "../../core/services/IThemeService.hpp"
 #include "../../core/services/NightModeService.hpp"
 #include "WirelessAaConfig.hpp"
+#include "GalVersionPolicy.hpp"
 
 #include <oaa/Messenger/Messenger.hpp>
 #include <oaa/control/BatteryStatusMessage.pb.h>
@@ -117,9 +118,7 @@ AndroidAutoOrchestrator::AndroidAutoOrchestrator(
                     clusterDisplay_.requestedClusterProfile();
                 qCInfo(lcAA).noquote()
                     << "CLUSTER profile staged generation="
-                    << clusterDisplay_.profileGeneration()
-                    << "gal="
-                    << projectedClusterConfig_.profile.galVersion.toString();
+                    << clusterDisplay_.profileGeneration();
                 if (isAaConnected())
                     disconnectAndRetrigger();
             });
@@ -400,6 +399,11 @@ void AndroidAutoOrchestrator::onNewConnection()
     if (displayW_ > 0 && displayH_ > 0)
         builder.setDisplayDimensions(displayW_, displayH_);
     builder.setNavbarThickness(navbarThickness_);
+
+    const oaa::ProtocolVersion protocolVersion = yamlConfig_
+        ? resolveConfiguredGalVersion(*yamlConfig_)
+        : kHighestAcceptedGalVersion;
+    builder.setProtocolVersion(protocolVersion);
     oaa::SessionConfig config = builder.build();
 
     // Create session
@@ -411,12 +415,13 @@ void AndroidAutoOrchestrator::onNewConnection()
     clusterDisplay_.setAdvertisedVideoConfigCount(
         builder.videoConfigCount(ProjectedDisplayRole::Cluster));
 
+    qCInfo(lcAA).noquote()
+        << "AA session protocol requested="
+        << galVersionToString(protocolVersion);
     qCInfo(lcAA) << "Projected display descriptor:"
                  << "role=MAIN display=0 video_ch=3 input_ch=1 configs="
                  << builder.videoConfigCount(ProjectedDisplayRole::Main)
-                 << "profile_generation=" << clusterDisplay_.profileGeneration()
-                 << "requested_gal="
-                 << projectedClusterConfig_.profile.galVersion.toString();
+                 << "profile_generation=" << clusterDisplay_.profileGeneration();
     if (projectedClusterConfig_.enabled) {
         qCInfo(lcAA) << "Projected display descriptor:"
                      << "role=CLUSTER display=1 video_ch=12 input_ch=13 configs="

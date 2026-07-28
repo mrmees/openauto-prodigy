@@ -7,11 +7,13 @@
 #include "oaa/av/AVChannelSetupResponseMessage.pb.h"
 #include "oaa/av/MediaCodecTypeEnum.pb.h"
 #include "oaa/av/AVChannelStartIndicationMessage.pb.h"
+#include "oaa/av/AVChannelMediaOptionsMessage.pb.h"
 #include "oaa/av/AVMediaAckIndicationMessage.pb.h"
 #include "oaa/video/VideoFocusIndicationMessage.pb.h"
 #include "oaa/video/VideoFocusModeEnum.pb.h"
 #include "oaa/video/UiConfigRequestMessage.pb.h"
 #include "oaa/video/UpdateHuUiConfigResponse.pb.h"
+#include <google/protobuf/unknown_field_set.h>
 
 class TestVideoChannelHandler : public QObject {
     Q_OBJECT
@@ -105,6 +107,9 @@ private slots:
     void testStartIndicationEmitsSignal() {
         oaa::hu::VideoChannelHandler handler;
         QSignalSpy startSpy(&handler, &oaa::hu::VideoChannelHandler::streamStarted);
+        QSignalSpy detailsSpy(
+            &handler,
+            &oaa::hu::VideoChannelHandler::streamStartDetailsReceived);
 
         handler.onChannelOpened();
 
@@ -118,6 +123,58 @@ private slots:
 
         QCOMPARE(startSpy.count(), 1);
         QCOMPARE(startSpy[0][0].value<int32_t>(), 7);
+        QVERIFY(detailsSpy.isValid());
+        QCOMPARE(detailsSpy.count(), 1);
+        QCOMPARE(detailsSpy[0][0].value<int32_t>(), 7);
+        QCOMPARE(detailsSpy[0][1].value<uint32_t>(), 0u);
+        QCOMPARE(detailsSpy[0][2].toInt(), -1);
+        QCOMPARE(detailsSpy[0][3].toBool(), false);
+        QVERIFY(detailsSpy[0][4].toString().isEmpty());
+        QVERIFY(handler.canAcceptMedia());
+    }
+
+    void testExtendedStartIndicationEmitsBoundedDetails() {
+        oaa::hu::VideoChannelHandler handler;
+        QSignalSpy startSpy(&handler,
+                            &oaa::hu::VideoChannelHandler::streamStarted);
+        QSignalSpy detailsSpy(
+            &handler,
+            &oaa::hu::VideoChannelHandler::streamStartDetailsReceived);
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        handler.onChannelOpened();
+
+        oaa::proto::messages::AVChannelStartIndication start;
+        start.set_session(73);
+        start.set_config(2);
+        start.set_session_type(
+            oaa::proto::enums::AVChannelSessionType::SESSION_TYPE_ALTERNATE);
+        auto* mediaConfig = start.mutable_media_config();
+        mediaConfig->set_feature_flag_1(true);
+        mediaConfig->set_config_value(37);
+        mediaConfig->GetReflection()
+            ->MutableUnknownFields(mediaConfig)
+            ->AddLengthDelimited(100, std::string(800, 'x'));
+
+        const QByteArray payload = QByteArray::fromStdString(
+            start.SerializeAsString());
+        handler.onMessage(oaa::AVMessageId::START_INDICATION, payload);
+
+        QCOMPARE(startSpy.count(), 1);
+        QCOMPARE(startSpy[0][0].value<int32_t>(), 73);
+        QCOMPARE(startSpy[0][1].value<uint32_t>(), 2u);
+        QVERIFY(detailsSpy.isValid());
+        QCOMPARE(detailsSpy.count(), 1);
+        QCOMPARE(detailsSpy[0][0].value<int32_t>(), 73);
+        QCOMPARE(detailsSpy[0][1].value<uint32_t>(), 2u);
+        QCOMPARE(detailsSpy[0][2].toInt(), 2);
+        QCOMPARE(detailsSpy[0][3].toBool(), true);
+        const QString summary = detailsSpy[0][4].toString();
+        QCOMPARE(summary, QString::fromStdString(
+                              mediaConfig->ShortDebugString()).left(512));
+        QCOMPARE(summary.size(), 512);
+        QVERIFY(summary.contains(QStringLiteral("config_value: 37")));
+        QCOMPARE(sendSpy.count(), 0);
         QVERIFY(handler.canAcceptMedia());
     }
 
@@ -176,6 +233,146 @@ private slots:
         handler.onChannelOpened();
         QCOMPARE(handler.receivedFrameCount(), 0u);
         QCOMPARE(handler.ackCount(), 0u);
+    }
+
+    void testVideoMediaAckPolicy_data() {
+        QTest::addColumn<int>("galMajor");
+        QTest::addColumn<int>("galMinor");
+
+        QTest::newRow("GAL 1.7") << 1 << 7;
+        QTest::newRow("GAL 4.3") << 4 << 3;
+        QTest::newRow("GAL 5.0") << 5 << 0;
+        QTest::newRow("GAL 5.1") << 5 << 1;
+        QTest::newRow("GAL 6.0") << 6 << 0;
+    }
+
+    void testVideoMediaAckPolicy() {
+        QFETCH(int, galMajor);
+        QFETCH(int, galMinor);
+        qRegisterMetaType<std::shared_ptr<const QByteArray>>();
+
+        oaa::hu::VideoChannelHandler handler;
+        handler.configureSession(oaa::SessionProtocolPolicy(
+            {static_cast<uint16_t>(galMajor),
+             static_cast<uint16_t>(galMinor)}));
+        handler.onChannelOpened();
+
+        oaa::proto::messages::AVChannelStartIndication start;
+        start.set_session(60);
+        start.set_config(0);
+        const QByteArray startPayload = QByteArray::fromStdString(
+            start.SerializeAsString());
+        handler.onMessage(oaa::AVMessageId::START_INDICATION, startPayload);
+
+        QSignalSpy frameSpy(&handler,
+                            &oaa::hu::VideoChannelHandler::videoFrameData);
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+        handler.onMediaData(QByteArray(256, '\x01'), 100);
+
+        QCOMPARE(frameSpy.count(), 1);
+        QCOMPARE(sendSpy.count(), 1);
+        QCOMPARE(sendSpy[0][1].value<uint16_t>(),
+                 static_cast<uint16_t>(oaa::AVMessageId::ACK_INDICATION));
+        oaa::proto::messages::AVMediaAckIndication ack;
+        const QByteArray ackPayload = sendSpy[0][2].toByteArray();
+        QVERIFY(ack.ParseFromArray(ackPayload.constData(), ackPayload.size()));
+        QCOMPARE(ack.session_id(), 60);
+        QCOMPARE(ack.ack_count(), 1);
+        QCOMPARE(handler.receivedFrameCount(), 1u);
+        QCOMPARE(handler.ackCount(), 1u);
+    }
+
+    void testMediaOptionsEmitsOneBoundedTypedSummary() {
+        oaa::hu::VideoChannelHandler handler;
+        QSignalSpy optionsSpy(
+            &handler,
+            &oaa::hu::VideoChannelHandler::mediaOptionsReceived);
+        QSignalSpy unknownSpy(&handler,
+                              &oaa::IChannelHandler::unknownMessage);
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        oaa::proto::messages::AVChannelMediaOptions options;
+        const auto populatePing = [](auto* ping, qint64 interval,
+                                     int timeout) {
+            ping->set_ping_interval_ns(interval);
+            ping->set_ping_timeout_ms(timeout);
+        };
+        populatePing(options.mutable_ping_configuration_1(), 1001, 101);
+        options.set_bool_value_2(true);
+        populatePing(options.mutable_ping_configuration_3(), 1003, 103);
+        populatePing(options.mutable_ping_configuration_4(), 1004, 104);
+        populatePing(options.mutable_ping_configuration_5(), 1005, 105);
+        populatePing(options.mutable_ping_configuration_6(), 1006, 106);
+        options.set_uint32_value_7(77);
+        populatePing(options.mutable_ping_configuration_8(), 1008, 108);
+        options.set_bool_value_9(true);
+        populatePing(options.mutable_ping_configuration_10(), 1010, 110);
+        options.set_bool_value_11(true);
+        populatePing(options.mutable_ping_configuration_12(), 1012, 112);
+        populatePing(options.mutable_ping_configuration_13(), 1013, 113);
+        options.GetReflection()
+            ->MutableUnknownFields(&options)
+            ->AddLengthDelimited(100, std::string(800, 'x'));
+
+        const QByteArray payload = QByteArray::fromStdString(
+            options.SerializeAsString());
+        handler.onMessage(oaa::AVMessageId::MEDIA_OPTIONS, payload);
+
+        QVERIFY(optionsSpy.isValid());
+        QCOMPARE(optionsSpy.count(), 1);
+        const QString summary = optionsSpy[0][0].toString();
+        QCOMPARE(summary, QString::fromStdString(
+                              options.ShortDebugString()).left(512));
+        QCOMPARE(summary.size(), 512);
+        QVERIFY(summary.contains(QStringLiteral("ping_configuration_1")));
+        QVERIFY(summary.contains(QStringLiteral("uint32_value_7: 77")));
+        QCOMPARE(unknownSpy.count(), 0);
+        QCOMPARE(sendSpy.count(), 0);
+    }
+
+    void testMalformedMediaOptionsPreservesStreamingAndAckState() {
+        qRegisterMetaType<std::shared_ptr<const QByteArray>>();
+
+        oaa::hu::VideoChannelHandler handler;
+        handler.configureSession(oaa::SessionProtocolPolicy(
+            oaa::kGalVersion6_0));
+        handler.onChannelOpened();
+
+        oaa::proto::messages::AVChannelStartIndication start;
+        start.set_session(61);
+        start.set_config(0);
+        const QByteArray startPayload = QByteArray::fromStdString(
+            start.SerializeAsString());
+        handler.onMessage(oaa::AVMessageId::START_INDICATION, startPayload);
+
+        QSignalSpy optionsSpy(
+            &handler,
+            &oaa::hu::VideoChannelHandler::mediaOptionsReceived);
+        QSignalSpy unknownSpy(&handler,
+                              &oaa::IChannelHandler::unknownMessage);
+        QSignalSpy frameSpy(&handler,
+                            &oaa::hu::VideoChannelHandler::videoFrameData);
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        handler.onMessage(oaa::AVMessageId::MEDIA_OPTIONS,
+                          QByteArray::fromHex("0a0508"));
+
+        QVERIFY(optionsSpy.isValid());
+        QCOMPARE(optionsSpy.count(), 0);
+        QCOMPARE(unknownSpy.count(), 0);
+        QCOMPARE(sendSpy.count(), 0);
+        QVERIFY(handler.canAcceptMedia());
+
+        handler.onMediaData(QByteArray(256, '\x02'), 101);
+        QCOMPARE(frameSpy.count(), 1);
+        QCOMPARE(sendSpy.count(), 1);
+        QCOMPARE(sendSpy[0][1].value<uint16_t>(),
+                 static_cast<uint16_t>(oaa::AVMessageId::ACK_INDICATION));
+        oaa::proto::messages::AVMediaAckIndication ack;
+        const QByteArray ackPayload = sendSpy[0][2].toByteArray();
+        QVERIFY(ack.ParseFromArray(ackPayload.constData(), ackPayload.size()));
+        QCOMPARE(ack.session_id(), 61);
+        QCOMPARE(ack.ack_count(), 1);
     }
 
     void testMalformedSetupReportsBoundedError() {

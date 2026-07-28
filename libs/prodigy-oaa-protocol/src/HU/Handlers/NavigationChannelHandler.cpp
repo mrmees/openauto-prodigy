@@ -5,6 +5,7 @@
 #include "oaa/navigation/NavigationStateMessage.pb.h"
 #include "oaa/navigation/NavigationNotificationMessage.pb.h"
 #include "oaa/navigation/NavigationTurnEventMessage.pb.h"
+#include "oaa/navigation/VehicleEnergyForecastMessage.pb.h"
 namespace oaa {
 namespace hu {
 
@@ -47,12 +48,46 @@ void NavigationChannelHandler::onMessage(uint16_t messageId, const QByteArray& p
     case oaa::NavigationMessageId::NAV_DISTANCE:
         handleNavDistance(data);
         break;
+    case oaa::NavigationMessageId::VEHICLE_ENERGY_FORECAST:
+        handleVehicleEnergyForecast(data);
+        break;
     default:
         qInfo() << "[NavChannel] unknown msgId:" << QString("0x%1").arg(messageId, 4, 16, QChar('0'))
                 << "len:" << data.size()
                 << "hex:" << data.left(64).toHex(' ');
         break;
     }
+}
+
+void NavigationChannelHandler::handleVehicleEnergyForecast(
+    const QByteArray& payload)
+{
+    oaa::proto::messages::VehicleEnergyForecastMessage outer;
+    if (!outer.ParseFromArray(payload.constData(), payload.size())) {
+        qWarning() << "[NavChannel] failed to parse VehicleEnergyForecast outer, size:"
+                   << payload.size();
+        return;
+    }
+
+    bool innerParsed = false;
+    QString summary = QString::fromStdString(
+        outer.ShortDebugString()).left(512);
+    if (outer.has_vehicle_energy_forecast()) {
+        oaa::proto::messages::VehicleEnergyForecast inner;
+        innerParsed = inner.ParseFromString(outer.vehicle_energy_forecast());
+        if (innerParsed) {
+            summary = QString::fromStdString(
+                inner.ShortDebugString()).left(512);
+        } else {
+            qWarning() << "[NavChannel] failed to parse VehicleEnergyForecast inner, size:"
+                       << outer.vehicle_energy_forecast().size();
+        }
+    }
+
+    qDebug() << "[NavChannel] vehicle energy forecast, size:"
+             << payload.size() << "inner parsed:" << innerParsed
+             << "summary:" << summary;
+    emit vehicleEnergyForecastReceived(innerParsed, summary);
 }
 
 void NavigationChannelHandler::handleNavState(const QByteArray& payload)

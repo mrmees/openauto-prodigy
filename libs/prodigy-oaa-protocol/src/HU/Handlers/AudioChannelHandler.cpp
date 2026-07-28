@@ -7,6 +7,7 @@
 #include "oaa/av/AVChannelSetupStatusEnum.pb.h"
 #include "oaa/av/AVChannelStartIndicationMessage.pb.h"
 #include "oaa/av/AVChannelStopIndicationMessage.pb.h"
+#include "oaa/av/AVChannelMediaOptionsMessage.pb.h"
 #include "oaa/av/AVMediaAckIndicationMessage.pb.h"
 namespace oaa {
 namespace hu {
@@ -15,6 +16,12 @@ AudioChannelHandler::AudioChannelHandler(uint8_t channelId, QObject* parent)
     : oaa::IAVChannelHandler(parent)
     , channelId_(channelId)
 {
+}
+
+void AudioChannelHandler::configureSession(
+    const oaa::SessionProtocolPolicy& policy)
+{
+    protocolPolicy_ = policy;
 }
 
 void AudioChannelHandler::onChannelOpened()
@@ -50,9 +57,7 @@ void AudioChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
         handleStopIndication();
         break;
     case oaa::AVMessageId::MEDIA_OPTIONS:
-        qDebug() << "[AudioChannel" << channelId_
-                 << "] newer AV message:" << Qt::hex << messageId
-                 << "size:" << data.size();
+        handleMediaOptions(data);
         break;
     default:
         qWarning() << "[AudioChannel" << channelId_
@@ -60,6 +65,24 @@ void AudioChannelHandler::onMessage(uint16_t messageId, const QByteArray& payloa
         emit unknownMessage(messageId, data);
         break;
     }
+}
+
+void AudioChannelHandler::handleMediaOptions(const QByteArray& payload)
+{
+    oaa::proto::messages::AVChannelMediaOptions options;
+    if (!options.ParseFromArray(payload.constData(), payload.size())) {
+        qWarning() << "[AudioChannel" << channelId_
+                   << "] failed to parse MediaOptions, size:"
+                   << payload.size();
+        return;
+    }
+
+    const QString summary = QString::fromStdString(
+        options.ShortDebugString()).left(512);
+    qDebug() << "[AudioChannel" << channelId_
+             << "] media options, size:" << payload.size()
+             << "summary:" << summary;
+    emit mediaOptionsReceived(summary);
 }
 
 void AudioChannelHandler::handleSetupRequest(const QByteArray& payload)
@@ -96,9 +119,23 @@ void AudioChannelHandler::handleStartIndication(const QByteArray& payload)
     session_ = start.session();
     streaming_ = true;
 
+    const int sessionType = start.has_session_type()
+        ? static_cast<int>(start.session_type())
+        : -1;
+    const bool hasMediaConfig = start.has_media_config();
+    const QString mediaConfigSummary = hasMediaConfig
+        ? QString::fromStdString(start.media_config().ShortDebugString())
+              .left(512)
+        : QString{};
+
     qDebug() << "[AudioChannel" << channelId_
-             << "] stream started, session:" << session_;
+             << "] stream started, session:" << session_
+             << "config:" << start.config()
+             << "session type:" << sessionType
+             << "media config:" << mediaConfigSummary;
     emit streamStarted(session_);
+    emit streamStartDetailsReceived(session_, start.config(), sessionType,
+                                    hasMediaConfig, mediaConfigSummary);
 }
 
 void AudioChannelHandler::handleStopIndication()
@@ -115,9 +152,11 @@ void AudioChannelHandler::onMediaData(const QByteArray& data, uint64_t timestamp
 
     emit audioDataReceived(data, timestamp);
 
-    // Each accepted frame consumes one of the advertised permits. Return one
-    // immediately so the phone retains the remaining pipeline headroom.
-    sendAck();
+    if (!protocolPolicy_.usesAcklessAudio()) {
+        // Each accepted frame consumes one of the advertised permits. Return
+        // one immediately so the phone retains the remaining pipeline headroom.
+        sendAck();
+    }
 }
 
 void AudioChannelHandler::sendAck()

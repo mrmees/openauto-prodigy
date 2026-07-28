@@ -75,6 +75,12 @@ private slots:
         QCOMPARE(oaa::AVMessageId::MEDIA_OPTIONS, uint16_t{0x8014});
         QCOMPARE(oaa::AVMessageId::CRITICAL_UI_NOTIFICATION, uint16_t{0x8015});
     }
+
+    void navigationMessageIdsMatchAudited17_3Map()
+    {
+        QCOMPARE(oaa::NavigationMessageId::VEHICLE_ENERGY_FORECAST,
+                 uint16_t{0x8008});
+    }
 };
 
 QTEST_MAIN(TestProtocolConstants)

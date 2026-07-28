@@ -5,6 +5,8 @@
 #include <QByteArray>
 #include <cstdint>
 
+#include <oaa/Session/SessionProtocolPolicy.hpp>
+
 namespace oaa {
 
 struct ChannelConfig {
@@ -15,7 +17,11 @@ struct ChannelConfig {
 struct SessionConfig {
     uint16_t protocolMajor = 1;
     uint16_t protocolMinor = 7;
-    bool requireMinimumCompatibleProtocolVersion = false;
+
+    SessionProtocolPolicy protocolPolicy() const
+    {
+        return SessionProtocolPolicy{{protocolMajor, protocolMinor}};
+    }
 
     QString headUnitName = "OpenAuto Prodigy";
     QString carModel = "Universal";

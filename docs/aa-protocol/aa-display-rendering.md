@@ -40,10 +40,15 @@ encoded mode and the usable viewport aspect ratio. It writes the difference
 between the full mode and the centered content region to
 `VideoConfig.margin_width`/`margin_height`.
 
-The builder advertises only the selected landscape mode, repeated once per
-enabled recognized codec. The default configs are H.264 and H.265 at 720p,
-30 fps, and DPI 140. There is no automatically advertised 480p fallback when a
-higher mode is selected.
+The builder advertises only the selected landscape mode. At GAL 1.7 and 4.3,
+MAIN repeats that mode once per enabled recognized codec while the legacy
+CLUSTER policy remains unchanged. At GAL 5.0 and above, every enabled display
+instead advertises the same single first recognized configured codec;
+the accepted order is H.265 then H.264, so the production GAL 6.0 policy emits
+one H.265 configuration on MAIN and one on CLUSTER. Explicit configuration
+order remains authoritative, and H.264 remains the supported fallback. The
+standard configuration is 720p, 30 fps, and DPI 140. There is no automatically
+advertised 480p fallback when a higher mode is selected.
 
 The input descriptor repeats the same calculation and advertises
 `touch_screen_config` as the content dimensions. This shared calculation is
@@ -59,6 +64,11 @@ For the formulas and illustrative calculations, see
 decoder recognizes H.264 and H.265 Annex B bitstreams, selects hardware decode
 when available, falls back to software decode, and publishes the newest decoded
 `QVideoFrame` to the QML video sink.
+
+Production H.265 acceptance exercised the hardware path rather than that
+software fallback: FFmpeg selected generic `hevc` with a DRM hardware context,
+opened `/dev/video19` through V4L2 stateless request decode, and delivered
+DMABuf-backed DRM_PRIME frames for MAIN and CLUSTER.
 
 The decoder object persists across AA sessions, but every video
 `streamStarted` edge places an ordered reset command in its worker queue. That
@@ -81,7 +91,9 @@ back over the rendered viewport. It is diagnostic only and defaults off.
 ### Experimental runtime CLUSTER viewport
 
 When the default-off projected CLUSTER experiment is enabled, its independent
-display starts with the accepted 800×480 H.264 carrier at 30 fps and 140 DPI.
+display starts with the accepted 800×480 carrier at 30 fps and 140 DPI. Under
+the production GAL 6.0 policy its codec is the shared first recognized H.265
+default; explicit H.264 remains supported.
 The baseline CLUSTER video configuration declares total margins of 500
 horizontal and 180 vertical pixels, asking the phone to render a centered
 300×300 content rectangle at source offset (250, 90). Its paired input
@@ -90,8 +102,10 @@ projected input.
 
 Debug Settings provides a runtime CLUSTER lab while the experiment is enabled.
 It can stage 480p or 720p, DPI 80–640, any positive centered content rectangle
-that fits the carrier with even total margins, a bounded requested GAL choice
-(`1.7` or `4.3`), and the 4.3-only `native_turn_card_available` declaration.
+that fits the carrier with even total margins, and the
+`native_turn_card_available` declaration. GAL is selected separately for the
+whole AA session through the durable `connection.gal_version` control in normal
+Android Auto Settings; it is not CLUSTER lab state.
 One accepted complete profile updates one typed snapshot and, only when it is a
 real change while projection is active, gracefully reconnects the Android Auto
 session. The replacement discovery descriptor, decoded-frame validation, and
@@ -102,8 +116,8 @@ current application process and reset returns to its startup profile.
 
 The same path is available to local integrations as
 `aa.cluster.applyProfile` with a complete map payload (`resolution`, `dpi`,
-`content_width`, `content_height`, `gal_version`, and
-`native_turn_card_available`) and `aa.cluster.resetProfile`. External API v1
+`content_width`, `content_height`, and `native_turn_card_available`) and
+`aa.cluster.resetProfile`. External API v1
 can dispatch those registered actions with `payload_json`; dispatch confirms
 that the handler ran, while the provider diagnostics describe profile
 acceptance. `native_turn_card_available` is an honest HU declaration only: it
@@ -116,10 +130,22 @@ will use the declaration.
 The requested tuple, not the phone-reported compatible tuple, is the sole
 local input to descriptor and UI-feature policy:
 
-| Requested GAL | Version-response admission | Session clock | `VideoConfig` field 11 |
-|---|---|---|---|
-| 1.7 (default) | Raw status `MATCH` is sufficient; the reported tuple is legacy status-only. | Existing navbar clock bit is set only when the Navbar clock is enabled. | Absent from every MAIN and CLUSTER configuration. Native-turn-card true is rejected. |
-| 4.3 (lab) | Raw status `MATCH` plus a numerically equal-or-higher reported tuple. | The session bit is clear. | Each selectable MAIN codec configuration gets field-1 companion insets plus one `UI_ELEMENT_CLOCK` only when the Navbar clock is enabled. The CLUSTER configuration gets field-1 companion insets plus one `UI_ELEMENT_NAVIGATION_TURN_DATA_AVAILABLE` only when `native_turn_card_available` is true. |
+| Requested GAL | Version-response admission | Display and media policy |
+|---|---|---|
+| 1.7 | Raw status `MATCH` is sufficient; the reported tuple is legacy status-only. | Legacy display metadata and configured MAIN codec-list behavior. Audio and video ACKs remain enabled. |
+| 4.3 | Raw status `MATCH` plus a numerically equal-or-higher reported tuple. | Modern display metadata gates companion insets and hidden/native-turn, resize, and blended additions when applicable. Configured codec-list behavior remains legacy. Audio and video ACKs remain enabled. |
+| 5.0 | Raw status `MATCH` plus a numerically equal-or-higher reported tuple. | Extended audio-start tolerance; MAIN and CLUSTER advertise the same single first recognized configured codec. Phone-to-HU audio becomes ackless; video ACKs continue. |
+| 5.1 | Raw status `MATCH` plus a numerically equal-or-higher reported tuple. | Adds typed, diagnostic-only standalone audio MediaOptions (`0x8014`) and navigation VehicleEnergyForecast (`0x8008`). Codec and ACK policy remain as at 5.0. |
+| 6.0 (default/highest accepted) | Raw status `MATCH` plus a numerically equal-or-higher reported tuple. | Adds typed, bounded diagnostic-only extended video start and standalone video MediaOptions. Audio remains ackless; video sends one ACK per accepted packet. |
+
+The durable session-wide `connection.gal_version` setting offers exactly all
+five rows and is independent of CLUSTER lab state. Missing or invalid values
+resolve to the highest accepted value, currently 6.0. A real setting change
+gracefully reconnects an active session. The requested tuple—not a higher
+compatible tuple reported by the phone—remains the sole local input to
+descriptor, codec, message, and ACK policy. A modern `MATCH` response below
+the requested tuple fails before TLS. AVInput uses its separate HU-to-phone
+flow-control contract; audio acklessness does not change it.
 
 The removed session-configuration value 16 is never emitted. Field 11 is
 limited to those two hidden-UI declarations and their required field-1
@@ -131,9 +157,11 @@ descriptor therefore keeps total margins `0x58` and carries top/bottom 29,
 left/right 0, plus CLOCK. Native-true CLUSTER keeps totals 500x180 and carries
 left/right 250, top/bottom 90, plus enum 5. Fields 2–4 and 6–8 remain absent.
 GAL 1.7, Navbar-off, and native-false CLUSTER paths remain field-11-free; no
-inset-only submessage is created. This policy does not alter display roles,
-select a turn-card service, or change the established video, input, audio,
-ACK, focus, or touch contracts.
+inset-only submessage is created. Modern metadata applies at 4.3+, including
+the MAIN clock declaration and optional CLUSTER native-turn declaration. This
+metadata policy does not alter display roles, select a turn-card service, or
+change video, input, focus, or touch contracts; the separate GAL 5.0 media
+policy suppresses audio ACKs only and preserves video ACKs.
 
 Version diagnostics retain the complete fixed response prefix: reported major,
 minor, raw 16-bit status, and every byte after that six-byte prefix. A short
@@ -143,7 +171,8 @@ trailing length, a bounded parsed configuration summary when applicable, and a
 bounded opaque-byte prefix; trailing bytes are non-fatal.
 
 Task 0's deployed Pi/Pixel baseline captured request `1.7`, response
-`1.7/MATCH`, no trailing bytes, and healthy simultaneous MAIN+CLUSTER media.
+`1.7/MATCH`, no trailing bytes, and healthy concurrent independent
+MAIN/CLUSTER media streams.
 The corrected request-only checkpoint at `9501bbef` then captured requested
 `4.3` with the same Pixel reporting `6.0/MATCH`; that compatible response
 proceeded through the established projection path before any modern descriptor
@@ -166,7 +195,7 @@ at x=23..386/y=27..390. Native false showed the phone-rendered maneuver banner;
 native true omitted it with enum 5 present; restored false brought it back with
 field 11 absent. Normal CLUSTER ACK cadence continued throughout.
 
-The final Pi state is service healthy on
+The 2026-07-26 GAL 4.3 display checkpoint ended service healthy on
 `ALPHA-26-07-24-01-97-gd06fa40`, source
 `d06fa40a2d9141f4a62155ce75e3bb3d2d2550f3`, executable SHA-256
 `4b73d69a40f7e5be4701f1775af53a11fa1d3a7863cb0ddb3d379afad0fded48`,
@@ -183,6 +212,26 @@ The Pi had no ADB/logcat source for the final rerun. That is an explicit
 evidence limitation, not an unresolved display defect; the result rests on raw
 version capture, exact descriptor goldens, Pi lifecycle/ACK/resource evidence,
 and direct MAIN and CLUSTER screenshots.
+
+The historical GAL 5.0 checkpoint on 2026-07-27 accepted source `a2b8aa8` on
+released proto pin `5ff4aa2`; it is superseded as the current default by the
+later checkpoints. Its final restored run requested 5.0, accepted the phone's
+6.0/MATCH response, advertised one H.264 configuration on each enabled
+display, emitted zero audio ACKs on active ch4, and continued advancing MAIN
+and CLUSTER video ACKs. A 4.3 regression run immediately before restoration
+advertised two MAIN codecs and resumed audio ACKs, confirming the lower policy
+remains selectable. Captures are retained at
+`/home/matt/gal-5-0-captures-2026-07-27-bluez-recovery/20260727T202704Z-a2b8aa8`.
+
+GAL 5.1 was subsequently accepted at `ce08f8f`, and current GAL 6.0/H.265
+production acceptance is anchored at `c362ac6`. The GAL 6 session requested
+6.0, received 6.0/MATCH, and advertised codec 7 on both MAIN and CLUSTER.
+Independent ch3/ch12 counters proved concurrent streams; because the test rig
+has one physical screen, the operator inspected MAIN projection and the
+homescreen CLUSTER widget sequentially rather than claiming simultaneous visual
+observation. Detailed capture paths, artifact identities, lower-GAL smokes,
+and reconnect evidence are consolidated in the
+[session handoff](../session-handoffs.md).
 
 The fixed 3×3 dashboard widget uses one `VideoOutput` inside a centered clipped
 viewport sized to the active content aspect (a square for the 300×300
@@ -283,6 +332,9 @@ without building shell-specific hit testing into the AA touch reader.
 - Resolution, codec configs, video margins, and `touch_screen_config` are fixed
   by the current service-discovery response for the lifetime of a session.
 - `video.resolution` and `video.fps` changes force an active-session reconnect.
+- `connection.gal_version` is durable, session-wide, and forces an
+  active-session reconnect when its accepted value changes. It accepts exactly
+  1.7, 4.3, 5.0, 5.1, and 6.0; missing or invalid values resolve to 6.0.
 - Runtime CLUSTER profile changes use that same reconnect boundary but do not
   restart Prodigy or persist to YAML.
 - Navbar edge/visibility changes are not a live AA viewport feature today; the

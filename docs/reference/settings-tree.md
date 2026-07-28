@@ -44,6 +44,7 @@ plugin ID, although the fixed menu does not currently add dynamic plugin rows.
 |---|---|---|---|
 | Picker | Resolution | `video.resolution` | `480p`, `720p`, or `1080p`. |
 | Slider | DPI | `video.dpi` | 80–400, step 10; restart required. |
+| Picker | GAL Version | `connection.gal_version` | Durable session-wide policy with selectable values `1.7`, `4.3`, `5.0`, `5.1`, and `6.0`; `6.0` is the highest accepted value and default. Missing or invalid persisted values resolve to `6.0`. A real change gracefully reconnects active AA. This setting is independent of the projected CLUSTER lab. |
 | Toggle | Auto-connect | `connection.auto_connect_aa` | Enables automatic AA connection. |
 
 Decoder selection and protocol diagnostics live on the Debug page.
@@ -189,6 +190,12 @@ to read and write the `video.codecs` sequence through the scalar
 change the service-discovery codec list or persist across reopening the page.
 Until a typed sequence API is added, edit `video.codecs` in YAML and restart;
 keep it to H.264/H.265 because the decoder does not identify VP9 or AV1 streams.
+The accepted production order is H.265 then H.264. Pi acceptance proved the
+H.265 path used FFmpeg `hevc` with a DRM hardware context, `/dev/video19`, V4L2
+stateless request decode, and DMABuf/DRM_PRIME frames rather than software
+decode. The separate Debug automatic-decoder label can report the wrong label;
+that UI defect is recorded in the engineering backlog and does not override
+the runtime hardware evidence.
 
 ### Diagnostics
 
@@ -203,4 +210,4 @@ keep it to H.264/H.265 because the decoder does not identify VP9 or AV1 streams.
 | WiFi Access Point | Read-only field | Channel | `connection.wifi_ap.channel` |
 | WiFi Access Point | Read-only field | Band | `connection.wifi_ap.band` |
 | AA Protocol Test | Expandable actions | Media and assistant buttons | Enabled only while projection is connected; dispatches `aa.sendButton` through `ActionRegistry`. |
-| Projected CLUSTER Lab | Expandable runtime profile | Resolution, DPI, content size, GAL selector (`1.7`/`4.3`), `Advertise native HU turn card (lab)`, presets, apply, reset, requested GAL/profile generation/viewport/status diagnostics | Visible only when `experimental_cluster_display` is enabled. Apply dispatches one complete `aa.cluster.applyProfile` payload; an accepted real change reconnects only active AA, while invalid or unchanged profiles do not. Values are process-lifetime only. GAL 1.7 clears and rejects the native-turn declaration; GAL 4.3 permits it only as an HU availability declaration, not a request for or guarantee of phone-rendered turn-card content. When that declaration creates field 11, field-1 insets mirror the unchanged legacy margins; the 300x300 CLUSTER uses left/right 250 and top/bottom 90 plus enum 5. Native false leaves field 11 absent. The legacy session bit 16 control is removed. |
+| Projected CLUSTER Lab | Expandable runtime profile | Resolution, DPI, content size, `Advertise native HU turn card (lab)`, presets, apply, reset, profile generation/viewport/status diagnostics | Visible only when `experimental_cluster_display` is enabled. Apply dispatches one complete `aa.cluster.applyProfile` payload; an accepted real change reconnects only active AA, while invalid or unchanged profiles do not. Values are process-lifetime only. Session GAL comes exclusively from the normal Android Auto setting. The native-turn declaration is an HU availability declaration serialized only under current GAL 4.3+ policy, not a request for or guarantee of phone-rendered content. When it creates field 11, field-1 insets mirror the unchanged legacy margins; the 300x300 CLUSTER uses left/right 250 and top/bottom 90 plus enum 5. Native false leaves field 11 absent. The legacy session bit 16 control is removed. |

@@ -37,6 +37,16 @@ Flickable {
         }
 
         SettingsRow { rowIndex: 2
+            FullScreenPicker {
+                flat: true
+                label: "GAL Version"
+                configPath: "connection.gal_version"
+                options: ["1.7", "4.3", "5.0", "5.1", "6.0"]
+                values: ["1.7", "4.3", "5.0", "5.1", "6.0"]
+            }
+        }
+
+        SettingsRow { rowIndex: 3
             SettingsToggle {
                 label: "Auto-connect"
                 configPath: "connection.auto_connect_aa"

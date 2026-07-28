@@ -40,6 +40,7 @@ void TestConfigKeyCoverage::testAllRuntimeKeys()
         "logging.verbose",
         "connection.auto_connect_aa",
         "connection.bt_discoverable",
+        "connection.gal_version",
         "connection.wifi_ap.ssid",
         "connection.wifi_ap.password",
         "connection.wifi_ap.channel",

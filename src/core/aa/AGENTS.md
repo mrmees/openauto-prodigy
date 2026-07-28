@@ -27,11 +27,35 @@ Hard-won protocol behavior for the Android Auto runtime. Root `AGENTS.md` holds 
 - **The shipped HU advertises one configured landscape video mode:**
   `VIDEO_800x480`, `VIDEO_1280x720`, or `VIDEO_1920x1080`. The protocol enum
   also defines higher-resolution and portrait modes, but current service
-  discovery does not advertise them. Each enabled codec gets a config for the
-  selected mode.
+  discovery does not advertise them. At GAL 1.7/4.3, MAIN gets one
+  configuration per enabled recognized codec and the legacy CLUSTER policy
+  remains unchanged; GAL 5.0+ advertise one codec per enabled display.
 - **The shipped decode path supports H.264/AVC and H.265/HEVC.** Service
-  discovery defaults to those codecs, and the decoder detects which of the two
-  the phone sends. Keep advertised codec choices aligned with decoder support.
+  discovery's accepted default order is H.265 then H.264, and the decoder
+  detects which of the two the phone sends. H.264 remains an explicit fallback.
+  Keep advertised codec choices aligned with decoder support.
+- **Accepted H.265 is hardware decode, not software fallback.** Pi acceptance
+  used FFmpeg `hevc` with a DRM hardware context, `/dev/video19`, V4L2
+  stateless request decode, and DMABuf/DRM_PRIME frames.
+
+## Production GAL session policy
+
+- **`connection.gal_version` is durable and session-wide, independent of the
+  CLUSTER lab.** Accepted selections are exactly 1.7, 4.3, 5.0, 5.1, and 6.0;
+  missing or invalid values resolve to the highest accepted value, currently
+  6.0. A real change gracefully reconnects active AA.
+- **Requested GAL is the sole local policy authority.** For modern requests, a
+  `MATCH` response at or above the requested tuple is compatible but never
+  raises local obligations; a lower tuple fails before TLS. Legacy 1.7 retains
+  its established status-only admission rule.
+- **Thresholds are additive:** 4.3 enables modern display metadata; 5.0 adds
+  extended audio-start tolerance, one shared first-recognized codec per
+  display, and ackless audio; 5.1 adds typed diagnostic-only audio
+  MediaOptions (`0x8014`) and VehicleEnergyForecast (`0x8008`); 6.0 adds typed,
+  bounded diagnostic-only extended video start and video MediaOptions.
+- **Flow control stays channel-specific.** Phone-to-HU audio is ACKed per frame
+  through 4.3 and ackless at 5.0+; video sends one ACK per accepted packet at
+  every supported GAL, including 6.0. AVInput is the separate HU-to-phone flow.
 
 ## Input routing
 

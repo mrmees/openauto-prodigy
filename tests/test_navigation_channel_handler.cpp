@@ -6,6 +6,7 @@
 #include "oaa/navigation/NavigationTurnEventMessage.pb.h"
 #include "oaa/navigation/NavigationNotificationMessage.pb.h"
 #include "oaa/navigation/NavigationStateMessage.pb.h"
+#include "oaa/navigation/VehicleEnergyForecastMessage.pb.h"
 // NavigationFocusIndicationMessage.pb.h removed — retracted in proto v1.1
 
 class TestNavigationChannelHandler : public QObject {
@@ -181,6 +182,103 @@ private slots:
         QCOMPARE(spy[0][1].toInt(),
                  static_cast<int>(
                      oaa::proto::messages::DISTANCE_UNIT_MILES_P1));
+    }
+
+    void testEmptyVehicleEnergyForecastOuterEmitsOnce() {
+        oaa::hu::NavigationChannelHandler handler;
+        QSignalSpy forecastSpy(
+            &handler,
+            &oaa::hu::NavigationChannelHandler::vehicleEnergyForecastReceived);
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        oaa::proto::messages::VehicleEnergyForecastMessage outer;
+        const QByteArray payload = QByteArray::fromStdString(
+            outer.SerializeAsString());
+        handler.onMessage(0x8008, payload);
+
+        QCOMPARE(forecastSpy.count(), 1);
+        QCOMPARE(forecastSpy[0][0].toBool(), false);
+        QVERIFY(forecastSpy[0][1].toString().isEmpty());
+        QCOMPARE(sendSpy.count(), 0);
+    }
+
+    void testVehicleEnergyForecastParsesInnerAndBoundsStructuralSummary() {
+        oaa::hu::NavigationChannelHandler handler;
+        QSignalSpy forecastSpy(
+            &handler,
+            &oaa::hu::NavigationChannelHandler::vehicleEnergyForecastReceived);
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        oaa::proto::messages::VehicleEnergyForecast inner;
+        auto* nextStop = inner.mutable_energy_at_next_stop();
+        nextStop->set_distance_meters(1200);
+        nextStop->set_arrival_battery_energy_wh(42000);
+        nextStop->set_time_to_arrival_seconds(180);
+        inner.mutable_distance_to_empty()->set_distance_meters(250000);
+        inner.set_forecast_quality(
+            oaa::proto::messages::FORECAST_QUALITY_HIGH);
+        auto* charging = inner.mutable_next_charging_stop();
+        charging->set_min_departure_energy_wh(30000);
+        charging->set_max_rated_power_watts(150000);
+        charging->set_estimated_charging_time_seconds(900);
+        inner.add_stop_details()
+            ->mutable_expected_arrival_energy()
+            ->set_arrival_battery_energy_wh(28000);
+        inner.add_data_authorizations()->set_id("charger-consent");
+        inner.add_data_authorizations()->set_id(std::string(800, 'x'));
+
+        oaa::proto::messages::VehicleEnergyForecastMessage outer;
+        outer.set_vehicle_energy_forecast(inner.SerializeAsString());
+        const QByteArray payload = QByteArray::fromStdString(
+            outer.SerializeAsString());
+        handler.onMessage(0x8008, payload);
+
+        QCOMPARE(forecastSpy.count(), 1);
+        QCOMPARE(forecastSpy[0][0].toBool(), true);
+        const QString summary = forecastSpy[0][1].toString();
+        QCOMPARE(summary, QString::fromStdString(
+                              inner.ShortDebugString()).left(512));
+        QCOMPARE(summary.size(), 512);
+        QVERIFY(summary.contains(QStringLiteral("energy_at_next_stop")));
+        QVERIFY(summary.contains(QStringLiteral("distance_meters: 1200")));
+        QVERIFY(summary.contains(QStringLiteral("forecast_quality")));
+        QCOMPARE(sendSpy.count(), 0);
+    }
+
+    void testMalformedInnerDoesNotInvalidateParseableForecastOuter() {
+        oaa::hu::NavigationChannelHandler handler;
+        QSignalSpy forecastSpy(
+            &handler,
+            &oaa::hu::NavigationChannelHandler::vehicleEnergyForecastReceived);
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        oaa::proto::messages::VehicleEnergyForecastMessage outer;
+        outer.set_vehicle_energy_forecast("\x0a\x05\x08", 3);
+        const QByteArray payload = QByteArray::fromStdString(
+            outer.SerializeAsString());
+        handler.onMessage(0x8008, payload);
+
+        QCOMPARE(forecastSpy.count(), 1);
+        QCOMPARE(forecastSpy[0][0].toBool(), false);
+        QCOMPARE(forecastSpy[0][1].toString(),
+                 QString::fromStdString(
+                     outer.ShortDebugString()).left(512));
+        QVERIFY(!forecastSpy[0][1].toString().isEmpty());
+        QVERIFY(forecastSpy[0][1].toString().size() <= 512);
+        QCOMPARE(sendSpy.count(), 0);
+    }
+
+    void testMalformedVehicleEnergyForecastOuterIsRejected() {
+        oaa::hu::NavigationChannelHandler handler;
+        QSignalSpy forecastSpy(
+            &handler,
+            &oaa::hu::NavigationChannelHandler::vehicleEnergyForecastReceived);
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        handler.onMessage(0x8008, QByteArray::fromHex("0a0508"));
+
+        QCOMPARE(forecastSpy.count(), 0);
+        QCOMPARE(sendSpy.count(), 0);
     }
 
     // testFocusIndicationEmitsSignal / testFocusIndicationUpdatesState removed —

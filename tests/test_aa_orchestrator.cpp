@@ -357,6 +357,49 @@ private slots:
         QCOMPARE(orch.clusterDisplay()->decoder(), nullptr);
     }
 
+    void testProductionGalSelectionIsIndependentOfCluster_data() {
+        QTest::addColumn<QString>("configuredVersion");
+        QTest::addColumn<QByteArray>("expectedVersionRequest");
+
+        QTest::newRow("explicit-legacy")
+            << QStringLiteral("1.7")
+            << QByteArray::fromHex("00030006000100010007");
+        QTest::newRow("accepted-modern")
+            << QStringLiteral("4.3")
+            << QByteArray::fromHex("00030006000100040003");
+    }
+
+    void testProductionGalSelectionIsIndependentOfCluster() {
+        QFETCH(QString, configuredVersion);
+        QFETCH(QByteArray, expectedVersionRequest);
+
+        StubConfigService cfg;
+        cfg.values["connection.tcp_port"] = 0;
+        oap::YamlConfig yaml;
+        QVERIFY(yaml.setValueByPath("connection.gal_version",
+                                    configuredVersion));
+        oap::aa::AndroidAutoOrchestrator orch(&cfg, nullptr, &yaml);
+        QCOMPARE(orch.clusterDisplay()->state(),
+                 static_cast<int>(oap::aa::ProjectedDisplaySession::Disabled));
+
+        orch.start();
+        oap::aa::AndroidAutoOrchestratorTestAccess::disableAutomaticAccept(orch);
+        QTcpSocket socket;
+        socket.connectToHost(
+            QHostAddress::LocalHost,
+            oap::aa::AndroidAutoOrchestratorTestAccess::listenerPort(orch));
+        QVERIFY(socket.waitForConnected());
+        QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::acceptNextConnection(orch));
+        QTRY_VERIFY_WITH_TIMEOUT(socket.bytesAvailable()
+                                    >= expectedVersionRequest.size(),
+                                 1000);
+        QCOMPARE(socket.read(expectedVersionRequest.size()),
+                 expectedVersionRequest);
+
+        orch.stop();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
+
     void testEnabledClusterRegistrationAndGlobalIsolation() {
         StubConfigService cfg;
         cfg.values["connection.tcp_port"] = 0;
@@ -378,8 +421,8 @@ private slots:
         QSignalSpy sentSpy(session->messenger(), &oaa::Messenger::messageSent);
 
         QByteArray versionResponse(6, '\0');
-        qToBigEndian<uint16_t>(1, reinterpret_cast<uchar*>(versionResponse.data()));
-        qToBigEndian<uint16_t>(7, reinterpret_cast<uchar*>(versionResponse.data() + 2));
+        qToBigEndian<uint16_t>(6, reinterpret_cast<uchar*>(versionResponse.data()));
+        qToBigEndian<uint16_t>(0, reinterpret_cast<uchar*>(versionResponse.data() + 2));
         qToBigEndian<uint16_t>(0, reinterpret_cast<uchar*>(versionResponse.data() + 4));
         session->messenger()->messageReceived(
             0, 0x0002, versionResponse, 0, oaa::MessageType::Specific);
@@ -466,7 +509,6 @@ private slots:
             &cfg, nullptr, nullptr, clusterConfig);
 
         QVERIFY(orch.clusterDisplay()->applyClusterProfile({
-            {QStringLiteral("gal_version"), QStringLiteral("4.3")},
             {QStringLiteral("resolution"), QStringLiteral("720p")},
             {QStringLiteral("content_width"), 600},
             {QStringLiteral("content_height"), 400},
@@ -476,9 +518,6 @@ private slots:
         QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::projectedClusterConfig(orch)
                      .profile.resolution,
                  QStringLiteral("720p"));
-        QCOMPARE(oap::aa::AndroidAutoOrchestratorTestAccess::projectedClusterConfig(orch)
-                     .profile.galVersion,
-                 oap::aa::kGalVersion4_3);
         QCOMPARE(orch.clusterDisplay()->viewportEncodedWidth(), 800);
 
         orch.start();
@@ -490,12 +529,10 @@ private slots:
         QVERIFY(socket.waitForConnected());
         QVERIFY(oap::aa::AndroidAutoOrchestratorTestAccess::acceptNextConnection(orch));
         QTRY_VERIFY_WITH_TIMEOUT(socket.bytesAvailable() >= 10, 1000);
-        QCOMPARE(socket.readAll(), QByteArray::fromHex("00030006000100040003"));
+        QCOMPARE(socket.readAll(), QByteArray::fromHex("00030006000100060000"));
         QCOMPARE(orch.clusterDisplay()->viewportEncodedWidth(), 1280);
         QCOMPARE(orch.clusterDisplay()->viewportContentWidth(), 600);
         QCOMPARE(orch.clusterDisplay()->viewportContentHeight(), 400);
-        QCOMPARE(orch.clusterDisplay()->requestedGalVersion(),
-                 QStringLiteral("4.3"));
         QVERIFY(orch.clusterDisplay()->requestedNativeTurnCardAvailable());
 
         orch.stop();
@@ -675,8 +712,8 @@ private slots:
         auto* firstSession = oap::aa::AndroidAutoOrchestratorTestAccess::session(orch);
 
         QByteArray versionResponse(6, '\0');
-        qToBigEndian<uint16_t>(1, reinterpret_cast<uchar*>(versionResponse.data()));
-        qToBigEndian<uint16_t>(7, reinterpret_cast<uchar*>(versionResponse.data() + 2));
+        qToBigEndian<uint16_t>(6, reinterpret_cast<uchar*>(versionResponse.data()));
+        qToBigEndian<uint16_t>(0, reinterpret_cast<uchar*>(versionResponse.data() + 2));
         qToBigEndian<uint16_t>(0, reinterpret_cast<uchar*>(versionResponse.data() + 4));
         firstSession->messenger()->messageReceived(
             0, 0x0002, versionResponse, 0, oaa::MessageType::Specific);

@@ -26,6 +26,19 @@ limits, and a verification command before implementation.
   only H.264/H.265. Candidate deliverable: typed sequence persistence and
   decoder-aligned advertisement.
 
+- **Debug decoder mode misreports automatic HEVC hardware decode** — Evidence:
+  **HARDWARE- AND CODE-CONFIRMED 2026-07-27; NONBLOCKING**.
+  DebugSettings/CodecCapabilityModel classifies the generic FFmpeg `hevc` name
+  as software and defaults its display state to software when the persisted
+  decoder preference is `auto`. Runtime intentionally uses that generic codec
+  front-end with a DRM hardware context: live Pi evidence showed the V4L2
+  stateless request decoder at `/dev/video19`, DMABuf output, DRM_PRIME format
+  178 hardware frames, and no software fallback. The supported settings UI
+  therefore misreports status even though hardware decoding is proven.
+  Candidate deliverable: distinguish configuration preference from live
+  runtime decoder telemetry and label the automatic DRM hardware path
+  accurately.
+
 - **Installers write unsupported display dimensions** — Evidence:
   **CODE-CONFIRMED 2026-07-24**. Both installers emit display.width and
   display.height, which are absent from runtime defaults and typed access;
@@ -46,6 +59,18 @@ limits, and a verification command before implementation.
   transport-versus-application results consumed consistently by all routes.
 
 ## Bluetooth, Boot, and Audio Recovery
+
+- **Late initial BlueZ registration does not restart failed AA discovery** —
+  Evidence: **CODE-CONFIRMED 2026-07-27; NONBLOCKING**. If Prodigy starts while
+  `org.bluez` is absent and bounded listener/SDP retries reach
+  `StartupStage::Failed`, a later service registration is ignored because
+  `handleBlueZServiceRegistered()` requires `bluezRestartPending_`, which is
+  set only after an observed unregistration edge. Accepted hardware covered a
+  BlueZ restart after successful startup, not late initial registration. On
+  this boot-order path, wireless AA discovery cannot recover without restarting
+  Prodigy. Candidate deliverable: a late registration while discovery is still
+  desired starts one bounded recovery epoch from `Failed`, without duplicating
+  the already-proven restart recovery path.
 
 - **Initial BlueZ snapshots do not self-retry after failure** — Evidence:
   **CODE-CONFIRMED 2026-07-24** and explicitly left open by the PR #33 review.

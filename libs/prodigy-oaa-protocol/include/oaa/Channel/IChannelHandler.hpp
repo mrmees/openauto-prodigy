@@ -4,6 +4,8 @@
 #include <QByteArray>
 #include <cstdint>
 
+#include <oaa/Session/SessionProtocolPolicy.hpp>
+
 namespace oaa {
 
 class IChannelHandler : public QObject {
@@ -12,6 +14,7 @@ public:
     using QObject::QObject;
     ~IChannelHandler() override;
 
+    virtual void configureSession(const SessionProtocolPolicy& policy);
     virtual uint8_t channelId() const = 0;
     virtual void onChannelOpened() = 0;
     virtual void onChannelClosed() = 0;

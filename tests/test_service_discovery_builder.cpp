@@ -124,6 +124,176 @@ private slots:
         QFAIL("Video descriptor missing");
     }
 
+    void lowerGalVersionsRetainConfiguredCodecDescriptors_data() {
+        QTest::addColumn<int>("galMajor");
+        QTest::addColumn<int>("galMinor");
+
+        QTest::newRow("GAL 1.7") << 1 << 7;
+        QTest::newRow("GAL 4.3") << 4 << 3;
+    }
+
+    void lowerGalVersionsRetainConfiguredCodecDescriptors() {
+        QFETCH(int, galMajor);
+        QFETCH(int, galMinor);
+
+        QTemporaryFile file;
+        QVERIFY(file.open());
+        const QByteArray yaml = "video:\n  codecs: [h265, h264]\n";
+        QCOMPARE(file.write(yaml), yaml.size());
+        file.flush();
+
+        oap::YamlConfig yamlConfig;
+        yamlConfig.load(file.fileName());
+        oap::aa::ServiceDiscoveryBuilder builder(&yamlConfig);
+        builder.setProtocolVersion({static_cast<uint16_t>(galMajor),
+                                    static_cast<uint16_t>(galMinor)});
+        builder.setProjectedClusterConfig({true, {}});
+
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Main), 2u);
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Cluster), 1u);
+
+        const auto session = builder.build();
+        const auto main = descriptorById(session, 3).av_channel();
+        QCOMPARE(main.video_configs_size(), 2);
+        QCOMPARE(main.video_configs(0).codec(),
+                 oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H265);
+        QCOMPARE(main.video_configs(1).codec(),
+                 oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+
+        const auto cluster = descriptorById(session, 12).av_channel();
+        QCOMPARE(cluster.video_configs_size(), 1);
+        QCOMPARE(cluster.video_configs(0).codec(),
+                 oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+    }
+
+    void gal50UsesOneSharedFirstConfiguredCodec_data() {
+        QTest::addColumn<QString>("codecYaml");
+        QTest::addColumn<int>("expectedCodec");
+
+        QTest::newRow("configured H.264 first")
+            << QStringLiteral("[h264, h265]")
+            << static_cast<int>(
+                   oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+        QTest::newRow("configured H.265 first")
+            << QStringLiteral("[h265, h264]")
+            << static_cast<int>(
+                   oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H265);
+        QTest::newRow("unknown skipped before H.264")
+            << QStringLiteral("[bogus, h264, h265]")
+            << static_cast<int>(
+                   oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+    }
+
+    void gal50UsesOneSharedFirstConfiguredCodec() {
+        QFETCH(QString, codecYaml);
+        QFETCH(int, expectedCodec);
+
+        QTemporaryFile file;
+        QVERIFY(file.open());
+        const QByteArray yaml = "video:\n  codecs: " + codecYaml.toUtf8() + "\n";
+        QCOMPARE(file.write(yaml), yaml.size());
+        file.flush();
+
+        oap::YamlConfig yamlConfig;
+        yamlConfig.load(file.fileName());
+        oap::aa::ServiceDiscoveryBuilder builder(&yamlConfig);
+        builder.setProtocolVersion(oaa::kGalVersion5_0);
+        builder.setProjectedClusterConfig({true, {}});
+
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Main), 1u);
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Cluster), 1u);
+
+        const auto session = builder.build();
+        const auto main = descriptorById(session, 3).av_channel();
+        const auto cluster = descriptorById(session, 12).av_channel();
+        QCOMPARE(main.video_configs_size(), 1);
+        QCOMPARE(cluster.video_configs_size(), 1);
+        QCOMPARE(static_cast<int>(main.stream_type()), expectedCodec);
+        QCOMPARE(static_cast<int>(cluster.stream_type()), expectedCodec);
+        QCOMPARE(static_cast<int>(main.video_configs(0).codec()),
+                 expectedCodec);
+        QCOMPARE(static_cast<int>(cluster.video_configs(0).codec()),
+                 expectedCodec);
+    }
+
+    void gal60KeepsExplicitSingleCodecCandidates_data() {
+        QTest::addColumn<QString>("codecYaml");
+        QTest::addColumn<int>("expectedCodec");
+
+        QTest::newRow("H.264 only")
+            << QStringLiteral("[h264]")
+            << static_cast<int>(
+                   oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H264_BP);
+        QTest::newRow("H.265 only")
+            << QStringLiteral("[h265]")
+            << static_cast<int>(
+                   oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H265);
+    }
+
+    void gal60KeepsExplicitSingleCodecCandidates() {
+        QFETCH(QString, codecYaml);
+        QFETCH(int, expectedCodec);
+
+        QTemporaryFile file;
+        QVERIFY(file.open());
+        const QByteArray yaml = "video:\n  codecs: " + codecYaml.toUtf8() + "\n";
+        QCOMPARE(file.write(yaml), yaml.size());
+        file.flush();
+
+        oap::YamlConfig yamlConfig;
+        yamlConfig.load(file.fileName());
+        oap::aa::ServiceDiscoveryBuilder builder(&yamlConfig);
+        builder.setProtocolVersion(oaa::kGalVersion6_0);
+        builder.setProjectedClusterConfig({true, {}});
+
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Main), 1u);
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Cluster), 1u);
+
+        const auto session = builder.build();
+        const auto main = descriptorById(session, 3).av_channel();
+        const auto cluster = descriptorById(session, 12).av_channel();
+        QCOMPARE(main.video_configs_size(), 1);
+        QCOMPARE(cluster.video_configs_size(), 1);
+        QCOMPARE(static_cast<int>(main.stream_type()), expectedCodec);
+        QCOMPARE(static_cast<int>(cluster.stream_type()), expectedCodec);
+        QCOMPARE(static_cast<int>(main.video_configs(0).codec()),
+                 expectedCodec);
+        QCOMPARE(static_cast<int>(cluster.video_configs(0).codec()),
+                 expectedCodec);
+    }
+
+    void gal60DefaultUsesOneH265ConfigPerDisplay() {
+        oap::YamlConfig yamlConfig;
+        oap::aa::ServiceDiscoveryBuilder builder(&yamlConfig);
+        builder.setProtocolVersion(oaa::kGalVersion6_0);
+        builder.setProjectedClusterConfig({true, {}});
+
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Main), 1u);
+        QCOMPARE(builder.videoConfigCount(
+                     oap::aa::ProjectedDisplayRole::Cluster), 1u);
+
+        const auto session = builder.build();
+        const auto main = descriptorById(session, 3).av_channel();
+        const auto cluster = descriptorById(session, 12).av_channel();
+        QCOMPARE(main.video_configs_size(), 1);
+        QCOMPARE(cluster.video_configs_size(), 1);
+        QCOMPARE(main.stream_type(),
+                 oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H265);
+        QCOMPARE(cluster.stream_type(),
+                 oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H265);
+        QCOMPARE(main.video_configs(0).codec(),
+                 oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H265);
+        QCOMPARE(cluster.video_configs(0).codec(),
+                 oaa::proto::enums::MediaCodecType::MEDIA_CODEC_VIDEO_H265);
+    }
+
     void testDefaultBuildProducesAllChannels() {
         oap::aa::ServiceDiscoveryBuilder builder;
         oaa::SessionConfig config = builder.build();
@@ -142,26 +312,21 @@ private slots:
         QCOMPARE(config.swVersion, QString::fromLatin1(OAP_VERSION));
         QCOMPARE(config.protocolMajor, uint16_t{1});
         QCOMPARE(config.protocolMinor, uint16_t{7});
-        QVERIFY(!config.requireMinimumCompatibleProtocolVersion);
+        QVERIFY(!config.protocolPolicy().requiresMinimumCompatibleResponse());
     }
 
-    void galSelectionChangesOnlySessionVersionPolicy() {
-        oap::aa::ProjectedClusterConfig legacyCluster;
-        legacyCluster.enabled = true;
-
+    void galSelectionIsSessionWideWhenClusterIsDisabled() {
         oap::aa::ServiceDiscoveryBuilder legacyBuilder;
-        legacyBuilder.setProjectedClusterConfig(legacyCluster);
+        legacyBuilder.setProtocolVersion(oaa::kGalVersion1_7);
         const auto legacy = legacyBuilder.build();
 
-        auto modernCluster = legacyCluster;
-        modernCluster.profile.galVersion = oap::aa::kGalVersion4_3;
         oap::aa::ServiceDiscoveryBuilder modernBuilder;
-        modernBuilder.setProjectedClusterConfig(modernCluster);
+        modernBuilder.setProtocolVersion(oaa::kGalVersion4_3);
         const auto modern = modernBuilder.build();
 
         QCOMPARE(modern.protocolMajor, uint16_t{4});
         QCOMPARE(modern.protocolMinor, uint16_t{3});
-        QVERIFY(modern.requireMinimumCompatibleProtocolVersion);
+        QVERIFY(modern.protocolPolicy().requiresMinimumCompatibleResponse());
         QCOMPARE(modern.sessionConfiguration, legacy.sessionConfiguration);
         QCOMPARE(modern.channels.size(), legacy.channels.size());
         for (int i = 0; i < legacy.channels.size(); ++i) {
@@ -428,11 +593,11 @@ private slots:
 
         oap::aa::ProjectedClusterConfig cluster;
         cluster.enabled = true;
-        cluster.profile.galVersion = {
-            static_cast<uint16_t>(galMajor), static_cast<uint16_t>(galMinor)};
         cluster.profile.nativeTurnCardAvailable = nativeTurnCardAvailable;
 
         oap::aa::ServiceDiscoveryBuilder builder(&yaml);
+        builder.setProtocolVersion({static_cast<uint16_t>(galMajor),
+                                    static_cast<uint16_t>(galMinor)});
         builder.setProjectedClusterConfig(cluster);
         const auto session = builder.build();
 
@@ -582,8 +747,8 @@ private slots:
         oap::aa::ProjectedClusterConfig clusterConfig;
         clusterConfig.enabled = true;
         clusterConfig.profile = {
-            QStringLiteral("720p"), 160, 600, 400, true,
-            oap::aa::kGalVersion4_3};
+            QStringLiteral("720p"), 160, 600, 400, true};
+        builder.setProtocolVersion(oaa::kGalVersion4_3);
         builder.setProjectedClusterConfig(clusterConfig);
 
         const auto config = builder.build();
@@ -617,15 +782,16 @@ private slots:
         oap::aa::ProjectedClusterConfig legacyCluster;
         legacyCluster.enabled = true;
         oap::aa::ServiceDiscoveryBuilder legacyBuilder(&yaml);
+        legacyBuilder.setProtocolVersion(oaa::kGalVersion1_7);
         legacyBuilder.setDisplayDimensions(1024, 600);
         legacyBuilder.setNavbarThickness(60);
         legacyBuilder.setProjectedClusterConfig(legacyCluster);
         const auto legacy = legacyBuilder.build();
 
         auto modernCluster = legacyCluster;
-        modernCluster.profile.galVersion = oap::aa::kGalVersion4_3;
         modernCluster.profile.nativeTurnCardAvailable = true;
         oap::aa::ServiceDiscoveryBuilder modernBuilder(&yaml);
+        modernBuilder.setProtocolVersion(oaa::kGalVersion4_3);
         modernBuilder.setDisplayDimensions(1024, 600);
         modernBuilder.setNavbarThickness(60);
         modernBuilder.setProjectedClusterConfig(modernCluster);
@@ -669,9 +835,9 @@ private slots:
                  baseVideoConfigBytes(legacyClusterVideo.video_configs(0)));
 
         static const QByteArray modernMainGolden = QByteArray::fromHex(
-            "08031a420803221b080110021800203a288c015003"
+            "08031a420803221b080110021800203a288c015007"
             "5a0c0a08081d101d180020002801"
-            "221b080110021800203a288c015007"
+            "221b080110021800203a288c015003"
             "5a0c0a08081d101d180020002801300038004803");
         static const QByteArray modernClusterGolden = QByteArray::fromHex(
             "080c1a270803221f0801100218f40320b401288c015003"
@@ -687,9 +853,9 @@ private slots:
 
         oap::aa::ProjectedClusterConfig cluster;
         cluster.enabled = true;
-        cluster.profile.galVersion = oap::aa::kGalVersion4_3;
 
         oap::aa::ServiceDiscoveryBuilder builder(&yaml);
+        builder.setProtocolVersion(oaa::kGalVersion4_3);
         builder.setDisplayDimensions(1024, 600);
         builder.setNavbarThickness(2);
         builder.setProjectedClusterConfig(cluster);

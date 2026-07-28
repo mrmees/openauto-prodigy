@@ -10,6 +10,48 @@
 > **Date:** 2026-02-23
 > **Purpose:** Definitive protocol reference for OpenAuto Prodigy, cross-referencing both sides of the AA connection
 
+## Current Prodigy production overlay (2026-07-27)
+
+This section supersedes the implementation-status and priority implications in
+the dated research snapshot below. Prodigy consumes open-android-auto v1.5 at
+main/tag anchor `61eab61c5f9968154ff1a80faa8c0a427b208479` and exact
+dist/submodule anchor `5ff4aa218dd33913237993f2968bf70e16dc464e`.
+
+`connection.gal_version` is the durable, session-wide production setting and
+is independent of projected CLUSTER lab state. Selectable requests are exactly
+1.7, 4.3, 5.0, 5.1, and 6.0; missing or invalid values resolve to the highest
+accepted/default request, 6.0. A real change gracefully reconnects active AA.
+Requested GAL is the sole local policy authority. For modern requests, a
+`MATCH` response at or above the requested tuple is compatible but never
+enables higher local obligations; a lower tuple fails before TLS. Legacy 1.7
+retains its established status-only admission rule.
+
+| Requested GAL | Current local obligations |
+|---|---|
+| 1.7 | Legacy display policy; phone-to-HU audio and video are ACKed per accepted packet. |
+| 4.3+ | Modern display metadata, including companion insets and hidden/native-turn, resize, and blended additions when applicable. |
+| 5.0+ | Extended audio-start tolerance, the same single first recognized configured codec for MAIN and CLUSTER, and ackless phone-to-HU audio. |
+| 5.1+ | Typed, diagnostic-only standalone audio MediaOptions (`0x8014`) and navigation VehicleEnergyForecast (`0x8008`). |
+| 6.0+ | Typed, bounded diagnostic-only extended video start and standalone video MediaOptions. |
+
+Video still sends one ACK with count 1 for every accepted packet through every
+supported GAL, including 6.0. AVInput is a separate HU-to-phone flow and does
+not inherit the audio-output ACK policy. MediaOptions and energy-forecast
+handling records bounded typed structure; it does not assign application or
+timing semantics to unresolved fields.
+
+At GAL 5.0+, MAIN and CLUSTER use the same first recognized configured codec.
+The accepted order is H.265 then H.264, with explicit order authoritative and
+H.264 retained as fallback. GAL 6.0 hardware acceptance proved H.265 through
+FFmpeg `hevc` plus a DRM hardware context, `/dev/video19`, V4L2 stateless
+request decode, and DMABuf/DRM_PRIME frames—not software decode. Independent
+ch3/ch12 counters proved concurrent streams; the one-screen rig required MAIN
+and the homescreen CLUSTER widget to be inspected sequentially.
+
+Hardware-accepted implementation anchors are GAL 5.0 `a2b8aa8`, GAL 5.1
+`ce08f8f`, and GAL 6.0/H.265 `c362ac6`. Evidence paths and artifact identities
+are consolidated in the [session handoff](../session-handoffs.md).
+
 This document combines findings from two complementary analyses:
 
 1. **Sony XAV-AX100 firmware** — Head unit side. Google's AAP Receiver Library (GAL Protocol) with debug symbols in `libspandroidauto.so` and unobfuscated protobuf message names in `accessory_server`. Built on Sunplus SPHE8388, Linux 3.4.5, OpenSSL 1.0.2h.
@@ -545,7 +587,11 @@ VP9, AV1, and H.265 are newer additions. The Sony firmware only supports H.264 B
 
 ---
 
-## Implementation Priority for OpenAuto Prodigy
+## Historical implementation priority for OpenAuto Prodigy (superseded)
+
+> This February 2026 priority list is retained as research history. It is not
+> current implementation guidance; in particular, H.265 and the production
+> GAL 6.0 policy are complete as described in the current overlay above.
 
 Based on the cross-referenced data, prioritized by impact:
 

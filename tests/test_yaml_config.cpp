@@ -16,6 +16,7 @@ private slots:
     void testIdentityDefaults();
     void testIdentityFromFile();
     void testVideoDpi();
+    void testVideoCodecDefaults();
     void testSensorsDefaults();
     void testSensorsFromFile();
     void testMicDefaults();
@@ -31,6 +32,7 @@ private slots:
     // testSidebarDefaults removed — sidebar config keys no longer exist
     void testProtocolCaptureDefaults();
     void testProtocolCaptureSetValueByPath();
+    void testGalVersionDefaultAndRoundTrip();
     void testEqStreamPresetDefaults();
     void testPhoneToSystemMigration();
     void testPhoneToSystemBothPresentKeepsSystem();
@@ -75,6 +77,8 @@ void TestYamlConfig::testLoadDefaults()
     QCOMPARE(config.tcpPort(), static_cast<uint16_t>(5277));
     QCOMPARE(config.videoFps(), 30);
     QCOMPARE(config.autoConnectAA(), true);
+    QCOMPARE(config.valueByPath("connection.gal_version").toString(),
+             QString("6.0"));
     QCOMPARE(config.masterVolume(), 80);
     QCOMPARE(config.audioBufferMs("media"), 500);
     QCOMPARE(config.audioBufferMs("speech"), 500);
@@ -94,6 +98,13 @@ void TestYamlConfig::testLoadFromFile()
     auto enabled = config.enabledPlugins();
     QCOMPARE(enabled.size(), 2);
     QCOMPARE(enabled[0], QString("org.openauto.android-auto"));
+}
+
+void TestYamlConfig::testVideoCodecDefaults()
+{
+    oap::YamlConfig config;
+    QCOMPARE(config.videoCodecs(),
+             QStringList({QStringLiteral("h265"), QStringLiteral("h264")}));
 }
 
 void TestYamlConfig::testSaveAndReload()
@@ -369,6 +380,24 @@ void TestYamlConfig::testProtocolCaptureSetValueByPath()
     QCOMPARE(config.valueByPath("connection.protocol_capture.include_media").toBool(), true);
     QCOMPARE(config.valueByPath("connection.protocol_capture.path").toString(),
              QString("/tmp/custom-capture.jsonl"));
+}
+
+void TestYamlConfig::testGalVersionDefaultAndRoundTrip()
+{
+    oap::YamlConfig config;
+    QCOMPARE(config.valueByPath("connection.gal_version").toString(),
+             QString("6.0"));
+    QVERIFY(config.setValueByPath("connection.gal_version", QString("6.0")));
+    QCOMPARE(config.valueByPath("connection.gal_version").toString(),
+             QString("6.0"));
+
+    const QString path = QDir::tempPath() + "/oap_test_gal_version.yaml";
+    QVERIFY(config.save(path));
+    oap::YamlConfig loaded;
+    loaded.load(path);
+    QCOMPARE(loaded.valueByPath("connection.gal_version").toString(),
+             QString("6.0"));
+    QFile::remove(path);
 }
 
 void TestYamlConfig::testEqStreamPresetDefaults()

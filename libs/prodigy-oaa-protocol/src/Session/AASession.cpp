@@ -226,6 +226,8 @@ void AASession::registerChannel(uint8_t channelId, IChannelHandler* handler) {
     if (finalized_ || !handler)
         return;
 
+    handler->configureSession(config_.protocolPolicy());
+
     auto existing = channels_.find(channelId);
     if (existing != channels_.end() && existing.value() != handler) {
         const bool wasOpen = openChannels_.contains(channelId);
@@ -383,7 +385,7 @@ void AASession::onVersionReceived(uint16_t major, uint16_t minor,
     const bool reportedVersionIsCompatible = major > config_.protocolMajor
         || (major == config_.protocolMajor && minor >= config_.protocolMinor);
     if (!statusMatches
-        || (config_.requireMinimumCompatibleProtocolVersion
+        || (config_.protocolPolicy().requiresMinimumCompatibleResponse()
             && !reportedVersionIsCompatible)) {
         setState(SessionState::Disconnected);
         emit disconnected(DisconnectReason::VersionMismatch);

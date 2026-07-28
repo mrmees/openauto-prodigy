@@ -7,6 +7,8 @@
 #include "oaa/av/AVMediaAckIndicationMessage.pb.h"
 #include "oaa/av/MediaCodecTypeEnum.pb.h"
 #include "oaa/av/AVChannelStartIndicationMessage.pb.h"
+#include "oaa/av/AVChannelMediaOptionsMessage.pb.h"
+#include <google/protobuf/unknown_field_set.h>
 
 class TestAudioChannelHandler : public QObject {
     Q_OBJECT
@@ -52,6 +54,9 @@ private slots:
     void testStartIndicationEmitsSignal() {
         oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
         QSignalSpy startSpy(&handler, &oaa::hu::AudioChannelHandler::streamStarted);
+        QSignalSpy detailsSpy(
+            &handler,
+            &oaa::hu::AudioChannelHandler::streamStartDetailsReceived);
 
         handler.onChannelOpened();
 
@@ -65,11 +70,73 @@ private slots:
 
         QCOMPARE(startSpy.count(), 1);
         QCOMPARE(startSpy[0][0].value<int32_t>(), 42);
+        QCOMPARE(detailsSpy.count(), 1);
+        QCOMPARE(detailsSpy[0][0].value<int32_t>(), 42);
+        QCOMPARE(detailsSpy[0][1].value<uint32_t>(), 0u);
+        QCOMPARE(detailsSpy[0][2].toInt(), -1);
+        QCOMPARE(detailsSpy[0][3].toBool(), false);
+        QVERIFY(detailsSpy[0][4].toString().isEmpty());
         QVERIFY(handler.canAcceptMedia());
     }
 
-    void testMediaDataEmitsSignalAndAck() {
+    void testExtendedStartIndicationEmitsBoundedDetails() {
         oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
+        QSignalSpy startSpy(&handler,
+                            &oaa::hu::AudioChannelHandler::streamStarted);
+        QSignalSpy detailsSpy(
+            &handler,
+            &oaa::hu::AudioChannelHandler::streamStartDetailsReceived);
+
+        handler.onChannelOpened();
+
+        oaa::proto::messages::AVChannelStartIndication start;
+        start.set_session(73);
+        start.set_config(2);
+        start.set_session_type(
+            oaa::proto::enums::AVChannelSessionType::SESSION_TYPE_ALTERNATE);
+        auto* mediaConfig = start.mutable_media_config();
+        mediaConfig->set_feature_flag_1(true);
+        mediaConfig->set_config_value(37);
+        mediaConfig->GetReflection()
+            ->MutableUnknownFields(mediaConfig)
+            ->AddLengthDelimited(100, std::string(800, 'x'));
+
+        QByteArray payload(start.ByteSizeLong(), '\0');
+        start.SerializeToArray(payload.data(), payload.size());
+        handler.onMessage(oaa::AVMessageId::START_INDICATION, payload);
+
+        QCOMPARE(startSpy.count(), 1);
+        QCOMPARE(startSpy[0][0].value<int32_t>(), 73);
+        QCOMPARE(detailsSpy.count(), 1);
+        QCOMPARE(detailsSpy[0][0].value<int32_t>(), 73);
+        QCOMPARE(detailsSpy[0][1].value<uint32_t>(), 2u);
+        QCOMPARE(detailsSpy[0][2].toInt(), 2);
+        QCOMPARE(detailsSpy[0][3].toBool(), true);
+        const QString summary = detailsSpy[0][4].toString();
+        QCOMPARE(summary.size(), 512);
+        QVERIFY(summary.contains(QStringLiteral("config_value: 37")));
+    }
+
+    void testMediaDataAckPolicy_data() {
+        QTest::addColumn<int>("galMajor");
+        QTest::addColumn<int>("galMinor");
+        QTest::addColumn<int>("expectedAckCount");
+
+        QTest::newRow("GAL 1.7") << 1 << 7 << 3;
+        QTest::newRow("GAL 4.3") << 4 << 3 << 3;
+        QTest::newRow("GAL 5.0") << 5 << 0 << 0;
+        QTest::newRow("GAL 5.1") << 5 << 1 << 0;
+    }
+
+    void testMediaDataAckPolicy() {
+        QFETCH(int, galMajor);
+        QFETCH(int, galMinor);
+        QFETCH(int, expectedAckCount);
+
+        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
+        handler.configureSession(oaa::SessionProtocolPolicy({
+            static_cast<uint16_t>(galMajor),
+            static_cast<uint16_t>(galMinor)}));
         handler.onChannelOpened();
 
         // Start the stream
@@ -91,7 +158,7 @@ private slots:
         QCOMPARE(dataSpy.count(), 3);
         QCOMPARE(dataSpy[0][0].toByteArray().size(), 960);
 
-        QCOMPARE(sendSpy.count(), 3);
+        QCOMPARE(sendSpy.count(), expectedAckCount);
         for (const auto& emission : sendSpy) {
             QCOMPARE(emission[1].value<uint16_t>(),
                      static_cast<uint16_t>(oaa::AVMessageId::ACK_INDICATION));
@@ -138,6 +205,87 @@ private slots:
         handler.onMessage(0x8010, opaque);
         QCOMPARE(unknownSpy.count(), 1);
         QCOMPARE(unknownSpy[0][0].value<uint16_t>(), uint16_t{0x8010});
+    }
+
+    void testMediaOptionsEmitsOneBoundedTypedSummary() {
+        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
+        QSignalSpy optionsSpy(
+            &handler,
+            &oaa::hu::AudioChannelHandler::mediaOptionsReceived);
+        QSignalSpy unknownSpy(&handler,
+                              &oaa::IChannelHandler::unknownMessage);
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        oaa::proto::messages::AVChannelMediaOptions options;
+        const auto populatePing = [](auto* ping, qint64 interval,
+                                     int timeout) {
+            ping->set_ping_interval_ns(interval);
+            ping->set_ping_timeout_ms(timeout);
+        };
+        populatePing(options.mutable_ping_configuration_1(), 1001, 101);
+        options.set_bool_value_2(true);
+        populatePing(options.mutable_ping_configuration_3(), 1003, 103);
+        populatePing(options.mutable_ping_configuration_4(), 1004, 104);
+        populatePing(options.mutable_ping_configuration_5(), 1005, 105);
+        populatePing(options.mutable_ping_configuration_6(), 1006, 106);
+        options.set_uint32_value_7(77);
+        populatePing(options.mutable_ping_configuration_8(), 1008, 108);
+        options.set_bool_value_9(true);
+        populatePing(options.mutable_ping_configuration_10(), 1010, 110);
+        options.set_bool_value_11(true);
+        populatePing(options.mutable_ping_configuration_12(), 1012, 112);
+        populatePing(options.mutable_ping_configuration_13(), 1013, 113);
+        options.GetReflection()
+            ->MutableUnknownFields(&options)
+            ->AddLengthDelimited(100, std::string(800, 'x'));
+
+        const QByteArray payload = QByteArray::fromStdString(
+            options.SerializeAsString());
+        handler.onMessage(oaa::AVMessageId::MEDIA_OPTIONS, payload);
+
+        QCOMPARE(optionsSpy.count(), 1);
+        const QString summary = optionsSpy[0][0].toString();
+        QCOMPARE(summary, QString::fromStdString(
+                              options.ShortDebugString()).left(512));
+        QCOMPARE(summary.size(), 512);
+        QVERIFY(summary.contains(QStringLiteral("ping_configuration_1")));
+        QVERIFY(summary.contains(QStringLiteral("bool_value_2: true")));
+        QVERIFY(summary.contains(QStringLiteral("uint32_value_7: 77")));
+        QCOMPARE(unknownSpy.count(), 0);
+        QCOMPARE(sendSpy.count(), 0);
+    }
+
+    void testMalformedMediaOptionsIsRejectedWithoutPolicyOrResponseMutation() {
+        oaa::hu::AudioChannelHandler handler(oaa::ChannelId::MediaAudio);
+        handler.configureSession(oaa::SessionProtocolPolicy(
+            oaa::kGalVersion1_7));
+        handler.onChannelOpened();
+
+        QSignalSpy optionsSpy(
+            &handler,
+            &oaa::hu::AudioChannelHandler::mediaOptionsReceived);
+        QSignalSpy unknownSpy(&handler,
+                              &oaa::IChannelHandler::unknownMessage);
+        QSignalSpy sendSpy(&handler, &oaa::IChannelHandler::sendRequested);
+
+        handler.onMessage(oaa::AVMessageId::MEDIA_OPTIONS,
+                          QByteArray::fromHex("0a0508"));
+
+        QCOMPARE(optionsSpy.count(), 0);
+        QCOMPARE(unknownSpy.count(), 0);
+        QCOMPARE(sendSpy.count(), 0);
+
+        oaa::proto::messages::AVChannelStartIndication start;
+        start.set_session(9);
+        start.set_config(0);
+        const QByteArray startPayload = QByteArray::fromStdString(
+            start.SerializeAsString());
+        handler.onMessage(oaa::AVMessageId::START_INDICATION, startPayload);
+        handler.onMediaData(QByteArray(32, '\x2a'), 123);
+
+        QCOMPARE(sendSpy.count(), 1);
+        QCOMPARE(sendSpy[0][1].value<uint16_t>(),
+                 static_cast<uint16_t>(oaa::AVMessageId::ACK_INDICATION));
     }
 
     void testStateResetsOnChannelClose() {
