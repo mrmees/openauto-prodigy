@@ -198,6 +198,15 @@ private slots:
         QCOMPARE(bridge.formattedDistance(), QString("0.3 mi"));
     }
 
+    void testLegacyMilesOverNinePointNineUseWholeMiles() {
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge bridge;
+        bridge.connectToHandler(&handler);
+
+        emit handler.navigationTurnEvent("", 0, 0, QByteArray(), 17059, 4);
+        QCOMPARE(bridge.formattedDistance(), QString("11 mi"));
+    }
+
     void testFormattedDistanceFeet() {
         oaa::hu::NavigationChannelHandler handler;
         oap::aa::NavigationDataBridge bridge;
@@ -234,6 +243,18 @@ private slots:
 
         emit handler.navigationDistanceChanged("0.3", 5); // MILES_P1
         QCOMPARE(bridge.formattedDistance(), QString("0.3 mi"));
+    }
+
+    void testModernMilesOverNinePointNineUseWholeMiles() {
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge bridge;
+        bridge.connectToHandler(&handler);
+
+        emit handler.navigationDistanceChanged("9.9", 5);
+        QCOMPARE(bridge.formattedDistance(), QString("9.9 mi"));
+
+        emit handler.navigationDistanceChanged("10.6", 5);
+        QCOMPARE(bridge.formattedDistance(), QString("11 mi"));
     }
 
     void testModernDistanceFeet() {

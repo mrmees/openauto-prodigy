@@ -83,6 +83,7 @@ private:
     bool hasDistance_ = false;
 
     static QString unitSuffix(int distanceUnit);
+    static QString formatMiles(double miles);
     static QString laneShapeToken(int shape);
 };
 

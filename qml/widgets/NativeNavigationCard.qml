@@ -226,104 +226,117 @@ Item {
                                       || destinationFooter.visible
                                       ? root.cardPadding : 0
 
-                Rectangle {
-                    id: maneuverTile
+                Item {
+                    id: primaryTopRow
+                    objectName: "primaryTopRow"
                     anchors.left: parent.left
+                    anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    width: Math.min(parent.width * 0.27,
-                                    Math.max(180, root.height * 0.34))
-                    radius: Math.max(14, Math.min(24, root.height * 0.04))
-                    color: ThemeService.surfaceContainerLow
+                    height: Math.min(
+                        parent.height,
+                        Math.max(root.height * 0.25,
+                                 root.distanceSize * 1.25
+                                 + root.secondaryCueSize + 8))
 
-                    Text {
-                        objectName: "nextLabel"
+                    Rectangle {
+                        id: maneuverTile
+                        objectName: "maneuverTile"
+                        anchors.left: parent.left
                         anchors.top: parent.top
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.topMargin: root.cardPadding
-                        text: "NEXT"
-                        color: ThemeService.onSurfaceVariant
-                        font.pixelSize: root.labelSize
-                        font.weight: Font.DemiBold
+                        anchors.bottom: parent.bottom
+                        width: parent.width * 0.35
+                        radius: Math.max(14, Math.min(24,
+                                                      root.height * 0.04))
+                        color: ThemeService.surfaceContainerLow
+
+                        NavigationManeuverGlyph {
+                            objectName: "maneuverGlyph"
+                            anchors.centerIn: parent
+                            maneuverType: root.navigationProvider
+                                          ? root.navigationProvider.maneuverType
+                                          : 0
+                            size: Math.max(
+                                80,
+                                Math.min(168,
+                                         maneuverTile.width * 0.84,
+                                         maneuverTile.height * 0.84))
+                            color: ThemeService.primary
+                        }
                     }
 
-                    NavigationManeuverGlyph {
-                        objectName: "maneuverGlyph"
-                        anchors.centerIn: parent
-                        maneuverType: root.navigationProvider
-                                      ? root.navigationProvider.maneuverType : 0
-                        size: Math.max(80, Math.min(112, root.height * 0.187))
-                        color: ThemeService.primary
+                    Item {
+                        id: topInfoBlock
+                        objectName: "topInfoBlock"
+                        anchors.left: maneuverTile.right
+                        anchors.leftMargin: root.cardPadding
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+
+                        Text {
+                            id: secondaryCue
+                            objectName: "secondaryCueText"
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            horizontalAlignment: Text.AlignRight
+                            text: "Next turn"
+                            visible: roadText.visible
+                            color: ThemeService.onSurfaceVariant
+                            font.pixelSize: root.secondaryCueSize
+                        }
+
+                        Row {
+                            id: distanceRow
+                            objectName: "distanceRow"
+                            anchors.right: parent.right
+                            anchors.top: secondaryCue.visible
+                                         ? secondaryCue.bottom : parent.top
+                            anchors.topMargin: secondaryCue.visible ? 4 : 0
+                            spacing: 12
+                            visible: root.navigationProvider
+                                     && root.navigationProvider.hasDistance
+
+                            Text {
+                                objectName: "distanceText"
+                                text: root.distanceValue
+                                color: ThemeService.onSurface
+                                font.pixelSize: root.distanceSize
+                                font.weight: Font.Bold
+                            }
+
+                            Text {
+                                objectName: "distanceUnitText"
+                                anchors.baseline: parent.children[0].baseline
+                                text: root.distanceUnit
+                                visible: text.length > 0
+                                color: ThemeService.onSurfaceVariant
+                                font.pixelSize: root.unitSize
+                                font.weight: Font.DemiBold
+                            }
+                        }
                     }
                 }
 
-                Item {
-                    anchors.left: maneuverTile.right
-                    anchors.leftMargin: root.cardPadding
+                Text {
+                    id: roadText
+                    objectName: "roadText"
+                    anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.top: parent.top
+                    anchors.top: primaryTopRow.bottom
+                    anchors.topMargin: 12
                     anchors.bottom: parent.bottom
-
-                    Text {
-                        id: secondaryCue
-                        objectName: "secondaryCueText"
-                        anchors.left: parent.left
-                        anchors.top: parent.top
-                        text: "Next turn"
-                        visible: roadText.visible
-                        color: ThemeService.onSurfaceVariant
-                        font.pixelSize: root.secondaryCueSize
-                    }
-
-                    Row {
-                        id: distanceRow
-                        anchors.left: parent.left
-                        anchors.top: secondaryCue.visible
-                                     ? secondaryCue.bottom : parent.top
-                        anchors.topMargin: secondaryCue.visible ? 4 : 0
-                        spacing: 12
-                        visible: root.navigationProvider
-                                 && root.navigationProvider.hasDistance
-
-                        Text {
-                            objectName: "distanceText"
-                            text: root.distanceValue
-                            color: ThemeService.onSurface
-                            font.pixelSize: root.distanceSize
-                            font.weight: Font.Bold
-                        }
-
-                        Text {
-                            objectName: "distanceUnitText"
-                            anchors.baseline: parent.children[0].baseline
-                            text: root.distanceUnit
-                            visible: text.length > 0
-                            color: ThemeService.onSurfaceVariant
-                            font.pixelSize: root.unitSize
-                            font.weight: Font.DemiBold
-                        }
-                    }
-
-                    Text {
-                        id: roadText
-                        objectName: "roadText"
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: distanceRow.visible
-                                     ? distanceRow.bottom : secondaryCue.bottom
-                        anchors.topMargin: 4
-                        anchors.bottom: parent.bottom
-                        text: root.navigationProvider
-                              ? root.navigationProvider.roadName : ""
-                        visible: text.length > 0
-                        color: ThemeService.onSurface
-                        font.pixelSize: root.roadSize
-                        font.weight: Font.DemiBold
-                        wrapMode: Text.Wrap
-                        maximumLineCount: 2
-                        elide: Text.ElideRight
-                        verticalAlignment: Text.AlignVCenter
-                    }
+                    text: root.navigationProvider
+                          ? root.navigationProvider.roadName : ""
+                    visible: text.length > 0
+                    color: ThemeService.onSurface
+                    font.pixelSize: root.roadSize
+                    font.weight: Font.DemiBold
+                    wrapMode: Text.Wrap
+                    horizontalAlignment: Text.AlignHCenter
+                    maximumLineCount: 2
+                    elide: Text.ElideRight
+                    verticalAlignment: Text.AlignVCenter
                 }
             }
         }

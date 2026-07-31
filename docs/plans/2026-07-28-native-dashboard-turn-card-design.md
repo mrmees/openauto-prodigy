@@ -161,9 +161,9 @@ step. Multi-step presentation belongs to Stage 2.
 The approved 1024x600 composition is:
 
 - a large rounded card inset from the widget boundary;
-- a small status header;
-- a dominant maneuver area on the left;
-- distance, unit, road/instruction, and optional short cue on the right;
+- a wider, label-free maneuver tile at the left of the top row;
+- a right-aligned next-turn cue and distance block of equal height beside it;
+- road/instruction text below the top row across the full card width;
 - a full-width lane band at the bottom only when lane data exists.
 
 The maneuver tile may use depth, an outline, and the active theme's primary
@@ -192,6 +192,10 @@ body-text sizes are not an acceptable fallback for this in-dash surface. Lane
 guidance receives a fixed-height region and must not shrink the primary type
 below its readability floor. Long road/instruction text elides instead of
 shrinking into unreadability.
+
+Mile distances retain one decimal through 9.9 miles. Values above 9.9 miles
+round to a whole mile so the primary distance remains compact and does not
+spend dashboard space on false precision.
 
 ### 6.3 Theme contract
 

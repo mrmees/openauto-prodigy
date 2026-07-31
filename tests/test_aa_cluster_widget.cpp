@@ -799,6 +799,14 @@ private slots:
             QStringLiteral("secondaryCueText"));
         auto* nextLabel =
             widget->findChild<QQuickItem*>(QStringLiteral("nextLabel"));
+        auto* primaryTopRow = widget->findChild<QQuickItem*>(
+            QStringLiteral("primaryTopRow"));
+        auto* maneuverTile = widget->findChild<QQuickItem*>(
+            QStringLiteral("maneuverTile"));
+        auto* topInfoBlock = widget->findChild<QQuickItem*>(
+            QStringLiteral("topInfoBlock"));
+        auto* distanceRow = widget->findChild<QQuickItem*>(
+            QStringLiteral("distanceRow"));
         auto* primaryGuidance = widget->findChild<QQuickItem*>(
             QStringLiteral("primaryGuidance"));
         auto* destinationFooter = widget->findChild<QQuickItem*>(
@@ -814,7 +822,11 @@ private slots:
         QVERIFY(distanceUnit);
         QVERIFY(road);
         QVERIFY(secondaryCue);
-        QVERIFY(nextLabel);
+        QVERIFY(!nextLabel);
+        QVERIFY(primaryTopRow);
+        QVERIFY(maneuverTile);
+        QVERIFY(topInfoBlock);
+        QVERIFY(distanceRow);
         QVERIFY(primaryGuidance);
         QVERIFY(destinationFooter);
         QVERIFY(destinationViewport);
@@ -945,6 +957,26 @@ private slots:
         QVERIFY(maneuver->isVisible());
         QVERIFY(distance->isVisible());
         QVERIFY(road->isVisible());
+        QCOMPARE(maneuverTile->parentItem(), primaryTopRow);
+        QCOMPARE(topInfoBlock->parentItem(), primaryTopRow);
+        QCOMPARE(road->parentItem(), primaryGuidance);
+        QCOMPARE(maneuverTile->height(), primaryTopRow->height());
+        QCOMPARE(topInfoBlock->height(), primaryTopRow->height());
+        const qreal maneuverTileRatio =
+            maneuverTile->width() / primaryGuidance->width();
+        QVERIFY(maneuverTileRatio >= 0.33);
+        QVERIFY(maneuverTileRatio <= 0.38);
+        QVERIFY(maneuver->width() >= 125.0);
+        QVERIFY(maneuver->width() <= maneuverTile->width());
+        QVERIFY(maneuver->height() <= maneuverTile->height());
+        QCOMPARE(road->x(), 0.0);
+        QCOMPARE(road->width(), primaryGuidance->width());
+        QCOMPARE(road->property("horizontalAlignment").toInt(),
+                 static_cast<int>(Qt::AlignHCenter));
+        QCOMPARE(secondaryCue->property("horizontalAlignment").toInt(),
+                 static_cast<int>(Qt::AlignRight));
+        QVERIFY(qAbs(distanceRow->x() + distanceRow->width()
+                     - topInfoBlock->width()) < 0.01);
         QCOMPARE(distance->property("text").toString(), QStringLiteral("250"));
         const int distancePixels =
             distance->property("font").value<QFont>().pixelSize();
@@ -954,7 +986,17 @@ private slots:
         QCOMPARE(road->property("text").toString(), QStringLiteral("Main Street"));
         QCOMPARE(road->property("font").value<QFont>().pixelSize(), 40);
         QCOMPARE(secondaryCue->property("font").value<QFont>().pixelSize(), 28);
-        QVERIFY(nextLabel->property("font").value<QFont>().pixelSize() >= 22);
+
+        widget->setProperty("width", 364.0);
+        widget->setProperty("height", 364.0);
+        QCoreApplication::processEvents();
+        QCOMPARE(maneuverTile->height(), topInfoBlock->height());
+        QVERIFY(maneuver->width() <= maneuverTile->width());
+        QVERIFY(maneuver->height() <= maneuverTile->height());
+        QCOMPARE(road->x(), 0.0);
+        QCOMPARE(road->width(), primaryGuidance->width());
+        QVERIFY(road->height()
+                >= road->property("font").value<QFont>().pixelSize());
 
         projection.setProjectionState(4);
         QTRY_VERIFY(maneuver->isVisible());

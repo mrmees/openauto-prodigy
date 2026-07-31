@@ -150,10 +150,17 @@ QString NavigationDataBridge::formattedDistance() const
 {
     // If we have phone-provided display text, combine with unit suffix
     if (!phoneDistanceText_.isEmpty()) {
+        QString displayText = phoneDistanceText_;
+        if (distanceUnit_ == 4 || distanceUnit_ == 5) {
+            bool parsed = false;
+            const double miles = displayText.toDouble(&parsed);
+            if (parsed && miles > 9.9)
+                displayText = formatMiles(miles);
+        }
         QString suffix = unitSuffix(distanceUnit_);
         if (!suffix.isEmpty())
-            return phoneDistanceText_ + " " + suffix;
-        return phoneDistanceText_;
+            return displayText + " " + suffix;
+        return displayText;
     }
 
     // Fallback: compute from NavigationTurnEvent data (legacy phones)
@@ -170,7 +177,7 @@ QString NavigationDataBridge::formattedDistance() const
         return QString::number(distanceMeters_ / 1000.0, 'f', 1) + " km";
     case 4: // MILES
     case 5: // MILES_P1
-        return QString::number(distanceMeters_ / 1609.34, 'f', 1) + " mi";
+        return formatMiles(distanceMeters_ / 1609.34) + " mi";
     case 6: // FEET
         return QString::number(qRound(distanceMeters_ * 3.28084)) + " ft";
     case 7: // YARDS
@@ -178,6 +185,13 @@ QString NavigationDataBridge::formattedDistance() const
     default:
         return QString::number(distanceMeters_) + " m";
     }
+}
+
+QString NavigationDataBridge::formatMiles(double miles)
+{
+    if (miles > 9.9)
+        return QString::number(qRound(miles));
+    return QString::number(miles, 'f', 1);
 }
 
 QString NavigationDataBridge::unitSuffix(int distanceUnit)
