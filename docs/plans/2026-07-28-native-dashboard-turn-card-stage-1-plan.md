@@ -25,8 +25,8 @@ normalizes them into a provider-owned model, and focused QML components render
 the maneuver card and continuous lane band.
 
 **Tech Stack:** C++17, Qt 6.8 Core/Gui/Quick/QML/Multimedia, QAbstractListModel,
-protobuf-generated OAA v1.5 bindings, QML Material Symbols, CMake/CTest, Pi 4
-cross-build and live validation.
+protobuf-generated OAA v1.5 bindings, clean-room QML Canvas navigation
+geometry, CMake/CTest, Pi 4 cross-build and live validation.
 
 ## Global Constraints
 
@@ -59,8 +59,8 @@ cross-build and live validation.
   types and a one-row-per-physical-lane QAbstractListModel.
 - `src/core/aa/NavigationLaneModel.cpp` — atomic snapshot replacement and QML
   `directions` role serialization.
-- `qml/widgets/NavigationManeuverGlyph.qml` — exhaustive raw maneuver mapping
-  and primary/badge glyph composition.
+- `qml/widgets/NavigationManeuverGlyph.qml` — exhaustive raw maneuver mapping,
+  shared lane-primitive composition, and distinct clean-room Canvas semantics.
 - `qml/widgets/NavigationLaneDirectionGlyph.qml` — exhaustive stable lane-shape
   token mapping.
 - `qml/widgets/NavigationLaneGuidanceBand.qml` — continuous roadway band and
@@ -451,6 +451,14 @@ git commit -m "feat(aa): publish semantic lane guidance"
 ---
 
 ### Task 3: Add exhaustive maneuver and lane-direction glyph components
+
+**Hardware-correction amendment (2026-07-31):** Material Symbols and the
+original primary/badge interface below were replaced during live visual
+acceptance. The accepted contract is the shared clean-room renderer described
+by design sections 7-8: hero direction semantics reuse
+`NavigationLaneDirectionGlyph`, distinct semantics use matching 24x24 Canvas
+geometry, and compound physical lanes use one centered 0.90 optical scale.
+The historical steps below record the initial implementation sequence.
 
 **Files:**
 

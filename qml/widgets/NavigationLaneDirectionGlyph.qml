@@ -8,6 +8,7 @@ Item {
     property real size: 32
     property color color: "white"
     property string geometryVariant: "base"
+    property real opticalScale: 1.0
 
     readonly property var presentation: presentationFor(shapeToken)
     readonly property string primitiveFamily: presentation.family
@@ -15,6 +16,9 @@ Item {
     readonly property bool mirrored: presentation.mirrored
     readonly property bool drawNeutralStem: primitiveFamily === "neutral"
     readonly property bool isFallback: presentation.fallback
+    readonly property real effectiveStrokeWidth: recommended ? 3.4 : 3.0
+    readonly property string effectiveLineCap: "round"
+    readonly property string effectiveLineJoin: "round"
     readonly property real anchorFraction:
         (primitiveFamily === "straight") ? 0.5
         : ((primitiveFamily === "sharp" || primitiveFamily === "u_turn")
@@ -197,14 +201,17 @@ Item {
             context.translate((width - 24 * scale) / 2,
                               (height - 24 * scale) / 2)
             context.scale(scale, scale)
+            context.translate(12, 12)
+            context.scale(root.opticalScale, root.opticalScale)
+            context.translate(-12, -12)
             if (root.mirrored) {
                 context.translate(24, 0)
                 context.scale(-1, 1)
             }
             context.strokeStyle = root.color
-            context.lineWidth = root.recommended ? 3.4 : 3.0
-            context.lineCap = "round"
-            context.lineJoin = "round"
+            context.lineWidth = root.effectiveStrokeWidth
+            context.lineCap = root.effectiveLineCap
+            context.lineJoin = root.effectiveLineJoin
             root.paintPrimitive(context)
             context.restore()
         }
@@ -214,6 +221,7 @@ Item {
     onRecommendedChanged: directionCanvas.requestPaint()
     onColorChanged: directionCanvas.requestPaint()
     onGeometryVariantChanged: directionCanvas.requestPaint()
+    onOpticalScaleChanged: directionCanvas.requestPaint()
     onWidthChanged: directionCanvas.requestPaint()
     onHeightChanged: directionCanvas.requestPaint()
 }

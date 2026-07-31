@@ -184,6 +184,17 @@ private:
                        materialIconStub))
             return nullptr;
 
+        if (fileName == QStringLiteral("NavigationManeuverGlyph.qml")) {
+            const QString directionSource =
+                qmlSource(QStringLiteral("NavigationLaneDirectionGlyph.qml"));
+            if (directionSource.isEmpty()
+                || !writeFile(dir,
+                              QStringLiteral("NavigationLaneDirectionGlyph.qml"),
+                              directionSource.toUtf8())) {
+                return nullptr;
+            }
+        }
+
         const QString source = qmlSource(fileName);
         if (!source.isEmpty()
             && !writeFile(dir, fileName, source.toUtf8()))
@@ -327,20 +338,146 @@ private slots:
         QScopedPointer<QObject> glyph(component->create());
         QVERIFY2(glyph, qPrintable(component->errorString()));
 
-        QList<int> defined;
-        for (int value = 0; value <= 29; ++value)
-            defined.append(value);
-        for (int value = 32; value <= 50; ++value)
-            defined.append(value);
+        const QList<QVariantMap> defined{
+            {{"type", 0}, {"lane", false}, {"token", ""},
+             {"family", "unknown"}, {"mirrored", false}},
+            {{"type", 1}, {"lane", false}, {"token", ""},
+             {"family", "depart"}, {"mirrored", false}},
+            {{"type", 2}, {"lane", true}, {"token", "straight"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 3}, {"lane", false}, {"token", ""},
+             {"family", "keep"}, {"mirrored", true}},
+            {{"type", 4}, {"lane", false}, {"token", ""},
+             {"family", "keep"}, {"mirrored", false}},
+            {{"type", 5}, {"lane", true}, {"token", "slight_left"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 6}, {"lane", true}, {"token", "slight_right"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 7}, {"lane", true}, {"token", "normal_left"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 8}, {"lane", true}, {"token", "normal_right"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 9}, {"lane", true}, {"token", "sharp_left"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 10}, {"lane", true}, {"token", "sharp_right"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 11}, {"lane", true}, {"token", "u_turn_left"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 12}, {"lane", true}, {"token", "u_turn_right"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 13}, {"lane", true}, {"token", "slight_left"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 14}, {"lane", true}, {"token", "slight_right"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 15}, {"lane", true}, {"token", "normal_left"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 16}, {"lane", true}, {"token", "normal_right"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 17}, {"lane", true}, {"token", "sharp_left"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 18}, {"lane", true}, {"token", "sharp_right"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 19}, {"lane", true}, {"token", "u_turn_left"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 20}, {"lane", true}, {"token", "u_turn_right"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 21}, {"lane", false}, {"token", ""},
+             {"family", "off_ramp_slight"}, {"mirrored", true}},
+            {{"type", 22}, {"lane", false}, {"token", ""},
+             {"family", "off_ramp_slight"}, {"mirrored", false}},
+            {{"type", 23}, {"lane", false}, {"token", ""},
+             {"family", "off_ramp_normal"}, {"mirrored", true}},
+            {{"type", 24}, {"lane", false}, {"token", ""},
+             {"family", "off_ramp_normal"}, {"mirrored", false}},
+            {{"type", 25}, {"lane", false}, {"token", ""},
+             {"family", "fork"}, {"mirrored", true}},
+            {{"type", 26}, {"lane", false}, {"token", ""},
+             {"family", "fork"}, {"mirrored", false}},
+            {{"type", 27}, {"lane", false}, {"token", ""},
+             {"family", "merge"}, {"mirrored", true}},
+            {{"type", 28}, {"lane", false}, {"token", ""},
+             {"family", "merge"}, {"mirrored", false}},
+            {{"type", 29}, {"lane", false}, {"token", ""},
+             {"family", "merge_unspecified"}, {"mirrored", false}},
+            {{"type", 32}, {"lane", false}, {"token", ""},
+             {"family", "roundabout_enter_exit"}, {"mirrored", false}},
+            {{"type", 33}, {"lane", false}, {"token", ""},
+             {"family", "roundabout_enter_exit_angle"},
+             {"mirrored", false}},
+            {{"type", 34}, {"lane", false}, {"token", ""},
+             {"family", "roundabout_enter_exit"}, {"mirrored", true}},
+            {{"type", 35}, {"lane", false}, {"token", ""},
+             {"family", "roundabout_enter_exit_angle"},
+             {"mirrored", true}},
+            {{"type", 36}, {"lane", true}, {"token", "straight"},
+             {"family", ""}, {"mirrored", false}},
+            {{"type", 37}, {"lane", false}, {"token", ""},
+             {"family", "ferry_boat"}, {"mirrored", false}},
+            {{"type", 38}, {"lane", false}, {"token", ""},
+             {"family", "ferry_train"}, {"mirrored", false}},
+            {{"type", 39}, {"lane", false}, {"token", ""},
+             {"family", "destination"}, {"mirrored", false}},
+            {{"type", 40}, {"lane", false}, {"token", ""},
+             {"family", "destination"}, {"mirrored", false}},
+            {{"type", 41}, {"lane", false}, {"token", ""},
+             {"family", "destination_side"}, {"mirrored", true}},
+            {{"type", 42}, {"lane", false}, {"token", ""},
+             {"family", "destination_side"}, {"mirrored", false}},
+            {{"type", 43}, {"lane", false}, {"token", ""},
+             {"family", "roundabout_enter"}, {"mirrored", false}},
+            {{"type", 44}, {"lane", false}, {"token", ""},
+             {"family", "roundabout_exit"}, {"mirrored", false}},
+            {{"type", 45}, {"lane", false}, {"token", ""},
+             {"family", "roundabout_enter"}, {"mirrored", true}},
+            {{"type", 46}, {"lane", false}, {"token", ""},
+             {"family", "roundabout_exit"}, {"mirrored", true}},
+            {{"type", 47}, {"lane", true}, {"token", "normal_left"},
+             {"family", "ferry_boat_marker"}, {"mirrored", true}},
+            {{"type", 48}, {"lane", true}, {"token", "normal_right"},
+             {"family", "ferry_boat_marker"}, {"mirrored", false}},
+            {{"type", 49}, {"lane", true}, {"token", "normal_left"},
+             {"family", "ferry_train_marker"}, {"mirrored", true}},
+            {{"type", 50}, {"lane", true}, {"token", "normal_right"},
+             {"family", "ferry_train_marker"}, {"mirrored", false}},
+        };
 
-        for (const int value : defined) {
+        auto* lanePrimitive = glyph->findChild<QQuickItem*>(
+            QStringLiteral("maneuverLanePrimitive"));
+        auto* specialCanvas = glyph->findChild<QQuickItem*>(
+            QStringLiteral("maneuverSpecialCanvas"));
+        QVERIFY(lanePrimitive);
+        QVERIFY(specialCanvas);
+
+        for (const QVariantMap& expected : defined) {
+            const int value = expected.value("type").toInt();
             QVERIFY(glyph->setProperty("maneuverType", value));
             QVERIFY2(!glyph->property("isFallback").toBool(),
                      qPrintable(QStringLiteral(
                          "Defined maneuver %1 used the fallback").arg(value)));
-            QVERIFY2(!glyph->property("primaryGlyph").toString().isEmpty(),
-                     qPrintable(QStringLiteral(
-                         "Defined maneuver %1 had no primary glyph").arg(value)));
+            QCOMPARE(glyph->property("usesLanePrimitive").toBool(),
+                     expected.value("lane").toBool());
+            QCOMPARE(glyph->property("laneShapeToken").toString(),
+                     expected.value("token").toString());
+            QCOMPARE(glyph->property("specialFamily").toString(),
+                     expected.value("family").toString());
+            QCOMPARE(glyph->property("mirrored").toBool(),
+                     expected.value("mirrored").toBool());
+            const bool hasSpecial =
+                !expected.value("family").toString().isEmpty();
+            QCOMPARE(glyph->property("hasSpecialOverlay").toBool(),
+                     hasSpecial);
+            QCOMPARE(specialCanvas->isVisible(), hasSpecial);
+
+            if (expected.value("lane").toBool()) {
+                QVERIFY(lanePrimitive->isVisible());
+                QCOMPARE(lanePrimitive->property("shapeToken").toString(),
+                         expected.value("token").toString());
+                QVERIFY(lanePrimitive->property("recommended").toBool());
+                QCOMPARE(lanePrimitive->property("opticalScale").toReal(),
+                         1.0);
+            } else {
+                QVERIFY(!lanePrimitive->isVisible());
+            }
         }
 
         for (const int value : {30, 31, -1, 999}) {
@@ -348,34 +485,23 @@ private slots:
             QVERIFY2(glyph->property("isFallback").toBool(),
                      qPrintable(QStringLiteral(
                          "Undefined maneuver %1 did not fall back").arg(value)));
-            QVERIFY(!glyph->property("primaryGlyph").toString().isEmpty());
+            QVERIFY(!glyph->property("usesLanePrimitive").toBool());
+            QCOMPARE(glyph->property("laneShapeToken").toString(),
+                     QString());
+            QCOMPARE(glyph->property("specialFamily").toString(),
+                     QStringLiteral("unknown"));
+            QVERIFY(!glyph->property("mirrored").toBool());
         }
 
-        const QList<QPair<int, int>> directionalPairs{
-            {3, 4},   {5, 6},   {7, 8},   {9, 10},  {11, 12},
-            {13, 14}, {15, 16}, {17, 18}, {19, 20}, {21, 22},
-            {23, 24}, {25, 26}, {27, 28}, {32, 34}, {33, 35},
-            {41, 42}, {43, 45}, {44, 46}, {47, 48}, {49, 50},
-        };
-        const auto signature = [&glyph](int value) {
-            glyph->setProperty("maneuverType", value);
-            return QStringLiteral("%1|%2|%3")
-                .arg(glyph->property("primaryGlyph").toString(),
-                     glyph->property("badgeGlyph").toString(),
-                     glyph->property("mirrorPrimary").toBool()
-                         ? QStringLiteral("mirrored")
-                         : QStringLiteral("normal"));
-        };
-        for (const auto& pair : directionalPairs) {
-            const QString left = signature(pair.first);
-            const QString right = signature(pair.second);
-            QVERIFY2(left != right,
-                     qPrintable(QStringLiteral(
-                         "Directional maneuvers %1 and %2 collapsed to %3")
-                                    .arg(pair.first)
-                                    .arg(pair.second)
-                                    .arg(left)));
-        }
+        const QString source =
+            qmlSource(QStringLiteral("NavigationManeuverGlyph.qml"));
+        QVERIFY(!source.contains(QStringLiteral("MaterialIcon")));
+        QCOMPARE(glyph->property("specialStrokeWidth").toReal(),
+                 lanePrimitive->property("effectiveStrokeWidth").toReal());
+        QCOMPARE(glyph->property("specialLineCap").toString(),
+                 lanePrimitive->property("effectiveLineCap").toString());
+        QCOMPARE(glyph->property("specialLineJoin").toString(),
+                 lanePrimitive->property("effectiveLineJoin").toString());
     }
 
     void laneDirectionGlyphMapsStableTokensAndFallsBackSafely()
@@ -707,6 +833,8 @@ private slots:
         QCOMPARE(composites.size(), 2);
         QCOMPARE(composites[0]->property("directionCount").toInt(), 2);
         QCOMPARE(composites[1]->property("directionCount").toInt(), 1);
+        QCOMPARE(composites[0]->property("opticalScale").toReal(), 0.90);
+        QCOMPARE(composites[1]->property("opticalScale").toReal(), 1.0);
 
         const QList<QQuickItem*> primitives = visualItemsNamed(
             qobject_cast<QQuickItem*>(widget.data()),
@@ -724,6 +852,7 @@ private slots:
         QQuickItem* alternative = nullptr;
         QQuickItem* recommended = nullptr;
         for (QQuickItem* primitive : firstLanePrimitives) {
+            QCOMPARE(primitive->property("opticalScale").toReal(), 0.90);
             if (primitive->property("recommended").toBool())
                 recommended = primitive;
             else
@@ -743,6 +872,12 @@ private slots:
                  QStringLiteral("normal_right"));
         QCOMPARE(recommended->property("geometryVariant").toString(),
                  QStringLiteral("short"));
+        const QList<QQuickItem*> secondLanePrimitives =
+            visualItemsNamed(composites[1],
+                             QStringLiteral("laneDirectionPrimitive"));
+        QCOMPARE(secondLanePrimitives.size(), 1);
+        QCOMPARE(secondLanePrimitives.first()->property("opticalScale").toReal(),
+                 1.0);
         QVERIFY(recommended->z() > alternative->z());
         QCOMPARE(alternative->opacity(), 0.48);
         QCOMPARE(recommended->opacity(), 1.0);

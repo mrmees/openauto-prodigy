@@ -8,6 +8,7 @@ Item {
     property var directions: []
     readonly property int directionCount: directions ? directions.length : 0
     readonly property bool compound: directionCount > 1
+    readonly property real opticalScale: compound ? 0.90 : 1.0
 
     function geometryVariantFor(direction) {
         if (!compound)
@@ -43,6 +44,7 @@ Item {
             shapeToken: direction.shape
             recommended: direction.recommended
             geometryVariant: root.geometryVariantFor(direction)
+            opticalScale: root.opticalScale
             color: direction.recommended
                    ? ThemeService.primary
                    : ThemeService.onSurfaceVariant

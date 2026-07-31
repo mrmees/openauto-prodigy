@@ -219,12 +219,19 @@ present stale guidance.
 
 ## 7. Exhaustive maneuver presentation
 
-The bundled Material Symbols font contains the required turn, ramp, fork,
-merge, roundabout, straight, ferry, train, destination, and navigation glyphs.
-A dedicated presentation helper maps each defined raw maneuver to a glyph or a
-small composite. Known values may share a base glyph when Android Auto's enum
-is more specific than the font, but every known value has an intentional table
-entry and must not take the unknown fallback accidentally.
+Prodigy owns one clean-room 24x24 navigation geometry system. Hero maneuvers
+whose visual semantics match lane directions instantiate the exact same
+straight, slight, normal, sharp, or U-turn component used by the lane band.
+Genuinely distinct keep/fork, off-ramp, merge, roundabout, ferry, train,
+destination, depart, and fallback semantics use original Canvas geometry with
+the same normalized viewport, stroke width, caps, joins, color, and mirroring
+contract. Extracted Google Maps assets are reference-only and are not copied,
+traced, imported, or shipped.
+
+A dedicated presentation helper maps every defined raw maneuver intentionally.
+Values may share a visual when the audited reference family does: name-change
+uses straight, and on-ramp slight/normal/sharp/U-turn values use their matching
+lane primitives. Only undefined or future values take the fallback.
 
 | Raw values | Android Auto maneuver | Required presentation |
 |---|---|---|
@@ -236,8 +243,8 @@ entry and must not take the unknown fallback accidentally.
 | 7, 8 | Normal left/right | Side-specific normal-turn glyph |
 | 9, 10 | Sharp left/right | Side-specific sharp-turn glyph |
 | 11, 12 | U-turn left/right | Side-specific U-turn glyph |
-| 13-18 | On-ramp slight/normal/sharp left/right | Side-specific ramp/curvature presentation |
-| 19, 20 | On-ramp U-turn left/right | Side-specific U-turn with ramp context |
+| 13-18 | On-ramp slight/normal/sharp left/right | Matching shared lane-direction primitive |
+| 19, 20 | On-ramp U-turn left/right | Matching shared U-turn primitive |
 | 21-24 | Off-ramp slight/normal left/right | Side-specific off-ramp presentation |
 | 25, 26 | Fork left/right | Side-specific fork glyph |
 | 27, 28 | Merge left/right | Side-specific merge presentation |
@@ -247,8 +254,8 @@ entry and must not take the unknown fallback accidentally.
 | 36 | Straight | Straight glyph |
 | 37 | Ferry boat | Boat glyph |
 | 38 | Ferry train | Train glyph |
-| 39, 40 | Destination / destination straight | Destination flag presentation |
-| 41, 42 | Destination left/right | Side-specific direction with destination badge |
+| 39, 40 | Destination / destination straight | Shared destination presentation |
+| 41, 42 | Destination left/right | Mirrored side-specific destination presentation |
 | 43, 45 | Roundabout enter clockwise/counterclockwise | Direction-specific roundabout entry |
 | 44, 46 | Roundabout exit clockwise/counterclockwise | Direction-specific roundabout exit |
 | 47, 48 | Ferry boat left/right | Boat with side-specific direction cue |
@@ -287,6 +294,12 @@ lane glyphs within the fixed band instead of shrinking the maneuver text. A
 pathological future shape or count may use the neutral fallback, but it must
 not crash QML, overrun the card, or convert lanes into a scrollable/tappable
 control.
+
+All directions belonging to one physical lane are overlaid on the same shared
+stem and coordinate frame. Single-direction lanes and hero primitives use a
+1.0 optical scale. Compound lanes uniformly scale the complete overlaid glyph
+to 0.90 around the 24x24 center; individual branches are never scaled
+independently.
 
 ## 9. Stage 2 semantic expansion
 
