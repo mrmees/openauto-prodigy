@@ -126,6 +126,39 @@ limits, and a verification command before implementation.
 
 ## Android Auto, Calls, and Core Lifecycle
 
+- **Native navigation QML compares projection-state numeric literals** —
+  Evidence: **REVIEW-CONFIRMED 2026-07-31; NONBLOCKING**.
+  `AAClusterWidget.qml` compares projection state with the current
+  `Connected=3` and `Backgrounded=4` enum values, so accepted behavior is
+  correct. A future enum reorder could silently invalidate the friendly
+  connected/disconnected copy because the QML fixtures use the same literals.
+  Candidate deliverable: expose or consume the existing `Q_ENUM` symbolically,
+  or add a provider-owned connected property, without changing projection
+  lifecycle semantics.
+
+- **Modern navigation distance presence can remain latched after empty text** —
+  Evidence: **REVIEW-CONFIRMED 2026-07-31; DELIVERY-DEPENDENT**. After a valid
+  modern distance sets `hasDistance_`, a later active-route event with empty
+  `display_text` does not clear the flag and can expose the legacy fallback.
+  Neither tested phone delivered this sequence. Candidate deliverable: first
+  capture an empty-after-valid event on a supported phone, then hide the row
+  when neither modern text nor valid legacy distance exists.
+
+- **Modern mile rounding only parses C-locale decimal text** — Evidence:
+  **REVIEW-CONFIRMED 2026-07-31; SAFE-DEGRADING**. The whole-mile policy above
+  9.9 uses `QString::toDouble`; comma-decimal or grouped phone text therefore
+  remains verbatim rather than being rounded. Bench evidence used point-decimal
+  miles, and parse failure preserves the phone's text. Candidate deliverable:
+  capture locale-formatted miles before choosing a locale-aware parser.
+
+- **Null navigation-provider Boolean bindings may emit a transient QML
+  warning** — Evidence: **REVIEW-CONFIRMED 2026-07-31; NONFUNCTIONAL**. The
+  native card's `provider && provider.property` expressions can evaluate to
+  null before assignment to Boolean properties. Production installs both
+  context providers before constructing the widget, so no user-visible path is
+  established. Candidate deliverable: explicitly coerce the null branch to
+  false during the next focused edit to the component.
+
 - **Runtime CLUSTER action validation is not observable over External API** —
   Evidence: **CODE-CONFIRMED 2026-07-25**. ActionRegistry reports whether an
   action ID was dispatched, while the CLUSTER controller's accepted/rejected

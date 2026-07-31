@@ -1,6 +1,6 @@
 # Native Dashboard Turn Card Stage 1 Implementation Plan
 
-**Status:** ACTIVE
+**Status:** COMPLETED 2026-07-31
 
 **Design:**
 [`2026-07-28-native-dashboard-turn-card-design.md`](2026-07-28-native-dashboard-turn-card-design.md)

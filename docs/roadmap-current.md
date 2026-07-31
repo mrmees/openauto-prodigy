@@ -19,17 +19,32 @@ spike, or research-first feasibility work.
 
 ## Now
 
-- Native Android Auto dashboard turn card — **ACTIVE; DESIGN APPROVED
-  2026-07-28**. Replace the phone-rendered grey maneuver card with an immediate,
-  theme-aware Prodigy card while retaining the hardware-accepted projected map
-  provider. Stage 1 delivers exhaustive maneuver presentation and a continuous
-  roadway-style lane-guidance band without reconnecting AA; Stage 2 promotes
-  live-proven rerouting, road/instruction, roundabout, ETA/destination, and
-  lookahead semantics without reducing the primary in-dash typography. Active
-  design: `docs/plans/2026-07-28-native-dashboard-turn-card-design.md`. Stage 1
-  plan: `docs/plans/2026-07-28-native-dashboard-turn-card-stage-1-plan.md`.
+- Native Android Auto dashboard trip semantics — **EVIDENCE-GATED**. Stage 1
+  and the first live-proven Stage 2 field are complete below. Further
+  rerouting, distinct road/instruction, roundabout, ETA/destination-distance,
+  and lookahead work requires a fresh focused plan grounded in moving-route
+  delivery evidence. The stationary Samsung S25+ route did not deliver
+  `NavigationNextTurnDistanceEvent`; Prodigy does not synthesize missing trip
+  data.
 
 ## Done (recent)
+
+- Native Android Auto dashboard turn card — **COMPLETED 2026-07-31; HARDWARE
+  ACCEPTED** at code anchor `5a2b1b5`. Map remains the phone's invariant
+  AUXILIARY/NAVIGATION provider, while the durable Map/Turn card setting now
+  switches local presentation immediately without reconnecting AA. The native
+  theme-aware card covers every defined maneuver and lane shape, composes all
+  directions belonging to one physical lane, shares maneuver geometry between
+  the hero and lane band, and gives live lanes priority over an adaptive
+  scrolling destination footer. The final hierarchy uses a wider label-free
+  maneuver tile, right-aligned distance block, centered road row, and whole
+  miles above 9.9. Pixel and Samsung testing covered the one-screen Map/card
+  path sequentially, live route and lane guidance, state changes, audio, and
+  installed-distance readability. The native/app/offscreen CTest/ARM gate
+  passed; the bounded Fable review returned no blocker or major and deferred
+  four minor research leads. Completed design and Stage 1 plan:
+  `docs/archive/plans/2026-07-28-native-dashboard-turn-card-design.md` and
+  `docs/archive/plans/2026-07-28-native-dashboard-turn-card-stage-1-plan.md`.
 
 - Selectable Android Auto projected dashboard navigation — **COMPLETED
   2026-07-28; HARDWARE ACCEPTED** at code anchor `1b10864`. When the existing

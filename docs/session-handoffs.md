@@ -4,6 +4,48 @@ Newest entries first.
 
 ---
 
+## 2026-07-31 — Native dashboard turn-card hardware acceptance
+
+**What changed:** completed the native semantic dashboard turn card on the
+existing AUXILIARY navigation-map connection. Local Map/Turn card switching no
+longer reconnects AA. The accepted card has exhaustive maneuver/lane mappings,
+compound physical-lane composition, shared hero/lane geometry, stable lane
+updates, theme-aware in-dash typography, a lane-priority destination footer,
+and the approved final hierarchy: wider label-free maneuver tile,
+right-aligned distance block, centered road row, and whole-mile formatting
+above 9.9 miles. The hands-off OAA v1.5 proto tree was not edited.
+
+**Status:** COMPLETED and HARDWARE ACCEPTED at
+`5a2b1b52864220e4b62e4efabdccc748ccd73ba0`. The deployed
+`ALPHA-26-07-24-01-134-g5a2b1b5` ARM executable matched locally and remotely at
+SHA-256 `bd75d15e350bb8c5b8ed7cc5aec349a956467a684ce1f42e7e978e5be313d13e`;
+the service was active at PID 343022 with `NRestarts=0` and no QML startup
+errors. The operator accepted the final live card at installed resolution and
+viewing distance. The one-screen rig validated Map and card sequentially.
+
+**Verification:** focused behavior was developed red-first. The final native
+build, explicit `openauto-prodigy` app target, complete offscreen CTest suite,
+ARM `./cross-build.sh`, exact binary-hash comparison, clean service restart,
+and live Pi/phone route checks passed. Pixel and Samsung runs covered local
+Map/card switching, maneuver and lane presentation, friendly states, audio,
+route transitions, and readability. A Samsung S25+ stationary route repeatedly
+proved destination-address delivery; trip time, ETA, and destination distance
+remain gated because it did not deliver `NavigationNextTurnDistanceEvent`.
+
+**Review:** the single high-effort Fable pass reviewed immutable range
+`4439c29922971af9fbd3ce2bce9b15acab82f9be..5a2b1b52864220e4b62e4efabdccc748ccd73ba0`
+with the accepted anchor. BLOCKER=0, MAJOR=0, MINOR=4. All four minor findings
+were confirmed and deferred under the accepted-tree rule: projection enum
+literals, delivery-dependent empty modern distance text, C-locale mile
+parsing, and a possible transient null-provider QML warning. They are recorded
+in `docs/engineering-backlog.md`; no remediation pass was needed.
+
+**Next 1–3 steps:** capture moving-route trip-summary delivery before
+promoting richer Stage 2 fields; write a focused plan only for live-proven
+semantics; keep the accepted primary maneuver and lane hierarchy unchanged.
+
+---
+
 ## 2026-07-28 — Native dashboard turn-card Stage 1 guidance
 
 **What changed:** reconciled current Android Auto documentation with the Stage
@@ -14,8 +56,10 @@ Map mode uses the live decoded map, while the native card keeps that decoder
 live and renders NavigationProvider semantics with a continuous lane band.
 Stage 2 data remains explicitly evidence-gated.
 
-**Status:** DOCUMENTATION RECONCILED; Stage 1 awaits hardware acceptance. The
-completed runtime anchor is `8f2df93219dbfbb3c80823a0f3e32d513999b43f`.
+**Historical status (superseded by the 2026-07-31 acceptance above):**
+DOCUMENTATION RECONCILED; Stage 1 then awaited hardware acceptance. The
+runtime anchor at this checkpoint was
+`8f2df93219dbfbb3c80823a0f3e32d513999b43f`.
 The completed projected-dashboard fallback-wording item was removed from the
 engineering backlog; the settings-striping and CLUSTER/AUXILIARY terminology
 entries remain separate follow-up leads.
@@ -43,11 +87,12 @@ directions per lane, and a continuous roadway-style lane band with no
 button-like cells. Stage 2 retains explicit rerouting, distinct road and
 instruction text, roundabout detail, ETA/destination data, and lookahead.
 
-**Status:** DESIGN APPROVED; STAGE 1 PLAN WRITTEN; AWAITING EXECUTION
-AUTHORIZATION. The design is grounded on `15a45c1` and lives at
-`docs/plans/2026-07-28-native-dashboard-turn-card-design.md`. The executable
-Stage 1 plan is grounded on design commit `4439c29` and lives at
-`docs/plans/2026-07-28-native-dashboard-turn-card-stage-1-plan.md`. It stops
+**Historical status (superseded by the 2026-07-31 acceptance above):** DESIGN
+APPROVED; STAGE 1 PLAN WRITTEN; AWAITING EXECUTION AUTHORIZATION. The design is
+grounded on `15a45c1` and is archived at
+`docs/archive/plans/2026-07-28-native-dashboard-turn-card-design.md`. The
+executable Stage 1 plan is grounded on design commit `4439c29` and is archived
+at `docs/archive/plans/2026-07-28-native-dashboard-turn-card-stage-1-plan.md`. It stops
 after Stage 1 hardware acceptance and preserves Stage 2 as evidence-gated work.
 No runtime, configuration, QML, protocol-library, or proto-submodule files
 changed in this documentation step.
