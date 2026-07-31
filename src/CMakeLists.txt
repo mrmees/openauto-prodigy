@@ -381,6 +381,11 @@ set_source_files_properties(../qml/widgets/NavigationLaneGuidanceBand.qml PROPER
     QT_RESOURCE_ALIAS "NavigationLaneGuidanceBand.qml"
     QT_QML_SKIP_CACHEGEN TRUE
 )
+set_source_files_properties(../qml/widgets/NavigationLaneCompositeGlyph.qml PROPERTIES
+    QT_QML_SOURCE_TYPENAME "NavigationLaneCompositeGlyph"
+    QT_RESOURCE_ALIAS "NavigationLaneCompositeGlyph.qml"
+    QT_QML_SKIP_CACHEGEN TRUE
+)
 set_source_files_properties(../qml/widgets/NativeNavigationCard.qml PROPERTIES
     QT_QML_SOURCE_TYPENAME "NativeNavigationCard"
     QT_RESOURCE_ALIAS "NativeNavigationCard.qml"
@@ -536,6 +541,7 @@ qt_add_qml_module(openauto-prodigy
         ../qml/widgets/NavigationManeuverGlyph.qml
         ../qml/widgets/NavigationLaneDirectionGlyph.qml
         ../qml/widgets/NavigationLaneGuidanceBand.qml
+        ../qml/widgets/NavigationLaneCompositeGlyph.qml
         ../qml/widgets/NativeNavigationCard.qml
         ../qml/widgets/WeatherWidget.qml
         ../qml/widgets/WebWidgetHost.qml

@@ -1,3 +1,6 @@
+#include <algorithm>
+
+#include <QColor>
 #include <QFile>
 #include <QQmlComponent>
 #include <QQmlContext>
@@ -7,6 +10,7 @@
 #include <QTemporaryDir>
 #include <QTest>
 #include <QVideoSink>
+#include <QtMath>
 #include <oaa/HU/Handlers/NavigationChannelHandler.hpp>
 
 #include "core/aa/NavigationDataBridge.hpp"
@@ -195,6 +199,7 @@ private:
                  QStringLiteral("AAClusterWidget.qml"),
                  QStringLiteral("NativeNavigationCard.qml"),
                  QStringLiteral("NavigationLaneGuidanceBand.qml"),
+                 QStringLiteral("NavigationLaneCompositeGlyph.qml"),
                  QStringLiteral("NavigationManeuverGlyph.qml"),
                  QStringLiteral("NavigationLaneDirectionGlyph.qml")}) {
             const QString source = qmlSource(fileName);
@@ -246,6 +251,20 @@ private:
                 {QStringLiteral("primary"), QStringLiteral("#8ab4f8")},
                 {QStringLiteral("outlineVariant"),
                  QStringLiteral("#5f6368")}});
+    }
+
+    static QList<QQuickItem*> visualItemsNamed(QQuickItem* root,
+                                               const QString& objectName)
+    {
+        QList<QQuickItem*> matches;
+        if (!root)
+            return matches;
+        for (QQuickItem* child : root->childItems()) {
+            if (child->objectName() == objectName)
+                matches.append(child);
+            matches.append(visualItemsNamed(child, objectName));
+        }
+        return matches;
     }
 
 private slots:
@@ -371,48 +390,143 @@ private slots:
         QScopedPointer<QObject> glyph(component->create());
         QVERIFY2(glyph, qPrintable(component->errorString()));
 
-        const QStringList defined{
-            QStringLiteral("unknown"),      QStringLiteral("straight"),
-            QStringLiteral("slight_left"),  QStringLiteral("slight_right"),
-            QStringLiteral("normal_left"),  QStringLiteral("normal_right"),
-            QStringLiteral("sharp_left"),   QStringLiteral("sharp_right"),
-            QStringLiteral("u_turn_left"),  QStringLiteral("u_turn_right"),
+        const QList<QVariantMap> defined{
+            {{QStringLiteral("token"), QStringLiteral("unknown")},
+             {QStringLiteral("family"), QStringLiteral("neutral")},
+             {QStringLiteral("angle"), -1},
+             {QStringLiteral("mirrored"), false}},
+            {{QStringLiteral("token"), QStringLiteral("straight")},
+             {QStringLiteral("family"), QStringLiteral("straight")},
+             {QStringLiteral("angle"), 0},
+             {QStringLiteral("mirrored"), false}},
+            {{QStringLiteral("token"), QStringLiteral("slight_left")},
+             {QStringLiteral("family"), QStringLiteral("slight")},
+             {QStringLiteral("angle"), 45},
+             {QStringLiteral("mirrored"), true}},
+            {{QStringLiteral("token"), QStringLiteral("slight_right")},
+             {QStringLiteral("family"), QStringLiteral("slight")},
+             {QStringLiteral("angle"), 45},
+             {QStringLiteral("mirrored"), false}},
+            {{QStringLiteral("token"), QStringLiteral("normal_left")},
+             {QStringLiteral("family"), QStringLiteral("normal")},
+             {QStringLiteral("angle"), 90},
+             {QStringLiteral("mirrored"), true}},
+            {{QStringLiteral("token"), QStringLiteral("normal_right")},
+             {QStringLiteral("family"), QStringLiteral("normal")},
+             {QStringLiteral("angle"), 90},
+             {QStringLiteral("mirrored"), false}},
+            {{QStringLiteral("token"), QStringLiteral("sharp_left")},
+             {QStringLiteral("family"), QStringLiteral("sharp")},
+             {QStringLiteral("angle"), 135},
+             {QStringLiteral("mirrored"), true}},
+            {{QStringLiteral("token"), QStringLiteral("sharp_right")},
+             {QStringLiteral("family"), QStringLiteral("sharp")},
+             {QStringLiteral("angle"), 135},
+             {QStringLiteral("mirrored"), false}},
+            {{QStringLiteral("token"), QStringLiteral("u_turn_left")},
+             {QStringLiteral("family"), QStringLiteral("u_turn")},
+             {QStringLiteral("angle"), 180},
+             {QStringLiteral("mirrored"), true}},
+            {{QStringLiteral("token"), QStringLiteral("u_turn_right")},
+             {QStringLiteral("family"), QStringLiteral("u_turn")},
+             {QStringLiteral("angle"), 180},
+             {QStringLiteral("mirrored"), false}},
         };
-        for (const QString& token : defined) {
+        for (const QVariantMap& expected : defined) {
+            const QString token =
+                expected.value(QStringLiteral("token")).toString();
             QVERIFY(glyph->setProperty("shapeToken", token));
             QVERIFY2(!glyph->property("isFallback").toBool(),
                      qPrintable(QStringLiteral(
                          "Defined lane token %1 used the fallback").arg(token)));
-            if (token == QStringLiteral("unknown")) {
-                QVERIFY(glyph->property("drawNeutralStem").toBool());
-                QVERIFY(glyph->property("glyph").toString().isEmpty());
-            } else {
-                QVERIFY(!glyph->property("drawNeutralStem").toBool());
-                QVERIFY2(!glyph->property("glyph").toString().isEmpty(),
-                         qPrintable(QStringLiteral(
-                             "Defined lane token %1 had no glyph").arg(token)));
+            QCOMPARE(glyph->property("primitiveFamily").toString(),
+                     expected.value(QStringLiteral("family")).toString());
+            QCOMPARE(glyph->property("semanticAngle").toInt(),
+                     expected.value(QStringLiteral("angle")).toInt());
+            QCOMPARE(glyph->property("mirrored").toBool(),
+                     expected.value(QStringLiteral("mirrored")).toBool());
+            QCOMPARE(glyph->property("drawNeutralStem").toBool(),
+                     token == QStringLiteral("unknown"));
+
+            if (token != QStringLiteral("unknown")) {
+                const qreal terminalDx =
+                    glyph->property("terminalDx").toReal();
+                const qreal terminalDy =
+                    glyph->property("terminalDy").toReal();
+                const qreal terminalLength =
+                    qSqrt(terminalDx * terminalDx + terminalDy * terminalDy);
+                QVERIFY(terminalLength > 0.0);
+                const qreal actualAngle = qRadiansToDegrees(
+                    qAtan2(qAbs(terminalDx), -terminalDy));
+                QVERIFY(qAbs(actualAngle
+                             - expected.value(QStringLiteral("angle")).toReal())
+                        < 0.01);
+
+                const qreal headADx = glyph->property("headADx").toReal();
+                const qreal headADy = glyph->property("headADy").toReal();
+                const qreal headBDx = glyph->property("headBDx").toReal();
+                const qreal headBDy = glyph->property("headBDy").toReal();
+                const qreal headALength =
+                    qSqrt(headADx * headADx + headADy * headADy);
+                const qreal headBLength =
+                    qSqrt(headBDx * headBDx + headBDy * headBDy);
+                QVERIFY(headALength > 0.0);
+                QVERIFY(headBLength > 0.0);
+                const qreal includedAngle = qRadiansToDegrees(qAcos(
+                    (headADx * headBDx + headADy * headBDy)
+                    / (headALength * headBLength)));
+                QVERIFY(qAbs(includedAngle - 70.0) < 0.05);
+
+                const qreal bisectorX =
+                    headADx / headALength + headBDx / headBLength;
+                const qreal bisectorY =
+                    headADy / headALength + headBDy / headBLength;
+                const qreal bisectorLength =
+                    qSqrt(bisectorX * bisectorX + bisectorY * bisectorY);
+                const qreal alignment =
+                    (bisectorX * -terminalDx + bisectorY * -terminalDy)
+                    / (bisectorLength * terminalLength);
+                QVERIFY(qAbs(alignment - 1.0) < 0.001);
             }
         }
 
-        QVERIFY(glyph->setProperty("recommended", false));
-        QVERIFY(glyph->setProperty("shapeToken", QStringLiteral("straight")));
+        const QList<QVariantMap> variants{
+            {{QStringLiteral("token"), QStringLiteral("straight")},
+             {QStringLiteral("variant"), QStringLiteral("tall")},
+             {QStringLiteral("anchor"), 0.5}},
+            {{QStringLiteral("token"), QStringLiteral("slight_right")},
+             {QStringLiteral("variant"), QStringLiteral("tall")},
+             {QStringLiteral("anchor"), 0.25}},
+            {{QStringLiteral("token"), QStringLiteral("normal_right")},
+             {QStringLiteral("variant"), QStringLiteral("short")},
+             {QStringLiteral("anchor"), 0.25}},
+            {{QStringLiteral("token"), QStringLiteral("sharp_right")},
+             {QStringLiteral("variant"), QStringLiteral("short")},
+             {QStringLiteral("anchor"), 0.375}},
+            {{QStringLiteral("token"), QStringLiteral("u_turn_right")},
+             {QStringLiteral("variant"), QStringLiteral("short")},
+             {QStringLiteral("anchor"), 0.375}},
+        };
+        for (const QVariantMap& expected : variants) {
+            QVERIFY(glyph->setProperty(
+                "shapeToken", expected.value(QStringLiteral("token"))));
+            QVERIFY(glyph->setProperty(
+                "geometryVariant", expected.value(QStringLiteral("variant"))));
+            QCOMPARE(glyph->property("anchorFraction").toReal(),
+                     expected.value(QStringLiteral("anchor")).toReal());
+        }
+
         auto* directionVisual =
             glyph->findChild<QObject*>(QStringLiteral("laneDirectionGlyph"));
         QVERIFY(directionVisual);
-        QCOMPARE(directionVisual->property("opacity").toReal(), 1.0);
-
-        QVERIFY(glyph->setProperty("shapeToken", QStringLiteral("unknown")));
-        auto* neutralStem =
-            glyph->findChild<QObject*>(QStringLiteral("laneNeutralStem"));
-        QVERIFY(neutralStem);
-        QCOMPARE(neutralStem->property("opacity").toReal(), 1.0);
 
         for (const QString& token : {QStringLiteral("unknown_future"),
                                      QStringLiteral("sideways")}) {
             QVERIFY(glyph->setProperty("shapeToken", token));
             QVERIFY(glyph->property("isFallback").toBool());
             QVERIFY(glyph->property("drawNeutralStem").toBool());
-            QVERIFY(glyph->property("glyph").toString().isEmpty());
+            QCOMPARE(glyph->property("primitiveFamily").toString(),
+                     QStringLiteral("neutral"));
         }
     }
 
@@ -420,19 +534,28 @@ private slots:
     {
         const QString source =
             qmlSource(QStringLiteral("NavigationLaneGuidanceBand.qml"));
+        const QString compositeSource =
+            qmlSource(QStringLiteral("NavigationLaneCompositeGlyph.qml"));
+        const QString directionSource =
+            qmlSource(QStringLiteral("NavigationLaneDirectionGlyph.qml"));
         QVERIFY2(!source.isEmpty(),
                  "NavigationLaneGuidanceBand.qml has not been implemented");
+        QVERIFY2(!compositeSource.isEmpty(),
+                 "NavigationLaneCompositeGlyph.qml has not been implemented");
         QVERIFY(source.contains(QStringLiteral("property var laneModel")));
-        QVERIFY(source.contains(QStringLiteral(
+        QVERIFY(compositeSource.contains(QStringLiteral(
             "opacity: direction.recommended ? 1.0 : 0.48")));
-        QVERIFY(source.contains(QStringLiteral("ThemeService.primary")));
-        QVERIFY(source.contains(
+        QVERIFY(compositeSource.contains(QStringLiteral("ThemeService.primary")));
+        QVERIFY(compositeSource.contains(
             QStringLiteral("ThemeService.onSurfaceVariant")));
+        QVERIFY(directionSource.contains(QStringLiteral("Canvas {")));
+        QVERIFY(!directionSource.contains(QStringLiteral("rotation:")));
 
+        const QString allLaneSources = source + compositeSource + directionSource;
         for (const QString& forbidden : {
                  QStringLiteral("MouseArea"), QStringLiteral("TapHandler"),
                  QStringLiteral("Button {"), QStringLiteral("Flickable")}) {
-            QVERIFY2(!source.contains(forbidden),
+            QVERIFY2(!allLaneSources.contains(forbidden),
                      qPrintable(QStringLiteral("Forbidden lane-band token: %1")
                                     .arg(forbidden)));
         }
@@ -569,6 +692,64 @@ private slots:
             {{{5, true}}},
         });
         QTRY_VERIFY(band->isVisible());
+        QTRY_COMPARE(visualItemsNamed(
+                         qobject_cast<QQuickItem*>(widget.data()),
+                         QStringLiteral("laneComposite")).size(),
+                     2);
+        QList<QQuickItem*> composites = visualItemsNamed(
+            qobject_cast<QQuickItem*>(widget.data()),
+            QStringLiteral("laneComposite"));
+        std::sort(composites.begin(), composites.end(),
+                  [](const QQuickItem* left, const QQuickItem* right) {
+                      return left->property("laneIndex").toInt()
+                          < right->property("laneIndex").toInt();
+                  });
+        QCOMPARE(composites.size(), 2);
+        QCOMPARE(composites[0]->property("directionCount").toInt(), 2);
+        QCOMPARE(composites[1]->property("directionCount").toInt(), 1);
+
+        const QList<QQuickItem*> primitives = visualItemsNamed(
+            qobject_cast<QQuickItem*>(widget.data()),
+            QStringLiteral("laneDirectionPrimitive"));
+        QCOMPARE(primitives.size(), 3);
+        const QList<QQuickItem*> dividers = visualItemsNamed(
+            qobject_cast<QQuickItem*>(widget.data()),
+            QStringLiteral("laneDivider"));
+        QCOMPARE(dividers.size(), 1);
+
+        const QList<QQuickItem*> firstLanePrimitives =
+            visualItemsNamed(composites[0],
+                             QStringLiteral("laneDirectionPrimitive"));
+        QCOMPARE(firstLanePrimitives.size(), 2);
+        QQuickItem* alternative = nullptr;
+        QQuickItem* recommended = nullptr;
+        for (QQuickItem* primitive : firstLanePrimitives) {
+            if (primitive->property("recommended").toBool())
+                recommended = primitive;
+            else
+                alternative = primitive;
+        }
+        QVERIFY(alternative);
+        QVERIFY(recommended);
+        QCOMPARE(alternative->x(), recommended->x());
+        QCOMPARE(alternative->y(), recommended->y());
+        QCOMPARE(alternative->width(), recommended->width());
+        QCOMPARE(alternative->height(), recommended->height());
+        QCOMPARE(alternative->property("shapeToken").toString(),
+                 QStringLiteral("straight"));
+        QCOMPARE(alternative->property("geometryVariant").toString(),
+                 QStringLiteral("tall"));
+        QCOMPARE(recommended->property("shapeToken").toString(),
+                 QStringLiteral("normal_right"));
+        QCOMPARE(recommended->property("geometryVariant").toString(),
+                 QStringLiteral("short"));
+        QVERIFY(recommended->z() > alternative->z());
+        QCOMPARE(alternative->opacity(), 0.48);
+        QCOMPARE(recommended->opacity(), 1.0);
+        QCOMPARE(alternative->property("color").value<QColor>(),
+                 QColor(QStringLiteral("#c4c7c5")));
+        QCOMPARE(recommended->property("color").value<QColor>(),
+                 QColor(QStringLiteral("#8ab4f8")));
         QVERIFY(maneuver->isVisible());
         QVERIFY(distance->isVisible());
         QVERIFY(road->isVisible());
