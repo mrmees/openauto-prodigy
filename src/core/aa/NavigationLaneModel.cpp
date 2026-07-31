@@ -39,16 +39,20 @@ QHash<int, QByteArray> NavigationLaneModel::roleNames() const
     return {{DirectionsRole, QByteArrayLiteral("directions")}};
 }
 
-void NavigationLaneModel::replaceLanes(const LanePresentationList& lanes)
+bool NavigationLaneModel::replaceLanes(const LanePresentationList& lanes)
 {
+    if (lanes_ == lanes)
+        return false;
+
     beginResetModel();
     lanes_ = lanes;
     endResetModel();
+    return true;
 }
 
-void NavigationLaneModel::clear()
+bool NavigationLaneModel::clear()
 {
-    replaceLanes({});
+    return replaceLanes({});
 }
 
 } // namespace aa

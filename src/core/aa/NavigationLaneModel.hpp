@@ -10,6 +10,11 @@ namespace aa {
 struct LaneDirectionPresentation {
     QString shape;
     bool recommended = false;
+
+    bool operator==(const LaneDirectionPresentation& other) const
+    {
+        return shape == other.shape && recommended == other.recommended;
+    }
 };
 
 using LanePresentation = QList<LaneDirectionPresentation>;
@@ -29,8 +34,8 @@ public:
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    void replaceLanes(const LanePresentationList& lanes);
-    void clear();
+    bool replaceLanes(const LanePresentationList& lanes);
+    bool clear();
 
 private:
     LanePresentationList lanes_;

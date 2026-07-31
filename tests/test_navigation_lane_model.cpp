@@ -1,4 +1,5 @@
 #include <QTest>
+#include <QSignalSpy>
 
 #include "core/aa/NavigationLaneModel.hpp"
 
@@ -71,6 +72,42 @@ private slots:
         model.clear();
 
         QCOMPARE(model.rowCount(), 0);
+    }
+
+    void testIdenticalSnapshotDoesNotResetModel() {
+        oap::aa::NavigationLaneModel model;
+        QSignalSpy resetSpy(&model, &QAbstractItemModel::modelReset);
+        const oap::aa::LanePresentationList lanes{
+            {{QStringLiteral("straight"), false},
+             {QStringLiteral("normal_right"), true}},
+            {{QStringLiteral("u_turn_left"), true}},
+        };
+
+        model.replaceLanes(lanes);
+        QCOMPARE(resetSpy.count(), 1);
+
+        model.replaceLanes(lanes);
+        QCOMPARE(resetSpy.count(), 1);
+    }
+
+    void testRepeatedClearWhileEmptyDoesNotResetModel() {
+        oap::aa::NavigationLaneModel model;
+        QSignalSpy resetSpy(&model, &QAbstractItemModel::modelReset);
+
+        model.clear();
+        model.clear();
+
+        QCOMPARE(resetSpy.count(), 0);
+    }
+
+    void testChangedSnapshotStillResetsModelOnce() {
+        oap::aa::NavigationLaneModel model;
+        model.replaceLanes({{{QStringLiteral("straight"), false}}});
+        QSignalSpy resetSpy(&model, &QAbstractItemModel::modelReset);
+
+        model.replaceLanes({{{QStringLiteral("sharp_right"), true}}});
+
+        QCOMPARE(resetSpy.count(), 1);
     }
 };
 

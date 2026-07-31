@@ -54,12 +54,13 @@ void NavigationDataBridge::onNavigationStateChanged(bool active)
         phoneDistanceText_.clear();
         hasDistance_ = false;
         currentIcon_.clear();
-        laneModel_->clear();
+        const bool lanesChanged = laneModel_->clear();
         if (iconProvider_)
             iconProvider_->updateIcon(QByteArray());
         emit turnDataChanged();
         emit distanceChanged();
-        emit laneGuidanceChanged();
+        if (lanesChanged)
+            emit laneGuidanceChanged();
     }
 
     emit navActiveChanged();
@@ -134,8 +135,8 @@ void NavigationDataBridge::onNavigationLaneGuidanceChanged(
         presentation.append(directions);
     }
 
-    laneModel_->replaceLanes(presentation);
-    emit laneGuidanceChanged();
+    if (laneModel_->replaceLanes(presentation))
+        emit laneGuidanceChanged();
 }
 
 bool NavigationDataBridge::hasLaneGuidance() const

@@ -348,6 +348,61 @@ private slots:
         QCOMPARE(bridge.laneModel()->rowCount(), 0);
     }
 
+    void testIdenticalLaneSnapshotsDoNotRepublish() {
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge bridge;
+        bridge.connectToHandler(&handler);
+        QSignalSpy guidanceSpy(
+            &bridge, &oap::aa::NavigationDataBridge::laneGuidanceChanged);
+        QSignalSpy resetSpy(bridge.laneModel(),
+                            &QAbstractItemModel::modelReset);
+        const oaa::hu::NavigationLaneGuidance lanes{
+            {{{1, false}, {5, true}}},
+            {{{8, true}}},
+        };
+
+        emit handler.navigationLaneGuidanceChanged(lanes);
+        QCOMPARE(guidanceSpy.count(), 1);
+        QCOMPARE(resetSpy.count(), 1);
+
+        emit handler.navigationLaneGuidanceChanged(lanes);
+        QCOMPARE(guidanceSpy.count(), 1);
+        QCOMPARE(resetSpy.count(), 1);
+
+        const oaa::hu::NavigationLaneGuidance changed{
+            {{{1, true}}},
+            {{{8, true}}},
+        };
+        emit handler.navigationLaneGuidanceChanged(changed);
+        QCOMPARE(guidanceSpy.count(), 2);
+        QCOMPARE(resetSpy.count(), 2);
+    }
+
+    void testDeactivateSignalsLaneClearOnlyWhenPopulated() {
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge bridge;
+        bridge.connectToHandler(&handler);
+        QSignalSpy guidanceSpy(
+            &bridge, &oap::aa::NavigationDataBridge::laneGuidanceChanged);
+        QSignalSpy resetSpy(bridge.laneModel(),
+                            &QAbstractItemModel::modelReset);
+
+        emit handler.navigationStateChanged(true);
+        emit handler.navigationStateChanged(false);
+        QCOMPARE(guidanceSpy.count(), 0);
+        QCOMPARE(resetSpy.count(), 0);
+
+        emit handler.navigationStateChanged(true);
+        emit handler.navigationLaneGuidanceChanged({{{{1, true}}}});
+        QCOMPARE(guidanceSpy.count(), 1);
+        QCOMPARE(resetSpy.count(), 1);
+
+        emit handler.navigationStateChanged(false);
+        QCOMPARE(guidanceSpy.count(), 2);
+        QCOMPARE(resetSpy.count(), 2);
+        QCOMPARE(bridge.hasLaneGuidance(), false);
+    }
+
     void testLegacyDistancePresenceRequiresNonnegativeDistance() {
         oaa::hu::NavigationChannelHandler handler;
         oap::aa::NavigationDataBridge bridge;
