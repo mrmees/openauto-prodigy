@@ -19,12 +19,16 @@ Item {
     readonly property real secondaryCueSize:
         Math.max(24, Math.min(28, height * 0.047))
     readonly property real labelSize: Math.max(22, height * 0.037)
+    readonly property real destinationSize:
+        Math.max(30, Math.min(40, height * 0.067))
     readonly property real cardPadding:
         Math.max(18, Math.min(32, height * 0.053))
     readonly property string formattedDistance:
         navigationProvider ? navigationProvider.formattedDistance : ""
     readonly property string distanceValue: splitDistance(formattedDistance, 0)
     readonly property string distanceUnit: splitDistance(formattedDistance, 1)
+    readonly property string destination:
+        navigationProvider ? String(navigationProvider.destination).trim() : ""
 
     function splitDistance(distance, part) {
         const match = String(distance).trim().match(/^(.*)\s+([^\s]+)$/)
@@ -87,14 +91,140 @@ Item {
                            ? root.navigationProvider.laneModel : null
             }
 
+            Rectangle {
+                id: destinationFooter
+                objectName: "destinationFooter"
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: laneBand.height
+                radius: Math.max(14, Math.min(24, root.height * 0.04))
+                visible: root.showGuidance
+                         && !laneBand.visible
+                         && root.destination.length > 0
+                color: ThemeService.surfaceContainerLow
+
+                Column {
+                    anchors.fill: parent
+                    anchors.leftMargin: root.cardPadding
+                    anchors.rightMargin: root.cardPadding
+                    anchors.topMargin: 8
+                    anchors.bottomMargin: 8
+                    spacing: 4
+
+                    Item {
+                        id: destinationLabelRow
+                        width: parent.width
+                        height: root.labelSize + 4
+
+                        MaterialIcon {
+                            id: destinationPin
+                            objectName: "destinationPin"
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            icon: "\ue55f"
+                            size: root.labelSize + 2
+                            color: ThemeService.primary
+                        }
+
+                        Text {
+                            objectName: "destinationLabel"
+                            anchors.left: destinationPin.right
+                            anchors.leftMargin: 8
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "DESTINATION"
+                            color: ThemeService.onSurfaceVariant
+                            font.pixelSize: root.labelSize
+                            font.weight: Font.DemiBold
+                        }
+                    }
+
+                    Item {
+                        id: destinationViewport
+                        objectName: "destinationTextViewport"
+                        width: parent.width
+                        height: parent.height - destinationLabelRow.height
+                                - parent.spacing
+                        clip: true
+
+                        readonly property bool overflow:
+                            destinationText.implicitWidth > width
+                        readonly property real overflowDistance:
+                            Math.max(0, destinationText.implicitWidth - width)
+                        readonly property int marqueeDwellMs: 2000
+                        readonly property real marqueePixelsPerSecond: 24
+                        property real scrollOffset: 0
+
+                        onOverflowChanged: {
+                            if (!overflow)
+                                scrollOffset = 0
+                        }
+
+                        Text {
+                            id: destinationText
+                            objectName: "destinationText"
+                            x: -destinationViewport.scrollOffset
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: root.destination
+                            color: ThemeService.onSurface
+                            font.pixelSize: root.destinationSize
+                            font.weight: Font.DemiBold
+                            wrapMode: Text.NoWrap
+                        }
+
+                        SequentialAnimation {
+                            id: destinationMarquee
+                            objectName: "destinationMarquee"
+                            running: destinationFooter.visible
+                                     && destinationViewport.overflow
+                            loops: Animation.Infinite
+
+                            PauseAnimation {
+                                duration: destinationViewport.marqueeDwellMs
+                            }
+                            NumberAnimation {
+                                target: destinationViewport
+                                property: "scrollOffset"
+                                from: 0
+                                to: destinationViewport.overflowDistance
+                                duration: Math.max(
+                                    1,
+                                    destinationViewport.overflowDistance
+                                    / destinationViewport.marqueePixelsPerSecond
+                                    * 1000)
+                                easing.type: Easing.Linear
+                            }
+                            PauseAnimation {
+                                duration: destinationViewport.marqueeDwellMs
+                            }
+                            PropertyAction {
+                                target: destinationViewport
+                                property: "scrollOffset"
+                                value: 0
+                            }
+
+                            onRunningChanged: {
+                                if (!running)
+                                    destinationViewport.scrollOffset = 0
+                            }
+                        }
+                    }
+                }
+            }
+
             Item {
                 id: primaryGuidance
+                objectName: "primaryGuidance"
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
                 anchors.bottom: laneBand.visible
-                                ? laneBand.top : parent.bottom
-                anchors.bottomMargin: laneBand.visible ? root.cardPadding : 0
+                                ? laneBand.top
+                                : destinationFooter.visible
+                                  ? destinationFooter.top : parent.bottom
+                anchors.bottomMargin: laneBand.visible
+                                      || destinationFooter.visible
+                                      ? root.cardPadding : 0
 
                 Rectangle {
                     id: maneuverTile

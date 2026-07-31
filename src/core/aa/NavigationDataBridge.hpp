@@ -18,6 +18,7 @@ class NavigationDataBridge : public INavigationProvider {
     Q_OBJECT
     Q_PROPERTY(bool navActive READ navActive NOTIFY navActiveChanged)
     Q_PROPERTY(QString roadName READ roadName NOTIFY turnDataChanged)
+    Q_PROPERTY(QString destination READ destination NOTIFY turnDataChanged)
     Q_PROPERTY(int maneuverType READ maneuverType NOTIFY turnDataChanged)
     Q_PROPERTY(int turnDirection READ turnDirection NOTIFY turnDataChanged)
     Q_PROPERTY(QString formattedDistance READ formattedDistance NOTIFY distanceChanged)
@@ -36,6 +37,7 @@ public:
 
     bool navActive() const override { return navActive_; }
     QString roadName() const override { return roadName_; }
+    QString destination() const override { return destination_; }
     int maneuverType() const override { return maneuverType_; }
     int turnDirection() const override { return turnDirection_; }
     QString formattedDistance() const override;
@@ -67,6 +69,7 @@ private slots:
 private:
     bool navActive_ = false;
     QString roadName_;
+    QString destination_;
     int maneuverType_ = 0;
     int turnDirection_ = 0;
     int distanceMeters_ = 0;

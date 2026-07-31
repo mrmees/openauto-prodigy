@@ -799,16 +799,73 @@ private slots:
             QStringLiteral("secondaryCueText"));
         auto* nextLabel =
             widget->findChild<QQuickItem*>(QStringLiteral("nextLabel"));
+        auto* primaryGuidance = widget->findChild<QQuickItem*>(
+            QStringLiteral("primaryGuidance"));
+        auto* destinationFooter = widget->findChild<QQuickItem*>(
+            QStringLiteral("destinationFooter"));
+        auto* destinationViewport = widget->findChild<QQuickItem*>(
+            QStringLiteral("destinationTextViewport"));
+        auto* destinationText = widget->findChild<QQuickItem*>(
+            QStringLiteral("destinationText"));
+        auto* destinationMarquee = widget->findChild<QObject*>(
+            QStringLiteral("destinationMarquee"));
         QVERIFY(maneuver);
         QVERIFY(distance);
         QVERIFY(distanceUnit);
         QVERIFY(road);
         QVERIFY(secondaryCue);
         QVERIFY(nextLabel);
+        QVERIFY(primaryGuidance);
+        QVERIFY(destinationFooter);
+        QVERIFY(destinationViewport);
+        QVERIFY(destinationText);
+        QVERIFY(destinationMarquee);
         QTRY_VERIFY(maneuver->isVisible());
         QVERIFY(!distance->isVisible());
         QVERIFY(!road->isVisible());
         QVERIFY(!band->isVisible());
+        QVERIFY(!destinationFooter->isVisible());
+        QCOMPARE(destinationText->property("text").toString(), QString());
+        const qreal expandedPrimaryHeight = primaryGuidance->height();
+
+        const QString shortDestination = QStringLiteral("Civic Center");
+        emit handler.navigationStepChanged(QStringLiteral("Continue"),
+                                             shortDestination, 8);
+        QTRY_VERIFY(destinationFooter->isVisible());
+        QVERIFY(!band->isVisible());
+        QCOMPARE(destinationText->property("text").toString(),
+                 shortDestination);
+        QVERIFY(primaryGuidance->height() < expandedPrimaryHeight);
+        QVERIFY(destinationViewport->property("clip").toBool());
+        QVERIFY(!destinationViewport->property("overflow").toBool());
+        QCOMPARE(destinationText->x(), 0.0);
+        QVERIFY(!destinationMarquee->property("running").toBool());
+
+        const QString longDestination = QStringLiteral(
+            "North Regional Transportation Center, Concourse Seven, "
+            "Passenger Entrance");
+        emit handler.navigationStepChanged(QStringLiteral("Continue"),
+                                             longDestination, 8);
+        QTRY_COMPARE(destinationText->property("text").toString(),
+                     longDestination);
+        QTRY_VERIFY(destinationViewport->property("overflow").toBool());
+        QVERIFY(destinationText->implicitWidth()
+                > destinationViewport->width());
+        QVERIFY(destinationMarquee->property("running").toBool());
+        QCOMPARE(destinationViewport->property("marqueeDwellMs").toInt(),
+                 2000);
+        QVERIFY(destinationViewport->property("marqueePixelsPerSecond").toReal()
+                >= 20.0);
+        QVERIFY(destinationViewport->property("marqueePixelsPerSecond").toReal()
+                <= 30.0);
+
+        emit handler.navigationLaneGuidanceChanged({{{{5, true}}}});
+        QTRY_VERIFY(band->isVisible());
+        QVERIFY(!destinationFooter->isVisible());
+        QVERIFY(!destinationMarquee->property("running").toBool());
+        emit handler.navigationLaneGuidanceChanged({});
+        QTRY_VERIFY(!band->isVisible());
+        QTRY_VERIFY(destinationFooter->isVisible());
 
         emit handler.navigationTurnEvent(QStringLiteral("Main Street"), 8, 1,
                                          QByteArray(), 250, 1);
@@ -901,6 +958,14 @@ private slots:
 
         projection.setProjectionState(4);
         QTRY_VERIFY(maneuver->isVisible());
+
+        emit handler.navigationLaneGuidanceChanged({});
+        QTRY_VERIFY(destinationFooter->isVisible());
+        emit handler.navigationStateChanged(false);
+        QTRY_VERIFY(!destinationFooter->isVisible());
+        QTRY_COMPARE(destinationText->property("text").toString(), QString());
+        QCOMPARE(destinationText->x(), 0.0);
+        QVERIFY(!destinationMarquee->property("running").toBool());
     }
 
     void qmlOwnsOneNonInteractivePreserveAspectSink()

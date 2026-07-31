@@ -46,6 +46,7 @@ void NavigationDataBridge::onNavigationStateChanged(bool active)
     if (!active) {
         // Clear cached turn data
         roadName_.clear();
+        destination_.clear();
         maneuverType_ = 0;
         turnDirection_ = 0;
         distanceMeters_ = 0;
@@ -90,7 +91,7 @@ void NavigationDataBridge::onNavigationTurnEvent(const QString& roadName, int ma
 }
 
 void NavigationDataBridge::onNavigationStepChanged(const QString& instruction,
-                                                     const QString& /*destination*/,
+                                                     const QString& destination,
                                                      int maneuverType)
 {
     // NavigationNotification (0x8006) — modern phones send this instead of
@@ -102,6 +103,7 @@ void NavigationDataBridge::onNavigationStepChanged(const QString& instruction,
         roadName_ = instruction;
     }
     instruction_ = instruction;
+    destination_ = destination;
     maneuverType_ = maneuverType;
     emit turnDataChanged();
 }

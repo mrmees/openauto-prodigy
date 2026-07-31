@@ -46,9 +46,11 @@ Hard-won protocol behavior for the Android Auto runtime. Root `AGENTS.md` holds 
   or changing the descriptor. The decoder remains live in either mode. The
   native card presents maneuver, distance, road, and lane-provider semantics;
   lane guidance is a continuous roadway band, not a row of button-like cells.
-  Do not add Stage 2 fields (rerouting, distinct instruction/road text,
-  roundabout detail, ETA/destination, or lookahead) without recorded phone
-  delivery evidence.
+  When lanes are absent, a live-proven `NavigationNotification` destination may
+  occupy the same lower band with an overflow-only marquee. Do not add other
+  Stage 2 fields (rerouting, distinct instruction/road text, roundabout detail,
+  ETA/destination distance, or lookahead) without recorded phone delivery
+  evidence.
 
 ## Production GAL session policy
 

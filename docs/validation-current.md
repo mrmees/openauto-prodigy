@@ -1,5 +1,12 @@
 # Current Milestone Validation
 
-No current milestone observations await validation. Add new unconfirmed
-hardware observations here; delete passing checks and promote confirmed defects
-to [engineering-backlog.md](engineering-backlog.md).
+## Native turn-card trip summary delivery
+
+- **2026-07-31, Samsung S25+, GAL 6.0, stationary active route:** repeated
+  `NavigationNotification` delivery included a nonempty destination address,
+  establishing that field for the adaptive destination footer. Two temporary
+  structural probes observed no `NavigationNextTurnDistanceEvent` during the
+  stationary route, so destination distance, ETA, and remaining time are not
+  yet promoted. Recheck those fields during a moving route before exposing
+  them; absence while stationary is not evidence that the phone never sends
+  them.

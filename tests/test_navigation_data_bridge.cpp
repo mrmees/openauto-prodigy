@@ -21,6 +21,7 @@ private slots:
         QVERIFY(bridge.laneModel() != nullptr);
         QCOMPARE(bridge.hasLaneGuidance(), false);
         QCOMPARE(bridge.hasDistance(), false);
+        QCOMPARE(bridge.destination(), QString());
     }
 
     void testNavActiveFromHandler() {
@@ -103,6 +104,23 @@ private slots:
         QCOMPARE(bridge.turnDirection(), 0);
         QCOMPARE(bridge.distanceMeters(), 0);
         QCOMPARE(bridge.hasManeuverIcon(), false);
+    }
+
+    void testNotificationPublishesDestinationAndDeactivateClearsIt() {
+        oaa::hu::NavigationChannelHandler handler;
+        oap::aa::NavigationDataBridge bridge;
+        bridge.connectToHandler(&handler);
+
+        emit handler.navigationStateChanged(true);
+        emit handler.navigationStepChanged(
+            QStringLiteral("Turn right"),
+            QStringLiteral("A Very Long Destination Name"), 5);
+
+        QCOMPARE(bridge.destination(),
+                 QStringLiteral("A Very Long Destination Name"));
+
+        emit handler.navigationStateChanged(false);
+        QCOMPARE(bridge.destination(), QString());
     }
 
     void testIconProviderWiring() {
@@ -446,6 +464,7 @@ private slots:
         QCOMPARE(provider->laneModel(), bridge.laneModel());
         QCOMPARE(provider->hasLaneGuidance(), false);
         QCOMPARE(provider->hasDistance(), false);
+        QCOMPARE(provider->destination(), QString());
     }
 };
 

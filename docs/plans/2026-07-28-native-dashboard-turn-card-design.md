@@ -326,6 +326,19 @@ ETA/destination information may occupy a secondary footer or header region.
 Lookahead and roundabout detail may enrich the main card. Lane guidance retains
 the continuous roadway treatment approved in Stage 1.
 
+The first live-proven Stage 2 field is the destination address carried by
+`NavigationNotification`. When lane guidance is absent, the native card uses
+the reserved lower band for a two-row destination footer: a compact label and
+pin above a full-width, in-dash-sized destination line. The destination stays
+stationary when it fits; overflow waits before scrolling slowly and resets
+when the footer hides. Live lane guidance always replaces this footer, and the
+primary maneuver region expands when neither is available.
+
+A stationary Samsung S25+ route on 2026-07-31 repeatedly delivered the
+destination address but did not deliver `NavigationNextTurnDistanceEvent`.
+Destination distance, ETA, and time to arrival therefore remain gated pending
+a moving-route capture; the card does not synthesize them.
+
 ## 10. Data flow and lifecycle
 
 ```text
@@ -338,7 +351,7 @@ prodigy-oaa-protocol NavigationChannelHandler
         |
         v
 NavigationDataBridge / INavigationProvider
-  - own active maneuver, distance, text, and normalized lane model
+  - own active maneuver, distance, text, destination, and normalized lane model
   - replace snapshots atomically
   - clear on inactive/session loss
         |

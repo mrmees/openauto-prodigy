@@ -10,6 +10,7 @@ class INavigationProvider : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool navActive READ navActive NOTIFY navActiveChanged)
     Q_PROPERTY(QString roadName READ roadName NOTIFY turnDataChanged)
+    Q_PROPERTY(QString destination READ destination NOTIFY turnDataChanged)
     Q_PROPERTY(int maneuverType READ maneuverType NOTIFY turnDataChanged)
     Q_PROPERTY(int turnDirection READ turnDirection NOTIFY turnDataChanged)
     Q_PROPERTY(QString formattedDistance READ formattedDistance NOTIFY distanceChanged)
@@ -25,6 +26,7 @@ public:
 
     virtual bool navActive() const = 0;
     virtual QString roadName() const = 0;
+    virtual QString destination() const { return {}; }
     virtual int maneuverType() const = 0;
     virtual int turnDirection() const = 0;
     virtual QString formattedDistance() const = 0;
