@@ -679,23 +679,28 @@ void AndroidAutoOrchestrator::onNewConnection()
     // Publish AA events to plugin event bus
     if (eventBus_) {
         // Navigation events
-        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationStateChanged,
-                this, [this](bool active) {
+        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationStateSnapshotChanged,
+                this, [this](oaa::hu::NavigationState state) {
+            const bool active = state == oaa::hu::NavigationState::Active
+                || state == oaa::hu::NavigationState::Rerouting;
             eventBus_->publish("aa.nav.state", QVariantMap{{"active", active}});
         });
-        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationStepChanged,
-                this, [this](const QString& instruction, const QString& destination, int maneuverType) {
+        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationNotificationChanged,
+                this, [this](const oaa::hu::NavigationNotificationSnapshot& snapshot) {
             eventBus_->publish("aa.nav.step", QVariantMap{
-                {"instruction", instruction},
-                {"destination", destination},
-                {"maneuverType", maneuverType}
+                {"instruction", snapshot.upcomingRoad},
+                {"destination", snapshot.destinations.value(0)},
+                {"maneuverType", snapshot.maneuverType}
             });
+            qCInfo(lcAA) << "[Nav] notification:" << snapshot.stepCount << "steps,"
+                          << snapshot.lanes.size() << "lanes, dest:"
+                          << snapshot.destinations.value(0);
         });
-        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationDistanceChanged,
-                this, [this](const QString& distance, int unit) {
+        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationPositionChanged,
+                this, [this](const oaa::hu::NavigationPositionSnapshot& snapshot) {
             eventBus_->publish("aa.nav.distance", QVariantMap{
-                {"distance", distance},
-                {"unit", unit}
+                {"distance", snapshot.stepDistance.displayText},
+                {"unit", snapshot.stepDistance.unit}
             });
         });
 
@@ -707,14 +712,6 @@ void AndroidAutoOrchestrator::onNewConnection()
                           << "maneuver:" << maneuverType << "dir:" << turnDirection
                           << "dist:" << distanceMeters << "unit:" << distanceUnit
                           << "icon:" << turnIcon.size() << "bytes";
-        });
-
-        // Navigation notification (debug logging only)
-        connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationNotificationReceived,
-                this, [](int stepCount, int laneCount,
-                         const QString& destination, const QString& /*eta*/) {
-            qCInfo(lcAA) << "[Nav] notification:" << stepCount << "steps,"
-                          << laneCount << "lanes, dest:" << destination;
         });
 
         // Phone status events
