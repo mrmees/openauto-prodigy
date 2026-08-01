@@ -137,14 +137,39 @@ native card. Switching the setting does not reconnect AA, change the
 descriptor, carrier geometry, channels, codec policy, or decoder lifecycle.
 The map decoder remains live while the native card is visible.
 
-The native card consumes `NavigationProvider` semantics: route activity,
-maneuver, formatted distance, road name, and lane guidance. Its lane guidance
-is one continuous roadway-style band that can show multiple directions per
-lane, not a row of button-like cells. Its disconnected and no-route states are
-local presentation states. Stage 1 deliberately does not infer rerouting,
-distinct instruction versus road text, roundabout detail, ETA/destination, or
-lookahead; those Stage 2 fields remain evidence-gated on recorded phone
-delivery before any implementation is planned.
+The native card consumes `NavigationProvider` semantics produced from three
+independent modern navigation streams. `NavigationState` keeps exact active,
+inactive, unavailable, and rerouting states. Every successfully parsed
+`NavigationNotification` (`0x8006`) and
+`NavigationNextTurnDistanceEvent` (`0x8007`) is a complete replacement
+snapshot: omitted cues, timing, lanes, distances, or destinations clear rather
+than inheriting the preceding value. The deprecated flat turn event remains a
+compatibility fallback.
+
+The accepted hierarchy keeps the maneuver and primary distance dominant, with
+the upcoming road centered below. The card selects the first ordered action
+cue that is nonempty and distinct from that road label; coarse next-step time
+appears only when it fits without shrinking the established typography. On
+rerouting, all cached maneuver, lane, distance, timing, and destination values
+are hidden behind `Finding a new route`. A following active state alone does
+not restore them; a fresh notification restores primary guidance, while a
+fresh position snapshot separately restores eligible distance and trip data.
+Inactive, unavailable, and channel-close transitions clear the route.
+
+When lanes are absent, destination and destination-distance index zero drive a
+fixed-height footer with compact destination distance, the phone-formatted ETA,
+single-destination remaining duration, and the overflow-only address marquee.
+Lower-priority metrics yield at compact widths before typography shrinks. Live
+lanes replace the entire footer and retain the accepted continuous
+roadway-style band with multiple directions per physical lane. Multi-stop
+numeric duration, roundabout detail, current road, and other-provider lookahead
+remain evidence-gated in
+[current milestone validation](../validation-current.md).
+
+`NavigationDataBridge` emits the inherited `INavigationProvider` change
+signals rather than shadow declarations. That restores the intended External
+API v1 navigation-push path without changing its payload shape; rerouting
+intentionally publishes empty stale route fields until fresh guidance arrives.
 
 ### GAL and per-video UI policy
 

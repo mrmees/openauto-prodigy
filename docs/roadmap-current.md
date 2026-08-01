@@ -19,20 +19,30 @@ spike, or research-first feasibility work.
 
 ## Now
 
-- Native Android Auto dashboard richer trip data — **ACTIVE; DESIGN APPROVED
-  2026-07-31**. A complete Samsung S25+ mock-location route proved independent
-  navigation state, notification, and current-position snapshots, including
-  repeatable rerouting, action-cue alternatives, time to step, next-destination
-  distance, formatted ETA, and remaining duration. The focused Maps/Gearhead
-  source trace established replacement-snapshot semantics and the correct
-  meanings/lifetimes. The next implementation preserves lane priority and the
-  accepted card hierarchy; Maps current-road, lookahead, roundabout detail,
-  EV data, and ambiguous multi-stop duration remain excluded. Active design:
-  `docs/plans/2026-07-31-native-dashboard-richer-trip-data-design.md`. Active
-  implementation plan:
-  `docs/plans/2026-07-31-native-dashboard-richer-trip-data-plan.md`.
+No work is currently promoted. Unpromoted user capabilities live in
+`docs/wishlist.md`; technical leads live in `docs/engineering-backlog.md` and
+require fresh research before promotion.
 
 ## Done (recent)
+
+- Native Android Auto dashboard richer trip data — **COMPLETED 2026-07-31;
+  HARDWARE ACCEPTED** at code anchor `e26e940`. Exact replacement snapshots now
+  preserve rerouting freshness, ordered action-cue semantics, optional
+  next-step timing, and index-zero destination distance/ETA with
+  single-destination remaining duration. Live lanes replace the complete trip
+  footer; otherwise the adaptive footer retains the accepted address marquee
+  and drops lower-priority metrics before shrinking type. The one-screen
+  Samsung/Pi run passed Map, immediate Map→Turn with uninterrupted audio,
+  no-lane trip data, stable lane replacement, rerouting placeholder/recovery,
+  route-end clearing, and immediate Map restoration. Focused tests, the native
+  and explicit app builds, full offscreen CTest, ARM cross-build, exact Pi hash,
+  and service restart passed. The bounded Fable pass found no blocker; one
+  major and three minor facts were confirmed, three deferred to the engineering
+  backlog, and the restored inherited-provider notification path was accepted
+  as intended. Completed design and plan:
+  `docs/archive/plans/2026-07-31-native-dashboard-richer-trip-data-design.md`
+  and
+  `docs/archive/plans/2026-07-31-native-dashboard-richer-trip-data-plan.md`.
 
 - Native Android Auto dashboard turn card — **COMPLETED 2026-07-31; HARDWARE
   ACCEPTED** at code anchor `5a2b1b5`. Map remains the phone's invariant

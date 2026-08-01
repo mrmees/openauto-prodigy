@@ -6,10 +6,10 @@
 > `superpowers:subagent-driven-development` only if the user separately requests
 > bounded delegation. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** ACTIVE
+**Status:** COMPLETED 2026-07-31
 
 **Design:**
-`docs/plans/2026-07-31-native-dashboard-richer-trip-data-design.md`
+`docs/archive/plans/2026-07-31-native-dashboard-richer-trip-data-design.md`
 
 **Grounded on:** `e70a012`
 

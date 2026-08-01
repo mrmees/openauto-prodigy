@@ -1,6 +1,6 @@
 # Native Dashboard Richer Trip Data
 
-**Status:** ACTIVE
+**Status:** COMPLETED 2026-07-31
 
 **Approved:** 2026-07-31
 

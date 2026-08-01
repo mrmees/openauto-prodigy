@@ -2,6 +2,10 @@
 
 ## Recently Completed Plans
 
+- [Native dashboard richer trip data design](archive/plans/2026-07-31-native-dashboard-richer-trip-data-design.md)
+  and [implementation plan](archive/plans/2026-07-31-native-dashboard-richer-trip-data-plan.md)
+  — completed and hardware-accepted 2026-07-31 with exact rerouting freshness,
+  action-cue and next-step timing, and an adaptive lane-priority trip footer.
 - [Android Auto GAL 5.0–6.0 production compatibility design](archive/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-design.md)
   and [implementation plan](archive/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-plan.md)
   — completed 2026-07-27 with GAL 6.0/H.265 hardware-accepted on the released
@@ -63,10 +67,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- [Native dashboard richer trip data design](plans/2026-07-31-native-dashboard-richer-trip-data-design.md)
-  and [implementation plan](plans/2026-07-31-native-dashboard-richer-trip-data-plan.md)
-  — live-proven rerouting freshness, action-cue semantics, next-step timing,
-  and next-destination summary within the accepted lane-priority turn card.
+- None.
 
 ## Pi Configuration (pi-config/)
 

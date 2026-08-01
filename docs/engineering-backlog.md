@@ -136,13 +136,27 @@ limits, and a verification command before implementation.
   or add a provider-owned connected property, without changing projection
   lifecycle semantics.
 
-- **Modern navigation distance presence can remain latched after empty text** —
-  Evidence: **REVIEW-CONFIRMED 2026-07-31; DELIVERY-DEPENDENT**. After a valid
-  modern distance sets `hasDistance_`, a later active-route event with empty
-  `display_text` does not clear the flag and can expose the legacy fallback.
-  Neither tested phone delivered this sequence. Candidate deliverable: first
-  capture an empty-after-valid event on a supported phone, then hide the row
-  when neither modern text nor valid legacy distance exists.
+- **Navigation snapshot ordering can delay the destination footer** — Evidence:
+  **REVIEW-CONFIRMED 2026-07-31; HARDWARE-ACCEPTED NONBLOCKING DEFECT**. In the
+  supported wireless-AA path, an initial `0x8006` notification caches the
+  destination while `positionFresh_` is false. If the first `0x8007` position
+  then makes `destination()` visible, the property's declared
+  `turnDataChanged` NOTIFY is not emitted, so QML can leave the footer hidden
+  until the next notification. The symmetric position-before-notification
+  ordering can briefly delay distance-backed bindings. Candidate deliverable:
+  re-home freshness-gated properties on a NOTIFY signal emitted by both
+  snapshots, or emit the inherited turn/distance signals symmetrically; add
+  bridge and real-card ordering tests without replaying either snapshot.
+
+- **Native trip-footer fit math undercounts separator spacing** — Evidence:
+  **REVIEW-CONFIRMED 2026-07-31; COSMETIC**. The metric-fit calculation counts
+  one `itemSpacing` around each one-pixel separator, while the QML `Row` inserts
+  spacing on both sides. At boundary widths it can overestimate available room
+  and overlap the `DESTINATION` label by a few pixels. The metric row also
+  extends one card-padding width into the rounded right edge. Candidate
+  deliverable: count both separator gaps, retain symmetric right padding, and
+  add boundary-width layout coverage while preserving the accepted metric-drop
+  priority and typography floors.
 
 - **Modern mile rounding only parses C-locale decimal text** — Evidence:
   **REVIEW-CONFIRMED 2026-07-31; SAFE-DEGRADING**. The whole-mile policy above
@@ -210,11 +224,15 @@ limits, and a verification command before implementation.
   and perform a separately reviewed mechanical rename without changing channel
   IDs or wire descriptors.
 
-- **AA EventBus connections accumulate across sessions** — Evidence:
-  **CODE-CONFIRMED 2026-07-24**. Navigation and media-status value-member
-  handlers are connected during each new session but omitted from teardown's
-  sender-to-orchestrator disconnect set. Candidate deliverable: one publication
-  per handler signal after any number of reconnects.
+- **AA navigation EventBus connections accumulate across sessions** — Evidence:
+  **CODE-CONFIRMED 2026-07-24; REVIEW-RECONFIRMED 2026-07-31**.
+  `AndroidAutoOrchestrator::onNewConnection()` adds three `navHandler_` lambdas
+  for `aa.nav.state`, `aa.nav.step`, and `aa.nav.distance` on every session,
+  while teardown does not disconnect `navHandler_`. Reconnects therefore
+  accumulate duplicate publications, including one independent active-state
+  dedup capture per connection. Candidate deliverable: give the navigation
+  publication wiring one lifecycle owner and prove exactly one EventBus
+  publication per handler signal after repeated reconnects.
 
 - **Malformed navigation strings can flood protobuf UTF-8 diagnostics** —
   Evidence: **HARDWARE REVALIDATION REQUIRED; HANDLING GAP CODE-CONFIRMED**.
