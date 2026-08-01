@@ -1562,15 +1562,11 @@ build_project() {
     update_step 3 active
 
     cd "$INSTALL_DIR"
-    # Clone proto submodule from dist branch (lightweight, proto definitions only)
-    # The dist branch excludes research archive (~1600 files), keeping clone small
-    if [[ ! -d "$INSTALL_DIR/libs/prodigy-oaa-protocol/proto/.git" ]]; then
-        run_with_spinner "Initializing submodules" git clone --depth 1 -b dist \
-            https://github.com/mrmees/open-android-auto.git \
-            "$INSTALL_DIR/libs/prodigy-oaa-protocol/proto"
-    else
-        run_with_spinner "Updating submodules" git submodule update --init --recursive
-    fi
+    # Initialize the lightweight protocol tree at the exact commit pinned by
+    # this checkout. A normal initialized submodule has a .git file, not a
+    # directory, so let Git handle both initialized and uninitialized states.
+    run_with_spinner "Initializing submodules" \
+        git submodule update --init --recursive --depth 1
 
     if [[ -f "$INSTALL_DIR/build/src/openauto-prodigy" ]]; then
         enter_interactive

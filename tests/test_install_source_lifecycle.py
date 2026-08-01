@@ -16,6 +16,21 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 INSTALL_SCRIPT = REPO_ROOT / "install.sh"
 
 
+def extract_function(script: pathlib.Path, name: str) -> str:
+    lines = script.read_text(encoding="utf-8").splitlines()
+    start = next(
+        (index for index, line in enumerate(lines) if line == f"{name}() {{"),
+        None,
+    )
+    if start is None:
+        raise AssertionError(f"{script.name} does not define {name}()")
+
+    for end in range(start + 1, len(lines)):
+        if lines[end] == "}":
+            return "\n".join(lines[start : end + 1]) + "\n"
+    raise AssertionError(f"{script.name} has an unterminated {name}()")
+
+
 def run(
     args: list[str],
     *,
@@ -128,6 +143,53 @@ def assert_unsupported_source_forms_rejected() -> None:
         if mutation_log.exists():
             raise AssertionError(
                 f"unsupported execution reached mutation commands: {mutation_log.read_text()}"
+            )
+
+
+def assert_initialized_submodule_uses_gitlink() -> None:
+    with tempfile.TemporaryDirectory(prefix="oap-initialized-submodule-") as tmp:
+        checkout = pathlib.Path(tmp) / "checkout"
+        proto = checkout / "libs/prodigy-oaa-protocol/proto"
+        proto.mkdir(parents=True)
+        (proto / ".git").write_text(
+            "gitdir: ../../../../.git/modules/libs/prodigy-oaa-protocol/proto\n",
+            encoding="utf-8",
+        )
+        (proto / "README.md").write_text("initialized submodule\n", encoding="utf-8")
+        command_log = pathlib.Path(tmp) / "submodule-command"
+        build_project = extract_function(INSTALL_SCRIPT, "build_project")
+        shell = f"""
+set -u
+INSTALL_DIR={checkout!s}
+update_step() {{ :; }}
+run_with_spinner() {{
+    shift
+    printf '%s\\0' "$@" > {command_log!s}
+    exit 91
+}}
+{build_project}
+build_project
+"""
+        result = run(["bash", "-c", shell], cwd=checkout)
+        if result.returncode != 91:
+            raise AssertionError(
+                f"build_project did not reach submodule initialization:\n"
+                f"{result.stdout}\n{result.stderr}"
+            )
+        actual = command_log.read_bytes().rstrip(b"\0").split(b"\0")
+        expected = [
+            b"git",
+            b"submodule",
+            b"update",
+            b"--init",
+            b"--recursive",
+            b"--depth",
+            b"1",
+        ]
+        if actual != expected:
+            raise AssertionError(
+                "initialized submodule must be updated through the pinned gitlink; "
+                f"got: {[item.decode() for item in actual]}"
             )
 
 
@@ -335,6 +397,7 @@ def assert_service_state_restoration() -> None:
 def main() -> int:
     assert_source_root_discovery()
     assert_unsupported_source_forms_rejected()
+    assert_initialized_submodule_uses_gitlink()
     assert_owned_command_statuses()
     assert_signal_cleanup()
     assert_cleanup_idempotence()
