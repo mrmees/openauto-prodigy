@@ -28,7 +28,9 @@ spike, or research-first feasibility work.
   meanings/lifetimes. The next implementation preserves lane priority and the
   accepted card hierarchy; Maps current-road, lookahead, roundabout detail,
   EV data, and ambiguous multi-stop duration remain excluded. Active design:
-  `docs/plans/2026-07-31-native-dashboard-richer-trip-data-design.md`.
+  `docs/plans/2026-07-31-native-dashboard-richer-trip-data-design.md`. Active
+  implementation plan:
+  `docs/plans/2026-07-31-native-dashboard-richer-trip-data-plan.md`.
 
 ## Done (recent)
 

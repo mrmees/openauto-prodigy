@@ -64,6 +64,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 Active plans:
 
 - [Native dashboard richer trip data design](plans/2026-07-31-native-dashboard-richer-trip-data-design.md)
+  and [implementation plan](plans/2026-07-31-native-dashboard-richer-trip-data-plan.md)
   — live-proven rerouting freshness, action-cue semantics, next-step timing,
   and next-destination summary within the accepted lane-priority turn card.
 

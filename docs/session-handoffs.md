@@ -15,10 +15,12 @@ established replacement-snapshot semantics, corrected the misleading local
 road/cue field names, proved Maps current-step-only and current-road-absent
 behavior, and established destination index-zero policy.
 
-**Status:** DESIGN APPROVED; SPEC WRITTEN; AWAITING USER REVIEW. The design is
+**Status:** DESIGN APPROVED; PLAN WRITTEN; READY TO EXECUTE. The design is
 grounded on `7c47172` at
-`docs/plans/2026-07-31-native-dashboard-richer-trip-data-design.md`. It keeps
-the accepted maneuver/lane hierarchy and makes live lanes replace the complete
+`docs/plans/2026-07-31-native-dashboard-richer-trip-data-design.md`; the
+implementation plan is grounded on `e70a012` at
+`docs/plans/2026-07-31-native-dashboard-richer-trip-data-plan.md`. They keep
+the accepted maneuver/lane hierarchy and make live lanes replace the complete
 trip footer. Current road, Maps lookahead, roundabout presentation, EV data,
 and ambiguous multi-stop numeric duration remain excluded.
 
@@ -32,9 +34,9 @@ traffic was removed after the navigation artifact was verified.
 **Verification:** documentation links and whitespace are checked on the final
 docs tree. No application build is required for this documentation-only step.
 
-**Next 1–3 steps:** review the written design with the user; create the bounded
-implementation plan after approval; execute handler/provider snapshot tests
-before QML presentation work.
+**Next 1–3 steps:** execute handler snapshot tests and implementation; execute
+provider freshness/presentation tests; complete QML, native/ARM, live hardware,
+and the one bounded Fable review gate.
 
 ---
 
