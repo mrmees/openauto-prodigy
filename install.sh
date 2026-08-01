@@ -1562,11 +1562,11 @@ build_project() {
     update_step 3 active
 
     cd "$INSTALL_DIR"
-    # Initialize the lightweight protocol tree at the exact commit pinned by
-    # this checkout. A normal initialized submodule has a .git file, not a
-    # directory, so let Git handle both initialized and uninitialized states.
-    run_with_spinner "Initializing submodules" \
-        git submodule update --init --recursive --depth 1
+    # Fetch only the lightweight dist branch, then check out the exact gitlink
+    # pinned by this source tree. The helper accepts both normal gitfiles and
+    # standalone clones produced by older installers.
+    run_with_spinner "Initializing protocol submodule" \
+        bash "$INSTALL_DIR/scripts/initialize-protocol-submodule.sh" "$INSTALL_DIR"
 
     if [[ -f "$INSTALL_DIR/build/src/openauto-prodigy" ]]; then
         enter_interactive
