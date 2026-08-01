@@ -19,13 +19,16 @@ spike, or research-first feasibility work.
 
 ## Now
 
-- Native Android Auto dashboard trip semantics — **EVIDENCE-GATED**. Stage 1
-  and the first live-proven Stage 2 field are complete below. Further
-  rerouting, distinct road/instruction, roundabout, ETA/destination-distance,
-  and lookahead work requires a fresh focused plan grounded in moving-route
-  delivery evidence. The stationary Samsung S25+ route did not deliver
-  `NavigationNextTurnDistanceEvent`; Prodigy does not synthesize missing trip
-  data.
+- Native Android Auto dashboard richer trip data — **ACTIVE; DESIGN APPROVED
+  2026-07-31**. A complete Samsung S25+ mock-location route proved independent
+  navigation state, notification, and current-position snapshots, including
+  repeatable rerouting, action-cue alternatives, time to step, next-destination
+  distance, formatted ETA, and remaining duration. The focused Maps/Gearhead
+  source trace established replacement-snapshot semantics and the correct
+  meanings/lifetimes. The next implementation preserves lane priority and the
+  accepted card hierarchy; Maps current-road, lookahead, roundabout detail,
+  EV data, and ambiguous multi-stop duration remain excluded. Active design:
+  `docs/plans/2026-07-31-native-dashboard-richer-trip-data-design.md`.
 
 ## Done (recent)
 

@@ -4,6 +4,40 @@ Newest entries first.
 
 ---
 
+## 2026-07-31 — Native dashboard richer-trip design
+
+**What changed:** promoted the live-proven richer native navigation data into
+an implementation-ready design. One complete Samsung S25+ GAL 6.0 mock route
+produced synchronized notification/position snapshots, exact rerouting edges,
+ordered action cues, time to step, next-destination distance, formatted ETA,
+and remaining duration. A focused Maps 26.30.05/Gearhead 17.3 source trace
+established replacement-snapshot semantics, corrected the misleading local
+road/cue field names, proved Maps current-step-only and current-road-absent
+behavior, and established destination index-zero policy.
+
+**Status:** DESIGN APPROVED; SPEC WRITTEN; AWAITING USER REVIEW. The design is
+grounded on `7c47172` at
+`docs/plans/2026-07-31-native-dashboard-richer-trip-data-design.md`. It keeps
+the accepted maneuver/lane hierarchy and makes live lanes replace the complete
+trip footer. Current road, Maps lookahead, roundabout presentation, EV data,
+and ambiguous multi-stop numeric duration remain excluded.
+
+**Evidence:** navigation-only capture SHA-256
+`61a145a0ba3a3c2612007215e78d8b92cdca2b3885236815311a16a0e6262f7e`;
+external Maps research response SHA-256
+`cc49376c83e1575527a66216ef945fa820734a7274397c47c988736383d46c7d`.
+The capture setting was returned to disabled and broader temporary protocol
+traffic was removed after the navigation artifact was verified.
+
+**Verification:** documentation links and whitespace are checked on the final
+docs tree. No application build is required for this documentation-only step.
+
+**Next 1–3 steps:** review the written design with the user; create the bounded
+implementation plan after approval; execute handler/provider snapshot tests
+before QML presentation work.
+
+---
+
 ## 2026-07-31 — Native dashboard turn-card hardware acceptance
 
 **What changed:** completed the native semantic dashboard turn card on the

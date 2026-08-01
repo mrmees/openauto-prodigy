@@ -63,8 +63,9 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- None. The completed native turn-card design and Stage 1 plan are archived;
-  richer trip semantics require new live delivery evidence and a focused plan.
+- [Native dashboard richer trip data design](plans/2026-07-31-native-dashboard-richer-trip-data-design.md)
+  — live-proven rerouting freshness, action-cue semantics, next-step timing,
+  and next-destination summary within the accepted lane-priority turn card.
 
 ## Pi Configuration (pi-config/)
 
