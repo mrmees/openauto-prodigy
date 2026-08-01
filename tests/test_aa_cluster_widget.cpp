@@ -774,20 +774,12 @@ private slots:
         context.setIsCurrentPage(true);
         QVERIFY(widget->setProperty(
             "widgetContext", QVariant::fromValue<QObject*>(&context)));
-        auto* stateText =
-            widget->findChild<QQuickItem*>(QStringLiteral("navigationStateText"));
+        auto* stateText = widget->findChild<QQuickItem*>(
+            QStringLiteral("navigationStateText"));
+        auto* guidanceContent = widget->findChild<QQuickItem*>(
+            QStringLiteral("guidanceContent"));
         auto* band = widget->findChild<QQuickItem*>(
             QStringLiteral("laneGuidanceBand"));
-        QVERIFY(stateText);
-        QVERIFY(band);
-        QCOMPARE(stateText->property("text").toString(),
-                 QStringLiteral("Connect Android Auto"));
-
-        projection.setProjectionState(3);
-        QTRY_COMPARE(stateText->property("text").toString(),
-                     QStringLiteral("Start a route in Android Auto"));
-
-        emit handler.navigationStateChanged(true);
         auto* maneuver = widget->findChild<QQuickItem*>(
             QStringLiteral("maneuverGlyph"));
         auto* distance =
@@ -797,6 +789,8 @@ private slots:
         auto* road = widget->findChild<QQuickItem*>(QStringLiteral("roadText"));
         auto* secondaryCue = widget->findChild<QQuickItem*>(
             QStringLiteral("secondaryCueText"));
+        auto* stepTime = widget->findChild<QQuickItem*>(
+            QStringLiteral("stepTimeText"));
         auto* nextLabel =
             widget->findChild<QQuickItem*>(QStringLiteral("nextLabel"));
         auto* primaryTopRow = widget->findChild<QQuickItem*>(
@@ -811,17 +805,33 @@ private slots:
             QStringLiteral("primaryGuidance"));
         auto* destinationFooter = widget->findChild<QQuickItem*>(
             QStringLiteral("destinationFooter"));
+        auto* destinationMetricRow = widget->findChild<QQuickItem*>(
+            QStringLiteral("destinationMetricRow"));
+        auto* destinationPin = widget->findChild<QQuickItem*>(
+            QStringLiteral("destinationPin"));
+        auto* destinationDistance = widget->findChild<QQuickItem*>(
+            QStringLiteral("destinationDistanceText"));
+        auto* destinationEta = widget->findChild<QQuickItem*>(
+            QStringLiteral("destinationEtaText"));
+        auto* destinationDuration = widget->findChild<QQuickItem*>(
+            QStringLiteral("destinationDurationText"));
+        auto* destinationLabel = widget->findChild<QQuickItem*>(
+            QStringLiteral("destinationLabel"));
         auto* destinationViewport = widget->findChild<QQuickItem*>(
             QStringLiteral("destinationTextViewport"));
         auto* destinationText = widget->findChild<QQuickItem*>(
             QStringLiteral("destinationText"));
         auto* destinationMarquee = widget->findChild<QObject*>(
             QStringLiteral("destinationMarquee"));
+        QVERIFY(stateText);
+        QVERIFY(guidanceContent);
+        QVERIFY(band);
         QVERIFY(maneuver);
         QVERIFY(distance);
         QVERIFY(distanceUnit);
         QVERIFY(road);
         QVERIFY(secondaryCue);
+        QVERIFY(stepTime);
         QVERIFY(!nextLabel);
         QVERIFY(primaryTopRow);
         QVERIFY(maneuverTile);
@@ -829,20 +839,104 @@ private slots:
         QVERIFY(distanceRow);
         QVERIFY(primaryGuidance);
         QVERIFY(destinationFooter);
+        QVERIFY(destinationMetricRow);
+        QVERIFY(destinationPin);
+        QVERIFY(destinationDistance);
+        QVERIFY(destinationEta);
+        QVERIFY(destinationDuration);
+        QVERIFY(destinationLabel);
         QVERIFY(destinationViewport);
         QVERIFY(destinationText);
         QVERIFY(destinationMarquee);
-        QTRY_VERIFY(maneuver->isVisible());
-        QVERIFY(!distance->isVisible());
+
+        QCOMPARE(stateText->property("text").toString(),
+                 QStringLiteral("Connect Android Auto"));
+        QVERIFY(!guidanceContent->isVisible());
+
+        projection.setProjectionState(3);
+        QTRY_COMPARE(stateText->property("text").toString(),
+                     QStringLiteral("Start a route in Android Auto"));
+
+        emit handler.navigationStateSnapshotChanged(
+            oaa::hu::NavigationState::Rerouting);
+        QTRY_COMPARE(stateText->property("text").toString(),
+                     QStringLiteral("Finding a new route"));
+        QVERIFY(!guidanceContent->isVisible());
+        QVERIFY(!maneuver->isVisible());
         QVERIFY(!road->isVisible());
+        QVERIFY(!band->isVisible());
+        QVERIFY(!destinationFooter->isVisible());
+        QVERIFY(stateText->property("text").toString()
+                    != QStringLiteral("Start a route in Android Auto"));
+
+        emit handler.navigationStateSnapshotChanged(
+            oaa::hu::NavigationState::Active);
+        QTRY_COMPARE(stateText->property("text").toString(),
+                     QStringLiteral("Finding a new route"));
+        QVERIFY(!guidanceContent->isVisible());
+
+        oaa::hu::NavigationPositionSnapshot position;
+        position.hasStepDistance = true;
+        position.stepDistance.hasValue = true;
+        position.stepDistance.value = 250;
+        position.stepDistance.hasDisplayText = true;
+        position.stepDistance.displayText = QStringLiteral("250");
+        position.stepDistance.hasUnit = true;
+        position.stepDistance.unit = 1;
+        position.hasTimeToStep = true;
+        position.timeToStepSeconds = 300;
+        oaa::hu::NavigationDestinationDistanceData destinationMetrics;
+        destinationMetrics.hasDistance = true;
+        destinationMetrics.distance.hasValue = true;
+        destinationMetrics.distance.value = 12000;
+        destinationMetrics.distance.hasDisplayText = true;
+        destinationMetrics.distance.displayText = QStringLiteral("12");
+        destinationMetrics.distance.hasUnit = true;
+        destinationMetrics.distance.unit = 4;
+        destinationMetrics.hasEstimatedTimeOfArrival = true;
+        destinationMetrics.estimatedTimeOfArrival = QStringLiteral("4:42 PM");
+        destinationMetrics.hasTimeToArrival = true;
+        destinationMetrics.timeToArrivalSeconds = 1500;
+        position.destinationDistances.append(destinationMetrics);
+        position.hasCurrentRoad = true;
+        position.currentRoad = QStringLiteral("Current Road");
+        emit handler.navigationPositionChanged(position);
+        QTRY_COMPARE(stateText->property("text").toString(),
+                     QStringLiteral("Finding a new route"));
+        QVERIFY(!guidanceContent->isVisible());
+
+        oaa::hu::NavigationNotificationSnapshot notification;
+        notification.stepCount = 1;
+        notification.hasManeuver = true;
+        notification.maneuverType = 8;
+        notification.hasUpcomingRoad = true;
+        notification.upcomingRoad = QStringLiteral("Main Street");
+        notification.actionCues = {QStringLiteral("Take Exit 12")};
+        emit handler.navigationNotificationChanged(notification);
+        QTRY_VERIFY(guidanceContent->isVisible());
+        QTRY_VERIFY(maneuver->isVisible());
+        emit handler.navigationPositionChanged(position);
+        QTRY_VERIFY(distance->isVisible());
+        QVERIFY(road->isVisible());
         QVERIFY(!band->isVisible());
         QVERIFY(!destinationFooter->isVisible());
         QCOMPARE(destinationText->property("text").toString(), QString());
         const qreal expandedPrimaryHeight = primaryGuidance->height();
 
+        QCOMPARE(secondaryCue->property("text").toString(),
+                 QStringLiteral("Take Exit 12"));
+        QCOMPARE(stepTime->property("text").toString(), QStringLiteral("5 min"));
+        QVERIFY(secondaryCue->isVisible());
+        QVERIFY(stepTime->isVisible());
+        QCOMPARE(secondaryCue->property("horizontalAlignment").toInt(),
+                 static_cast<int>(Qt::AlignRight));
+        QCOMPARE(stepTime->property("horizontalAlignment").toInt(),
+                 static_cast<int>(Qt::AlignRight));
+        QVERIFY(secondaryCue->x() + secondaryCue->width() <= stepTime->x());
+
         const QString shortDestination = QStringLiteral("Civic Center");
-        emit handler.navigationStepChanged(QStringLiteral("Continue"),
-                                             shortDestination, 8);
+        notification.destinations = {shortDestination};
+        emit handler.navigationNotificationChanged(notification);
         QTRY_VERIFY(destinationFooter->isVisible());
         QVERIFY(!band->isVisible());
         QCOMPARE(destinationText->property("text").toString(),
@@ -852,12 +946,35 @@ private slots:
         QVERIFY(!destinationViewport->property("overflow").toBool());
         QCOMPARE(destinationText->x(), 0.0);
         QVERIFY(!destinationMarquee->property("running").toBool());
+        QVERIFY(destinationMetricRow->isVisible());
+        QVERIFY(destinationPin->isVisible());
+        QCOMPARE(destinationDistance->property("text").toString(),
+                 QStringLiteral("12 mi"));
+        QCOMPARE(destinationEta->property("text").toString(),
+                 QStringLiteral("4:42 PM"));
+        QCOMPARE(destinationDuration->property("text").toString(),
+                 QStringLiteral("25 min"));
+        QVERIFY(destinationDistance->isVisible());
+        QVERIFY(destinationEta->isVisible());
+        QVERIFY(destinationDuration->isVisible());
+        QVERIFY(destinationLabel->isVisible());
+        QVERIFY(destinationMetricRow->y() < destinationViewport->y());
+
+        const auto verifyMetricFontFloor = [&]() {
+            QCOMPARE(destinationDistance->property("font").value<QFont>().pixelSize(),
+                     22);
+            QCOMPARE(destinationEta->property("font").value<QFont>().pixelSize(),
+                     22);
+            QCOMPARE(destinationDuration->property("font").value<QFont>().pixelSize(),
+                     22);
+        };
+        verifyMetricFontFloor();
 
         const QString longDestination = QStringLiteral(
             "North Regional Transportation Center, Concourse Seven, "
             "Passenger Entrance");
-        emit handler.navigationStepChanged(QStringLiteral("Continue"),
-                                             longDestination, 8);
+        notification.destinations = {longDestination};
+        emit handler.navigationNotificationChanged(notification);
         QTRY_COMPARE(destinationText->property("text").toString(),
                      longDestination);
         QTRY_VERIFY(destinationViewport->property("overflow").toBool());
@@ -871,22 +988,67 @@ private slots:
         QVERIFY(destinationViewport->property("marqueePixelsPerSecond").toReal()
                 <= 30.0);
 
-        emit handler.navigationLaneGuidanceChanged({{{{5, true}}}});
-        QTRY_VERIFY(band->isVisible());
-        QVERIFY(!destinationFooter->isVisible());
-        QVERIFY(!destinationMarquee->property("running").toBool());
-        emit handler.navigationLaneGuidanceChanged({});
-        QTRY_VERIFY(!band->isVisible());
-        QTRY_VERIFY(destinationFooter->isVisible());
+        widget->setProperty("width", 430.0);
+        widget->setProperty("height", 364.0);
+        QCoreApplication::processEvents();
+        QVERIFY(destinationDistance->isVisible());
+        QVERIFY(destinationEta->isVisible());
+        QVERIFY(!destinationDuration->isVisible());
+        QVERIFY(destinationLabel->isVisible());
+        QVERIFY(destinationPin->isVisible());
+        verifyMetricFontFloor();
 
-        emit handler.navigationTurnEvent(QStringLiteral("Main Street"), 8, 1,
-                                         QByteArray(), 250, 1);
-        emit handler.navigationDistanceChanged(QStringLiteral("250"), 1);
-        emit handler.navigationLaneGuidanceChanged({
+        widget->setProperty("width", 364.0);
+        widget->setProperty("height", 364.0);
+        QCoreApplication::processEvents();
+        QVERIFY(destinationDistance->isVisible());
+        QVERIFY(destinationEta->isVisible());
+        QVERIFY(!destinationDuration->isVisible());
+        QVERIFY(!destinationLabel->isVisible());
+        QVERIFY(destinationPin->isVisible());
+        verifyMetricFontFloor();
+
+        notification.actionCues = {QStringLiteral(
+            "Keep right toward the convention center transportation district")};
+        emit handler.navigationNotificationChanged(notification);
+        QTRY_COMPARE(secondaryCue->property("text").toString(),
+                     notification.actionCues.first());
+        QCOMPARE(secondaryCue->property("font").value<QFont>().pixelSize(), 24);
+        QVERIFY(secondaryCue->isVisible());
+        QVERIFY(!stepTime->isVisible());
+
+        notification.actionCues.clear();
+        emit handler.navigationNotificationChanged(notification);
+        QTRY_COMPARE(secondaryCue->property("text").toString(),
+                     QStringLiteral("Next turn"));
+        QCOMPARE(maneuverTile->height(), topInfoBlock->height());
+        QVERIFY(maneuver->width() <= maneuverTile->width());
+        QVERIFY(maneuver->height() <= maneuverTile->height());
+        QCOMPARE(road->x(), 0.0);
+        QCOMPARE(road->width(), primaryGuidance->width());
+        QVERIFY(road->height()
+                >= road->property("font").value<QFont>().pixelSize());
+
+        widget->setProperty("width", 1024.0);
+        widget->setProperty("height", 600.0);
+        QCoreApplication::processEvents();
+
+        notification.lanes = {
             {{{1, false}, {5, true}}},
             {{{5, true}}},
-        });
+        };
+        emit handler.navigationNotificationChanged(notification);
         QTRY_VERIFY(band->isVisible());
+        QVERIFY(!destinationFooter->isVisible());
+        QVERIFY(!destinationMetricRow->isVisible());
+        QVERIFY(!destinationPin->isVisible());
+        QVERIFY(!destinationDistance->isVisible());
+        QVERIFY(!destinationEta->isVisible());
+        QVERIFY(!destinationDuration->isVisible());
+        QVERIFY(!destinationLabel->isVisible());
+        QVERIFY(!destinationViewport->isVisible());
+        QVERIFY(!destinationText->isVisible());
+        QVERIFY(!destinationMarquee->property("running").toBool());
         QTRY_COMPARE(visualItemsNamed(
                          qobject_cast<QQuickItem*>(widget.data()),
                          QStringLiteral("laneComposite")).size(),
@@ -987,24 +1149,17 @@ private slots:
         QCOMPARE(road->property("font").value<QFont>().pixelSize(), 40);
         QCOMPARE(secondaryCue->property("font").value<QFont>().pixelSize(), 28);
 
-        widget->setProperty("width", 364.0);
-        widget->setProperty("height", 364.0);
-        QCoreApplication::processEvents();
-        QCOMPARE(maneuverTile->height(), topInfoBlock->height());
-        QVERIFY(maneuver->width() <= maneuverTile->width());
-        QVERIFY(maneuver->height() <= maneuverTile->height());
-        QCOMPARE(road->x(), 0.0);
-        QCOMPARE(road->width(), primaryGuidance->width());
-        QVERIFY(road->height()
-                >= road->property("font").value<QFont>().pixelSize());
-
         projection.setProjectionState(4);
         QTRY_VERIFY(maneuver->isVisible());
 
-        emit handler.navigationLaneGuidanceChanged({});
+        notification.lanes.clear();
+        emit handler.navigationNotificationChanged(notification);
         QTRY_VERIFY(destinationFooter->isVisible());
-        emit handler.navigationStateChanged(false);
+        emit handler.navigationStateSnapshotChanged(
+            oaa::hu::NavigationState::Inactive);
         QTRY_VERIFY(!destinationFooter->isVisible());
+        QTRY_COMPARE(stateText->property("text").toString(),
+                     QStringLiteral("Start a route in Android Auto"));
         QTRY_COMPARE(destinationText->property("text").toString(), QString());
         QCOMPARE(destinationText->x(), 0.0);
         QVERIFY(!destinationMarquee->property("running").toBool());

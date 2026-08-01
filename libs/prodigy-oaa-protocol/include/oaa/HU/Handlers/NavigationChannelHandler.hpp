@@ -89,27 +89,10 @@ signals:
     void navigationPositionChanged(
         const oaa::hu::NavigationPositionSnapshot& snapshot);
 
-    /// Emitted when navigation starts (active=true) or ends (active=false)
-    void navigationStateChanged(bool active);
-
-    /// Emitted with turn-by-turn instruction update
-    void navigationStepChanged(const QString& instruction, const QString& destination,
-                                int maneuverType);
-
-    /// Emitted with distance/ETA update
-    void navigationDistanceChanged(const QString& distance, int unit);
-
     /// Emitted with NavigationTurnEvent (~1Hz during active navigation)
     void navigationTurnEvent(const QString& roadName, int maneuverType,
                              int turnDirection, const QByteArray& turnIcon,
                              int distanceMeters, int distanceUnit);
-
-    /// Emitted with enhanced NavigationNotification (multi-step, lanes, destination)
-    void navigationNotificationReceived(int stepCount, int laneCount,
-                                         const QString& destination, const QString& eta);
-
-    void navigationLaneGuidanceChanged(
-        const oaa::hu::NavigationLaneGuidance& lanes);
 
     void vehicleEnergyForecastReceived(bool innerParsed,
                                        const QString& boundedSummary);

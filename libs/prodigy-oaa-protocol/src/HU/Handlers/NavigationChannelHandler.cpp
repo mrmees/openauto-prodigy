@@ -11,11 +11,6 @@ namespace hu {
 
 namespace {
 
-bool isNavigationActive(NavigationState state)
-{
-    return state == NavigationState::Active || state == NavigationState::Rerouting;
-}
-
 NavigationDistanceData copyDistance(
     const oaa::proto::messages::NavigationTurnDistance& distance)
 {
@@ -52,11 +47,8 @@ void NavigationChannelHandler::onChannelOpened()
 void NavigationChannelHandler::onChannelClosed()
 {
     if (navigationState_ != NavigationState::Unavailable) {
-        const bool wasActive = isNavigationActive(navigationState_);
         navigationState_ = NavigationState::Unavailable;
         emit navigationStateSnapshotChanged(navigationState_);
-        if (wasActive)
-            emit navigationStateChanged(false);
     }
     qInfo() << "[NavChannel] closed";
 }
@@ -148,12 +140,8 @@ void NavigationChannelHandler::handleNavState(const QByteArray& payload)
 
     qInfo() << "[NavChannel] state:" << msg.state();
     if (navigationState_ != nextState) {
-        const bool wasActive = isNavigationActive(navigationState_);
-        const bool active = isNavigationActive(nextState);
         navigationState_ = nextState;
         emit navigationStateSnapshotChanged(navigationState_);
-        if (wasActive != active)
-            emit navigationStateChanged(active);
     }
 }
 
@@ -265,14 +253,6 @@ void NavigationChannelHandler::handleNavStep(const QByteArray& payload)
             << "maneuver:" << snapshot.maneuverType;
 
     emit navigationNotificationChanged(snapshot);
-
-    emit navigationStepChanged(snapshot.upcomingRoad, snapshot.destinations.value(0),
-                               snapshot.maneuverType);
-
-    emit navigationLaneGuidanceChanged(snapshot.lanes);
-
-    emit navigationNotificationReceived(snapshot.stepCount, totalLanes,
-                                        snapshot.destinations.value(0), QString());
 }
 
 void NavigationChannelHandler::handleNavDistance(const QByteArray& payload)
@@ -320,9 +300,6 @@ void NavigationChannelHandler::handleNavDistance(const QByteArray& payload)
              << "unit:" << snapshot.stepDistance.unit;
 
     emit navigationPositionChanged(snapshot);
-
-    emit navigationDistanceChanged(snapshot.stepDistance.displayText,
-                                   snapshot.stepDistance.unit);
 }
 
 } // namespace hu

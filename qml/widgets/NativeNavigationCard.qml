@@ -9,7 +9,12 @@ Item {
 
     readonly property bool routeActive:
         navigationProvider && navigationProvider.navActive
-    readonly property bool showGuidance: aaConnected && routeActive
+    readonly property bool guidanceFresh:
+        navigationProvider && navigationProvider.guidanceFresh
+    readonly property bool rerouting:
+        navigationProvider && navigationProvider.rerouting
+    readonly property bool showGuidance:
+        aaConnected && routeActive && guidanceFresh && !rerouting
     readonly property real distanceSize:
         Math.max(64, Math.min(96, height * 0.16))
     readonly property real unitSize:
@@ -66,14 +71,18 @@ Item {
                 color: ThemeService.onSurface
                 font.pixelSize: root.secondaryCueSize
                 font.weight: Font.DemiBold
-                text: root.aaConnected
-                      ? "Start a route in Android Auto"
-                      : "Connect Android Auto"
+                text: !root.aaConnected
+                      ? "Connect Android Auto"
+                      : root.routeActive
+                        && (!root.guidanceFresh || root.rerouting)
+                        ? "Finding a new route"
+                        : "Start a route in Android Auto"
             }
         }
 
         Item {
             id: guidanceContent
+            objectName: "guidanceContent"
             anchors.fill: parent
             anchors.margins: root.cardPadding
             visible: root.showGuidance
@@ -113,9 +122,33 @@ Item {
                     spacing: 4
 
                     Item {
-                        id: destinationLabelRow
-                        width: parent.width
+                        id: destinationMetricRow
+                        objectName: "destinationMetricRow"
+                        width: parent.width + root.cardPadding
                         height: root.labelSize + 4
+
+                        readonly property real itemSpacing: 6
+                        readonly property real sectionSpacing: 0
+                        readonly property real labelGap: 4
+                        readonly property real coreMetricWidth:
+                            destinationDistanceText.implicitWidth
+                            + (destinationDistanceText.visible
+                               && destinationEtaText.visible
+                               ? itemSpacing + 1 : 0)
+                            + destinationEtaText.implicitWidth
+                        readonly property bool hasRoomForLabel:
+                            width >= destinationPin.width + labelGap
+                                     + destinationLabel.implicitWidth
+                                     + sectionSpacing + coreMetricWidth
+                        readonly property bool hasRoomForDuration:
+                            hasRoomForLabel
+                            && width >= destinationPin.width + labelGap
+                                        + destinationLabel.implicitWidth
+                                        + sectionSpacing + coreMetricWidth
+                                        + (destinationDistanceText.visible
+                                           || destinationEtaText.visible
+                                           ? itemSpacing + 1 : 0)
+                                        + destinationDurationText.implicitWidth
 
                         MaterialIcon {
                             id: destinationPin
@@ -128,14 +161,82 @@ Item {
                         }
 
                         Text {
+                            id: destinationLabel
                             objectName: "destinationLabel"
                             anchors.left: destinationPin.right
-                            anchors.leftMargin: 8
+                            anchors.leftMargin: destinationMetricRow.labelGap
                             anchors.verticalCenter: parent.verticalCenter
                             text: "DESTINATION"
+                            visible: destinationMetricRow.hasRoomForLabel
                             color: ThemeService.onSurfaceVariant
                             font.pixelSize: root.labelSize
                             font.weight: Font.DemiBold
+                        }
+
+                        Row {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: destinationMetricRow.itemSpacing
+
+                            Text {
+                                id: destinationDistanceText
+                                objectName: "destinationDistanceText"
+                                text: root.navigationProvider
+                                      ? root.navigationProvider
+                                            .formattedDestinationDistance : ""
+                                visible: root.navigationProvider
+                                         && root.navigationProvider
+                                               .hasDestinationDistance
+                                color: ThemeService.onSurface
+                                font.pixelSize: root.labelSize
+                                font.weight: Font.DemiBold
+                            }
+
+                            Rectangle {
+                                width: 1
+                                height: root.labelSize * 0.8
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: destinationDistanceText.visible
+                                         && destinationEtaText.visible
+                                color: ThemeService.outlineVariant
+                            }
+
+                            Text {
+                                id: destinationEtaText
+                                objectName: "destinationEtaText"
+                                text: root.navigationProvider
+                                      ? root.navigationProvider.destinationEta : ""
+                                visible: root.navigationProvider
+                                         && root.navigationProvider.hasDestinationEta
+                                color: ThemeService.onSurface
+                                font.pixelSize: root.labelSize
+                                font.weight: Font.DemiBold
+                            }
+
+                            Rectangle {
+                                width: 1
+                                height: root.labelSize * 0.8
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: (destinationDistanceText.visible
+                                          || destinationEtaText.visible)
+                                         && destinationDurationText.visible
+                                color: ThemeService.outlineVariant
+                            }
+
+                            Text {
+                                id: destinationDurationText
+                                objectName: "destinationDurationText"
+                                text: root.navigationProvider
+                                      ? root.navigationProvider
+                                            .formattedTimeToArrival : ""
+                                visible: root.navigationProvider
+                                         && root.navigationProvider.hasTimeToArrival
+                                         && destinationMetricRow
+                                               .hasRoomForDuration
+                                color: ThemeService.onSurface
+                                font.pixelSize: root.labelSize
+                                font.weight: Font.DemiBold
+                            }
                         }
                     }
 
@@ -143,7 +244,7 @@ Item {
                         id: destinationViewport
                         objectName: "destinationTextViewport"
                         width: parent.width
-                        height: parent.height - destinationLabelRow.height
+                        height: parent.height - destinationMetricRow.height
                                 - parent.spacing
                         clip: true
 
@@ -273,26 +374,68 @@ Item {
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
 
-                        Text {
-                            id: secondaryCue
-                            objectName: "secondaryCueText"
+                        Item {
+                            id: cueTimeRow
                             anchors.left: parent.left
                             anchors.right: parent.right
                             anchors.top: parent.top
-                            horizontalAlignment: Text.AlignRight
-                            text: "Next turn"
+                            height: root.secondaryCueSize * 1.2
                             visible: roadText.visible
-                            color: ThemeService.onSurfaceVariant
-                            font.pixelSize: root.secondaryCueSize
+
+                            readonly property real separatorSpacing: 12
+                            readonly property real horizontalMargins:
+                                root.cardPadding
+                            readonly property bool stepTimeFits:
+                                root.navigationProvider
+                                && root.navigationProvider.hasTimeToStep
+                                && secondaryCue.implicitWidth
+                                   + stepTime.implicitWidth
+                                   + separatorSpacing + horizontalMargins
+                                   <= width
+
+                            Text {
+                                id: stepTime
+                                objectName: "stepTimeText"
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: root.navigationProvider
+                                      ? root.navigationProvider
+                                            .formattedTimeToStep : ""
+                                visible: cueTimeRow.stepTimeFits
+                                horizontalAlignment: Text.AlignRight
+                                color: ThemeService.onSurfaceVariant
+                                font.pixelSize: root.secondaryCueSize
+                                wrapMode: Text.NoWrap
+                            }
+
+                            Text {
+                                id: secondaryCue
+                                objectName: "secondaryCueText"
+                                anchors.left: parent.left
+                                anchors.right: stepTime.visible
+                                               ? stepTime.left : parent.right
+                                anchors.rightMargin: stepTime.visible
+                                                     ? cueTimeRow.separatorSpacing : 0
+                                anchors.verticalCenter: parent.verticalCenter
+                                horizontalAlignment: Text.AlignRight
+                                text: root.navigationProvider
+                                      && root.navigationProvider.hasActionCue
+                                      ? root.navigationProvider.actionCue
+                                      : "Next turn"
+                                color: ThemeService.onSurfaceVariant
+                                font.pixelSize: root.secondaryCueSize
+                                elide: Text.ElideRight
+                                wrapMode: Text.NoWrap
+                            }
                         }
 
                         Row {
                             id: distanceRow
                             objectName: "distanceRow"
                             anchors.right: parent.right
-                            anchors.top: secondaryCue.visible
-                                         ? secondaryCue.bottom : parent.top
-                            anchors.topMargin: secondaryCue.visible ? 4 : 0
+                            anchors.top: cueTimeRow.visible
+                                         ? cueTimeRow.bottom : parent.top
+                            anchors.topMargin: cueTimeRow.visible ? 4 : 0
                             spacing: 12
                             visible: root.navigationProvider
                                      && root.navigationProvider.hasDistance
