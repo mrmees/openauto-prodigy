@@ -158,6 +158,17 @@ limits, and a verification command before implementation.
   add boundary-width layout coverage while preserving the accepted metric-drop
   priority and typography floors.
 
+- **Roadless guidance hides an otherwise valid action cue and step time** —
+  Evidence: **OPUS-REVIEW-CONFIRMED 2026-07-31; NONBLOCKING**.
+  `NativeNavigationCard.qml` binds the complete cue/time row visibility to
+  `roadText.visible`. A supported notification or legacy turn event can omit
+  the optional upcoming-road label while still supplying an action cue or
+  positive time to step, causing both values and the `Next turn` fallback to
+  disappear. The card safely degrades to maneuver and distance, so the
+  hardware-accepted tree remains mergeable. Candidate deliverable: decouple
+  cue/time visibility from road-name presence and add real-card coverage for
+  roadless modern and legacy guidance without changing the accepted fit rule.
+
 - **Modern mile rounding only parses C-locale decimal text** — Evidence:
   **REVIEW-CONFIRMED 2026-07-31; SAFE-DEGRADING**. The whole-mile policy above
   9.9 uses `QString::toDouble`; comma-decimal or grouped phone text therefore

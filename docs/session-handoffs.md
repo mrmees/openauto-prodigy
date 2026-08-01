@@ -4,6 +4,33 @@ Newest entries first.
 
 ---
 
+## 2026-07-31 — Native dashboard PR and Opus pre-merge review
+
+**What changed:** pushed the completed `dev` branch and opened draft PR #43,
+`Add native Android Auto turn card and richer trip data`, against `main`. The
+PR contains the complete hardware-accepted dashboard selector, native turn-card
+foundation, and richer trip-data work. No application code changed after the
+accepted and reviewed head `f8f1759c9f99756c6a9ddef39b7adc2cb7ede45c`.
+
+**Status:** PR #43 is open and mergeable but remains a draft; it has not been
+merged. One read-only Opus 4.6 review covered the immutable 26-commit
+`origin/main..f8f1759` range and returned **MERGE** with no blocker and one new
+minor. The confirmed minor is roadless guidance coupling the cue/time row to
+road-text visibility; it is recorded in `docs/engineering-backlog.md` rather
+than churning the hardware-accepted implementation.
+
+**Verification:** the PR head retained the previously green focused, native,
+explicit app, complete offscreen CTest, ARM cross-build, exact Pi hash, and
+sequential live acceptance evidence. This docs-only review record passed
+`python3 scripts/check-doc-links.py --scope tracked-live` and
+`git diff --check`; no application rebuild was required.
+
+**Next 1–3 steps:** push this docs-only review record to PR #43; merge only on
+the user's authorization; re-research the roadless-guidance presentation lead
+before promoting it into implementation scope.
+
+---
+
 ## 2026-07-31 — Native dashboard richer-trip hardware acceptance
 
 **What changed:** completed the live-proven richer native turn card at accepted
