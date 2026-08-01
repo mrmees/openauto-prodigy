@@ -14,8 +14,11 @@ namespace oap {
 
 DisplayService::DisplayService(QObject* parent)
     : QObject(parent)
-    , backend_(detectBackend())
+    , backend_(Backend::SoftwareOverlay)
 {
+    // Detection may populate sysfsPath_, so it must run after every member is
+    // constructed rather than from backend_'s member initializer.
+    backend_ = detectBackend();
     qCInfo(lcCore) << "DisplayService: backend =" << backendName();
 }
 
