@@ -1,6 +1,7 @@
 #include "NavigationDataBridge.hpp"
+
 #include "ManeuverIconProvider.hpp"
-#include <oaa/HU/Handlers/NavigationChannelHandler.hpp>
+
 #include <QtMath>
 
 namespace oap {
@@ -14,21 +15,14 @@ NavigationDataBridge::NavigationDataBridge(QObject* parent)
 
 void NavigationDataBridge::connectToHandler(oaa::hu::NavigationChannelHandler* handler)
 {
-    // Use Qt::DirectConnection for tests; in production the handler emits from
-    // ASIO threads -- the orchestrator should bridge to the main thread before
-    // these reach us, OR we use QueuedConnection. For safety, use AutoConnection
-    // which becomes Queued when sender lives on a different thread.
-    connect(handler, &oaa::hu::NavigationChannelHandler::navigationStateChanged,
+    connect(handler, &oaa::hu::NavigationChannelHandler::navigationStateSnapshotChanged,
             this, &NavigationDataBridge::onNavigationStateChanged);
+    connect(handler, &oaa::hu::NavigationChannelHandler::navigationNotificationChanged,
+            this, &NavigationDataBridge::onNavigationNotificationChanged);
+    connect(handler, &oaa::hu::NavigationChannelHandler::navigationPositionChanged,
+            this, &NavigationDataBridge::onNavigationPositionChanged);
     connect(handler, &oaa::hu::NavigationChannelHandler::navigationTurnEvent,
             this, &NavigationDataBridge::onNavigationTurnEvent);
-    connect(handler, &oaa::hu::NavigationChannelHandler::navigationStepChanged,
-            this, &NavigationDataBridge::onNavigationStepChanged);
-    connect(handler, &oaa::hu::NavigationChannelHandler::navigationDistanceChanged,
-            this, &NavigationDataBridge::onNavigationDistanceChanged);
-    connect(handler,
-            &oaa::hu::NavigationChannelHandler::navigationLaneGuidanceChanged,
-            this, &NavigationDataBridge::onNavigationLaneGuidanceChanged);
 }
 
 void NavigationDataBridge::setManeuverIconProvider(ManeuverIconProvider* provider)
@@ -36,35 +30,260 @@ void NavigationDataBridge::setManeuverIconProvider(ManeuverIconProvider* provide
     iconProvider_ = provider;
 }
 
-void NavigationDataBridge::onNavigationStateChanged(bool active)
+bool NavigationDataBridge::navActive() const
 {
-    if (navActive_ == active)
+    return navigationState_ == oaa::hu::NavigationState::Active
+        || navigationState_ == oaa::hu::NavigationState::Rerouting;
+}
+
+bool NavigationDataBridge::guidanceVisible() const
+{
+    return navActive() && notificationFresh_ && !awaitingPostReroute_
+        && navigationState_ != oaa::hu::NavigationState::Rerouting;
+}
+
+bool NavigationDataBridge::tripVisible() const
+{
+    return guidanceVisible() && positionFresh_;
+}
+
+bool NavigationDataBridge::guidanceFresh() const
+{
+    return guidanceVisible();
+}
+
+bool NavigationDataBridge::rerouting() const
+{
+    return navigationState_ == oaa::hu::NavigationState::Rerouting
+        || awaitingPostReroute_;
+}
+
+QString NavigationDataBridge::roadName() const
+{
+    return guidanceVisible() ? roadName_ : QString();
+}
+
+QString NavigationDataBridge::destination() const
+{
+    return tripVisible() ? destinations_.value(0) : QString();
+}
+
+int NavigationDataBridge::maneuverType() const
+{
+    return guidanceVisible() ? maneuverType_ : 0;
+}
+
+int NavigationDataBridge::turnDirection() const
+{
+    return guidanceVisible() ? turnDirection_ : 0;
+}
+
+int NavigationDataBridge::distanceMeters() const
+{
+    if (!tripVisible())
+        return 0;
+    return legacyDistance_ ? legacyDistanceMeters_ : stepDistance_.value;
+}
+
+bool NavigationDataBridge::hasManeuverIcon() const
+{
+    return guidanceVisible() && !currentIcon_.isEmpty();
+}
+
+bool NavigationDataBridge::hasLaneGuidance() const
+{
+    return guidanceVisible() && laneModel_->rowCount() > 0;
+}
+
+bool NavigationDataBridge::hasDistance() const
+{
+    return tripVisible()
+        && (legacyDistance_ || (hasStepDistance_
+            && (stepDistance_.hasValue || stepDistance_.hasDisplayText)));
+}
+
+bool NavigationDataBridge::hasActionCue() const
+{
+    return guidanceVisible() && !actionCue_.isEmpty();
+}
+
+QString NavigationDataBridge::actionCue() const
+{
+    return hasActionCue() ? actionCue_ : QString();
+}
+
+bool NavigationDataBridge::hasTimeToStep() const
+{
+    return tripVisible() && hasTimeToStep_ && timeToStepSeconds_ > 0;
+}
+
+QString NavigationDataBridge::formattedTimeToStep() const
+{
+    return hasTimeToStep() ? formatDuration(timeToStepSeconds_) : QString();
+}
+
+int NavigationDataBridge::destinationCount() const
+{
+    return tripVisible() ? destinations_.size() : 0;
+}
+
+const oaa::hu::NavigationDestinationDistanceData*
+NavigationDataBridge::firstDestinationDistance() const
+{
+    return destinationDistances_.isEmpty() ? nullptr : &destinationDistances_.first();
+}
+
+bool NavigationDataBridge::hasDestinationDistance() const
+{
+    const auto* entry = firstDestinationDistance();
+    return tripVisible() && !destinations_.isEmpty() && entry && entry->hasDistance
+        && (entry->distance.hasValue || entry->distance.hasDisplayText);
+}
+
+QString NavigationDataBridge::formattedDestinationDistance() const
+{
+    const auto* entry = firstDestinationDistance();
+    return hasDestinationDistance() && entry ? formatDistance(entry->distance) : QString();
+}
+
+bool NavigationDataBridge::hasDestinationEta() const
+{
+    const auto* entry = firstDestinationDistance();
+    return tripVisible() && !destinations_.isEmpty() && entry
+        && entry->hasEstimatedTimeOfArrival && !entry->estimatedTimeOfArrival.isEmpty();
+}
+
+QString NavigationDataBridge::destinationEta() const
+{
+    const auto* entry = firstDestinationDistance();
+    return hasDestinationEta() && entry ? entry->estimatedTimeOfArrival : QString();
+}
+
+bool NavigationDataBridge::hasTimeToArrival() const
+{
+    const auto* entry = firstDestinationDistance();
+    return tripVisible() && destinations_.size() == 1 && entry
+        && entry->hasTimeToArrival && entry->timeToArrivalSeconds > 0;
+}
+
+QString NavigationDataBridge::formattedTimeToArrival() const
+{
+    const auto* entry = firstDestinationDistance();
+    return hasTimeToArrival() && entry ? formatDuration(entry->timeToArrivalSeconds)
+                                        : QString();
+}
+
+void NavigationDataBridge::clearIcon()
+{
+    currentIcon_.clear();
+    if (iconProvider_)
+        iconProvider_->updateIcon({});
+}
+
+void NavigationDataBridge::clearSnapshotData()
+{
+    roadName_.clear();
+    actionCue_.clear();
+    destinations_.clear();
+    maneuverType_ = 0;
+    turnDirection_ = 0;
+    hasStepDistance_ = false;
+    stepDistance_ = {};
+    hasTimeToStep_ = false;
+    timeToStepSeconds_ = 0;
+    destinationDistances_.clear();
+    legacyDistance_ = false;
+    legacyDistanceMeters_ = 0;
+    legacyDistanceUnit_ = 0;
+    notificationFresh_ = false;
+    positionFresh_ = false;
+    clearIcon();
+    laneModel_->clear();
+}
+
+void NavigationDataBridge::onNavigationStateChanged(oaa::hu::NavigationState state)
+{
+    if (receivedState_ && navigationState_ == state)
         return;
 
-    navActive_ = active;
+    const bool wasActive = navActive();
+    navigationState_ = state;
+    receivedState_ = true;
 
-    if (!active) {
-        // Clear cached turn data
-        roadName_.clear();
-        destination_.clear();
-        maneuverType_ = 0;
-        turnDirection_ = 0;
-        distanceMeters_ = 0;
-        distanceUnit_ = 0;
-        instruction_.clear();
-        phoneDistanceText_.clear();
-        hasDistance_ = false;
-        currentIcon_.clear();
-        const bool lanesChanged = laneModel_->clear();
-        if (iconProvider_)
-            iconProvider_->updateIcon(QByteArray());
-        emit turnDataChanged();
-        emit distanceChanged();
-        if (lanesChanged)
-            emit laneGuidanceChanged();
+    if (state == oaa::hu::NavigationState::Rerouting) {
+        awaitingPostReroute_ = true;
+        clearSnapshotData();
+    } else if (state == oaa::hu::NavigationState::Inactive
+               || state == oaa::hu::NavigationState::Unavailable) {
+        awaitingPostReroute_ = false;
+        clearSnapshotData();
     }
 
-    emit navActiveChanged();
+    if (wasActive != navActive())
+        emit navActiveChanged();
+    emit turnDataChanged();
+    emit distanceChanged();
+    emit laneGuidanceChanged();
+    emit tripDataChanged();
+    emit navigationPresentationChanged();
+}
+
+void NavigationDataBridge::replaceLanes(const oaa::hu::NavigationLaneGuidance& lanes)
+{
+    LanePresentationList presentation;
+    presentation.reserve(lanes.size());
+    for (const auto& lane : lanes) {
+        LanePresentation directions;
+        directions.reserve(lane.directions.size());
+        for (const auto& direction : lane.directions) {
+            directions.append({laneShapeToken(direction.shape), direction.recommended});
+        }
+        presentation.append(directions);
+    }
+    laneModel_->replaceLanes(presentation);
+}
+
+void NavigationDataBridge::onNavigationNotificationChanged(
+    const oaa::hu::NavigationNotificationSnapshot& snapshot)
+{
+    roadName_ = snapshot.hasUpcomingRoad ? snapshot.upcomingRoad : QString();
+    maneuverType_ = snapshot.hasManeuver ? snapshot.maneuverType : 0;
+    turnDirection_ = 0;
+    actionCue_.clear();
+    const QString trimmedRoad = roadName_.trimmed();
+    for (const QString& cue : snapshot.actionCues) {
+        const QString trimmedCue = cue.trimmed();
+        if (!trimmedCue.isEmpty() && trimmedCue != trimmedRoad) {
+            actionCue_ = trimmedCue;
+            break;
+        }
+    }
+    destinations_ = snapshot.destinations;
+    replaceLanes(snapshot.lanes);
+    notificationFresh_ = true;
+    awaitingPostReroute_ = false;
+
+    emit turnDataChanged();
+    emit laneGuidanceChanged();
+    emit tripDataChanged();
+    emit navigationPresentationChanged();
+}
+
+void NavigationDataBridge::onNavigationPositionChanged(
+    const oaa::hu::NavigationPositionSnapshot& snapshot)
+{
+    hasStepDistance_ = snapshot.hasStepDistance;
+    stepDistance_ = snapshot.hasStepDistance ? snapshot.stepDistance
+                                             : oaa::hu::NavigationDistanceData{};
+    hasTimeToStep_ = snapshot.hasTimeToStep;
+    timeToStepSeconds_ = snapshot.hasTimeToStep ? snapshot.timeToStepSeconds : 0;
+    destinationDistances_ = snapshot.destinationDistances;
+    legacyDistance_ = false;
+    positionFresh_ = true;
+
+    emit distanceChanged();
+    emit tripDataChanged();
+    emit navigationPresentationChanged();
 }
 
 void NavigationDataBridge::onNavigationTurnEvent(const QString& roadName, int maneuverType,
@@ -74,10 +293,20 @@ void NavigationDataBridge::onNavigationTurnEvent(const QString& roadName, int ma
     roadName_ = roadName;
     maneuverType_ = maneuverType;
     turnDirection_ = turnDirection;
-    distanceMeters_ = distanceMeters;
-    distanceUnit_ = distanceUnit;
-    if (distanceMeters >= 0)
-        hasDistance_ = true;
+    actionCue_.clear();
+    destinations_.clear();
+    hasStepDistance_ = false;
+    stepDistance_ = {};
+    hasTimeToStep_ = false;
+    timeToStepSeconds_ = 0;
+    destinationDistances_.clear();
+    legacyDistance_ = distanceMeters >= 0;
+    legacyDistanceMeters_ = distanceMeters;
+    legacyDistanceUnit_ = distanceUnit;
+    notificationFresh_ = true;
+    positionFresh_ = true;
+    awaitingPostReroute_ = false;
+    replaceLanes({});
 
     if (!turnIcon.isEmpty()) {
         currentIcon_ = turnIcon;
@@ -88,126 +317,89 @@ void NavigationDataBridge::onNavigationTurnEvent(const QString& roadName, int ma
 
     emit turnDataChanged();
     emit distanceChanged();
-}
-
-void NavigationDataBridge::onNavigationStepChanged(const QString& instruction,
-                                                     const QString& destination,
-                                                     int maneuverType)
-{
-    // NavigationNotification (0x8006) — modern phones send this instead of
-    // the deprecated NavigationTurnEvent (0x8004). Use instruction as road name
-    // and update maneuver type. Only update if we haven't gotten a TurnEvent
-    // with richer data (road name + turn icon) in this nav session.
-    if (roadName_.isEmpty() || currentIcon_.isEmpty()) {
-        // No TurnEvent data — use step instruction as road name
-        roadName_ = instruction;
-    }
-    instruction_ = instruction;
-    destination_ = destination;
-    maneuverType_ = maneuverType;
-    emit turnDataChanged();
-}
-
-void NavigationDataBridge::onNavigationDistanceChanged(const QString& displayText, int unit)
-{
-    // NavigationNextTurnDistanceEvent (0x8007) — phone sends numeric display_text
-    // (e.g. "0", "0.3") plus distance_unit enum. We combine them.
-    phoneDistanceText_ = displayText;
-    if (!displayText.isEmpty())
-        hasDistance_ = true;
-    if (unit != 0)
-        distanceUnit_ = unit;
-    emit distanceChanged();
-}
-
-void NavigationDataBridge::onNavigationLaneGuidanceChanged(
-    const oaa::hu::NavigationLaneGuidance& lanes)
-{
-    LanePresentationList presentation;
-    presentation.reserve(lanes.size());
-    for (const auto& lane : lanes) {
-        LanePresentation directions;
-        directions.reserve(lane.directions.size());
-        for (const auto& direction : lane.directions) {
-            directions.append({
-                laneShapeToken(direction.shape),
-                direction.recommended,
-            });
-        }
-        presentation.append(directions);
-    }
-
-    if (laneModel_->replaceLanes(presentation))
-        emit laneGuidanceChanged();
-}
-
-bool NavigationDataBridge::hasLaneGuidance() const
-{
-    return laneModel_->rowCount() > 0;
+    emit laneGuidanceChanged();
+    emit tripDataChanged();
+    emit navigationPresentationChanged();
 }
 
 QString NavigationDataBridge::formattedDistance() const
 {
-    // If we have phone-provided display text, combine with unit suffix
-    if (!phoneDistanceText_.isEmpty()) {
-        QString displayText = phoneDistanceText_;
-        if (distanceUnit_ == 4 || distanceUnit_ == 5) {
-            bool parsed = false;
-            const double miles = displayText.toDouble(&parsed);
-            if (parsed && miles > 9.9)
-                displayText = formatMiles(miles);
-        }
-        QString suffix = unitSuffix(distanceUnit_);
-        if (!suffix.isEmpty())
-            return displayText + " " + suffix;
-        return displayText;
-    }
+    if (!hasDistance())
+        return receivedState_ ? QString() : QStringLiteral("0 m");
+    return legacyDistance_ ? formatLegacyDistance(legacyDistanceMeters_, legacyDistanceUnit_)
+                           : formatDistance(stepDistance_);
+}
 
-    // Fallback: compute from NavigationTurnEvent data (legacy phones)
-    // Uses same AA Distance.displayUnit enum as above
-    // Audited AA 17.3 DistanceDisplayUnit enum:
-    // 1=METERS, 2/3=KILOMETERS, 4/5=MILES, 6=FEET, 7=YARDS.
-    switch (distanceUnit_) {
-    case 1: // METERS
-        if (distanceMeters_ >= 1000)
-            return QString::number(distanceMeters_ / 1000.0, 'f', 1) + " km";
-        return QString::number(distanceMeters_) + " m";
-    case 2: // KILOMETERS
-    case 3: // KILOMETERS_P1
-        return QString::number(distanceMeters_ / 1000.0, 'f', 1) + " km";
-    case 4: // MILES
-    case 5: // MILES_P1
-        return formatMiles(distanceMeters_ / 1609.34) + " mi";
-    case 6: // FEET
-        return QString::number(qRound(distanceMeters_ * 3.28084)) + " ft";
-    case 7: // YARDS
-        return QString::number(qRound(distanceMeters_ / 0.9144)) + " yd";
-    default:
-        return QString::number(distanceMeters_) + " m";
+QString NavigationDataBridge::formatDistance(const oaa::hu::NavigationDistanceData& distance)
+{
+    if (distance.hasDisplayText && !distance.displayText.isEmpty()) {
+        QString text = distance.displayText;
+        if (distance.unit == 4 || distance.unit == 5) {
+            bool parsed = false;
+            const double miles = text.toDouble(&parsed);
+            if (parsed && miles > 9.9)
+                text = formatMiles(miles);
+        }
+        const QString suffix = unitSuffix(distance.unit);
+        return suffix.isEmpty() ? text : text + QStringLiteral(" ") + suffix;
     }
+    return distance.hasValue ? formatLegacyDistance(distance.value, distance.unit) : QString();
+}
+
+QString NavigationDataBridge::formatLegacyDistance(int distanceMeters, int distanceUnit)
+{
+    switch (distanceUnit) {
+    case 1:
+        return distanceMeters >= 1000
+            ? QString::number(distanceMeters / 1000.0, 'f', 1) + QStringLiteral(" km")
+            : QString::number(distanceMeters) + QStringLiteral(" m");
+    case 2:
+    case 3:
+        return QString::number(distanceMeters / 1000.0, 'f', 1) + QStringLiteral(" km");
+    case 4:
+    case 5:
+        return formatMiles(distanceMeters / 1609.34) + QStringLiteral(" mi");
+    case 6:
+        return QString::number(qRound(distanceMeters * 3.28084)) + QStringLiteral(" ft");
+    case 7:
+        return QString::number(qRound(distanceMeters / 0.9144)) + QStringLiteral(" yd");
+    default:
+        return QString::number(distanceMeters) + QStringLiteral(" m");
+    }
+}
+
+QString NavigationDataBridge::formatDuration(qint64 seconds)
+{
+    if (seconds <= 0)
+        return {};
+    if (seconds < 60)
+        return QStringLiteral("<1 min");
+    const qint64 minutes = seconds / 60;
+    if (minutes < 60)
+        return QStringLiteral("%1 min").arg(minutes);
+    const qint64 hours = minutes / 60;
+    const qint64 remainder = minutes % 60;
+    return remainder == 0 ? QStringLiteral("%1 h").arg(hours)
+                          : QStringLiteral("%1 h %2 min").arg(hours).arg(remainder);
 }
 
 QString NavigationDataBridge::formatMiles(double miles)
 {
-    if (miles > 9.9)
-        return QString::number(qRound(miles));
-    return QString::number(miles, 'f', 1);
+    return miles > 9.9 ? QString::number(qRound(miles))
+                       : QString::number(miles, 'f', 1);
 }
 
 QString NavigationDataBridge::unitSuffix(int distanceUnit)
 {
-    // Audited AA 17.3 DistanceDisplayUnit enum. The P1 variants select
-    // one-decimal phone formatting but retain the same unit suffix.
-    // display_text already has correct precision, so we just need the suffix.
     switch (distanceUnit) {
     case 1: return QStringLiteral("m");
-    case 2: return QStringLiteral("km");
+    case 2:
     case 3: return QStringLiteral("km");
-    case 4: return QStringLiteral("mi");
+    case 4:
     case 5: return QStringLiteral("mi");
     case 6: return QStringLiteral("ft");
     case 7: return QStringLiteral("yd");
-    default: return QString();
+    default: return {};
     }
 }
 
