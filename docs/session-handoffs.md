@@ -4,6 +4,45 @@ Newest entries first.
 
 ---
 
+## 2026-08-01 — Fresh-Pi sysfs backlight startup crash
+
+**What changed:** fixed a deterministic `DisplayService` construction-order
+bug exposed by a fresh Raspberry Pi with a real sysfs backlight. The constructor
+previously called `detectBackend()` while initializing `backend_`; that method
+assigned `sysfsPath_` before its `QString` lifetime began. Backend detection now
+runs in the constructor body after all members are constructed. No brightness
+policy or public API changed.
+
+**Status:** FIXED AND LIVE-VERIFIED on `prodigy2.local` at commit `c46bac8`.
+The original service failure reproduced five times as `SIGBUS`; GDB traced it
+through `QString::operator=` to `DisplayService::detectBackend()`. The original
+Pi has no sysfs backlight, while `prodigy2` exposes `10-0045`, confirming why
+only the fresh device entered the invalid path. The reviewed ARM binary is
+deployed; the pre-fix binary remains recoverable as
+`build/src/openauto-prodigy.pre-display-fix`.
+
+**Verification:** the focused display test, native build, explicit
+`openauto-prodigy` target, complete offscreen CTest suite, and
+`./cross-build.sh` passed. The deployed ARM binary matched SHA-256
+`73374ca446b5010fbdb435caed5ce85aacc8a4862355536c59c3ab887d542146`.
+A condition-driven manual launch on `prodigy2` detected
+`/sys/class/backlight/10-0045`, selected backend `sysfs`, reached
+`sd_notify: READY=1 sent`, and shut down cleanly. The node reports max 255 and
+is writable by `matt` through group `video`.
+
+**Review:** the standard Opus review covered immutable range
+`f022a9d..c46bac8` and reported BLOCKER=0, MAJOR=0, MINOR=3. The small-range
+floor and write-permission concerns were dismissed for the supported live
+target using direct hardware evidence; synthetic sysfs coverage and generic
+fallback behavior were deferred to the engineering backlog. No remediation
+pass was needed.
+
+**Next 1–3 steps:** reset the service start limit and start it from an
+interactive sudo session; confirm systemd reaches active/running; push the
+local installer and display fixes only after explicit user authorization.
+
+---
+
 ## 2026-08-01 — Fresh source install protocol-submodule recovery
 
 **What changed:** corrected `install.sh` so a normal initialized protocol

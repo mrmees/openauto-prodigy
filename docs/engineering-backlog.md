@@ -13,6 +13,17 @@ limits, and a verification command before implementation.
 
 ## Configuration and Web Config
 
+- **Display brightness hardware backend lacks synthetic sysfs coverage and
+  generic fallback semantics** — Evidence: **CODE-REVIEW CONFIRMED 2026-08-01;
+  SUPPORTED PI NONBLOCKING**. The live Pi path is safe (`max_brightness=255`,
+  service user in `video`, brightness node writable), but tests cannot inject
+  a synthetic backlight tree. A nonstandard small-range panel can scale the 5%
+  floor to zero, and a detected-but-unwritable node logs instead of falling
+  back to the software overlay. Candidate deliverable: inject the scan root,
+  exercise the real sysfs write path with a temporary tree, retain a nonzero
+  hardware floor, and define fallback behavior for unreadable limits or failed
+  writes.
+
 - **Web settings submit fields the IPC writer ignores** — Evidence:
   **CODE-CONFIRMED 2026-07-24**. settings.html sends video_resolution,
   brightness, and night_mode, while IpcServer::handleSetConfig handles none of
