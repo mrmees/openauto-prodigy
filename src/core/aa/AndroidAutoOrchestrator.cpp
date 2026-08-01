@@ -680,9 +680,12 @@ void AndroidAutoOrchestrator::onNewConnection()
     if (eventBus_) {
         // Navigation events
         connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationStateSnapshotChanged,
-                this, [this](oaa::hu::NavigationState state) {
+                this, [this, publishedNavActive = false](oaa::hu::NavigationState state) mutable {
             const bool active = state == oaa::hu::NavigationState::Active
                 || state == oaa::hu::NavigationState::Rerouting;
+            if (active == publishedNavActive)
+                return;
+            publishedNavActive = active;
             eventBus_->publish("aa.nav.state", QVariantMap{{"active", active}});
         });
         connect(&navHandler_, &oaa::hu::NavigationChannelHandler::navigationNotificationChanged,

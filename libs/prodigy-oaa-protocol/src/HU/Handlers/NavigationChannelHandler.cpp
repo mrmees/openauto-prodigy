@@ -197,10 +197,12 @@ void NavigationChannelHandler::handleNavStep(const QByteArray& payload)
 
     if (msg.steps_size() > 0) {
         const auto& currentStep = msg.steps(0);
-        snapshot.hasManeuver = currentStep.has_maneuver();
+        snapshot.hasManeuver = currentStep.has_maneuver()
+            && currentStep.maneuver().has_type();
         if (snapshot.hasManeuver)
             snapshot.maneuverType = currentStep.maneuver().type();
-        snapshot.hasUpcomingRoad = currentStep.has_instruction();
+        snapshot.hasUpcomingRoad = currentStep.has_instruction()
+            && currentStep.instruction().has_text();
         if (snapshot.hasUpcomingRoad) {
             snapshot.upcomingRoad = QString::fromStdString(
                 currentStep.instruction().text());
@@ -309,7 +311,8 @@ void NavigationChannelHandler::handleNavDistance(const QByteArray& payload)
         snapshot.destinationDistances.append(destination);
     }
 
-    snapshot.hasCurrentRoad = msg.has_current_road();
+    snapshot.hasCurrentRoad = msg.has_current_road()
+        && msg.current_road().has_text();
     if (snapshot.hasCurrentRoad)
         snapshot.currentRoad = QString::fromStdString(msg.current_road().text());
 

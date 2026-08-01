@@ -291,6 +291,46 @@ private slots:
         QVERIFY(second.currentRoad.isEmpty());
     }
 
+    void testSnapshotPresenceRequiresLeafOptionals() {
+        oaa::hu::NavigationChannelHandler handler;
+        QSignalSpy notificationSpy(
+            &handler,
+            &oaa::hu::NavigationChannelHandler::navigationNotificationChanged);
+        QSignalSpy positionSpy(
+            &handler,
+            &oaa::hu::NavigationChannelHandler::navigationPositionChanged);
+
+        oaa::proto::messages::NavigationNotification notification;
+        auto* step = notification.add_steps();
+        step->mutable_maneuver();
+        step->mutable_instruction();
+        QByteArray payload(notification.ByteSizeLong(), '\0');
+        QVERIFY(notification.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(oaa::NavigationMessageId::NAV_STEP, payload);
+
+        oaa::proto::messages::NavigationNextTurnDistanceEvent position;
+        position.mutable_current_road();
+        payload = QByteArray(position.ByteSizeLong(), '\0');
+        QVERIFY(position.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(0x8007, payload);
+
+        QCOMPARE(notificationSpy.count(), 1);
+        const auto notificationSnapshot =
+            qvariant_cast<oaa::hu::NavigationNotificationSnapshot>(
+                notificationSpy[0][0]);
+        QCOMPARE(notificationSnapshot.stepCount, 1);
+        QVERIFY(!notificationSnapshot.hasManeuver);
+        QCOMPARE(notificationSnapshot.maneuverType, 0);
+        QVERIFY(!notificationSnapshot.hasUpcomingRoad);
+        QVERIFY(notificationSnapshot.upcomingRoad.isEmpty());
+
+        QCOMPARE(positionSpy.count(), 1);
+        const auto positionSnapshot =
+            qvariant_cast<oaa::hu::NavigationPositionSnapshot>(positionSpy[0][0]);
+        QVERIFY(!positionSnapshot.hasCurrentRoad);
+        QVERIFY(positionSnapshot.currentRoad.isEmpty());
+    }
+
     void testEmptyVehicleEnergyForecastOuterEmitsOnce() {
         oaa::hu::NavigationChannelHandler handler;
         QSignalSpy forecastSpy(
