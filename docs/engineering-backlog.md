@@ -344,6 +344,18 @@ limits, and a verification command before implementation.
 
 ## Release Engineering and Documentation
 
+- **Protocol submodule helper lacks recovery for uncommon Git metadata
+  states** — Evidence: **CODE-REVIEW CONFIRMED 2026-08-01; CURRENT INSTALL
+  NONBLOCKING**. The source installer now initializes the exact pinned commit
+  from the lightweight `dist` branch, but a missing worktree paired with an
+  existing `.git/modules/.../proto` repository can wedge its separate-git-dir
+  clone. It also does not resync a changed tracked URL or try a direct-SHA fetch
+  if a future rewritten `dist` branch no longer contains an old release pin.
+  Candidate deliverable: reattach an orphaned module gitdir without deleting
+  it, sync the tracked URL while respecting deliberate local overrides, add an
+  actionable direct-pin fallback, and cover both orphaned and legacy
+  standalone-clone migrations with real temporary repositories.
+
 - **Fable review-gate invocation needs a reproducible readiness/progress
   check** — Evidence: **LOCAL TOOLING OBSERVATION 2026-07-25**. Two Fable
   launches created the pinned prompt/diff and a live companion/Claude process
