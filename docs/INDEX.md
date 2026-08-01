@@ -2,6 +2,10 @@
 
 ## Recently Completed Plans
 
+- [Native dashboard richer trip data design](archive/plans/2026-07-31-native-dashboard-richer-trip-data-design.md)
+  and [implementation plan](archive/plans/2026-07-31-native-dashboard-richer-trip-data-plan.md)
+  — completed and hardware-accepted 2026-07-31 with exact rerouting freshness,
+  action-cue and next-step timing, and an adaptive lane-priority trip footer.
 - [Android Auto GAL 5.0–6.0 production compatibility design](archive/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-design.md)
   and [implementation plan](archive/plans/2026-07-26-aa-gal-5-0-to-6-0-production-compatibility-plan.md)
   — completed 2026-07-27 with GAL 6.0/H.265 hardware-accepted on the released
@@ -63,7 +67,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-None.
+- None.
 
 ## Pi Configuration (pi-config/)
 
@@ -74,6 +78,10 @@ None.
 Everything under `archive/` is history, not guidance. Internal links there may point at pre-restructure paths by design.
 
 - [archive/plans/](archive/plans/) — completed/superseded designs and implementation plans, incl. milestone-01..05 history and pre-restructure proto docs
+- [Native Android Auto dashboard turn-card design](archive/plans/2026-07-28-native-dashboard-turn-card-design.md)
+  and [Stage 1 implementation plan](archive/plans/2026-07-28-native-dashboard-turn-card-stage-1-plan.md)
+  — hardware-accepted native semantic guidance with exhaustive maneuver/lane
+  coverage and an evidence-gated path to richer trip semantics.
 - [2026-07-26-aa-gal-4-3-display-compatibility-design.md](archive/plans/2026-07-26-aa-gal-4-3-display-compatibility-design.md) and [implementation plan](archive/plans/2026-07-26-aa-gal-4-3-display-compatibility-plan.md) — completed default-off GAL 4.3 compatibility lab, margin-preserving modern UI metadata, and MAIN+CLUSTER hardware validation
 - [2026-07-25-aa-auxiliary-role-swap-experiment.md](archive/plans/2026-07-25-aa-auxiliary-role-swap-experiment.md) — completed Pixel 8 AUXILIARY/UNKNOWN and AUXILIARY/TURN_CARD role-swap capture with restoration to CLUSTER
 - [2026-07-25-aa-runtime-cluster-lab-plan.md](archive/plans/2026-07-25-aa-runtime-cluster-lab-plan.md) — completed process-lifetime CLUSTER descriptor/crop profiles with Debug Settings and External API action control

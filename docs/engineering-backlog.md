@@ -126,6 +126,64 @@ limits, and a verification command before implementation.
 
 ## Android Auto, Calls, and Core Lifecycle
 
+- **Native navigation QML compares projection-state numeric literals** —
+  Evidence: **REVIEW-CONFIRMED 2026-07-31; NONBLOCKING**.
+  `AAClusterWidget.qml` compares projection state with the current
+  `Connected=3` and `Backgrounded=4` enum values, so accepted behavior is
+  correct. A future enum reorder could silently invalidate the friendly
+  connected/disconnected copy because the QML fixtures use the same literals.
+  Candidate deliverable: expose or consume the existing `Q_ENUM` symbolically,
+  or add a provider-owned connected property, without changing projection
+  lifecycle semantics.
+
+- **Navigation snapshot ordering can delay the destination footer** — Evidence:
+  **REVIEW-CONFIRMED 2026-07-31; HARDWARE-ACCEPTED NONBLOCKING DEFECT**. In the
+  supported wireless-AA path, an initial `0x8006` notification caches the
+  destination while `positionFresh_` is false. If the first `0x8007` position
+  then makes `destination()` visible, the property's declared
+  `turnDataChanged` NOTIFY is not emitted, so QML can leave the footer hidden
+  until the next notification. The symmetric position-before-notification
+  ordering can briefly delay distance-backed bindings. Candidate deliverable:
+  re-home freshness-gated properties on a NOTIFY signal emitted by both
+  snapshots, or emit the inherited turn/distance signals symmetrically; add
+  bridge and real-card ordering tests without replaying either snapshot.
+
+- **Native trip-footer fit math undercounts separator spacing** — Evidence:
+  **REVIEW-CONFIRMED 2026-07-31; COSMETIC**. The metric-fit calculation counts
+  one `itemSpacing` around each one-pixel separator, while the QML `Row` inserts
+  spacing on both sides. At boundary widths it can overestimate available room
+  and overlap the `DESTINATION` label by a few pixels. The metric row also
+  extends one card-padding width into the rounded right edge. Candidate
+  deliverable: count both separator gaps, retain symmetric right padding, and
+  add boundary-width layout coverage while preserving the accepted metric-drop
+  priority and typography floors.
+
+- **Roadless guidance hides an otherwise valid action cue and step time** —
+  Evidence: **OPUS-REVIEW-CONFIRMED 2026-07-31; NONBLOCKING**.
+  `NativeNavigationCard.qml` binds the complete cue/time row visibility to
+  `roadText.visible`. A supported notification or legacy turn event can omit
+  the optional upcoming-road label while still supplying an action cue or
+  positive time to step, causing both values and the `Next turn` fallback to
+  disappear. The card safely degrades to maneuver and distance, so the
+  hardware-accepted tree remains mergeable. Candidate deliverable: decouple
+  cue/time visibility from road-name presence and add real-card coverage for
+  roadless modern and legacy guidance without changing the accepted fit rule.
+
+- **Modern mile rounding only parses C-locale decimal text** — Evidence:
+  **REVIEW-CONFIRMED 2026-07-31; SAFE-DEGRADING**. The whole-mile policy above
+  9.9 uses `QString::toDouble`; comma-decimal or grouped phone text therefore
+  remains verbatim rather than being rounded. Bench evidence used point-decimal
+  miles, and parse failure preserves the phone's text. Candidate deliverable:
+  capture locale-formatted miles before choosing a locale-aware parser.
+
+- **Null navigation-provider Boolean bindings may emit a transient QML
+  warning** — Evidence: **REVIEW-CONFIRMED 2026-07-31; NONFUNCTIONAL**. The
+  native card's `provider && provider.property` expressions can evaluate to
+  null before assignment to Boolean properties. Production installs both
+  context providers before constructing the widget, so no user-visible path is
+  established. Candidate deliverable: explicitly coerce the null branch to
+  false during the next focused edit to the component.
+
 - **Runtime CLUSTER action validation is not observable over External API** —
   Evidence: **CODE-CONFIRMED 2026-07-25**. ActionRegistry reports whether an
   action ID was dispatched, while the CLUSTER controller's accepted/rejected
@@ -161,25 +219,31 @@ limits, and a verification command before implementation.
   whether successful-parse logs should also retain the bounded raw prefix so an
   operator can distinguish a real wrapper from an accidental parse.
 
-- **AUXILIARY/NAVIGATION selector needs AA 17.3 provenance and an upstream enum
-  update** — Evidence: **AUXILIARY/TURN_CARD LIVE-CONFIRMED; MAPS 26.30.05
-  STATIC TRACE; AA 17.3 NAVIGATION PATH PENDING**. A Pixel 8 accepted a
-  MAIN+AUXILIARY role swap on the existing display/channel topology.
-  AUXILIARY/UNKNOWN produced no decodable content; AUXILIARY/TURN_CARD was idle
-  without navigation and rendered a compact maneuver card during an active
-  route. YouTube Music never populated or replaced the auxiliary surface. Maps
-  26.30.05 and AA 16.2/16.4 traces identify AV field 8 values 65538 and 65544 as
-  connection-time NAVIGATION and TURN_CARD selectors, respectively, but the
-  hands-off protocol enum omits `KEYCODE_NAVIGATION = 65538`. Candidate
-  deliverable: resolve open-android-auto issue #14's AA 17.3 consumer trace and
-  enum/provenance update, then run a bounded AUXILIARY/NAVIGATION capture before
-  designing any runtime role/content selector or simultaneous third display.
+- **Hidden Dashboard Navigation row breaks Android Auto settings striping** —
+  Evidence: **REVIEW-CONFIRMED 2026-07-28; COSMETIC**. When projected dashboard
+  display support is disabled, its invisible row retains index 3 and
+  Auto-connect retains index 4, leaving adjacent visible rows with the same
+  background stripe. Candidate deliverable: derive the following row index
+  from the picker's visibility in a focused UI cleanup.
 
-- **AA EventBus connections accumulate across sessions** — Evidence:
-  **CODE-CONFIRMED 2026-07-24**. Navigation and media-status value-member
-  handlers are connected during each new session but omitted from teardown's
-  sender-to-orchestrator disconnect set. Candidate deliverable: one publication
-  per handler signal after any number of reconnects.
+- **Projected secondary-display terminology remains internally split** —
+  Evidence: **REVIEW-CONFIRMED 2026-07-28; NONFUNCTIONAL**. Service discovery
+  and product documentation now correctly call the wire role `AUXILIARY` and
+  the user surface a projected dashboard display, while the internal role,
+  diagnostic prefix, provider, action names, and Debug Settings lab still use
+  `CLUSTER`. Candidate deliverable: choose one internal product-neutral name
+  and perform a separately reviewed mechanical rename without changing channel
+  IDs or wire descriptors.
+
+- **AA navigation EventBus connections accumulate across sessions** — Evidence:
+  **CODE-CONFIRMED 2026-07-24; REVIEW-RECONFIRMED 2026-07-31**.
+  `AndroidAutoOrchestrator::onNewConnection()` adds three `navHandler_` lambdas
+  for `aa.nav.state`, `aa.nav.step`, and `aa.nav.distance` on every session,
+  while teardown does not disconnect `navHandler_`. Reconnects therefore
+  accumulate duplicate publications, including one independent active-state
+  dedup capture per connection. Candidate deliverable: give the navigation
+  publication wiring one lifecycle owner and prove exactly one EventBus
+  publication per handler signal after repeated reconnects.
 
 - **Malformed navigation strings can flood protobuf UTF-8 diagnostics** —
   Evidence: **HARDWARE REVALIDATION REQUIRED; HANDLING GAP CODE-CONFIRMED**.

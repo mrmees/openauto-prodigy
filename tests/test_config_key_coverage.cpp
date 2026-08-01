@@ -60,6 +60,7 @@ void TestConfigKeyCoverage::testAllRuntimeKeys()
         "video.fps",
         "video.resolution",
         "video.dpi",
+        "video.secondary_display_content",
         "identity.head_unit_name",
         "identity.manufacturer",
         "identity.model",

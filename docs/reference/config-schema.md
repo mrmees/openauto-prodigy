@@ -85,6 +85,7 @@ video:
   fps: 30
   resolution: 720p
   dpi: 140
+  secondary_display_content: map
   codecs: [h265, h264]
   decoder:
     h264: auto
@@ -225,6 +226,7 @@ therefore readable and writable with `ConfigService` dot paths.
 | `video.fps` | int | `30` | Requested projection frame rate. |
 | `video.resolution` | string | `720p` | Requested mode: `480p`, `720p`, or `1080p`. |
 | `video.dpi` | int | `140` | Android Auto density hint. |
+| `video.secondary_display_content` | string | `map` | Local presentation for an enabled projected dashboard display: `map` (and missing or invalid values) shows the live decoded map; `turn_card` immediately shows the native semantic maneuver card. It does not reconnect AA or alter the invariant AUXILIARY/NAVIGATION descriptor, and the map decoder remains live. |
 | `video.decoder.h264` | string | `auto` | H.264 decoder choice. |
 | `video.decoder.h265` | string | `auto` | H.265 decoder choice. |
 | `video.decoder.vp9` | string | `auto` | VP9 decoder choice if the codec is enabled. |

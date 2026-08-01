@@ -6,6 +6,7 @@
 
 // oaa proto headers
 #include "oaa/control/ChannelDescriptorData.pb.h"
+#include "oaa/av/AndroidKeycodeEnum.pb.h"
 #include "oaa/input/InputChannelData.pb.h"
 #include "oaa/input/TouchConfigData.pb.h"
 #include "oaa/video/AdditionalVideoConfigData.pb.h"
@@ -620,7 +621,11 @@ private slots:
 
         const auto clusterVideo = descriptorById(session, 12).av_channel();
         QCOMPARE(clusterVideo.video_configs_size(), 1);
-        QVERIFY(!clusterVideo.has_keycode());
+        QCOMPARE(clusterVideo.display_type(),
+                 oaa::proto::enums::DisplayType::AUXILIARY);
+        QVERIFY(clusterVideo.has_keycode());
+        QCOMPARE(clusterVideo.keycode(),
+                 oaa::proto::enums::AndroidKeycode::KEYCODE_NAVIGATION);
         const auto& video = clusterVideo.video_configs(0);
         QCOMPARE(video.has_additional_config(), expectedClusterElement >= 0);
         if (video.has_additional_config()) {
@@ -682,7 +687,7 @@ private slots:
         QVERIFY(!input.touch_screen_configs(0).has_display_type());
     }
 
-    void enabledClusterAdvertisesPairedFixedTopology() {
+    void enabledSecondaryAdvertisesAuxiliaryNavigationTopology() {
         oap::aa::ServiceDiscoveryBuilder builder;
         builder.setProjectedClusterConfig({true, {}});
         const auto config = builder.build();
@@ -700,8 +705,10 @@ private slots:
         const auto clusterVideo = descriptorById(config, 12).av_channel();
         QCOMPARE(clusterVideo.display_id(), 1u);
         QCOMPARE(clusterVideo.display_type(),
-                 oaa::proto::enums::DisplayType::CLUSTER);
-        QVERIFY(!clusterVideo.has_keycode());
+                 oaa::proto::enums::DisplayType::AUXILIARY);
+        QVERIFY(clusterVideo.has_keycode());
+        QCOMPARE(clusterVideo.keycode(),
+                 oaa::proto::enums::AndroidKeycode::KEYCODE_NAVIGATION);
         QCOMPARE(clusterVideo.video_configs_size(), 1);
         const auto& videoConfig = clusterVideo.video_configs(0);
         QCOMPARE(videoConfig.video_resolution(),
@@ -733,13 +740,27 @@ private slots:
             "0801221b0a0d030454555657587e7fdb01e701"
             "120808800a10a80518002800");
         static const QByteArray clusterVideoDescriptor = QByteArray::fromHex(
-            "080c1a170803220f0801100218f40320b401288c01500330013801");
+            "080c1a1b0803220f0801100218f40320b401288c0150033001380240828004");
         static const QByteArray clusterInputDescriptor = QByteArray::fromHex(
             "080d22022801");
         QCOMPARE(channelById(config, 3)->descriptor, pairedMainVideo);
         QCOMPARE(channelById(config, 1)->descriptor, pairedMainInput);
         QCOMPARE(channelById(config, 12)->descriptor, clusterVideoDescriptor);
         QCOMPARE(channelById(config, 13)->descriptor, clusterInputDescriptor);
+    }
+
+    void auxiliaryAlwaysSelectsNavigationProvider()
+    {
+        oap::aa::ProjectedClusterConfig cluster;
+        cluster.enabled = true;
+        oap::aa::ServiceDiscoveryBuilder builder;
+        builder.setProjectedClusterConfig(cluster);
+
+        const auto secondary = descriptorById(builder.build(), 12).av_channel();
+        QCOMPARE(secondary.display_type(),
+                 oaa::proto::enums::DisplayType::AUXILIARY);
+        QCOMPARE(secondary.keycode(),
+                 oaa::proto::enums::AndroidKeycode::KEYCODE_NAVIGATION);
     }
 
     void runtimeClusterProfileDrivesDescriptorAndNativeTurnCardDeclaration() {
@@ -840,8 +861,8 @@ private slots:
             "221b080110021800203a288c015003"
             "5a0c0a08081d101d180020002801300038004803");
         static const QByteArray modernClusterGolden = QByteArray::fromHex(
-            "080c1a270803221f0801100218f40320b401288c015003"
-            "5a0e0a0a085a105a18fa0120fa01280530013801");
+            "080c1a2b0803221f0801100218f40320b401288c015003"
+            "5a0e0a0a085a105a18fa0120fa0128053001380240828004");
         QCOMPARE(channelById(modern, 3)->descriptor, modernMainGolden);
         QCOMPARE(channelById(modern, 12)->descriptor, modernClusterGolden);
     }

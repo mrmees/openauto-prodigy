@@ -17,11 +17,11 @@ private slots:
         QCOMPARE(handler.channelId(), oaa::ChannelId::Navigation);
     }
 
-    void testReroutingRemainsNavigationActive() {
+    void testNavigationStateSnapshotPreservesExactStateAndCloseTransition() {
         oaa::hu::NavigationChannelHandler handler;
         QSignalSpy stateSpy(
             &handler,
-            &oaa::hu::NavigationChannelHandler::navigationStateChanged);
+            &oaa::hu::NavigationChannelHandler::navigationStateSnapshotChanged);
         handler.onChannelOpened();
 
         const auto sendState = [&handler](
@@ -34,25 +34,28 @@ private slots:
         };
 
         sendState(oaa::proto::messages::NAV_STATE_REROUTING);
-        QCOMPARE(stateSpy.count(), 1);
-        QCOMPARE(stateSpy[0][0].toBool(), true);
-
         sendState(oaa::proto::messages::NAV_STATE_ACTIVE);
-        sendState(oaa::proto::messages::NAV_STATE_REROUTING);
-        QCOMPARE(stateSpy.count(), 1);
-
+        sendState(oaa::proto::messages::NAV_STATE_ACTIVE);
         sendState(oaa::proto::messages::NAV_STATE_INACTIVE);
-        QCOMPARE(stateSpy.count(), 2);
-        QCOMPARE(stateSpy[1][0].toBool(), false);
-
         sendState(oaa::proto::messages::NAV_STATE_UNAVAILABLE);
-        QCOMPARE(stateSpy.count(), 2);
+
+        QCOMPARE(stateSpy.count(), 4);
+        QCOMPARE(qvariant_cast<oaa::hu::NavigationState>(stateSpy[0][0]),
+                 oaa::hu::NavigationState::Rerouting);
+        QCOMPARE(qvariant_cast<oaa::hu::NavigationState>(stateSpy[1][0]),
+                 oaa::hu::NavigationState::Active);
+        QCOMPARE(qvariant_cast<oaa::hu::NavigationState>(stateSpy[2][0]),
+                 oaa::hu::NavigationState::Inactive);
+        QCOMPARE(qvariant_cast<oaa::hu::NavigationState>(stateSpy[3][0]),
+                 oaa::hu::NavigationState::Unavailable);
 
         sendState(oaa::proto::messages::NAV_STATE_ACTIVE);
-        sendState(oaa::proto::messages::NAV_STATE_UNAVAILABLE);
-        QCOMPARE(stateSpy.count(), 4);
-        QCOMPARE(stateSpy[2][0].toBool(), true);
-        QCOMPARE(stateSpy[3][0].toBool(), false);
+        handler.onChannelClosed();
+        QCOMPARE(stateSpy.count(), 6);
+        QCOMPARE(qvariant_cast<oaa::hu::NavigationState>(stateSpy[4][0]),
+                 oaa::hu::NavigationState::Active);
+        QCOMPARE(qvariant_cast<oaa::hu::NavigationState>(stateSpy[5][0]),
+                 oaa::hu::NavigationState::Unavailable);
     }
 
     void testTurnEventFullPayload() {
@@ -116,72 +119,216 @@ private slots:
         QVERIFY(spy.count() <= 1);
     }
 
-    void testNotificationMultiStepWithLanes() {
+    void testNotificationSnapshotPreservesCurrentStepAndClearsOnEmptyReplacement() {
         oaa::hu::NavigationChannelHandler handler;
-        QSignalSpy spy(&handler, &oaa::hu::NavigationChannelHandler::navigationNotificationReceived);
+        QSignalSpy notificationSpy(
+            &handler,
+            &oaa::hu::NavigationChannelHandler::navigationNotificationChanged);
 
-        oaa::proto::messages::NavigationNotification msg;
+        oaa::proto::messages::NavigationNotification notification;
 
-        // Step 1: with lanes and road info
-        auto* step1 = msg.add_steps();
+        auto* step1 = notification.add_steps();
         auto* maneuver1 = step1->mutable_maneuver();
         maneuver1->set_type(static_cast<oaa::proto::enums::ManeuverType::Enum>(1));
-        auto* instr1 = step1->mutable_instruction();
-        instr1->set_text("Turn right onto Main St");
+        step1->mutable_instruction()->set_text("Turn right onto Main St");
         auto* lane1 = step1->add_lanes();
         auto* dir1 = lane1->add_directions();
         dir1->set_shape(static_cast<oaa::proto::enums::LaneShape::Enum>(1));
         dir1->set_is_recommended(true);
+        auto* lane2 = step1->add_lanes();
+        auto* dir2 = lane2->add_directions();
+        dir2->set_shape(static_cast<oaa::proto::enums::LaneShape::Enum>(5));
+        dir2->set_is_recommended(false);
         auto* road1 = step1->mutable_road_info();
-        road1->add_road_names("Main St");
+        road1->add_road_names("US-75 North");
+        road1->add_road_names("Downtown");
 
-        // Step 2: with lanes
-        auto* step2 = msg.add_steps();
+        auto* step2 = notification.add_steps();
         auto* maneuver2 = step2->mutable_maneuver();
         maneuver2->set_type(static_cast<oaa::proto::enums::ManeuverType::Enum>(2));
-        auto* instr2 = step2->mutable_instruction();
-        instr2->set_text("Continue onto Highway 101");
-        auto* lane2 = step2->add_lanes();
-        auto* dir2 = lane2->add_directions();
-        dir2->set_shape(static_cast<oaa::proto::enums::LaneShape::Enum>(2));
-        dir2->set_is_recommended(false);
+        step2->mutable_instruction()->set_text("Second step must not leak");
+        step2->add_lanes()->add_directions()->set_shape(
+            static_cast<oaa::proto::enums::LaneShape::Enum>(2));
+        step2->mutable_road_info()->add_road_names("Second step road");
 
-        // Destination
-        auto* dest = msg.add_destinations();
-        dest->set_address("123 Elm Street");
+        notification.add_destinations()->set_address("Stop One");
+        notification.add_destinations()->set_address("Stop Two");
 
-        QByteArray payload(msg.ByteSizeLong(), '\0');
-        msg.SerializeToArray(payload.data(), payload.size());
-
+        QByteArray payload(notification.ByteSizeLong(), '\0');
+        QVERIFY(notification.SerializeToArray(payload.data(), payload.size()));
         handler.onMessage(oaa::NavigationMessageId::NAV_STEP, payload);
 
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy[0][0].toInt(), 2);         // stepCount
-        QCOMPARE(spy[0][1].toInt(), 2);         // total lane count across steps
-        QCOMPARE(spy[0][2].toString(), QString("123 Elm Street")); // destination
+        oaa::proto::messages::NavigationNotification emptyNotification;
+        payload = QByteArray(emptyNotification.ByteSizeLong(), '\0');
+        QVERIFY(emptyNotification.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(oaa::NavigationMessageId::NAV_STEP, payload);
+
+        QCOMPARE(notificationSpy.count(), 2);
+        const auto first = qvariant_cast<oaa::hu::NavigationNotificationSnapshot>(
+            notificationSpy[0][0]);
+        QCOMPARE(first.stepCount, 2);
+        QVERIFY(first.hasManeuver);
+        QCOMPARE(first.maneuverType, 1);
+        QVERIFY(first.hasUpcomingRoad);
+        QCOMPARE(first.upcomingRoad, QStringLiteral("Turn right onto Main St"));
+        QCOMPARE(first.actionCues,
+                 QStringList({QStringLiteral("US-75 North"),
+                              QStringLiteral("Downtown")}));
+        QCOMPARE(first.lanes.size(), 2);
+        QCOMPARE(first.lanes[0].directions.size(), 1);
+        QCOMPARE(first.lanes[0].directions[0].shape, 1);
+        QVERIFY(first.lanes[0].directions[0].recommended);
+        QCOMPARE(first.lanes[1].directions.size(), 1);
+        QCOMPARE(first.lanes[1].directions[0].shape, 5);
+        QVERIFY(!first.lanes[1].directions[0].recommended);
+        QCOMPARE(first.destinations,
+                 QStringList({QStringLiteral("Stop One"),
+                              QStringLiteral("Stop Two")}));
+
+        const auto second = qvariant_cast<oaa::hu::NavigationNotificationSnapshot>(
+            notificationSpy[1][0]);
+        QCOMPARE(second.stepCount, 0);
+        QVERIFY(!second.hasManeuver);
+        QCOMPARE(second.maneuverType, 0);
+        QVERIFY(!second.hasUpcomingRoad);
+        QVERIFY(second.upcomingRoad.isEmpty());
+        QVERIFY(second.actionCues.isEmpty());
+        QVERIFY(second.destinations.isEmpty());
+        QVERIFY(second.lanes.isEmpty());
     }
 
-    void testAuditedCurrentPositionDistanceUsesFieldOne() {
+    void testPositionSnapshotPreservesOptionalFieldsAndClearsOnEmptyReplacement() {
         oaa::hu::NavigationChannelHandler handler;
-        QSignalSpy spy(
+        QSignalSpy positionSpy(
             &handler,
-            &oaa::hu::NavigationChannelHandler::navigationDistanceChanged);
+            &oaa::hu::NavigationChannelHandler::navigationPositionChanged);
 
         oaa::proto::messages::NavigationNextTurnDistanceEvent message;
         auto* distance = message.mutable_step_distance()->mutable_distance();
+        distance->set_distance_value(300);
         distance->set_display_text("0.3");
         distance->set_distance_unit(
             oaa::proto::messages::DISTANCE_UNIT_MILES_P1);
+        message.mutable_step_distance()->set_time_to_step_seconds(-7);
+
+        auto* firstDestination = message.add_destination_distances();
+        firstDestination->mutable_distance()->set_distance_value(1200);
+        firstDestination->mutable_distance()->set_display_text("0.7 mi");
+        firstDestination->mutable_distance()->set_distance_unit(
+            oaa::proto::messages::DISTANCE_UNIT_MILES_P1);
+        firstDestination->set_estimated_time_of_arrival("4:42 PM");
+        firstDestination->set_time_to_arrival_seconds(250);
+
+        auto* secondDestination = message.add_destination_distances();
+        secondDestination->mutable_distance()->set_distance_value(2400);
+        secondDestination->mutable_distance()->set_display_text("1.5 mi");
+        secondDestination->mutable_distance()->set_distance_unit(
+            oaa::proto::messages::DISTANCE_UNIT_MILES_P1);
+        secondDestination->set_estimated_time_of_arrival("4:48 PM");
+        secondDestination->set_time_to_arrival_seconds(0);
+        message.mutable_current_road()->set_text("I-35 South");
 
         QByteArray payload(message.ByteSizeLong(), '\0');
         QVERIFY(message.SerializeToArray(payload.data(), payload.size()));
         handler.onMessage(0x8007, payload);
 
-        QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy[0][0].toString(), QStringLiteral("0.3"));
-        QCOMPARE(spy[0][1].toInt(),
-                 static_cast<int>(
-                     oaa::proto::messages::DISTANCE_UNIT_MILES_P1));
+        oaa::proto::messages::NavigationNextTurnDistanceEvent emptyMessage;
+        payload = QByteArray(emptyMessage.ByteSizeLong(), '\0');
+        QVERIFY(emptyMessage.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(0x8007, payload);
+
+        QCOMPARE(positionSpy.count(), 2);
+        const auto first = qvariant_cast<oaa::hu::NavigationPositionSnapshot>(
+            positionSpy[0][0]);
+        QVERIFY(first.hasStepDistance);
+        QVERIFY(first.stepDistance.hasValue);
+        QCOMPARE(first.stepDistance.value, 300);
+        QVERIFY(first.stepDistance.hasDisplayText);
+        QCOMPARE(first.stepDistance.displayText, QStringLiteral("0.3"));
+        QVERIFY(first.stepDistance.hasUnit);
+        QCOMPARE(first.stepDistance.unit,
+                 static_cast<int>(oaa::proto::messages::DISTANCE_UNIT_MILES_P1));
+        QVERIFY(first.hasTimeToStep);
+        QCOMPARE(first.timeToStepSeconds, qint64(-7));
+        QCOMPARE(first.destinationDistances.size(), 2);
+        QVERIFY(first.destinationDistances[0].hasDistance);
+        QVERIFY(first.destinationDistances[0].distance.hasValue);
+        QCOMPARE(first.destinationDistances[0].distance.value, 1200);
+        QVERIFY(first.destinationDistances[0].distance.hasDisplayText);
+        QCOMPARE(first.destinationDistances[0].distance.displayText,
+                 QStringLiteral("0.7 mi"));
+        QVERIFY(first.destinationDistances[0].distance.hasUnit);
+        QCOMPARE(first.destinationDistances[0].distance.unit,
+                 static_cast<int>(oaa::proto::messages::DISTANCE_UNIT_MILES_P1));
+        QVERIFY(first.destinationDistances[0].hasEstimatedTimeOfArrival);
+        QCOMPARE(first.destinationDistances[0].estimatedTimeOfArrival,
+                 QStringLiteral("4:42 PM"));
+        QVERIFY(first.destinationDistances[0].hasTimeToArrival);
+        QCOMPARE(first.destinationDistances[0].timeToArrivalSeconds, qint64(250));
+        QVERIFY(first.destinationDistances[1].hasDistance);
+        QVERIFY(first.destinationDistances[1].distance.hasValue);
+        QCOMPARE(first.destinationDistances[1].distance.value, 2400);
+        QVERIFY(first.destinationDistances[1].distance.hasDisplayText);
+        QCOMPARE(first.destinationDistances[1].distance.displayText,
+                 QStringLiteral("1.5 mi"));
+        QVERIFY(first.destinationDistances[1].distance.hasUnit);
+        QCOMPARE(first.destinationDistances[1].distance.unit,
+                 static_cast<int>(oaa::proto::messages::DISTANCE_UNIT_MILES_P1));
+        QVERIFY(first.destinationDistances[1].hasEstimatedTimeOfArrival);
+        QCOMPARE(first.destinationDistances[1].estimatedTimeOfArrival,
+                 QStringLiteral("4:48 PM"));
+        QVERIFY(first.destinationDistances[1].hasTimeToArrival);
+        QCOMPARE(first.destinationDistances[1].timeToArrivalSeconds, qint64(0));
+        QVERIFY(first.hasCurrentRoad);
+        QCOMPARE(first.currentRoad, QStringLiteral("I-35 South"));
+
+        const auto second = qvariant_cast<oaa::hu::NavigationPositionSnapshot>(
+            positionSpy[1][0]);
+        QVERIFY(!second.hasStepDistance);
+        QVERIFY(!second.hasTimeToStep);
+        QVERIFY(second.destinationDistances.isEmpty());
+        QVERIFY(!second.hasCurrentRoad);
+        QVERIFY(second.currentRoad.isEmpty());
+    }
+
+    void testSnapshotPresenceRequiresLeafOptionals() {
+        oaa::hu::NavigationChannelHandler handler;
+        QSignalSpy notificationSpy(
+            &handler,
+            &oaa::hu::NavigationChannelHandler::navigationNotificationChanged);
+        QSignalSpy positionSpy(
+            &handler,
+            &oaa::hu::NavigationChannelHandler::navigationPositionChanged);
+
+        oaa::proto::messages::NavigationNotification notification;
+        auto* step = notification.add_steps();
+        step->mutable_maneuver();
+        step->mutable_instruction();
+        QByteArray payload(notification.ByteSizeLong(), '\0');
+        QVERIFY(notification.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(oaa::NavigationMessageId::NAV_STEP, payload);
+
+        oaa::proto::messages::NavigationNextTurnDistanceEvent position;
+        position.mutable_current_road();
+        payload = QByteArray(position.ByteSizeLong(), '\0');
+        QVERIFY(position.SerializeToArray(payload.data(), payload.size()));
+        handler.onMessage(0x8007, payload);
+
+        QCOMPARE(notificationSpy.count(), 1);
+        const auto notificationSnapshot =
+            qvariant_cast<oaa::hu::NavigationNotificationSnapshot>(
+                notificationSpy[0][0]);
+        QCOMPARE(notificationSnapshot.stepCount, 1);
+        QVERIFY(!notificationSnapshot.hasManeuver);
+        QCOMPARE(notificationSnapshot.maneuverType, 0);
+        QVERIFY(!notificationSnapshot.hasUpcomingRoad);
+        QVERIFY(notificationSnapshot.upcomingRoad.isEmpty());
+
+        QCOMPARE(positionSpy.count(), 1);
+        const auto positionSnapshot =
+            qvariant_cast<oaa::hu::NavigationPositionSnapshot>(positionSpy[0][0]);
+        QVERIFY(!positionSnapshot.hasCurrentRoad);
+        QVERIFY(positionSnapshot.currentRoad.isEmpty());
     }
 
     void testEmptyVehicleEnergyForecastOuterEmitsOnce() {
@@ -285,5 +432,5 @@ private slots:
     // NavigationFocusIndication proto retracted in v1.1 (nav focus is on Control channel)
 };
 
-QTEST_MAIN(TestNavigationChannelHandler)
+QTEST_GUILESS_MAIN(TestNavigationChannelHandler)
 #include "test_navigation_channel_handler.moc"

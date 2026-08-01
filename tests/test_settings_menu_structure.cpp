@@ -164,6 +164,21 @@ private slots:
         QVERIFY2(pluginSource.indexOf(QStringLiteral(
                      "connection.gal_version")) >= 0,
                  "Changing production GAL should trigger AA renegotiation");
+        QVERIFY2(aaSource.indexOf(QStringLiteral(
+                     "label: \"Dashboard Navigation\"")) >= 0,
+                 "AASettings should expose the secondary content picker");
+        QVERIFY2(aaSource.indexOf(QStringLiteral(
+                     "configPath: \"video.secondary_display_content\"")) >= 0,
+                 "The secondary content picker should persist through ConfigService");
+        QVERIFY2(aaSource.indexOf(QStringLiteral(
+                     "options: [\"Map\", \"Turn card\"]")) >= 0,
+                 "The secondary content picker should expose the accepted modes");
+        QVERIFY2(aaSource.indexOf(QStringLiteral(
+                     "values: [\"map\", \"turn_card\"]")) >= 0,
+                 "The picker should persist stable protocol-independent values");
+        QVERIFY2(pluginSource.indexOf(QStringLiteral(
+                     "video.secondary_display_content")) < 0,
+                 "Dashboard presentation must not trigger AA renegotiation");
 
         // One apply dispatch carries the complete, normalized CLUSTER profile.
         const int applyFunction = source.indexOf(

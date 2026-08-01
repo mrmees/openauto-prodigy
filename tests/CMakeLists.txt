@@ -246,6 +246,7 @@ oap_add_test(test_media_data_bridge SOURCES test_media_data_bridge.cpp)
 # --- Navigation bridge tests ---
 
 oap_add_test(test_navigation_data_bridge SOURCES test_navigation_data_bridge.cpp)
+oap_add_test(test_navigation_lane_model SOURCES test_navigation_lane_model.cpp)
 oap_add_test(test_maneuver_icon_provider SOURCES test_maneuver_icon_provider.cpp)
 
 # --- External API proto tests ---

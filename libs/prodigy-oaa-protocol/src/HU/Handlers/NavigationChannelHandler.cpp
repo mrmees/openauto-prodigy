@@ -9,22 +9,46 @@
 namespace oaa {
 namespace hu {
 
+namespace {
+
+NavigationDistanceData copyDistance(
+    const oaa::proto::messages::NavigationTurnDistance& distance)
+{
+    NavigationDistanceData result;
+    result.hasValue = distance.has_distance_value();
+    if (result.hasValue)
+        result.value = distance.distance_value();
+    result.hasDisplayText = distance.has_display_text();
+    if (result.hasDisplayText)
+        result.displayText = QString::fromStdString(distance.display_text());
+    result.hasUnit = distance.has_distance_unit();
+    if (result.hasUnit)
+        result.unit = static_cast<int>(distance.distance_unit());
+    return result;
+}
+
+} // namespace
+
 NavigationChannelHandler::NavigationChannelHandler(QObject* parent)
     : oaa::IChannelHandler(parent)
 {
+    qRegisterMetaType<oaa::hu::NavigationLaneGuidance>();
+    qRegisterMetaType<oaa::hu::NavigationState>();
+    qRegisterMetaType<oaa::hu::NavigationNotificationSnapshot>();
+    qRegisterMetaType<oaa::hu::NavigationPositionSnapshot>();
 }
 
 void NavigationChannelHandler::onChannelOpened()
 {
-    navActive_ = false;
+    navigationState_ = NavigationState::Unavailable;
     qInfo() << "[NavChannel] opened";
 }
 
 void NavigationChannelHandler::onChannelClosed()
 {
-    if (navActive_) {
-        navActive_ = false;
-        emit navigationStateChanged(false);
+    if (navigationState_ != NavigationState::Unavailable) {
+        navigationState_ = NavigationState::Unavailable;
+        emit navigationStateSnapshotChanged(navigationState_);
     }
     qInfo() << "[NavChannel] closed";
 }
@@ -98,14 +122,26 @@ void NavigationChannelHandler::handleNavState(const QByteArray& payload)
         return;
     }
 
-    const bool active =
-        msg.state() == oaa::proto::messages::NAV_STATE_ACTIVE
-        || msg.state() == oaa::proto::messages::NAV_STATE_REROUTING;
-    qInfo() << "[NavChannel] state:" << msg.state() << (active ? "(active)" : "(ended)");
+    NavigationState nextState = NavigationState::Unavailable;
+    switch (msg.state()) {
+    case oaa::proto::messages::NAV_STATE_ACTIVE:
+        nextState = NavigationState::Active;
+        break;
+    case oaa::proto::messages::NAV_STATE_INACTIVE:
+        nextState = NavigationState::Inactive;
+        break;
+    case oaa::proto::messages::NAV_STATE_REROUTING:
+        nextState = NavigationState::Rerouting;
+        break;
+    case oaa::proto::messages::NAV_STATE_UNAVAILABLE:
+    default:
+        break;
+    }
 
-    if (navActive_ != active) {
-        navActive_ = active;
-        emit navigationStateChanged(active);
+    qInfo() << "[NavChannel] state:" << msg.state();
+    if (navigationState_ != nextState) {
+        navigationState_ = nextState;
+        emit navigationStateSnapshotChanged(navigationState_);
     }
 }
 
@@ -143,25 +179,47 @@ void NavigationChannelHandler::handleNavStep(const QByteArray& payload)
         return;
     }
 
-    int stepCount = msg.steps_size();
+    NavigationNotificationSnapshot snapshot;
+    snapshot.stepCount = msg.steps_size();
     int totalLanes = 0;
-    QString instruction;
-    int maneuverType = 0;
-    QString destination;
+
+    if (msg.steps_size() > 0) {
+        const auto& currentStep = msg.steps(0);
+        snapshot.hasManeuver = currentStep.has_maneuver()
+            && currentStep.maneuver().has_type();
+        if (snapshot.hasManeuver)
+            snapshot.maneuverType = currentStep.maneuver().type();
+        snapshot.hasUpcomingRoad = currentStep.has_instruction()
+            && currentStep.instruction().has_text();
+        if (snapshot.hasUpcomingRoad) {
+            snapshot.upcomingRoad = QString::fromStdString(
+                currentStep.instruction().text());
+        }
+        if (currentStep.has_road_info()) {
+            const auto& roadInfo = currentStep.road_info();
+            for (int r = 0; r < roadInfo.road_names_size(); ++r) {
+                snapshot.actionCues.append(QString::fromStdString(
+                    roadInfo.road_names(r)));
+            }
+        }
+        for (int l = 0; l < currentStep.lanes_size(); ++l) {
+            NavigationLaneData laneData;
+            const auto& lane = currentStep.lanes(l);
+            for (int d = 0; d < lane.directions_size(); ++d) {
+                const auto& direction = lane.directions(d);
+                laneData.directions.append({
+                    static_cast<int>(direction.shape()),
+                    direction.is_recommended(),
+                });
+            }
+            snapshot.lanes.append(laneData);
+        }
+    }
 
     // Extract data from all steps (multi-step lookahead)
     for (int i = 0; i < msg.steps_size(); ++i) {
         const auto& step = msg.steps(i);
 
-        // Use first step for primary instruction/maneuver (backward compat)
-        if (i == 0) {
-            if (step.has_instruction())
-                instruction = QString::fromStdString(step.instruction().text());
-            if (step.has_maneuver())
-                maneuverType = step.maneuver().type();
-        }
-
-        // Count lanes across all steps
         totalLanes += step.lanes_size();
 
         // Log lane guidance details
@@ -184,19 +242,17 @@ void NavigationChannelHandler::handleNavStep(const QByteArray& payload)
         }
     }
 
-    // Extract destination
-    if (msg.destinations_size() > 0)
-        destination = QString::fromStdString(msg.destinations(0).address());
+    for (int i = 0; i < msg.destinations_size(); ++i) {
+        snapshot.destinations.append(QString::fromStdString(
+            msg.destinations(i).address()));
+    }
 
-    qInfo() << "[NavChannel] notification:" << stepCount << "steps,"
-            << totalLanes << "lanes, dest:" << destination
-            << "instruction:" << instruction << "maneuver:" << maneuverType;
+    qInfo() << "[NavChannel] notification:" << snapshot.stepCount << "steps,"
+            << totalLanes << "lanes, dest:" << snapshot.destinations.value(0)
+            << "instruction:" << snapshot.upcomingRoad
+            << "maneuver:" << snapshot.maneuverType;
 
-    // Emit original signal for backward compatibility
-    emit navigationStepChanged(instruction, destination, maneuverType);
-
-    // Emit enhanced notification signal
-    emit navigationNotificationReceived(stepCount, totalLanes, destination, QString());
+    emit navigationNotificationChanged(snapshot);
 }
 
 void NavigationChannelHandler::handleNavDistance(const QByteArray& payload)
@@ -207,19 +263,43 @@ void NavigationChannelHandler::handleNavDistance(const QByteArray& payload)
         return;
     }
 
-    QString distance;
-    int unit = 0;
-
-    if (msg.has_step_distance() && msg.step_distance().has_distance()) {
-        const auto& d = msg.step_distance().distance();
-        if (d.has_display_text())
-            distance = QString::fromStdString(d.display_text());
-        unit = d.distance_unit();
+    NavigationPositionSnapshot snapshot;
+    snapshot.hasStepDistance = msg.has_step_distance();
+    if (snapshot.hasStepDistance) {
+        const auto& stepDistance = msg.step_distance();
+        if (stepDistance.has_distance())
+            snapshot.stepDistance = copyDistance(stepDistance.distance());
+        snapshot.hasTimeToStep = stepDistance.has_time_to_step_seconds();
+        if (snapshot.hasTimeToStep)
+            snapshot.timeToStepSeconds = stepDistance.time_to_step_seconds();
     }
 
-    qDebug() << "[NavChannel] distance:" << distance << "unit:" << unit;
+    for (int i = 0; i < msg.destination_distances_size(); ++i) {
+        const auto& source = msg.destination_distances(i);
+        NavigationDestinationDistanceData destination;
+        destination.hasDistance = source.has_distance();
+        if (destination.hasDistance)
+            destination.distance = copyDistance(source.distance());
+        destination.hasEstimatedTimeOfArrival = source.has_estimated_time_of_arrival();
+        if (destination.hasEstimatedTimeOfArrival) {
+            destination.estimatedTimeOfArrival = QString::fromStdString(
+                source.estimated_time_of_arrival());
+        }
+        destination.hasTimeToArrival = source.has_time_to_arrival_seconds();
+        if (destination.hasTimeToArrival)
+            destination.timeToArrivalSeconds = source.time_to_arrival_seconds();
+        snapshot.destinationDistances.append(destination);
+    }
 
-    emit navigationDistanceChanged(distance, unit);
+    snapshot.hasCurrentRoad = msg.has_current_road()
+        && msg.current_road().has_text();
+    if (snapshot.hasCurrentRoad)
+        snapshot.currentRoad = QString::fromStdString(msg.current_road().text());
+
+    qDebug() << "[NavChannel] distance:" << snapshot.stepDistance.displayText
+             << "unit:" << snapshot.stepDistance.unit;
+
+    emit navigationPositionChanged(snapshot);
 }
 
 } // namespace hu

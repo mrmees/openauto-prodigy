@@ -37,6 +37,31 @@ Hard-won protocol behavior for the Android Auto runtime. Root `AGENTS.md` holds 
 - **Accepted H.265 is hardware decode, not software fallback.** Pi acceptance
   used FFmpeg `hevc` with a DRM hardware context, `/dev/video19`, V4L2
   stateless request decode, and DMABuf/DRM_PRIME frames.
+- **Projected dashboard presentation is local, not service discovery.** When
+  the secondary display is enabled, it remains `AUXILIARY` display 1 on
+  channels 12/13 and its descriptor always uses `KEYCODE_NAVIGATION`.
+  `video.secondary_display_content` is an immediate local setting: `map`
+  (the default/fallback) shows the live decoded map, while `turn_card` renders
+  the native semantic card from `NavigationProvider` without reconnecting AA
+  or changing the descriptor. The decoder remains live in either mode. The
+  native card consumes exact navigation-state, complete notification, and
+  complete position snapshots. Each successfully parsed modern message
+  replaces its stream; omitted optional fields clear instead of inheriting the
+  previous value. `REROUTING` hides stale guidance behind `Finding a new route`
+  until a fresh notification arrives. The card uses the first ordered action
+  cue distinct from the upcoming-road label, may append coarse next-step time
+  when it fits, and shows index-zero destination distance, phone-formatted ETA,
+  single-destination remaining duration, and an overflow-only address marquee
+  when available. Live lane guidance replaces that complete footer and remains
+  one continuous roadway band, not a row of button-like cells. The deprecated
+  flat turn event remains a compatibility fallback. Do not infer multi-stop
+  numeric duration, roundabout detail, current road, or lookahead without new
+  recorded delivery evidence.
+- **Navigation provider notifications have one owner.**
+  `NavigationDataBridge` emits the inherited `INavigationProvider` signals; do
+  not redeclare shadow signals in the derived class. This keeps External API v1
+  navigation pushes live without changing their payload. Exact rerouting
+  intentionally clears stale route fields until fresh guidance arrives.
 
 ## Production GAL session policy
 

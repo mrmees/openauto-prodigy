@@ -19,9 +19,62 @@ spike, or research-first feasibility work.
 
 ## Now
 
-No promoted work is currently active.
+No work is currently promoted. Unpromoted user capabilities live in
+`docs/wishlist.md`; technical leads live in `docs/engineering-backlog.md` and
+require fresh research before promotion.
 
 ## Done (recent)
+
+- Native Android Auto dashboard richer trip data — **COMPLETED 2026-07-31;
+  HARDWARE ACCEPTED** at code anchor `e26e940`. Exact replacement snapshots now
+  preserve rerouting freshness, ordered action-cue semantics, optional
+  next-step timing, and index-zero destination distance/ETA with
+  single-destination remaining duration. Live lanes replace the complete trip
+  footer; otherwise the adaptive footer retains the accepted address marquee
+  and drops lower-priority metrics before shrinking type. The one-screen
+  Samsung/Pi run passed Map, immediate Map→Turn with uninterrupted audio,
+  no-lane trip data, stable lane replacement, rerouting placeholder/recovery,
+  route-end clearing, and immediate Map restoration. Focused tests, the native
+  and explicit app builds, full offscreen CTest, ARM cross-build, exact Pi hash,
+  and service restart passed. The bounded Fable pass found no blocker; one
+  major and three minor facts were confirmed, three deferred to the engineering
+  backlog, and the restored inherited-provider notification path was accepted
+  as intended. Completed design and plan:
+  `docs/archive/plans/2026-07-31-native-dashboard-richer-trip-data-design.md`
+  and
+  `docs/archive/plans/2026-07-31-native-dashboard-richer-trip-data-plan.md`.
+
+- Native Android Auto dashboard turn card — **COMPLETED 2026-07-31; HARDWARE
+  ACCEPTED** at code anchor `5a2b1b5`. Map remains the phone's invariant
+  AUXILIARY/NAVIGATION provider, while the durable Map/Turn card setting now
+  switches local presentation immediately without reconnecting AA. The native
+  theme-aware card covers every defined maneuver and lane shape, composes all
+  directions belonging to one physical lane, shares maneuver geometry between
+  the hero and lane band, and gives live lanes priority over an adaptive
+  scrolling destination footer. The final hierarchy uses a wider label-free
+  maneuver tile, right-aligned distance block, centered road row, and whole
+  miles above 9.9. Pixel and Samsung testing covered the one-screen Map/card
+  path sequentially, live route and lane guidance, state changes, audio, and
+  installed-distance readability. The native/app/offscreen CTest/ARM gate
+  passed; the bounded Fable review returned no blocker or major and deferred
+  four minor research leads. Completed design and Stage 1 plan:
+  `docs/archive/plans/2026-07-28-native-dashboard-turn-card-design.md` and
+  `docs/archive/plans/2026-07-28-native-dashboard-turn-card-stage-1-plan.md`.
+
+- Selectable Android Auto projected dashboard navigation — **COMPLETED
+  2026-07-28; HARDWARE ACCEPTED** at code anchor `1b10864`. When the existing
+  projected dashboard display is enabled, Prodigy now advertises one stable
+  AUXILIARY display on channels 12/13 and exposes a durable Android Auto
+  setting for `Map` (`KEYCODE_NAVIGATION`, the default/fallback) or `Turn card`
+  (`KEYCODE_TURN_CARD`). A real selection change performs an AA-only reconnect
+  so the phone consumes a fresh service-discovery descriptor; later input
+  keycodes are not treated as content switches. The Pi/phone bench confirmed
+  Map → Turn card → Map reconnects, full map rendering, a native no-route Maps
+  icon, and its immediate replacement by the compact maneuver display when a
+  route started. The native build, explicit app target, offscreen CTest, and
+  ARM cross-build passed. The bounded Opus gate returned no blocker; its one
+  major and two minor findings were confirmed, judged nonblocking after the
+  hardware-accepted anchor, and recorded in the engineering backlog.
 
 - Android Auto GAL 5.0–6.0 production compatibility — **COMPLETED 2026-07-27;
   HARDWARE ACCEPTED**. The released open-android-auto v1.5 boundary is pinned

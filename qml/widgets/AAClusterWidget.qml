@@ -10,13 +10,15 @@ Item {
     property bool ownsSink: false
     property int sinkClaimAttempts: 0
     property string localStatusText: ""
+    property string dashboardNavigationMode: "map"
     readonly property int maxSinkClaimAttempts: 8
+    readonly property bool isMapMode: dashboardNavigationMode === "map"
     readonly property bool isCurrentPage: widgetContext
                                           ? widgetContext.isCurrentPage
                                           : false
 
     function syncSinkClaim() {
-        if (!isCurrentPage) {
+        if (!isCurrentPage || !isMapMode) {
             if (ownsSink)
                 AAClusterDisplay.detachVideoSink(videoOutput.videoSink)
             ownsSink = false
@@ -31,6 +33,10 @@ Item {
         if (!ownsSink)
             ++sinkClaimAttempts
         localStatusText = ownsSink ? "" : "Cluster display already in use"
+    }
+
+    function normalizeDashboardNavigationMode(value) {
+        return value === "turn_card" ? "turn_card" : "map"
     }
 
     Item {
@@ -50,7 +56,7 @@ Item {
                 ? root.width / contentAspect : root.height
         anchors.centerIn: parent
         clip: true
-        visible: root.ownsSink && AAClusterDisplay.rendering
+        visible: root.isMapMode && root.ownsSink && AAClusterDisplay.rendering
 
         VideoOutput {
             id: videoOutput
@@ -72,7 +78,7 @@ Item {
         anchors.centerIn: parent
         width: Math.max(0, parent.width - UiMetrics.spacing * 2)
         spacing: UiMetrics.spacing
-        visible: !cropViewport.visible
+        visible: root.isMapMode && !cropViewport.visible
         opacity: 0.6
 
         MaterialIcon {
@@ -90,8 +96,19 @@ Item {
             font.pixelSize: UiMetrics.fontBody
             text: root.localStatusText.length > 0
                   ? root.localStatusText
-                  : AAClusterDisplay.statusText
+                  : AAClusterDisplay.awaitingContent
+                    ? "Waiting for map"
+                    : AAClusterDisplay.statusText
         }
+    }
+
+    NativeNavigationCard {
+        anchors.fill: parent
+        visible: !root.isMapMode
+        navigationProvider: NavigationProvider
+        aaConnected: ProjectionStatus
+                     && (ProjectionStatus.projectionState === 3
+                         || ProjectionStatus.projectionState === 4)
     }
 
     // SwipeView keeps adjacent dashboard pages loaded. A bounded retry window
@@ -100,7 +117,7 @@ Item {
     Timer {
         interval: 250
         repeat: true
-        running: root.isCurrentPage && !root.ownsSink
+        running: root.isCurrentPage && root.isMapMode && !root.ownsSink
                  && root.sinkClaimAttempts < root.maxSinkClaimAttempts
         onTriggered: root.syncSinkClaim()
     }
@@ -109,10 +126,23 @@ Item {
         target: AAClusterDisplay
         function onVideoSinkAvailabilityChanged() {
             if (AAClusterDisplay.videoSinkAvailable
-                    && root.isCurrentPage && !root.ownsSink) {
+                    && root.isCurrentPage && root.isMapMode
+                    && !root.ownsSink) {
                 root.sinkClaimAttempts = 0
                 root.syncSinkClaim()
             }
+        }
+    }
+
+    Connections {
+        target: ConfigService
+        function onConfigChanged(path, value) {
+            if (path !== "video.secondary_display_content")
+                return
+            root.dashboardNavigationMode =
+                root.normalizeDashboardNavigationMode(value)
+            root.sinkClaimAttempts = 0
+            root.syncSinkClaim()
         }
     }
 
@@ -121,7 +151,11 @@ Item {
         syncSinkClaim()
     }
 
-    Component.onCompleted: syncSinkClaim()
+    Component.onCompleted: {
+        dashboardNavigationMode = normalizeDashboardNavigationMode(
+            ConfigService.value("video.secondary_display_content"))
+        syncSinkClaim()
+    }
 
     Component.onDestruction: {
         if (ownsSink)

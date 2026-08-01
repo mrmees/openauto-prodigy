@@ -47,6 +47,19 @@ Flickable {
         }
 
         SettingsRow { rowIndex: 3
+            visible: typeof AAClusterDisplay !== "undefined"
+                     && AAClusterDisplay !== null
+                     && AAClusterDisplay.state !== 0
+            FullScreenPicker {
+                flat: true
+                label: "Dashboard Navigation"
+                configPath: "video.secondary_display_content"
+                options: ["Map", "Turn card"]
+                values: ["map", "turn_card"]
+            }
+        }
+
+        SettingsRow { rowIndex: 4
             SettingsToggle {
                 label: "Auto-connect"
                 configPath: "connection.auto_connect_aa"

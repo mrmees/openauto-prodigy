@@ -122,6 +122,18 @@ class TestProjectedDisplaySession : public QObject {
     Q_OBJECT
 
 private slots:
+    void waitingForFramesExposesFriendlyContentState()
+    {
+        auto display = enabledClusterDisplay();
+        QVERIFY(!display.isAwaitingContent());
+
+        display.beginProtocolSession();
+        QVERIFY(!display.isAwaitingContent());
+        display.videoHandler()->onChannelOpened();
+        display.noteChannelOpened(oaa::ChannelId::ClusterVideo);
+        QVERIFY(display.isAwaitingContent());
+    }
+
     void decoderConstructionFailureEntersErrorAtProtocolStart()
     {
         oap::aa::VideoDecoderTestAccess::failNextCodecInitialization();

@@ -125,6 +125,52 @@ says that the CLUSTER descriptor can host the native turn-card UI element. It
 does not render a turn card, select phone content, or promise that the phone
 will use the declaration.
 
+### Projected dashboard content selection
+
+An enabled projected dashboard display is advertised as `AUXILIARY` display 1
+on the established video/input channel pair 12/13. Its descriptor always
+serializes `KEYCODE_NAVIGATION` (65538); it does not select a phone turn-card
+provider. `video.secondary_display_content` is a local immediate presentation
+setting: `map` (the default and invalid-value fallback) attaches the existing
+decoded map surface, while `turn_card` hides that surface and renders the
+native card. Switching the setting does not reconnect AA, change the
+descriptor, carrier geometry, channels, codec policy, or decoder lifecycle.
+The map decoder remains live while the native card is visible.
+
+The native card consumes `NavigationProvider` semantics produced from three
+independent modern navigation streams. `NavigationState` keeps exact active,
+inactive, unavailable, and rerouting states. Every successfully parsed
+`NavigationNotification` (`0x8006`) and
+`NavigationNextTurnDistanceEvent` (`0x8007`) is a complete replacement
+snapshot: omitted cues, timing, lanes, distances, or destinations clear rather
+than inheriting the preceding value. The deprecated flat turn event remains a
+compatibility fallback.
+
+The accepted hierarchy keeps the maneuver and primary distance dominant, with
+the upcoming road centered below. The card selects the first ordered action
+cue that is nonempty and distinct from that road label; coarse next-step time
+appears only when it fits without shrinking the established typography. On
+rerouting, all cached maneuver, lane, distance, timing, and destination values
+are hidden behind `Finding a new route`. A following active state alone does
+not restore them; a fresh notification restores primary guidance, while a
+fresh position snapshot separately restores eligible distance and trip data.
+Inactive, unavailable, and channel-close transitions clear the route.
+
+When lanes are absent, destination and destination-distance index zero drive a
+fixed-height footer with compact destination distance, the phone-formatted ETA,
+single-destination remaining duration, and the overflow-only address marquee.
+Lower-priority metrics yield at compact widths before typography shrinks. Live
+lanes replace the entire footer and retain the accepted continuous
+roadway-style band with multiple directions per physical lane. Multi-stop
+numeric duration, roundabout detail, current road, and other-provider lookahead
+remain evidence-gated in
+[current milestone validation](../validation-current.md).
+
+`NavigationDataBridge` emits the inherited `INavigationProvider` change
+signals rather than shadow declarations. That restores the intended External
+API v1 navigation-push path without changing its payload shape; rerouting
+intentionally publishes empty stale route fields until fresh guidance arrives.
+
 ### GAL and per-video UI policy
 
 The requested tuple, not the phone-reported compatible tuple, is the sole
@@ -255,6 +301,8 @@ policy selects CLUSTER content and runtime message 26 cannot add or replace
 AV/CLUSTER services.
 
 The follow-up AUXILIARY role-swap produced a different, deterministic result.
+This is historical provider-selection evidence, superseded by the Stage 1
+local-native-card policy above.
 AA 17.3 accepted MAIN ID 0 plus AUXILIARY ID 1 on the existing channel 12/13
 pair. With AV field 8 omitted (`KEYCODE_UNKNOWN`), the phone opened and started
 the stream but sent only the codec header and no decodable frame. Advertising
@@ -265,13 +313,16 @@ surface. The session-bit-16 A/B made no content change, matching the corrected
 17.3 trace.
 
 Maps 26.30.05 publishes separate CLUSTER and AUXILIARY projection services.
-Its decompiled routing path identifies AV field 8 as the AUXILIARY initial
-content selector: `KEYCODE_NAVIGATION` (65538) selects a limited navigation
-map and `KEYCODE_TURN_CARD` selects a turn-card service/fallback. The local
-hands-off protocol enum lacks `KEYCODE_NAVIGATION`, and the available Maps
-report traces this selector through AA 16.2/16.4 rather than 17.3. The current
-17.3 confirmation and enum/provenance update are tracked upstream in
-open-android-auto issue #14; Prodigy has not patched the submodule locally.
+Its routing path and the resolved AA 17.3 consumer trace identify AV field 8
+as the AUXILIARY initial-content selector. Open-android-auto v1.5 now carries
+the confirmed `KEYCODE_NAVIGATION` enum, so Prodigy consumes it through the
+hands-off protocol submodule rather than a local proto patch. A 2026-07-28
+Pi/phone probe advertised AUXILIARY/NAVIGATION on channels 12/13; the phone
+opened both channels, streamed H.265 with normal ACK flow, decoded the expected
+800×480 carrier, and rendered the navigation map normally. Together with the
+earlier live TURN_CARD route/no-route result, this established the former
+phone-provider experiment. Current production descriptors retain the invariant
+NAVIGATION provider and make the map/turn-card choice locally.
 
 ## Evdev mapping
 
@@ -337,6 +388,9 @@ without building shell-specific hit testing into the AA touch reader.
   1.7, 4.3, 5.0, 5.1, and 6.0; missing or invalid values resolve to 6.0.
 - Runtime CLUSTER profile changes use that same reconnect boundary but do not
   restart Prodigy or persist to YAML.
+- `video.secondary_display_content` is separate from those discovery settings:
+  it switches local map versus native-card presentation immediately, without an
+  AA reconnect or descriptor change; the decoder remains live.
 - Navbar edge/visibility changes are not a live AA viewport feature today; the
   settings surface treats visibility as restart-required.
 - Wire ID `0x8012` currently carries the HU's response to phone-supplied theming
