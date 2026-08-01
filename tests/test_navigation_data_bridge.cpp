@@ -477,9 +477,18 @@ private slots:
         oap::aa::NavigationDataBridge bridge;
         bridge.connectToHandler(&handler);
 
+        publishVisible(handler, notification(), position(
+            distance(1609, 4, QStringLiteral("1.0")), 0,
+            {destinationDistance(19312, 4, QStringLiteral("4:42 PM"), 0,
+                                 QStringLiteral("12"))}));
+        QVERIFY(bridge.hasDistance());
+        QCOMPARE(bridge.formattedDistance(), QStringLiteral("1.0 mi"));
+        QVERIFY(bridge.hasDestinationDistance());
+        QCOMPARE(bridge.formattedDestinationDistance(), QStringLiteral("12 mi"));
+
         auto valueOnly = distance(1609, 4);
         valueOnly.hasDisplayText = false;
-        publishVisible(handler, notification(), position(valueOnly, 0,
+        emit handler.navigationPositionChanged(position(valueOnly, 0,
             {destinationDistance(19312, 4, QStringLiteral("4:42 PM"), 0)}));
         QVERIFY(!bridge.hasDistance());
         QCOMPARE(bridge.distanceMeters(), 0);
