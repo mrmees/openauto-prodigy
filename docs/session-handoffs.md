@@ -4,6 +4,31 @@ Newest entries first.
 
 ---
 
+## 2026-07-31 — ALPHA-26-07-31-01 release
+
+**What changed:** merged PR #43 as `cd4b6b0b7154fcc70a8242267683e21dc6c2b7f5`,
+fast-forwarded remote `dev` to the same commit, and created/pushed annotated tag
+`ALPHA-26-07-31-01` on that merge. The official Pi prerelease is published at
+`https://github.com/mrmees/openauto-prodigy/releases/tag/ALPHA-26-07-31-01`.
+
+**Status:** RELEASED. The tagged ARM binary embeds `ALPHA-26-07-31-01` and has
+SHA-256 `8b97e284193d6817cee23b237de366020e17d68550bceef77d7b5f275442d139`.
+The packaged asset has SHA-256
+`8e8ffd3502ff0ddc28e4db11bbd08697b7b19b3330fc8bc7275ab95ae5b5a51e`
+and includes the required patched PipeWire mSBC package.
+
+**Verification:** PR state and merge SHA, remote branches/tag peel, embedded
+version, ARM architecture, package manifest/inner-binary hash, release asset
+upload, tracked doc links, and whitespace all passed. The application code had
+already passed the focused/native/full/ARM and sequential Pi/Samsung gates;
+Opus 4.6 returned **MERGE** with no blocker before integration.
+
+**Next 1–3 steps:** keep the roadless-guidance presentation edge and the other
+confirmed nonblocking navigation leads in the engineering backlog until a new
+user-authorized scope promotes them.
+
+---
+
 ## 2026-07-31 — Native dashboard PR and Opus pre-merge review
 
 **What changed:** pushed the completed `dev` branch and opened draft PR #43,
