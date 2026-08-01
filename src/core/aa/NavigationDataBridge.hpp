@@ -101,9 +101,9 @@ private slots:
 private:
     bool guidanceVisible() const;
     bool tripVisible() const;
-    void clearSnapshotData();
+    bool clearSnapshotData();
     void clearIcon();
-    void replaceLanes(const oaa::hu::NavigationLaneGuidance& lanes);
+    bool replaceLanes(const oaa::hu::NavigationLaneGuidance& lanes);
     const oaa::hu::NavigationDestinationDistanceData* firstDestinationDistance() const;
 
     oaa::hu::NavigationState navigationState_ = oaa::hu::NavigationState::Unavailable;

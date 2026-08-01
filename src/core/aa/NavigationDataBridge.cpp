@@ -82,7 +82,7 @@ int NavigationDataBridge::distanceMeters() const
 {
     if (!tripVisible())
         return 0;
-    return legacyDistance_ ? legacyDistanceMeters_ : stepDistance_.value;
+    return legacyDistance_ ? legacyDistanceMeters_ : 0;
 }
 
 bool NavigationDataBridge::hasManeuverIcon() const
@@ -98,8 +98,8 @@ bool NavigationDataBridge::hasLaneGuidance() const
 bool NavigationDataBridge::hasDistance() const
 {
     return tripVisible()
-        && (legacyDistance_ || (hasStepDistance_
-            && (stepDistance_.hasValue || stepDistance_.hasDisplayText)));
+        && (legacyDistance_ || (hasStepDistance_ && stepDistance_.hasDisplayText
+            && !stepDistance_.displayText.isEmpty()));
 }
 
 bool NavigationDataBridge::hasActionCue() const
@@ -137,7 +137,7 @@ bool NavigationDataBridge::hasDestinationDistance() const
 {
     const auto* entry = firstDestinationDistance();
     return tripVisible() && !destinations_.isEmpty() && entry && entry->hasDistance
-        && (entry->distance.hasValue || entry->distance.hasDisplayText);
+        && entry->distance.hasDisplayText && !entry->distance.displayText.isEmpty();
 }
 
 QString NavigationDataBridge::formattedDestinationDistance() const
@@ -180,7 +180,7 @@ void NavigationDataBridge::clearIcon()
         iconProvider_->updateIcon({});
 }
 
-void NavigationDataBridge::clearSnapshotData()
+bool NavigationDataBridge::clearSnapshotData()
 {
     roadName_.clear();
     actionCue_.clear();
@@ -198,7 +198,7 @@ void NavigationDataBridge::clearSnapshotData()
     notificationFresh_ = false;
     positionFresh_ = false;
     clearIcon();
-    laneModel_->clear();
+    return laneModel_->clear();
 }
 
 void NavigationDataBridge::onNavigationStateChanged(oaa::hu::NavigationState state)
@@ -210,25 +210,27 @@ void NavigationDataBridge::onNavigationStateChanged(oaa::hu::NavigationState sta
     navigationState_ = state;
     receivedState_ = true;
 
+    bool lanesChanged = false;
     if (state == oaa::hu::NavigationState::Rerouting) {
         awaitingPostReroute_ = true;
-        clearSnapshotData();
+        lanesChanged = clearSnapshotData();
     } else if (state == oaa::hu::NavigationState::Inactive
                || state == oaa::hu::NavigationState::Unavailable) {
         awaitingPostReroute_ = false;
-        clearSnapshotData();
+        lanesChanged = clearSnapshotData();
     }
 
     if (wasActive != navActive())
         emit navActiveChanged();
     emit turnDataChanged();
     emit distanceChanged();
-    emit laneGuidanceChanged();
+    if (lanesChanged)
+        emit laneGuidanceChanged();
     emit tripDataChanged();
     emit navigationPresentationChanged();
 }
 
-void NavigationDataBridge::replaceLanes(const oaa::hu::NavigationLaneGuidance& lanes)
+bool NavigationDataBridge::replaceLanes(const oaa::hu::NavigationLaneGuidance& lanes)
 {
     LanePresentationList presentation;
     presentation.reserve(lanes.size());
@@ -240,7 +242,7 @@ void NavigationDataBridge::replaceLanes(const oaa::hu::NavigationLaneGuidance& l
         }
         presentation.append(directions);
     }
-    laneModel_->replaceLanes(presentation);
+    return laneModel_->replaceLanes(presentation);
 }
 
 void NavigationDataBridge::onNavigationNotificationChanged(
@@ -259,12 +261,13 @@ void NavigationDataBridge::onNavigationNotificationChanged(
         }
     }
     destinations_ = snapshot.destinations;
-    replaceLanes(snapshot.lanes);
+    const bool lanesChanged = replaceLanes(snapshot.lanes);
     notificationFresh_ = true;
     awaitingPostReroute_ = false;
 
     emit turnDataChanged();
-    emit laneGuidanceChanged();
+    if (lanesChanged)
+        emit laneGuidanceChanged();
     emit tripDataChanged();
     emit navigationPresentationChanged();
 }
@@ -306,7 +309,7 @@ void NavigationDataBridge::onNavigationTurnEvent(const QString& roadName, int ma
     notificationFresh_ = true;
     positionFresh_ = true;
     awaitingPostReroute_ = false;
-    replaceLanes({});
+    const bool lanesChanged = replaceLanes({});
 
     if (!turnIcon.isEmpty()) {
         currentIcon_ = turnIcon;
@@ -317,7 +320,8 @@ void NavigationDataBridge::onNavigationTurnEvent(const QString& roadName, int ma
 
     emit turnDataChanged();
     emit distanceChanged();
-    emit laneGuidanceChanged();
+    if (lanesChanged)
+        emit laneGuidanceChanged();
     emit tripDataChanged();
     emit navigationPresentationChanged();
 }
@@ -325,7 +329,7 @@ void NavigationDataBridge::onNavigationTurnEvent(const QString& roadName, int ma
 QString NavigationDataBridge::formattedDistance() const
 {
     if (!hasDistance())
-        return receivedState_ ? QString() : QStringLiteral("0 m");
+        return QStringLiteral("0 m");
     return legacyDistance_ ? formatLegacyDistance(legacyDistanceMeters_, legacyDistanceUnit_)
                            : formatDistance(stepDistance_);
 }
@@ -343,7 +347,7 @@ QString NavigationDataBridge::formatDistance(const oaa::hu::NavigationDistanceDa
         const QString suffix = unitSuffix(distance.unit);
         return suffix.isEmpty() ? text : text + QStringLiteral(" ") + suffix;
     }
-    return distance.hasValue ? formatLegacyDistance(distance.value, distance.unit) : QString();
+    return {};
 }
 
 QString NavigationDataBridge::formatLegacyDistance(int distanceMeters, int distanceUnit)
