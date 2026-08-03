@@ -4,6 +4,50 @@ Newest entries first.
 
 ---
 
+## 2026-08-02 — External data-provider API contract approved and reviewed
+
+**What changed:** added the ACTIVE external data-provider API design and linked
+it from the documentation index. The contract is source-agnostic: one
+authenticated session owns one live provider namespace, declares arbitrary
+typed-scalar channels, and publishes at backend-selected cadence. Consumers
+discover the live catalog and subscribe by exact provider/channel identity;
+subscriptions wait through provider absence and resume automatically. Prodigy
+retains only current values, performs no semantic arbitration, conversion,
+rate selection, history, or command routing, and exposes web widgets only
+through the same additive protobuf API.
+
+**Why:** the original OBD framing was too narrow. The intended boundary must be
+usable by independently developed OBD, CAN, GPIO, MQTT, simulator, or other
+backends and by Gauge Studio without making Prodigy a source-specific policy or
+performance gatekeeper.
+
+**Status:** DESIGN APPROVED; implementation planning awaits Matthew's review of
+the written file. No production code, protobuf, Gauge Studio, or backend source
+changed in this session.
+
+**Review:** the requested read-only Opus 4.6 pass returned `APPROVE WITH
+CHANGES`: BLOCKER 0, MAJOR 2, MINOR 6. All eight findings were confirmed and
+incorporated. The two majors added snapshot-guarded/reentrancy-safe fan-out and
+an explicit `Ack`-before-catalog-snapshot contract. The minors clarified
+request-scoped declaration rejection, empty scalar presence, namespace-switch
+rejection, metadata-change ordering, JavaScript timestamp conversion, and
+reconnect-gap request behavior. No remediation review was needed.
+
+**Verification:** `python3 scripts/check-doc-links.py`, tracked and untracked
+Markdown whitespace checks, placeholder/ambiguity searches, and live-schema
+allocation inspection passed. Opus independently confirmed that capability
+field 3 and envelope fields 80–94 are available at the grounded commit and that
+the proposed proto3 presence/oneof shapes are legal. Application builds and
+CTest were not run because this change is documentation only.
+
+**Next 1–3 steps:** Matthew reviews
+`docs/plans/2026-08-02-external-data-provider-api-design.md`; after approval,
+write the cross-repository implementation plan; execute Prodigy, Gauge Studio,
+and backend work against the one canonical contract with independent gates in
+each repository.
+
+---
+
 ## 2026-08-01 — Fresh-Pi sysfs backlight startup crash
 
 **What changed:** fixed a deterministic `DisplayService` construction-order
