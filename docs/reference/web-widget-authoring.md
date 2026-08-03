@@ -122,8 +122,11 @@ const unsubscribe = prodigy.data.subscribe({
   providerNamespace: 'com.example.vehicle',
   channelName: 'engine.rpm'
 }, event => {
-  if (!event.available || !event.sample) {
-    renderUnavailable(event.unavailableReason);
+  const usable = event.sample &&
+    ['good', 'degraded', 'unknown'].includes(event.sample.quality) &&
+    event.sample.value !== undefined;
+  if (!event.available || !usable) {
+    renderUnavailable(event.unavailableReason || event.sample?.quality);
     return;
   }
   renderValue(event.sample.value, event.definition.unit);
@@ -145,7 +148,8 @@ The callback object has this stable shape:
   providerNamespace: 'com.example.vehicle',
   channelName: 'engine.rpm',
   available: true,
-  unavailableReason: null,       // provider_absent/channel_absent/etc. when false
+  unavailableReason: null,       // provider_absent/channel_absent/etc. when false;
+                                 // link_lost means this widget's API socket closed
   definition: {                  // present only while available
     channelName: 'engine.rpm',
     displayName: 'Engine RPM',
@@ -171,6 +175,11 @@ retain their native types. Do not pass an integer through `Number(...)` unless
 your renderer has first proved it is inside JavaScript's safe-integer range.
 `timestampMs` is deliberately a number because Unix epoch milliseconds are
 safe, but it is provenance/display data—not a freshness clock.
+
+Samples whose quality is `stale`, `invalid`, or `unavailable` may omit the
+scalar value. Treat quality and value presence as usability gates; availability
+alone says the channel definition is live, not that the current sample is fit
+to display.
 
 Every live gauge must own a finite positive stale timeout. Schedule it from
 `receivedAtMonotonicMs` and compare against `performance.now()`; never compare

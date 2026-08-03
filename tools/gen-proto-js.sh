@@ -30,7 +30,8 @@ fi
 
 # pbjs indents otherwise-empty generated lines. Normalize those lines so a
 # schema regeneration remains compatible with the repository's diff check.
-sed -i 's/[[:space:]]*$//' resources/web/prodigy-proto.js
+sed 's/[[:space:]]*$//' resources/web/prodigy-proto.js > "$WORK/prodigy-proto.js"
+mv "$WORK/prodigy-proto.js" resources/web/prodigy-proto.js
 
 cp "$WORK/node_modules/protobufjs/dist/minimal/protobuf.min.js" \
     resources/web/protobuf.min.js

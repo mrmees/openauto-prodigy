@@ -120,6 +120,24 @@
             ? msg.requestId.toNumber() : Number(msg.requestId || 0);
     }
 
+    // Before the data bridge, protobuf.js decoded int64 fields as Number.
+    // Keep that established shape for legacy topic callbacks even though the
+    // data domain installs an exact Long implementation for typed scalars.
+    function normalizeLegacyLongs(value) {
+        if (!value || typeof value !== 'object') return value;
+        if (protobuf.util.Long && protobuf.util.Long.isLong(value))
+            return value.toNumber();
+        if (Array.isArray(value)) {
+            for (var i = 0; i < value.length; ++i)
+                value[i] = normalizeLegacyLongs(value[i]);
+            return value;
+        }
+        Object.keys(value).forEach(function (key) {
+            value[key] = normalizeLegacyLongs(value[key]);
+        });
+        return value;
+    }
+
     function request(fields) {
         return readyPromise.then(function () {
             return new Promise(function (resolve, reject) {
@@ -275,7 +293,7 @@
             binding.available = false;
             binding.definition = null;
             notifyBinding(binding, availabilityEvent(
-                binding, false, 'provider_disconnected', null));
+                binding, false, 'link_lost', null));
         });
     }
 
@@ -331,12 +349,13 @@
         Object.keys(STATUS_FIELD).forEach(function (field) {
             if (!msg[field]) return;
             var topic = STATUS_FIELD[field];
+            var status = normalizeLegacyLongs(msg[field]);
             if (topic === 'system' && msg[field].themeTokens) {
-                applyTokens(msg[field].themeTokens);
-                emit('themechange', msg[field].themeTokens);
+                applyTokens(status.themeTokens);
+                emit('themechange', status.themeTokens);
             }
             (subs[topic] || []).forEach(function (cb) {
-                try { cb(msg[field]); } catch (e) { console.error('prodigy: subscriber error', e); }
+                try { cb(status); } catch (e) { console.error('prodigy: subscriber error', e); }
             });
         });
     }

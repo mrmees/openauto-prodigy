@@ -243,6 +243,41 @@ test('double, signed, unsigned, boolean, and string mappings are fixed', async (
     assert.equal(received.get('string').value, 'ready');
 });
 
+test('legacy topic subscribers retain numeric int64 fields', async () => {
+    const h = harness();
+    const socket = await h.connect(true);
+    const media = [];
+    const phone = [];
+    h.sandbox.prodigy.subscribe('media', status => media.push(status));
+    h.sandbox.prodigy.subscribe('phone', status => phone.push(status));
+    await Promise.resolve();
+
+    h.receive(socket, {
+        mediaStatus: {
+            hasMedia: true,
+            positionMs: h.sandbox.protobuf.util.Long.fromString('1234'),
+            durationMs: h.sandbox.protobuf.util.Long.fromString('5678'),
+            hasPosition: true,
+        },
+    });
+    h.receive(socket, {
+        phoneStatus: {
+            hfpConnected: true,
+            calls: [{
+                state: 2,
+                startedAtUnixMs: h.sandbox.protobuf.util.Long.fromString('1722000000000'),
+            }],
+        },
+    });
+
+    assert.equal(typeof media[0].positionMs, 'number');
+    assert.equal(media[0].positionMs, 1234);
+    assert.equal(typeof media[0].durationMs, 'number');
+    assert.equal(media[0].durationMs, 5678);
+    assert.equal(typeof phone[0].calls[0].startedAtUnixMs, 'number');
+    assert.equal(phone[0].calls[0].startedAtUnixMs, 1722000000000);
+});
+
 test('disconnect marks bindings unavailable and reconnect restores them', async () => {
     const h = harness();
     const first = await h.connect(true);
@@ -251,7 +286,7 @@ test('disconnect marks bindings unavailable and reconnect restores them', async 
     await Promise.resolve();
     first.close();
     assert.equal(events.at(-1).available, false);
-    assert.equal(events.at(-1).unavailableReason, 'provider_disconnected');
+    assert.equal(events.at(-1).unavailableReason, 'link_lost');
     await assert.rejects(h.sandbox.prodigy.data.listCatalog(), /not connected/);
 
     assert.equal(h.reconnects.length, 1);
