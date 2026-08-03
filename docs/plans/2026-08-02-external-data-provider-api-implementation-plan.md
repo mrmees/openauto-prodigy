@@ -99,7 +99,7 @@ mechanical:
 ```cpp
 using OwnerToken = quintptr;
 
-enum class ValueType { Double, SignedInteger, UnsignedInteger,
+enum class ValueType { Unspecified, Double, SignedInteger, UnsignedInteger,
                        Boolean, String, Enum };
 enum class Quality { Unknown, Good, Degraded, Stale, Invalid, Unavailable };
 enum class UnavailableReason { None, ProviderAbsent, ChannelAbsent,
@@ -130,7 +130,7 @@ struct EnumOption { qint64 value = 0; QString label; };
 struct ChannelDefinition {
     QString channelName;
     QString displayName;
-    ValueType valueType = ValueType::Double;
+    ValueType valueType = ValueType::Unspecified;
     std::optional<QString> unit;
     std::optional<QString> description;
     std::optional<quint32> nominalIntervalMs;
@@ -143,7 +143,7 @@ struct ChannelDefinition {
 struct Sample {
     QString channelName;
     std::optional<Scalar> value;
-    qint64 observedAtUnixMs = 0;
+    std::optional<qint64> observedAtUnixMs;
     Quality quality = Quality::Unknown;
 };
 ```

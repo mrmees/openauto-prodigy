@@ -66,6 +66,7 @@ add_library(openauto-core STATIC
     core/services/ActionRegistry.cpp
     core/services/OverlayService.cpp
     core/services/NotificationService.cpp
+    core/services/DataRegistry.cpp
     core/services/ClockSyncService.cpp
     core/services/WeatherService.cpp
     core/services/SystemServiceClient.cpp
