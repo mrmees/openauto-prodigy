@@ -21,9 +21,8 @@ usable by independently developed OBD, CAN, GPIO, MQTT, simulator, or other
 backends and by Gauge Studio without making Prodigy a source-specific policy or
 performance gatekeeper.
 
-**Status:** DESIGN APPROVED; implementation planning awaits Matthew's review of
-the written file. No production code, protobuf, Gauge Studio, or backend source
-changed in this session.
+**Status:** DESIGN APPROVED and ready for implementation planning. No production
+code, protobuf, Gauge Studio, or backend source changed in this session.
 
 **Review:** the requested read-only Opus 4.6 pass returned `APPROVE WITH
 CHANGES`: BLOCKER 0, MAJOR 2, MINOR 6. All eight findings were confirmed and
@@ -31,20 +30,27 @@ incorporated. The two majors added snapshot-guarded/reentrancy-safe fan-out and
 an explicit `Ack`-before-catalog-snapshot contract. The minors clarified
 request-scoped declaration rejection, empty scalar presence, namespace-switch
 rejection, metadata-change ordering, JavaScript timestamp conversion, and
-reconnect-gap request behavior. No remediation review was needed.
+reconnect-gap request behavior. Matthew then supplied a Fable follow-up review;
+its five actionable tightenings were confirmed and incorporated. Staleness now
+uses a local monotonic receipt deadline rather than wall clocks, half-open TCP
+behavior is explicitly dispositioned, duplicate publications are normalized
+before forwarding, request-ID misuse has deterministic handling, and catalog
+watch amplification is an accepted trusted-provider risk. Fable's namespace
+squatting observation required no edit because Section 18 already covers it.
 
 **Verification:** `python3 scripts/check-doc-links.py`, tracked and untracked
 Markdown whitespace checks, placeholder/ambiguity searches, and live-schema
 allocation inspection passed. Opus independently confirmed that capability
 field 3 and envelope fields 80–94 are available at the grounded commit and that
 the proposed proto3 presence/oneof shapes are legal. Application builds and
-CTest were not run because this change is documentation only.
+CTest were not run because this change is documentation only. The tracked-live
+link check, `git diff --check`, and targeted stale/request-ID ambiguity search
+were rerun after the Fable remediation edits.
 
-**Next 1–3 steps:** Matthew reviews
-`docs/plans/2026-08-02-external-data-provider-api-design.md`; after approval,
-write the cross-repository implementation plan; execute Prodigy, Gauge Studio,
-and backend work against the one canonical contract with independent gates in
-each repository.
+**Next 1–3 steps:** write the cross-repository implementation plan; execute
+Prodigy, Gauge Studio, and backend work against the one canonical contract with
+independent gates in each repository; live-test a simulated provider and
+exported gauge on the Pi before declaring the feature complete.
 
 ---
 

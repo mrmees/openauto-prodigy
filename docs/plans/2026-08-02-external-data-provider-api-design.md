@@ -3,8 +3,10 @@
 Date: 2026-08-02
 Status: ACTIVE
 Grounded against: `5a7a3b559b6e336272e01211c5a74eed7320cb11`
-Independent review: Opus 4.6, `APPROVE WITH CHANGES` — BLOCKER 0,
-MAJOR 2, MINOR 6; all eight findings confirmed and incorporated.
+Independent reviews: Opus 4.6, `APPROVE WITH CHANGES` — BLOCKER 0,
+MAJOR 2, MINOR 6; all eight findings confirmed and incorporated. A subsequent
+user-supplied Fable review produced five contract tightenings, all incorporated;
+its namespace-squatting observation was already explicitly dispositioned.
 
 ## 1. Purpose
 
@@ -192,6 +194,14 @@ contains the resulting revision.
 When a later session registers the same namespace and re-declares a channel,
 waiting consumer subscriptions automatically attach to it.
 
+The existing External API `Ping`/`Pong` is client-initiated in v1; the server
+does not probe an otherwise idle provider. Provider teardown therefore occurs
+only after the transport reports closure. A dead peer behind a half-open TCP
+session can remain catalog-available until the socket eventually fails. This
+is an explicit v1 limitation: receipt-monotonic consumer staleness is the UI
+defense, and server-initiated provider liveness probing is deferred rather than
+guessing a safe timeout for arbitrary publication cadences.
+
 ## 7. Channel Identity and Definitions
 
 A channel name follows the same lowercase ASCII grammar and 1-128 character
@@ -246,8 +256,10 @@ Metadata contract:
   vocabulary nor converts it.
 - `nominal_interval_ms` describes expected publication cadence; Prodigy does
   not enforce it.
-- `stale_after_ms` tells a consumer when an otherwise usable last sample should
-  be presented as stale; Prodigy does not schedule a stale publication.
+- `stale_after_ms` suggests when an otherwise usable last sample should be
+  presented as stale. It is evaluated against monotonic elapsed time since
+  local sample receipt, never against `observed_at_unix_ms`; Prodigy does not
+  schedule a stale publication.
 - Suggested bounds are optional authoring hints. They are not clamps or safety
   limits.
 - Enum option labels are presentation hints. An enum sample whose numeric
@@ -320,15 +332,22 @@ Publication rules:
 - If `observed_at_unix_ms` is absent, Prodigy fills it with wall-clock receipt
   time before retaining or forwarding the sample. If supplied, the backend is
   responsible for normalizing its source clock to Unix epoch milliseconds.
+  This timestamp is provenance/display data only; no consumer may use it to
+  decide staleness because either machine's wall clock may be unsynchronized.
 - Multiple channels captured together may be batched. Batches must fit the
   existing API frame cap.
-- If one channel occurs more than once in a batch, the last occurrence wins;
-  other channels remain unaffected.
+- A publication is deduplicated before validation, retention, and fan-out. If
+  one channel occurs more than once, only its last occurrence is considered;
+  the winners remain ordered by the position of their last occurrence in the
+  inbound batch. If that winning occurrence is invalid, the channel is not
+  updated even if an earlier duplicate was valid. Other channels remain
+  unaffected.
 - Undeclared channels, scalar-type mismatches, and malformed samples are
   dropped and logged with provider namespace and channel identity. One bad
   sample does not discard valid siblings or disconnect the provider.
-- Accepted samples replace their channel's retained latest value, then are
-  forwarded to subscribed consumers in provider-session arrival order.
+- Accepted, deduplicated samples replace their channel's retained latest value,
+  then are forwarded once per channel to subscribed consumers in
+  provider-session arrival order.
 - Prodigy performs no cadence reduction, timer-based republish, interpolation,
   conversion, formula evaluation, or persistence.
 
@@ -510,6 +529,8 @@ One event contains only samples from one provider publication and only channels
 subscribed by the destination session. If a publication contains no channels
 for a consumer, Prodigy sends nothing to that consumer. Prodigy does not merge
 separate provider publications or delay them to form larger batches.
+Duplicate channel entries have already been reduced to the single last
+occurrence defined in Section 8; superseded occurrences are never forwarded.
 
 ## 11. Additive External API Allocation
 
@@ -674,6 +695,12 @@ values. A provider that publishes too aggressively may consume excessive main
 thread, serialization, socket, and renderer resources; that is an accepted
 trusted-configuration risk, not something Prodigy silently reshapes.
 
+Catalog watches deliberately receive a complete snapshot after every real
+catalog revision. A provider that repeatedly changes descriptive metadata can
+therefore amplify catalog traffic across all watchers. As with aggressive
+value publication, this is an accepted trusted-configuration risk in v1:
+Prodigy does not rate-limit, coalesce, or reinterpret metadata updates.
+
 Each WebEngine widget currently owns its own WebSocket session. Exact filtering
 therefore remains load-bearing: a gauge receives only its configured channels,
 not a full registry snapshot each time an unrelated value changes.
@@ -696,7 +723,9 @@ widget and does not change the public delivery contract.
 | Unknown channel publication | Sample dropped and logged; valid siblings continue. |
 | Scalar type mismatch | Sample dropped and logged; previous retained value remains. |
 | Usable quality without a value | Sample dropped and logged. |
-| Bad provider timestamp | Preserved as provider data; backend is trusted to normalize its clock. Consumers may classify it stale/invalid. |
+| Bad provider timestamp | Preserved as provider provenance/display data; backend is trusted to normalize its clock. It never affects receipt-monotonic staleness. |
+| Any response-bearing data request with `request_id = 0`, including `WatchDataCatalogRequest` | `Error{INVALID_REQUEST}` with `request_id = 0`, then disconnect under the existing connection-level-fault rule. |
+| `PublishDataValues` with nonzero `request_id` | Entire batch dropped and logged; no response and no disconnect. A request ID does not turn fire-and-forget publication into a request. |
 | Provider disconnect | All its channels become unavailable, retained values are removed, catalog entry disappears. |
 | Consumer disconnect | Its subscriptions disappear; providers and other consumers are unaffected. |
 | Slow consumer | Existing outbound cap aborts its session; no provider is blocked. |
@@ -742,6 +771,7 @@ The concrete callback object must preserve:
 - exact scalar type;
 - exact unit metadata;
 - effective observation timestamp;
+- a monotonic local receipt reference;
 - quality; and
 - exact 64-bit integer representation when JavaScript `Number` would be lossy.
 
@@ -764,6 +794,15 @@ The shim maps quality enums to the lowercase strings `unknown`, `good`,
 normalized `timestampMs`; Unix epoch milliseconds remain safely inside
 `Number.MAX_SAFE_INTEGER`. This timestamp conversion is distinct from channel
 scalar conversion.
+
+When the shim decodes each received sample, it also stamps
+`receivedAtMonotonicMs` from the browser's monotonic clock before invoking
+callbacks. `timestampMs` remains provider provenance/display data. Consumers
+compute elapsed freshness only as
+`monotonicNow - receivedAtMonotonicMs`; they never compare `timestampMs` with
+`Date.now()`. This remains correct when the RTC-less Pi starts with a bad wall
+clock, NTP or a companion later steps it, or a provider uses an independent
+GNSS-synchronized clock.
 
 The returned unsubscribe function removes local callback delivery immediately
 and sends the exact server unsubscribe when no callback in that widget session
@@ -807,6 +846,7 @@ existing normalized runtime sample shape:
 {
   value,
   timestampMs,
+  receivedAtMonotonicMs,
   quality,
   staleAfterMs
 }
@@ -814,6 +854,21 @@ existing normalized runtime sample shape:
 
 The document already owns presentation range, conversion, formatting, alarm,
 and stale behavior. Those remain Gauge Studio responsibilities.
+
+Every exported live gauge must resolve a finite positive `staleAfterMs` as
+part of that existing presentation policy. Gauge Studio may seed it from the
+channel's `stale_after_ms`; when the provider omits that hint, the editor must
+still persist a local value before export. This timeout controls presentation
+only and never requests or limits provider cadence. The runtime schedules a
+deadline from `receivedAtMonotonicMs` and enters its stale presentation when it
+expires even if no later sample or socket event arrives. Provider/channel
+unavailability still takes effect immediately.
+
+A retained snapshot received by a newly subscribed widget starts its local
+monotonic freshness window at that receipt. Without adding server-retained age
+to the wire, that snapshot can appear fresh for at most one configured stale
+interval even if it was retained earlier. This bounded false-fresh window is an
+accepted v1 tradeoff; wall-clock comparison is not an acceptable workaround.
 
 Compatibility policy:
 
@@ -850,6 +905,10 @@ A conforming backend:
    resuming publication; and
 9. validates its own values, types, units, and timestamps before publishing.
 
+A remote backend may use the existing client-initiated `Ping`/`Pong` exchange
+to detect a half-open connection to Prodigy. That protects the backend's own
+reconnect behavior; it does not make Prodigy actively probe the provider.
+
 The backend receives no subscriber count, requested interval, polling hint, or
 flow-control request from Prodigy. It owns source polling and publication
 policy completely.
@@ -885,6 +944,8 @@ identifiers by `DataRegistry`.
   catalog ordering is deterministic.
 - Verify latest-value replacement, timestamp fill, mixed-validity batches, and
   no retained state after provider teardown.
+- Verify duplicate samples are reduced before validation and forwarding, with
+  one winner per channel ordered by each winner's last inbound position.
 
 ### 19.2 API session and loopback tests
 
@@ -902,6 +963,9 @@ identifiers by `DataRegistry`.
 - Provider channel removal and disconnect produce immediate unavailable;
   reconnect under the same identity resumes the waiting subscription.
 - Catalog list/watch snapshots and revisions follow provider lifecycle.
+- Catalog-watch enable with a zero request ID faults and disconnects; a
+  publication with a nonzero request ID is dropped without response or
+  disconnect.
 - Consumer unsubscribe and teardown remove only that consumer's interests.
 - A stalled consumer is disconnected by the existing outbound cap while other
   consumers and the provider continue.
@@ -913,6 +977,10 @@ identifiers by `DataRegistry`.
 - Subscription sharing and exact unsubscribe behavior within one widget.
 - Waiting, available, sample, incompatible, disconnect, and reconnect callback
   sequences.
+- Wall-clock jumps and provider/Pi clock disagreement do not affect monotonic
+  receipt stamps or stale deadlines.
+- Stale presentation fires after the configured monotonic interval even when
+  no subsequent sample or disconnect event arrives.
 - Exact handling of 64-bit integers outside JavaScript's safe range.
 - No capability or data surface exists in the shim unless the public protobuf
   capability is present.
@@ -927,6 +995,9 @@ identifiers by `DataRegistry`.
   value.
 - Backend restart verifies waiting-subscription recovery without widget retry
   logic.
+- A half-open provider fixture demonstrates the documented boundary: catalog
+  availability remains until transport teardown, while the gauge becomes
+  stale from its local monotonic deadline.
 - A sustained configurable-rate simulator demonstrates transparent forwarding;
   results are measurements, not a promised universal frequency ceiling.
 
@@ -973,6 +1044,7 @@ inside this design or its implementation plan:
 - wildcard or provider-wide subscriptions;
 - server-side cadence requests, downsampling, aggregation, or history;
 - persistent provider definitions or offline catalog browsing;
+- server-initiated provider heartbeat/liveness probing and timeout policy;
 - provider ACLs, namespace authorization, or hostile-client quotas;
 - semantic aliases and cross-provider arbitration;
 - data-derived AA sensors or vehicle-control exposure; and
@@ -1017,5 +1089,6 @@ This design is ready for implementation planning when:
 - provider/channel lifecycle ordering is explicit;
 - publication cadence and backpressure ownership are explicit;
 - the user approves the written contract;
-- the requested independent Opus 4.6 architecture review is adjudicated; and
+- the requested independent Opus 4.6 architecture review is adjudicated;
+- the user-supplied Fable follow-up review is adjudicated; and
 - no unresolved blocker requires a different public wire shape.
