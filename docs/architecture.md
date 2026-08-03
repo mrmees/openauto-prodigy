@@ -47,6 +47,31 @@ fallback); stored credentials record their generation so legacy six-digit
 credentials fail closed and require re-pairing. Publishers push provider state;
 request handlers invoke actions.
 
+API v1.2 also exposes a source-agnostic external data-provider domain. One
+READY session may own one live lowercase provider namespace, incrementally
+declare typed scalar channels, and publish deduplicated batches at its own
+cadence. `DataRegistry` (`src/core/services/`) owns only live definitions,
+catalog revision, and the latest accepted sample; `ApiDataBridge` converts the
+additive protobuf messages and owns per-session catalog watches and exact
+provider/channel subscriptions. Provider teardown removes its catalog entry and
+retained samples while consumer interests remain waiting for a later provider
+with the same identity. Fan-out uses the existing bounded `ApiSession` write
+path, so a slow consumer is disconnected without blocking its provider or
+other consumers. No `TOPIC_DATA`, EventBus binding, history, requested cadence,
+conversion, formula, OBD/CAN policy, or persistence is involved. The complete
+wire and lifecycle contract is the
+[external data-provider design](plans/2026-08-02-external-data-provider-api-design.md).
+
+Web widgets feature-detect `Capabilities.data_provider_bridge` and use the
+injected `prodigy.data` wrapper. Scalar integers and enums remain exact
+JavaScript `bigint`; each received sample carries both its wall-clock
+provenance timestamp and a browser-monotonic receipt timestamp. Presentation
+staleness is computed only from the latter. Provider cadence is trusted and
+unmodified, and v1.2 deliberately has no server-initiated provider heartbeat:
+a half-open provider may remain catalog-visible until its transport closes,
+while each widget's monotonic stale deadline prevents a frozen value from
+looking live indefinitely.
+
 Phone time reports feed `ClockSyncService`, which runs the ordered
 `timedatectl` NTP-off/time-step/NTP-on transaction asynchronously. A successful
 wall-clock step notifies the phone-status publisher so an active call's epoch

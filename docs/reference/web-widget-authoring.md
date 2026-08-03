@@ -78,6 +78,8 @@ Theme tokens land as CSS custom properties on `<html>`: token `on-primary` → `
 | `prodigy.context` | `{instanceId, widgetId, colSpan, rowSpan, kind}` | Current placement; updated live via `contextchange`. |
 | `prodigy.apiUrl` | string | The raw WS URL, for widgets that want their own socket. |
 | `prodigy.subscribe(topic, cb)` | `(string, fn) -> unsubscribe fn` | Topics: `"media"`, `"navigation"`, `"projection"`, `"phone"`, `"system"`. `cb` receives the status object each time it changes. |
+| `prodigy.data.listCatalog()` | `() -> Promise<DataCatalog>` | Present only when the server advertises the external data-provider capability. Returns the current deterministic live provider/channel catalog. |
+| `prodigy.data.subscribe(ref, cb)` | `({providerNamespace, channelName}, fn) -> unsubscribe fn` | Exact-channel live data. Multiple local callbacks share one server subscription; the last unsubscribe removes it server-side. |
 | `prodigy.dispatch(actionId, payload)` | `(string, any?) -> Promise<boolean>` | Fires a host action; resolves to whether it was dispatched. |
 | `prodigy.notify(message, {priority, ttlMs})` | `(string, object?) -> Promise<string>` | Posts a toast notification; resolves to a notification id. |
 | `prodigy.request(apiMessageObject)` | `(object) -> Promise<response>` | Low-level escape hatch — build your own `ApiMessage` field for anything not covered above. |
@@ -102,6 +104,81 @@ Minimal example:
 </body>
 </html>
 ```
+
+### Live external data
+
+`prodigy.data` appears after `prodigy.ready` only when the connected server's
+capabilities include the full data-provider bridge. It is the supported surface
+for gauges and other widgets that display values supplied by an independent
+backend. Names identify sources; they do not tell Prodigy whether a value came
+from OBD-II, CAN, GPIO, MQTT, a simulator, or anything else.
+
+```javascript
+await prodigy.ready;
+if (!prodigy.data) throw new Error('external data API unavailable');
+
+const catalog = await prodigy.data.listCatalog();
+const unsubscribe = prodigy.data.subscribe({
+  providerNamespace: 'com.example.vehicle',
+  channelName: 'engine.rpm'
+}, event => {
+  if (!event.available || !event.sample) {
+    renderUnavailable(event.unavailableReason);
+    return;
+  }
+  renderValue(event.sample.value, event.definition.unit);
+});
+```
+
+The first callback after a successful subscription is an availability boundary.
+References to an absent provider or channel are accepted and wait; a later
+registration/declaration activates them without another call. When a retained
+sample exists, its value event follows the `available` event. Metadata changes
+produce another `available` event with the new definition before later values.
+Removal, provider disconnect, and widget-socket disconnect produce immediate
+unavailability. Active bindings are restored automatically after reconnect.
+
+The callback object has this stable shape:
+
+```javascript
+{
+  providerNamespace: 'com.example.vehicle',
+  channelName: 'engine.rpm',
+  available: true,
+  unavailableReason: null,       // provider_absent/channel_absent/etc. when false
+  definition: {                  // present only while available
+    channelName: 'engine.rpm',
+    displayName: 'Engine RPM',
+    valueType: 1,                // DataValueType enum
+    unit: 'rpm',
+    nominalIntervalMs: 100,
+    staleAfterMs: 1000
+  },
+  sample: {
+    value: 975.5,
+    scalarType: 'double',        // double/signed_integer/unsigned_integer/boolean/string/enum
+    timestampMs: 1722000000000,  // backend observation or Prodigy receipt wall time
+    receivedAtMonotonicMs: 250,  // performance.now() at this widget's receipt
+    quality: 'good',
+    enumLabel: undefined         // populated for a matching current enum option
+  }
+}
+```
+
+Scalar conversion is fixed: doubles are JavaScript `number`; signed integers,
+unsigned integers, and enum values are exact `bigint`; booleans and strings
+retain their native types. Do not pass an integer through `Number(...)` unless
+your renderer has first proved it is inside JavaScript's safe-integer range.
+`timestampMs` is deliberately a number because Unix epoch milliseconds are
+safe, but it is provenance/display data—not a freshness clock.
+
+Every live gauge must own a finite positive stale timeout. Schedule it from
+`receivedAtMonotonicMs` and compare against `performance.now()`; never compare
+`timestampMs` with `Date.now()`. A vehicle Pi may boot without correct RTC/NTP
+time or step its wall clock later. The server does not request, throttle,
+coalesce, or infer a provider cadence, and it does not probe idle providers in
+v1.2, so the widget's monotonic stale policy is the defense against a half-open
+provider connection.
 
 ---
 
