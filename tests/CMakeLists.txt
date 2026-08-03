@@ -277,6 +277,16 @@ set_tests_properties(test_api_loopback PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=o
 
 # --- Script tests (no compilation) ---
 
+find_program(NODE_EXECUTABLE node)
+if(NODE_EXECUTABLE)
+    add_test(
+        NAME test_prodigy_data_js
+        COMMAND ${NODE_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_prodigy_data_js.mjs
+    )
+    set_tests_properties(test_prodigy_data_js PROPERTIES
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+endif()
+
 add_test(
     NAME test_prebuilt_release_package
     COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/test_prebuilt_release_package.py

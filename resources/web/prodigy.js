@@ -14,6 +14,53 @@
     var root = (window.protobuf && protobuf.roots && protobuf.roots['prodigy-api']) || null;
     var pb = root && root.prodigy && root.prodigy.api ? root.prodigy.api.v1 : null;
 
+    // protobuf.js falls back to Number for 64-bit fields when long.js is not
+    // present. The bundled browser runtime intentionally has no extra long.js
+    // dependency, so install the small Long-compatible surface its reader
+    // needs, backed by native BigInt, before the first frame is decoded.
+    function installBigIntLong() {
+        if (!window.protobuf || !protobuf.util || typeof BigInt !== 'function') return;
+        function BigLong(low, high, unsigned) {
+            this.low = low | 0;
+            this.high = high | 0;
+            this.unsigned = !!unsigned;
+        }
+        function fromBigInt(value, unsigned) {
+            var bits = BigInt(value);
+            var width = 1n << 64n;
+            if (bits < 0) bits += width;
+            bits &= width - 1n;
+            return new BigLong(Number(bits & 0xffffffffn) | 0,
+                               Number((bits >> 32n) & 0xffffffffn) | 0,
+                               !!unsigned);
+        }
+        BigLong.fromBits = function (low, high, unsigned) {
+            return new BigLong(low, high, unsigned);
+        };
+        BigLong.fromString = function (value, unsigned) {
+            return fromBigInt(BigInt(value), unsigned);
+        };
+        BigLong.fromValue = function (value) {
+            if (value instanceof BigLong) return value;
+            if (value && typeof value === 'object' &&
+                    value.low !== undefined && value.high !== undefined) {
+                return new BigLong(value.low, value.high, value.unsigned);
+            }
+            return fromBigInt(BigInt(value || 0), false);
+        };
+        BigLong.isLong = function (value) { return value instanceof BigLong; };
+        BigLong.prototype.toBigInt = function () {
+            var bits = (BigInt(this.high >>> 0) << 32n) | BigInt(this.low >>> 0);
+            if (!this.unsigned && (this.high & 0x80000000)) bits -= 1n << 64n;
+            return bits;
+        };
+        BigLong.prototype.toString = function () { return this.toBigInt().toString(); };
+        BigLong.prototype.toNumber = function () { return Number(this.toBigInt()); };
+        protobuf.util.Long = BigLong;
+        if (protobuf.configure) protobuf.configure();
+    }
+    installBigIntLong();
+
     // ---- theme tokens -> CSS custom properties (--prodigy-<token>) ------
     function setVars(el, tokens) {
         Object.keys(tokens).forEach(function (k) {
@@ -59,6 +106,8 @@
     var nextRequestId = 1;
     var pending = {};                  // request_id -> {resolve, reject}
     var subs = {};                     // topic name -> [callback]
+    var dataBindings = {};             // provider\0channel -> binding
+    var dataCapable = false;
     var backoffMs = 1000;
     var readyResolve;
     var readyPromise = new Promise(function (res) { readyResolve = res; });
@@ -86,6 +135,188 @@
             });
         });
     }
+
+    function dataKey(ref) {
+        return String(ref.providerNamespace) + '\u0000' + String(ref.channelName);
+    }
+
+    function normalizedRef(ref) {
+        if (!ref || !ref.providerNamespace || !ref.channelName)
+            throw new Error('prodigy: data subscription requires providerNamespace and channelName');
+        return {
+            providerNamespace: String(ref.providerNamespace),
+            channelName: String(ref.channelName)
+        };
+    }
+
+    function longToBigInt(value) {
+        if (typeof value === 'bigint') return value;
+        if (value && value.toString) return BigInt(value.toString());
+        return BigInt(value || 0);
+    }
+
+    var QUALITY = ['unknown', 'good', 'degraded', 'stale', 'invalid', 'unavailable'];
+    var UNAVAILABLE_REASON = [
+        'unspecified', 'provider_absent', 'channel_absent',
+        'provider_disconnected', 'channel_removed'
+    ];
+
+    function scalarFromProto(scalar, definition) {
+        scalar = scalar || {};
+        var own = Object.prototype.hasOwnProperty;
+        var result = { value: undefined, scalarType: 'unspecified' };
+        if (own.call(scalar, 'doubleValue')) {
+            result.value = scalar.doubleValue;
+            result.scalarType = 'double';
+        } else if (own.call(scalar, 'signedIntegerValue')) {
+            result.value = longToBigInt(scalar.signedIntegerValue);
+            result.scalarType = 'signed_integer';
+        } else if (own.call(scalar, 'unsignedIntegerValue')) {
+            result.value = longToBigInt(scalar.unsignedIntegerValue);
+            result.scalarType = 'unsigned_integer';
+        } else if (own.call(scalar, 'booleanValue')) {
+            result.value = scalar.booleanValue;
+            result.scalarType = 'boolean';
+        } else if (own.call(scalar, 'stringValue')) {
+            result.value = scalar.stringValue;
+            result.scalarType = 'string';
+        } else if (own.call(scalar, 'enumValue')) {
+            result.value = longToBigInt(scalar.enumValue);
+            result.scalarType = 'enum';
+            (definition && definition.enumOptions || []).some(function (option) {
+                if (longToBigInt(option.value) !== result.value) return false;
+                result.enumLabel = option.label;
+                return true;
+            });
+        }
+        return result;
+    }
+
+    function notifyBinding(binding, event) {
+        binding.callbacks.slice().forEach(function (cb) {
+            try { cb(event); }
+            catch (e) { console.error('prodigy: data subscriber error', e); }
+        });
+    }
+
+    function availabilityEvent(binding, available, reason, definition) {
+        return {
+            providerNamespace: binding.ref.providerNamespace,
+            channelName: binding.ref.channelName,
+            available: available,
+            unavailableReason: available ? null : reason,
+            definition: available ? definition : null,
+            sample: null
+        };
+    }
+
+    function handleDataStream(msg) {
+        if (msg.dataChannelAvailabilityEvent) {
+            var availability = msg.dataChannelAvailabilityEvent;
+            var ref = availability.channel || {};
+            var binding = dataBindings[dataKey(ref)];
+            if (!binding) return true;
+            var available = availability.availability === 1;
+            binding.definition = available ? availability.definition : null;
+            binding.available = available;
+            notifyBinding(binding, availabilityEvent(
+                binding, available,
+                UNAVAILABLE_REASON[availability.unavailableReason] || 'unspecified',
+                binding.definition));
+            return true;
+        }
+        if (msg.dataValuesEvent) {
+            var values = msg.dataValuesEvent;
+            (values.samples || []).forEach(function (wireSample) {
+                var ref = {
+                    providerNamespace: values.providerNamespace,
+                    channelName: wireSample.channelName
+                };
+                var binding = dataBindings[dataKey(ref)];
+                if (!binding) return;
+                var scalar = scalarFromProto(wireSample.value, binding.definition);
+                var sample = {
+                    value: scalar.value,
+                    scalarType: scalar.scalarType,
+                    timestampMs: wireSample.observedAtUnixMs == null
+                        ? undefined : Number(wireSample.observedAtUnixMs.toString()),
+                    receivedAtMonotonicMs: performance.now(),
+                    quality: QUALITY[wireSample.quality] || 'unknown'
+                };
+                if (scalar.enumLabel !== undefined) sample.enumLabel = scalar.enumLabel;
+                notifyBinding(binding, {
+                    providerNamespace: binding.ref.providerNamespace,
+                    channelName: binding.ref.channelName,
+                    available: true,
+                    unavailableReason: null,
+                    definition: binding.definition,
+                    sample: sample
+                });
+            });
+            return true;
+        }
+        return false;
+    }
+
+    function sendDataSubscriptions() {
+        var channels = Object.keys(dataBindings).map(function (key) {
+            return dataBindings[key].ref;
+        }).filter(function (ref) {
+            return dataBindings[dataKey(ref)].callbacks.length > 0;
+        });
+        if (!dataCapable || !channels.length || !ws || ws.readyState !== 1) return;
+        ws.send(encode({ requestId: nextRequestId++,
+                         subscribeDataChannelsRequest: { channels: channels } }));
+    }
+
+    function markDataDisconnected() {
+        Object.keys(dataBindings).forEach(function (key) {
+            var binding = dataBindings[key];
+            binding.available = false;
+            binding.definition = null;
+            notifyBinding(binding, availabilityEvent(
+                binding, false, 'provider_disconnected', null));
+        });
+    }
+
+    var dataApi = {
+        listCatalog: function () {
+            return request({ listDataCatalogRequest: {} }).then(function (msg) {
+                if (!msg.listDataCatalogResponse)
+                    throw new Error('prodigy: missing catalog response');
+                return msg.listDataCatalogResponse.catalog;
+            });
+        },
+        subscribe: function (ref, cb) {
+            if (typeof cb !== 'function')
+                throw new Error('prodigy: data subscription callback required');
+            ref = normalizedRef(ref);
+            var key = dataKey(ref);
+            var binding = dataBindings[key];
+            if (!binding) {
+                binding = dataBindings[key] = {
+                    ref: ref, callbacks: [], definition: null, available: false
+                };
+            }
+            var first = binding.callbacks.length === 0;
+            binding.callbacks.push(cb);
+            if (first) {
+                request({ subscribeDataChannelsRequest: { channels: [ref] } })
+                    .catch(function () { /* reconnect restores active bindings */ });
+            }
+            var removed = false;
+            return function unsubscribeData() {
+                if (removed) return;
+                removed = true;
+                var index = binding.callbacks.indexOf(cb);
+                if (index >= 0) binding.callbacks.splice(index, 1);
+                if (binding.callbacks.length) return;
+                delete dataBindings[key];
+                request({ unsubscribeDataChannelsRequest: { channels: [ref] } })
+                    .catch(function () { /* already locally removed */ });
+            };
+        }
+    };
 
     function activeTopics() {
         var t = [TOPIC.system];        // theme updates always flow
@@ -117,8 +348,15 @@
 
         if (msg.serverHello) {         // (re)connected
             backoffMs = 1000;
+            var capabilities = msg.serverHello.capabilities || {};
+            dataCapable = Object.prototype.hasOwnProperty.call(
+                capabilities, 'dataProviderBridge') &&
+                capabilities.dataProviderBridge === true;
+            if (dataCapable) window.prodigy.data = dataApi;
+            else delete window.prodigy.data;
             ws.send(encode({ requestId: nextRequestId++,
                              subscribeRequest: { topics: activeTopics() } }));
+            sendDataSubscriptions();
             readyResolve();
             return;
         }
@@ -133,7 +371,8 @@
                 p.resolve(msg);
             return;
         }
-        handleStream(msg);             // request_id 0 = stream event
+        if (!handleDataStream(msg))
+            handleStream(msg);         // request_id 0 = stream event
     }
 
     function connect() {
@@ -144,7 +383,7 @@
                 requestId: nextRequestId++,
                 clientHello: {
                     requestedApiVersionMajor: 1,
-                    requestedApiVersionMinor: 1,
+                    requestedApiVersionMinor: 2,
                     clientName: (boot.context && boot.context.widgetId) || 'web-widget',
                     clientKind: pb.ClientKind.CLIENT_KIND_WEB_WIDGET
                 }
@@ -152,6 +391,7 @@
         };
         ws.onmessage = onFrame;
         ws.onclose = function () {
+            markDataDisconnected();
             Object.keys(pending).forEach(function (id) {
                 pending[id].reject(new Error('prodigy: connection closed'));
                 delete pending[id];
