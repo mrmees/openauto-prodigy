@@ -32,6 +32,7 @@
 
 namespace oap {
 class ActionRegistry;
+namespace data { class DataRegistry; }
 class INotificationService;
 class IPhoneStateService;
 }
@@ -39,6 +40,7 @@ class IPhoneStateService;
 namespace oap::api {
 
 class ApiInboundState;
+class ApiDataBridge;
 
 class ApiRequestHandlers : public QObject, public IApiRequestSink {
     Q_OBJECT
@@ -48,6 +50,7 @@ public:
         oap::INotificationService* notifications = nullptr;
         oap::IPhoneStateService* phone = nullptr;
         ApiInboundState* inbound = nullptr;
+        oap::data::DataRegistry* dataRegistry = nullptr;
     };
     explicit ApiRequestHandlers(Deps deps, QObject* parent = nullptr);
 
@@ -110,6 +113,7 @@ private:
     qint64 livenessNowMs() const;
 
     Deps deps_;
+    ApiDataBridge* dataBridge_ = nullptr;
     QHash<QString, ApiSession*> clientOwners_;   // action id -> owning session
     QHash<QString, QString> clientLabels_;        // action id -> display label
     QHash<ApiSession*, QSet<QString>> notificationOwners_;
