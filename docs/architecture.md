@@ -60,7 +60,7 @@ path, so a slow consumer is disconnected without blocking its provider or
 other consumers. No `TOPIC_DATA`, EventBus binding, history, requested cadence,
 conversion, formula, OBD/CAN policy, or persistence is involved. The complete
 wire and lifecycle contract is the
-[external data-provider design](plans/2026-08-02-external-data-provider-api-design.md).
+[external data-provider design](archive/plans/2026-08-02-external-data-provider-api-design.md).
 
 Web widgets feature-detect `Capabilities.data_provider_bridge` and use the
 injected `prodigy.data` wrapper. Scalar integers and enums remain exact

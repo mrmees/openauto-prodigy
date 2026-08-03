@@ -4,6 +4,53 @@ Newest entries first.
 
 ---
 
+## 2026-08-02 — External data-provider API implemented and reviewed
+
+**What changed:** implemented the approved source-agnostic typed-scalar bridge
+across additive protobuf messages, the application-lifetime `DataRegistry`,
+per-session `ApiDataBridge`, TCP/WebSocket composition, and the public
+`prodigy.data` widget shim. Providers publish at their own cadence; consumers
+discover deterministic catalogs and subscribe by exact provider namespace and
+channel. The shim preserves exact 64-bit data scalars, stamps monotonic browser
+receipt time, restores subscriptions after reconnect, and keeps legacy
+media/phone int64 topic fields as their established JavaScript `number` shape.
+
+**Why:** independently developed OBD, CAN, GPIO, MQTT, simulator, and other
+backends need one generic handoff to Prodigy widgets without making Prodigy a
+semantic arbiter or performance gatekeeper.
+
+**Status:** PRODIGY IMPLEMENTATION COMPLETE; not deployed or hardware-tested in
+this session. The approved design and implementation plan are archived. Gauge
+Studio has a separate executable plan at
+`/mnt/e/claude/personal/openautopro/gauges/docs/superpowers/plans/2026-08-02-prodigy-live-data.md`
+(Gauge commit `7b91966`). `/mnt/e/claude/personal/openautopro/obd-plugin`
+remains an empty, non-git directory; backend language, packaging, and hardware
+ownership remain open by design.
+
+**Verification:** the native build and explicit `openauto-prodigy` target,
+`QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, the Node shim contract
+test, tracked-live doc-link check, `git diff --check`, and `./cross-build.sh`
+passed. The complete suite passed without failures. The final embedded-shim
+remediation was followed by a fresh app build, complete offscreen CTest, Node
+test, doc-link check, diff check, and ARM cross-build.
+
+**Review:** Fable pass 1 reported BLOCKER 0, MAJOR 1, MINOR 5. The major was
+confirmed: installing exact Long support for new data scalars changed legacy
+topic int64 fields from numbers to Long objects. Compatibility normalization
+and a regression test fixed it. The valueless-sample documentation,
+widget-link-loss reason, and portable protobuf-generation edit were also
+tightened. The single remediation review reported BLOCKER 0, MAJOR 0, MINOR 2;
+both notes preserve historical behavior and require no publication change.
+The remaining trusted-client resource-cap and request-ID asymmetry observations
+are accepted design tradeoffs, not hidden release blockers.
+
+**Next 1–3 steps:** execute the Gauge Studio plan against only
+`window.prodigy.data`; choose and bootstrap the backend repository; then run a
+paired backend → Prodigy → exported gauge Pi smoke test before declaring the
+cross-repository feature hardware-complete.
+
+---
+
 ## 2026-08-02 — External data-provider API contract approved and reviewed
 
 **What changed:** added the ACTIVE external data-provider API design and linked

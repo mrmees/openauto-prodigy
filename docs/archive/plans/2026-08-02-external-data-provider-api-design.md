@@ -1,7 +1,7 @@
 # External Data Provider API Design
 
 Date: 2026-08-02
-Status: ACTIVE
+Status: COMPLETED 2026-08-02
 Grounded against: `5a7a3b559b6e336272e01211c5a74eed7320cb11`
 Independent reviews: Opus 4.6, `APPROVE WITH CHANGES` — BLOCKER 0,
 MAJOR 2, MINOR 6; all eight findings confirmed and incorporated. A subsequent

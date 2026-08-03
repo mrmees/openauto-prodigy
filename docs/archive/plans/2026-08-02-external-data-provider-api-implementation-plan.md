@@ -6,10 +6,10 @@
 > `superpowers:subagent-driven-development` only if the user separately requests
 > bounded delegation. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** ACTIVE
+**Status:** COMPLETED 2026-08-02
 
 **Design:**
-`docs/plans/2026-08-02-external-data-provider-api-design.md`
+`docs/archive/plans/2026-08-02-external-data-provider-api-design.md`
 
 **Grounded on:** `42e8277`
 
@@ -280,7 +280,7 @@ field 3/envelope fields 80–99.
 **Produces:** compilable C++ and JavaScript bindings for the complete data
 domain, capability field 3, and envelope payloads 80–94.
 
-- [ ] **Step 1: Add failing protobuf contract assertions**
+- [x] **Step 1: Add failing protobuf contract assertions**
 
   Extend `tests/test_api_proto_roundtrip.cpp` with slots that instantiate all
   six scalar cases, preserve `INT64_MIN`, `INT64_MAX`, and `UINT64_MAX`,
@@ -298,7 +298,7 @@ domain, capability field 3, and envelope payloads 80–94.
            std::numeric_limits<quint64>::max());
   ```
 
-- [ ] **Step 2: Run the proto test and confirm compile failure**
+- [x] **Step 2: Run the proto test and confirm compile failure**
 
   Run:
 
@@ -309,7 +309,7 @@ domain, capability field 3, and envelope payloads 80–94.
   Expected: compilation fails because `DataScalar`, the capability accessor,
   and new envelope accessors do not exist.
 
-- [ ] **Step 3: Add `data.proto` and allocate the envelope fields**
+- [x] **Step 3: Add `data.proto` and allocate the envelope fields**
 
   Copy the approved enum/message shapes exactly from design Sections 7–10 and
   11.3. Add `optional bool data_provider_bridge = 3` to `Capabilities`. Import
@@ -317,7 +317,7 @@ domain, capability field 3, and envelope payloads 80–94.
   change the final reservation to `reserved 95 to 99`; leave every pre-existing
   number and declaration untouched.
 
-- [ ] **Step 4: Reconfigure, regenerate JavaScript, and run the focused test**
+- [x] **Step 4: Reconfigure, regenerate JavaScript, and run the focused test**
 
   Run:
 
@@ -331,7 +331,7 @@ domain, capability field 3, and envelope payloads 80–94.
   Expected: configure discovers `data.proto`; generation succeeds; the focused
   test exits 0.
 
-- [ ] **Step 5: Verify generated bindings and commit**
+- [x] **Step 5: Verify generated bindings and commit**
 
   Run:
 
@@ -362,7 +362,7 @@ domain, capability field 3, and envelope payloads 80–94.
 **Produces:** one main-thread live registry with deterministic catalog,
 session-owned cleanup, last-value retention, and typed publication validation.
 
-- [ ] **Step 1: Write registry lifecycle tests**
+- [x] **Step 1: Write registry lifecycle tests**
 
   Cover namespace/channel grammar, first-owner wins, same-owner idempotence,
   namespace-switch rejection, incremental declarations, partial declaration
@@ -377,7 +377,7 @@ session-owned cleanup, last-value retention, and typed publication validation.
   QCOMPARE(registry.catalogRevision(), quint64(1));
   ```
 
-- [ ] **Step 2: Write typed publication and ordering tests**
+- [x] **Step 2: Write typed publication and ordering tests**
 
   Cover all scalar types, usable quality without value, valueless terminal
   qualities, unknown channels, type mismatch, wall-clock receipt fill through
@@ -385,7 +385,7 @@ session-owned cleanup, last-value retention, and typed publication validation.
   reduction. For `[a1, b1, a2]`, assert accepted order `[b1, a2]`; if `a2` is
   invalid, assert only `b1` publishes and the old retained `a` remains.
 
-- [ ] **Step 3: Run the registry target and confirm failure**
+- [x] **Step 3: Run the registry target and confirm failure**
 
   Run:
 
@@ -396,7 +396,7 @@ session-owned cleanup, last-value retention, and typed publication validation.
   Expected: configure or compile fails because the target and registry do not
   exist.
 
-- [ ] **Step 4: Implement the smallest registry satisfying the tests**
+- [x] **Step 4: Implement the smallest registry satisfying the tests**
 
   Use `QHash<QString, ProviderState>` keyed by namespace and a second owner to
   namespace map. Keep `ProviderState.channels` and retained samples private.
@@ -405,7 +405,7 @@ session-owned cleanup, last-value retention, and typed publication validation.
   public mutation that actually changes catalog state, including multi-channel
   requests and owner teardown.
 
-- [ ] **Step 5: Register build targets and run focused tests**
+- [x] **Step 5: Register build targets and run focused tests**
 
   Add both source files to `openauto-core`, add `test_data_registry` through
   `oap_add_test`, reconfigure, build, and run:
@@ -418,7 +418,7 @@ session-owned cleanup, last-value retention, and typed publication validation.
 
   Expected: all registry cases pass.
 
-- [ ] **Step 6: Commit the pure registry slice**
+- [x] **Step 6: Commit the pure registry slice**
 
   ```bash
   git add src/core/services/DataRegistry.hpp src/core/services/DataRegistry.cpp \
@@ -445,7 +445,7 @@ session-owned cleanup, last-value retention, and typed publication validation.
 catalog watch, request-ID validation, and provider cleanup through the existing
 session lifecycle.
 
-- [ ] **Step 1: Write provider request tests against real `ApiSession` fakes**
+- [x] **Step 1: Write provider request tests against real `ApiSession` fakes**
 
   Assert typed registration/declaration responses echo nonzero IDs; declaration
   before registration returns per-channel `provider not registered`; same-owner
@@ -453,14 +453,14 @@ session lifecycle.
   publication with ID 0 sends no response; publication with nonzero ID is
   dropped and logged without disconnect; and teardown removes the provider.
 
-- [ ] **Step 2: Write catalog list/watch and ID-misuse tests**
+- [x] **Step 2: Write catalog list/watch and ID-misuse tests**
 
   Assert deterministic full snapshots, `Ack` before the initial watch event,
   one full event per real revision, idempotent disable, and no event after
   disable. Every response-bearing data request with ID 0 must receive
   `Error{INVALID_REQUEST}` ID 0 and terminate the session.
 
-- [ ] **Step 3: Run the bridge target and confirm failure**
+- [x] **Step 3: Run the bridge target and confirm failure**
 
   Run:
 
@@ -470,7 +470,7 @@ session lifecycle.
 
   Expected: target or compilation failure because `ApiDataBridge` is absent.
 
-- [ ] **Step 4: Implement protobuf/internal conversion and provider routing**
+- [x] **Step 4: Implement protobuf/internal conversion and provider routing**
 
   Keep conversion helpers private to `ApiDataBridge.cpp`. Validate protobuf
   enum values and oneof presence before constructing internal types. Map
@@ -478,14 +478,14 @@ session lifecycle.
   `DataScalar` identically. Log dropped samples with provider namespace and
   channel name, but never emit a publication response.
 
-- [ ] **Step 5: Implement catalog watching and safe fan-out**
+- [x] **Step 5: Implement catalog watching and safe fan-out**
 
   Store watch state per session. Send `Ack(requestId)` before the initial
   `DataCatalogEvent(0)`. On `catalogChanged`, snapshot `QPointer<ApiSession>`
   destinations and revalidate each watcher immediately before the write.
   Metadata churn intentionally sends every full revision without throttling.
 
-- [ ] **Step 6: Delegate from the existing request sink and run tests**
+- [x] **Step 6: Delegate from the existing request sink and run tests**
 
   Construct `ApiDataBridge` from `ApiRequestHandlers::Deps::dataRegistry`.
   At the start of `handleRequest`, return when the bridge reports handled. In
@@ -503,7 +503,7 @@ session lifecycle.
 
   Expected: new data tests and all existing request-handler tests pass.
 
-- [ ] **Step 7: Commit the provider/catalog slice**
+- [x] **Step 7: Commit the provider/catalog slice**
 
   ```bash
   git add src/core/api/ApiDataBridge.hpp src/core/api/ApiDataBridge.cpp \
@@ -527,20 +527,20 @@ value signals.
 metadata compatibility boundaries, exact filtering, retained snapshots,
 disconnect/removal/recovery events, and idempotent unsubscribe.
 
-- [ ] **Step 1: Add waiting and snapshot-order tests**
+- [x] **Step 1: Add waiting and snapshot-order tests**
 
   Subscribe to an absent provider and assert accepted response then
   `PROVIDER_ABSENT`. Register the provider and assert `CHANNEL_ABSENT`; declare
   the channel and assert `AVAILABLE` before values. Subscribe after a retained
   sample and assert response, availability, then exactly one value event.
 
-- [ ] **Step 2: Add exact filtering and batch-normalization tests**
+- [x] **Step 2: Add exact filtering and batch-normalization tests**
 
   Use two providers and three channels. Assert each consumer receives only its
   exact references. Publish `[a1, b1, a2]` and assert one event containing the
   subscribed winners in last-occurrence order, never both `a` entries.
 
-- [ ] **Step 3: Add lifecycle, reentrancy, and slow-consumer tests**
+- [x] **Step 3: Add lifecycle, reentrancy, and slow-consumer tests**
 
   Cover metadata-only `AVAILABLE` before the next value, explicit removal,
   provider disconnect, same-namespace recovery without consumer retry,
@@ -548,7 +548,7 @@ disconnect/removal/recovery events, and idempotent unsubscribe.
   first destination tears down synchronously while later destinations still
   receive their event.
 
-- [ ] **Step 4: Run focused tests and confirm failure**
+- [x] **Step 4: Run focused tests and confirm failure**
 
   Run:
 
@@ -559,7 +559,7 @@ disconnect/removal/recovery events, and idempotent unsubscribe.
 
   Expected: new subscription assertions fail because delivery is absent.
 
-- [ ] **Step 5: Implement session subscriptions and fan-out**
+- [x] **Step 5: Implement session subscriptions and fan-out**
 
   Accept every syntactically valid `ChannelRef`, even when absent. Reject only
   invalid grammar per result. On repeat subscribe, resend current availability
@@ -568,7 +568,7 @@ disconnect/removal/recovery events, and idempotent unsubscribe.
   immutable snapshot/revalidation rule from the File and Interface Map for
   availability and value events as well as catalog events.
 
-- [ ] **Step 6: Run focused tests and commit**
+- [x] **Step 6: Run focused tests and commit**
 
   ```bash
   cmake --build ~/builds/openauto-prodigy --target test_api_data_bridge -j$(nproc)
@@ -597,14 +597,14 @@ disconnect/removal/recovery events, and idempotent unsubscribe.
 **Produces:** API minor 2, truthful `data_provider_bridge` capability, correct
 app-lifetime ownership, and identical TCP/WebSocket behavior.
 
-- [ ] **Step 1: Add capability and composition tests**
+- [x] **Step 1: Add capability and composition tests**
 
   Update the session expectation from minor 1 to minor 2. In server tests,
   assert capability field 3 is present/true when `ApiServiceRefs.dataRegistry`
   is non-null and absent when null. Assert ordinary topic capability behavior
   is unchanged.
 
-- [ ] **Step 2: Add TCP and WebSocket loopback flows**
+- [x] **Step 2: Add TCP and WebSocket loopback flows**
 
   Over TCP, connect a provider and consumer, register/declare, subscribe,
   publish, remove, disconnect, reconnect, and verify exact response/event
@@ -612,7 +612,7 @@ app-lifetime ownership, and identical TCP/WebSocket behavior.
   Include an outbound-cap case proving one slow consumer does not stop the
   provider or another consumer.
 
-- [ ] **Step 3: Run the server targets and confirm failure**
+- [x] **Step 3: Run the server targets and confirm failure**
 
   Run:
 
@@ -626,7 +626,7 @@ app-lifetime ownership, and identical TCP/WebSocket behavior.
 
   Expected: new minor/capability and data flow assertions fail.
 
-- [ ] **Step 4: Wire the composition root and capability**
+- [x] **Step 4: Wire the composition root and capability**
 
   Create `DataRegistry` in `main.cpp` immediately before filling
   `ApiServiceRefs`, parent it to `&app`, and assign the pointer. Add the nullable
@@ -634,7 +634,7 @@ app-lifetime ownership, and identical TCP/WebSocket behavior.
   `ApiServer` constructor. Set capability field 3 only for a non-null registry,
   and set `ServerHello.api_version_minor` to 2.
 
-- [ ] **Step 5: Run all API-focused tests and commit**
+- [x] **Step 5: Run all API-focused tests and commit**
 
   ```bash
   cmake --build ~/builds/openauto-prodigy --target test_api_proto_roundtrip \
@@ -664,7 +664,7 @@ app-lifetime ownership, and identical TCP/WebSocket behavior.
 exact scalar mapping, monotonic receipt timestamps, immediate disconnect
 unavailability, and reconnect restoration.
 
-- [ ] **Step 1: Build a deterministic Node `vm` harness**
+- [x] **Step 1: Build a deterministic Node `vm` harness**
 
   Load `resources/web/prodigy.js` into a context with fake `window`,
   `performance.now`, timers, protobuf root, and `WebSocket`. Capture encoded
@@ -672,7 +672,7 @@ unavailability, and reconnect restoration.
   responses, availability events, value events, close, and reconnect through
   the fake socket.
 
-- [ ] **Step 2: Add failing public-contract tests**
+- [x] **Step 2: Add failing public-contract tests**
 
   Assert `prodigy.data` is absent when the capability is absent and exposes
   `listCatalog`/`subscribe` when present. Verify one server subscription for
@@ -680,7 +680,7 @@ unavailability, and reconnect restoration.
   response-before-event handling, waiting/available/value/unavailable callback
   sequences, and reconnect resubscription.
 
-- [ ] **Step 3: Add scalar and clock tests**
+- [x] **Step 3: Add scalar and clock tests**
 
   Assert doubles remain `number`; signed, unsigned, and enum values remain
   `bigint`; enum labels resolve from the current definition; and
@@ -694,7 +694,7 @@ unavailability, and reconnect restoration.
   assert.equal(sample.receivedAtMonotonicMs, 250);
   ```
 
-- [ ] **Step 4: Run the JS test and confirm failure**
+- [x] **Step 4: Run the JS test and confirm failure**
 
   Run:
 
@@ -704,7 +704,7 @@ unavailability, and reconnect restoration.
 
   Expected: failure because `prodigy.data` is undefined.
 
-- [ ] **Step 5: Implement the shim without changing existing APIs**
+- [x] **Step 5: Implement the shim without changing existing APIs**
 
   Keep ordinary topic subscriptions intact. Parse capability presence from
   each `ServerHello`; route data stream events before the generic status
@@ -712,7 +712,7 @@ unavailability, and reconnect restoration.
   one-shot requests during a reconnect gap, mark live bindings unavailable on
   close, and reissue exact subscriptions only after the next `ServerHello`.
 
-- [ ] **Step 6: Run shim and widget regression checks**
+- [x] **Step 6: Run shim and widget regression checks**
 
   ```bash
   node tests/test_prodigy_data_js.mjs
@@ -726,7 +726,7 @@ unavailability, and reconnect restoration.
 
   Expected: shim and existing widget-host tests pass.
 
-- [ ] **Step 7: Register the optional Node test and commit**
+- [x] **Step 7: Register the optional Node test and commit**
 
   If `find_program(NODE_EXECUTABLE node)` succeeds, add the test to CTest; do
   not make runtime installation depend on Node. Then run the configured test
@@ -751,9 +751,9 @@ unavailability, and reconnect restoration.
 - Modify: `docs/INDEX.md`
 - Modify: `docs/session-handoffs.md`
 - Move on completion:
-  `docs/plans/2026-08-02-external-data-provider-api-design.md`
+  `docs/archive/plans/2026-08-02-external-data-provider-api-design.md`
 - Move on completion:
-  `docs/plans/2026-08-02-external-data-provider-api-implementation-plan.md`
+  `docs/archive/plans/2026-08-02-external-data-provider-api-implementation-plan.md`
 
 **Consumes:** green implementation from Tasks 1–6.
 
@@ -761,7 +761,7 @@ unavailability, and reconnect restoration.
 one bounded major-work review, and an exact handoff for Gauge Studio and the
 future backend repository.
 
-- [ ] **Step 1: Update public and architecture documentation**
+- [x] **Step 1: Update public and architecture documentation**
 
   Document provider registration, typed declarations, request/event ordering,
   exact subscriptions, reconnect, 64-bit JavaScript values, and monotonic
@@ -769,7 +769,7 @@ future backend repository.
   cadence. Keep OBD/CAN examples explicitly illustrative rather than semantic
   API names.
 
-- [ ] **Step 2: Run the complete native and documentation gate**
+- [x] **Step 2: Run the complete native and documentation gate**
 
   Run:
 
@@ -785,7 +785,7 @@ future backend repository.
 
   Expected: configure/build succeed and every test/check exits 0.
 
-- [ ] **Step 3: Cross-build the Pi artifact**
+- [x] **Step 3: Cross-build the Pi artifact**
 
   Run:
 
@@ -797,7 +797,7 @@ future backend repository.
   protobuf/shim resources. Do not deploy until the cross-repository live gauge
   fixture exists or Matthew explicitly requests an API-only deployment.
 
-- [ ] **Step 4: Run the single major-work review gate**
+- [x] **Step 4: Run the single major-work review gate**
 
   Use the immutable commit created for this plan as the review base:
 
@@ -812,7 +812,7 @@ future backend repository.
   the maximum without explicit user authorization. Record confirmed,
   dismissed, and deferred counts in the handoff.
 
-- [ ] **Step 5: Create the Gauge Studio implementation plan**
+- [x] **Step 5: Create the Gauge Studio implementation plan**
 
   In `/mnt/e/claude/personal/openautopro/gauges`, write a repository-local plan
   that consumes only `window.prodigy.data`. It must cover the
@@ -821,7 +821,7 @@ future backend repository.
   monotonic runtime timer, export bundling, and Node tests. It must not copy
   protobuf transport code or depend on Prodigy C++ headers.
 
-- [ ] **Step 6: Record the backend bootstrap decision as still open**
+- [x] **Step 6: Record the backend bootstrap decision as still open**
 
   In the handoff, record that `/mnt/e/claude/personal/openautopro/obd-plugin`
   was empty at planning time. Its later repository plan must choose language,
@@ -829,7 +829,7 @@ future backend repository.
   conforming to this public contract. Do not rename the generic API after that
   backend's source semantics.
 
-- [ ] **Step 7: Close and archive this Prodigy plan after green review**
+- [x] **Step 7: Close and archive this Prodigy plan after green review**
 
   Set the design and plan status to `COMPLETED 2026-08-02` (or the actual
   completion date), move both to `docs/archive/plans/`, update index/roadmap

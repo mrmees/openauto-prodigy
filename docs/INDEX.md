@@ -2,6 +2,11 @@
 
 ## Recently Completed Plans
 
+- [External Data Provider API design](archive/plans/2026-08-02-external-data-provider-api-design.md)
+  and [implementation plan](archive/plans/2026-08-02-external-data-provider-api-implementation-plan.md)
+  — completed 2026-08-02 with generic typed-scalar providers, deterministic
+  catalogs, exact waiting subscriptions, and the public `prodigy.data` widget
+  surface.
 - [Native dashboard richer trip data design](archive/plans/2026-07-31-native-dashboard-richer-trip-data-design.md)
   and [implementation plan](archive/plans/2026-07-31-native-dashboard-richer-trip-data-plan.md)
   — completed and hardware-accepted 2026-07-31 with exact rerouting freshness,
@@ -67,11 +72,7 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- [External Data Provider API design](plans/2026-08-02-external-data-provider-api-design.md)
-  and [implementation plan](plans/2026-08-02-external-data-provider-api-implementation-plan.md)
-  — generic session-owned typed-scalar providers, live catalog discovery,
-  exact-channel delivery to public API consumers, and a staged public web
-  widget shim before separate Gauge Studio/backend integration.
+- None.
 
 ## Pi Configuration (pi-config/)
 

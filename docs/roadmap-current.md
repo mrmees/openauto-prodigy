@@ -19,17 +19,27 @@ spike, or research-first feasibility work.
 
 ## Now
 
-- External Data Provider API bridge — **ACTIVE**. Implement the approved
-  source-agnostic typed-scalar contract in Prodigy first: session-owned live
-  providers, deterministic catalog discovery, exact-channel subscriptions,
-  latest-value delivery, and the public `prodigy.data` widget shim. Gauge
-  Studio integration follows as its own repository-local plan; the empty
-  backend directory is bootstrapped only after its language and hardware
-  ownership are chosen. Active
-  [design](plans/2026-08-02-external-data-provider-api-design.md) and
-  [implementation plan](plans/2026-08-02-external-data-provider-api-implementation-plan.md).
+- No promoted implementation is currently queued. Gauge Studio live-data work
+  is planned in its own repository, and backend bootstrap remains intentionally
+  open until its language and hardware ownership are chosen.
 
 ## Done (recent)
+
+- External Data Provider API bridge — **COMPLETED 2026-08-02**. Paired
+  sessions can own one live provider namespace, declare arbitrary typed scalar
+  channels, publish at backend-selected cadence, and serve deterministic
+  catalogs plus exact waiting subscriptions over TCP or WebSocket. Prodigy
+  retains only current values, forwards availability and metadata boundaries,
+  and exposes the same capability to web widgets through `prodigy.data` with
+  exact `bigint` integers/enums and browser-monotonic receipt timestamps. The
+  native/app/offscreen CTest/ARM gates passed. The bounded two-pass Fable review
+  found no blocker; its one major compatibility issue was fixed, and the
+  remediation pass returned no blocker or major. Gauge Studio integration is
+  planned separately at
+  `/mnt/e/claude/personal/openautopro/gauges/docs/superpowers/plans/2026-08-02-prodigy-live-data.md`;
+  the empty backend path remains uninitialized. Completed
+  [design](archive/plans/2026-08-02-external-data-provider-api-design.md) and
+  [implementation plan](archive/plans/2026-08-02-external-data-provider-api-implementation-plan.md).
 
 - Native Android Auto dashboard richer trip data — **COMPLETED 2026-07-31;
   HARDWARE ACCEPTED** at code anchor `e26e940`. Exact replacement snapshots now
