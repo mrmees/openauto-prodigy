@@ -68,8 +68,10 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 Active plans:
 
 - [External Data Provider API design](plans/2026-08-02-external-data-provider-api-design.md)
-  — generic session-owned typed-scalar providers, live catalog discovery, and
-  exact-channel delivery to public API consumers and web widgets.
+  and [implementation plan](plans/2026-08-02-external-data-provider-api-implementation-plan.md)
+  — generic session-owned typed-scalar providers, live catalog discovery,
+  exact-channel delivery to public API consumers, and a staged public web
+  widget shim before separate Gauge Studio/backend integration.
 
 ## Pi Configuration (pi-config/)
 

@@ -21,8 +21,9 @@ usable by independently developed OBD, CAN, GPIO, MQTT, simulator, or other
 backends and by Gauge Studio without making Prodigy a source-specific policy or
 performance gatekeeper.
 
-**Status:** DESIGN APPROVED and ready for implementation planning. No production
-code, protobuf, Gauge Studio, or backend source changed in this session.
+**Status:** DESIGN APPROVED; the Prodigy implementation plan is written and the
+work is promoted in the current roadmap. No production code, protobuf, Gauge
+Studio, or backend source changed in this session.
 
 **Review:** the requested read-only Opus 4.6 pass returned `APPROVE WITH
 CHANGES`: BLOCKER 0, MAJOR 2, MINOR 6. All eight findings were confirmed and
@@ -45,12 +46,21 @@ field 3 and envelope fields 80–94 are available at the grounded commit and tha
 the proposed proto3 presence/oneof shapes are legal. Application builds and
 CTest were not run because this change is documentation only. The tracked-live
 link check, `git diff --check`, and targeted stale/request-ID ambiguity search
-were rerun after the Fable remediation edits.
+were rerun after the Fable remediation edits. The implementation plan was
+self-reviewed against the approved contract for schema, lifecycle, ordering,
+clock, backpressure, JavaScript, and cross-repository boundaries; its
+placeholder scan and tracked-live link check passed.
 
-**Next 1–3 steps:** write the cross-repository implementation plan; execute
-Prodigy, Gauge Studio, and backend work against the one canonical contract with
-independent gates in each repository; live-test a simulated provider and
-exported gauge on the Pi before declaring the feature complete.
+**Planning:** the executable Prodigy plan implements the public contract first,
+then requires a separate Gauge Studio plan against `window.prodigy.data`. The
+`obd-plugin` path is currently an empty, non-git directory, so provider language,
+packaging, and source-hardware ownership remain a later backend-repository
+decision rather than being smuggled into the generic protocol.
+
+**Next 1–3 steps:** execute the Prodigy implementation plan; write and execute
+the Gauge Studio integration plan against the finished public shim; bootstrap a
+provider repository and live-test its deterministic fixture with an exported
+gauge on the Pi before declaring the cross-repository feature complete.
 
 ---
 

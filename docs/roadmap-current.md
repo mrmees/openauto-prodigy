@@ -19,9 +19,15 @@ spike, or research-first feasibility work.
 
 ## Now
 
-No work is currently promoted. Unpromoted user capabilities live in
-`docs/wishlist.md`; technical leads live in `docs/engineering-backlog.md` and
-require fresh research before promotion.
+- External Data Provider API bridge — **ACTIVE**. Implement the approved
+  source-agnostic typed-scalar contract in Prodigy first: session-owned live
+  providers, deterministic catalog discovery, exact-channel subscriptions,
+  latest-value delivery, and the public `prodigy.data` widget shim. Gauge
+  Studio integration follows as its own repository-local plan; the empty
+  backend directory is bootstrapped only after its language and hardware
+  ownership are chosen. Active
+  [design](plans/2026-08-02-external-data-provider-api-design.md) and
+  [implementation plan](plans/2026-08-02-external-data-provider-api-implementation-plan.md).
 
 ## Done (recent)
 
