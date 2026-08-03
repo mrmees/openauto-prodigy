@@ -9,7 +9,17 @@ cd "$(dirname "$0")/.."
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
-npm install --prefix "$WORK" --no-save --silent protobufjs@7 protobufjs-cli@1
+if command -v npm >/dev/null 2>&1; then
+    NPM_COMMAND=(npm)
+elif command -v corepack >/dev/null 2>&1; then
+    NPM_COMMAND=(corepack npm)
+else
+    echo "npm or corepack is required to regenerate the web protobuf binding" >&2
+    exit 1
+fi
+
+"${NPM_COMMAND[@]}" install --prefix "$WORK" --no-save --silent \
+    protobufjs@7 protobufjs-cli@1
 
 "$WORK/node_modules/.bin/pbjs" \
     -t static-module -w closure -r prodigy-api \
@@ -17,6 +27,10 @@ npm install --prefix "$WORK" --no-save --silent protobufjs@7 protobufjs-cli@1
     -p proto \
     -o resources/web/prodigy-proto.js \
     proto/api/*.proto
+
+# pbjs indents otherwise-empty generated lines. Normalize those lines so a
+# schema regeneration remains compatible with the repository's diff check.
+sed -i 's/[[:space:]]*$//' resources/web/prodigy-proto.js
 
 cp "$WORK/node_modules/protobufjs/dist/minimal/protobuf.min.js" \
     resources/web/protobuf.min.js

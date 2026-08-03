@@ -42,6 +42,7 @@ syntax = "proto3";
 package prodigy.api.v1;
 
 import "api/common.proto";
+import "api/data.proto";
 import "api/media.proto";
 import "api/navigation.proto";
 import "api/projection.proto";
@@ -203,7 +204,11 @@ message Capabilities {
   // PhoneStatus — always check that one before enabling call UI.
   PhoneCapabilities phone = 2;
 
-  reserved 3 to 12;
+  // Generic live typed-scalar provider/catalog/subscription domain.
+  // Presence, not the API minor version, is the feature discriminator.
+  optional bool data_provider_bridge = 3;
+
+  reserved 4 to 12;
 
   // True when new pairing windows use PairingSecretFormat.BASE32_120. The
   // challenge field remains the authoritative pre-auth discriminator.
@@ -318,9 +323,26 @@ message ApiMessage {
     BatteryReport battery_report = 71;
     ConnectivityReport connectivity_report = 72;
     TimeReport time_report = 73;
+
+    // Generic external data providers (80-94)
+    RegisterDataProviderRequest register_data_provider_request = 80;
+    RegisterDataProviderResponse register_data_provider_response = 81;
+    DeclareDataChannelsRequest declare_data_channels_request = 82;
+    DeclareDataChannelsResponse declare_data_channels_response = 83;
+    RemoveDataChannelsRequest remove_data_channels_request = 84;
+    PublishDataValues publish_data_values = 85;
+    ListDataCatalogRequest list_data_catalog_request = 86;
+    ListDataCatalogResponse list_data_catalog_response = 87;
+    SubscribeDataChannelsRequest subscribe_data_channels_request = 88;
+    SubscribeDataChannelsResponse subscribe_data_channels_response = 89;
+    UnsubscribeDataChannelsRequest unsubscribe_data_channels_request = 90;
+    DataValuesEvent data_values_event = 91;
+    WatchDataCatalogRequest watch_data_catalog_request = 92;
+    DataCatalogEvent data_catalog_event = 93;
+    DataChannelAvailabilityEvent data_channel_availability_event = 94;
   }
 
   // Unused block numbers, reserved for additive growth.
   reserved 6 to 9, 17 to 19, 23, 24, 27 to 29, 35 to 39, 48, 49, 53 to 59,
-           65 to 69, 74 to 79, 80 to 99;
+           65 to 69, 74 to 79, 95 to 99;
 }
