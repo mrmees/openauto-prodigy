@@ -40,6 +40,7 @@
 #include "core/services/ActionRegistry.hpp"
 #include "core/services/OverlayService.hpp"
 #include "core/services/NotificationService.hpp"
+#include "core/services/DataRegistry.hpp"
 #include "core/services/WeatherService.hpp"
 #include "core/services/SystemServiceClient.hpp"
 #include "core/services/BluetoothManager.hpp"
@@ -1201,6 +1202,7 @@ int main(int argc, char *argv[])
     // ancestor), and ApiServer itself is instantiated here, after all of them,
     // parented to &app: this satisfies the provider-outlives-server lifetime
     // contract documented at the top of ApiServer.hpp.
+    auto* dataRegistry = new oap::data::DataRegistry(&app);
     oap::api::ApiServiceRefs apiRefs;
     apiRefs.media = mediaStatusService;
     apiRefs.navigation = navBridge;                 // always constructed; inert without an AA orchestrator
@@ -1212,6 +1214,7 @@ int main(int argc, char *argv[])
     apiRefs.config = configService.get();
     apiRefs.bluetooth = bluetoothManager;
     apiRefs.display = displayInfo;
+    apiRefs.dataRegistry = dataRegistry;
     auto* apiServer = new oap::api::ApiServer(apiRefs, &app);
     if (!apiServer->start())
         qWarning() << "[main] External API disabled or failed to start";

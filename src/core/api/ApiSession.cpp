@@ -237,7 +237,7 @@ void ApiSession::goReady(quint64 requestId, const QString& grantedClientId) {
     pb::ApiMessage msg;
     auto* sh = msg.mutable_server_hello();
     sh->set_api_version_major(1);
-    sh->set_api_version_minor(1);
+    sh->set_api_version_minor(2);
     sh->set_server_name(deps_.serverName.toStdString());
     sh->set_app_version(deps_.appVersion.toStdString());
     sh->set_session_id(

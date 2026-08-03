@@ -36,6 +36,7 @@
 #include "core/services/NotificationService.hpp"
 #include "core/services/ThemeService.hpp"
 #include "core/services/PhoneStateService.hpp"
+#include "core/services/DataRegistry.hpp"
 
 #include "api/api.pb.h"
 
@@ -75,6 +76,51 @@ pb::ApiMessage subscribe(quint64 reqId, pb::Topic topic) {
     m.set_request_id(reqId);
     m.mutable_subscribe_request()->add_topics(topic);
     return m;
+}
+
+pb::ApiMessage registerDataProvider(quint64 requestId) {
+    pb::ApiMessage message;
+    message.set_request_id(requestId);
+    auto* provider = message.mutable_register_data_provider_request()
+                         ->mutable_provider();
+    provider->set_provider_namespace("com.example.vehicle");
+    provider->set_display_name("Vehicle");
+    return message;
+}
+
+pb::ApiMessage declareRpm(quint64 requestId) {
+    pb::ApiMessage message;
+    message.set_request_id(requestId);
+    auto* channel = message.mutable_declare_data_channels_request()->add_channels();
+    channel->set_channel_name("engine.rpm");
+    channel->set_display_name("Engine RPM");
+    channel->set_value_type(pb::DATA_VALUE_TYPE_DOUBLE);
+    channel->set_unit("rpm");
+    return message;
+}
+
+pb::ApiMessage subscribeRpm(quint64 requestId) {
+    pb::ApiMessage message;
+    message.set_request_id(requestId);
+    auto* ref = message.mutable_subscribe_data_channels_request()->add_channels();
+    ref->set_provider_namespace("com.example.vehicle");
+    ref->set_channel_name("engine.rpm");
+    return message;
+}
+
+pb::ApiMessage publishRpm(double value) {
+    pb::ApiMessage message;
+    auto* sample = message.mutable_publish_data_values()->add_samples();
+    sample->set_channel_name("engine.rpm");
+    sample->mutable_value()->set_double_value(value);
+    sample->set_quality(pb::DATA_QUALITY_GOOD);
+    return message;
+}
+
+pb::ApiMessage parseMessage(const QByteArray& bytes) {
+    pb::ApiMessage message;
+    message.ParseFromArray(bytes.constData(), bytes.size());
+    return message;
 }
 
 bool capabilitiesHaveTopic(const pb::Capabilities& caps, pb::Topic t) {
@@ -138,6 +184,7 @@ class TestApiLoopback : public QObject {
         oap::NotificationService notifications;
         oap::ThemeService theme;
         oap::PhoneStateService phone;
+        oap::data::DataRegistry data;
 
         ApiServiceRefs refs() {
             ApiServiceRefs r;
@@ -147,6 +194,7 @@ class TestApiLoopback : public QObject {
             r.notifications = &notifications;
             r.actions = &actions;
             r.config = &config;
+            r.dataRegistry = &data;
             return r;
         }
     };
@@ -172,6 +220,8 @@ private slots:
 
     // QR pairing surface: payload contract + data-URI property lifecycle.
     void testPairingQrPayloadAndProperty();
+    void testExternalDataTcpLifecycle();
+    void testExternalDataWebSocketFlow();
 };
 
 void TestApiLoopback::init() {
@@ -783,6 +833,151 @@ void TestApiLoopback::testPairingQrPayloadAndProperty() {
     QCOMPARE(unstarted.pairingQrDataUri(), QString());
 
     QVERIFY(!server.isRunning());   // stop() above cleared running too
+}
+
+void TestApiLoopback::testExternalDataTcpLifecycle() {
+    Fixture f;
+    f.config.setValue("api.tcp_port", 0);
+    f.config.setValue("api.ws_port", 0);
+    ApiServer server(f.refs());
+    server.setStorePathForTest(kStorePath);
+    QVERIFY(server.start());
+
+    QTcpSocket provider, consumer;
+    ApiFramer providerFramer, consumerFramer;
+    QList<QByteArray> providerQueue, consumerQueue;
+    provider.connectToHost(QHostAddress::LocalHost, server.tcpPort());
+    consumer.connectToHost(QHostAddress::LocalHost, server.tcpPort());
+    QVERIFY(provider.waitForConnected(3000));
+    QVERIFY(consumer.waitForConnected(3000));
+    sendFramed(provider, clientHello(1));
+    sendFramed(consumer, clientHello(1));
+    QCOMPARE(readFramed(provider, providerFramer, providerQueue).payload_case(),
+             pb::ApiMessage::kServerHello);
+    QCOMPARE(readFramed(consumer, consumerFramer, consumerQueue).payload_case(),
+             pb::ApiMessage::kServerHello);
+
+    sendFramed(consumer, subscribeRpm(2));
+    QCOMPARE(readFramed(consumer, consumerFramer, consumerQueue).payload_case(),
+             pb::ApiMessage::kSubscribeDataChannelsResponse);
+    QCOMPARE(readFramed(consumer, consumerFramer, consumerQueue)
+                 .data_channel_availability_event().unavailable_reason(),
+             pb::DATA_UNAVAILABLE_REASON_PROVIDER_ABSENT);
+
+    sendFramed(provider, registerDataProvider(3));
+    QCOMPARE(readFramed(provider, providerFramer, providerQueue).payload_case(),
+             pb::ApiMessage::kRegisterDataProviderResponse);
+    QCOMPARE(readFramed(consumer, consumerFramer, consumerQueue)
+                 .data_channel_availability_event().unavailable_reason(),
+             pb::DATA_UNAVAILABLE_REASON_CHANNEL_ABSENT);
+
+    sendFramed(provider, declareRpm(4));
+    QCOMPARE(readFramed(provider, providerFramer, providerQueue).payload_case(),
+             pb::ApiMessage::kDeclareDataChannelsResponse);
+    QCOMPARE(readFramed(consumer, consumerFramer, consumerQueue)
+                 .data_channel_availability_event().availability(),
+             pb::DATA_CHANNEL_AVAILABILITY_AVAILABLE);
+
+    sendFramed(provider, publishRpm(1234.5));
+    pb::ApiMessage value = readFramed(consumer, consumerFramer, consumerQueue);
+    QCOMPARE(value.payload_case(), pb::ApiMessage::kDataValuesEvent);
+    QCOMPARE(value.data_values_event().samples(0).value().double_value(), 1234.5);
+
+    pb::ApiMessage remove;
+    remove.set_request_id(5);
+    remove.mutable_remove_data_channels_request()->add_channel_names("engine.rpm");
+    sendFramed(provider, remove);
+    QCOMPARE(readFramed(provider, providerFramer, providerQueue).payload_case(),
+             pb::ApiMessage::kAck);
+    QCOMPARE(readFramed(consumer, consumerFramer, consumerQueue)
+                 .data_channel_availability_event().unavailable_reason(),
+             pb::DATA_UNAVAILABLE_REASON_CHANNEL_REMOVED);
+
+    sendFramed(provider, declareRpm(6));
+    QCOMPARE(readFramed(provider, providerFramer, providerQueue).payload_case(),
+             pb::ApiMessage::kDeclareDataChannelsResponse);
+    QCOMPARE(readFramed(consumer, consumerFramer, consumerQueue)
+                 .data_channel_availability_event().availability(),
+             pb::DATA_CHANNEL_AVAILABILITY_AVAILABLE);
+    provider.abort();
+    QCOMPARE(readFramed(consumer, consumerFramer, consumerQueue)
+                 .data_channel_availability_event().unavailable_reason(),
+             pb::DATA_UNAVAILABLE_REASON_PROVIDER_DISCONNECTED);
+
+    QTcpSocket replacement;
+    ApiFramer replacementFramer;
+    QList<QByteArray> replacementQueue;
+    replacement.connectToHost(QHostAddress::LocalHost, server.tcpPort());
+    QVERIFY(replacement.waitForConnected(3000));
+    sendFramed(replacement, clientHello(7));
+    QCOMPARE(readFramed(replacement, replacementFramer, replacementQueue).payload_case(),
+             pb::ApiMessage::kServerHello);
+    sendFramed(replacement, registerDataProvider(8));
+    QCOMPARE(readFramed(replacement, replacementFramer, replacementQueue).payload_case(),
+             pb::ApiMessage::kRegisterDataProviderResponse);
+    QCOMPARE(readFramed(consumer, consumerFramer, consumerQueue)
+                 .data_channel_availability_event().unavailable_reason(),
+             pb::DATA_UNAVAILABLE_REASON_CHANNEL_ABSENT);
+    sendFramed(replacement, declareRpm(9));
+    QCOMPARE(readFramed(replacement, replacementFramer, replacementQueue).payload_case(),
+             pb::ApiMessage::kDeclareDataChannelsResponse);
+    QCOMPARE(readFramed(consumer, consumerFramer, consumerQueue)
+                 .data_channel_availability_event().availability(),
+             pb::DATA_CHANNEL_AVAILABILITY_AVAILABLE);
+    server.stop();
+}
+
+void TestApiLoopback::testExternalDataWebSocketFlow() {
+    Fixture f;
+    f.config.setValue("api.tcp_port", 0);
+    f.config.setValue("api.ws_port", 0);
+    ApiServer server(f.refs());
+    server.setStorePathForTest(kStorePath);
+    QVERIFY(server.start());
+
+    QWebSocket provider, consumer;
+    QSignalSpy providerConnected(&provider, &QWebSocket::connected);
+    QSignalSpy consumerConnected(&consumer, &QWebSocket::connected);
+    QSignalSpy providerBinary(&provider, &QWebSocket::binaryMessageReceived);
+    QSignalSpy consumerBinary(&consumer, &QWebSocket::binaryMessageReceived);
+    const QUrl endpoint(QStringLiteral("ws://127.0.0.1:%1").arg(server.wsPort()));
+    provider.open(endpoint);
+    consumer.open(endpoint);
+    QTRY_COMPARE(providerConnected.count(), 1);
+    QTRY_COMPARE(consumerConnected.count(), 1);
+    provider.sendBinaryMessage(serialize(clientHello(1)));
+    consumer.sendBinaryMessage(serialize(clientHello(1)));
+    QTRY_COMPARE(providerBinary.count(), 1);
+    QTRY_COMPARE(consumerBinary.count(), 1);
+    providerBinary.clear();
+    consumerBinary.clear();
+
+    provider.sendBinaryMessage(serialize(registerDataProvider(2)));
+    QTRY_COMPARE(providerBinary.count(), 1);
+    QCOMPARE(parseMessage(providerBinary.at(0).at(0).toByteArray()).payload_case(),
+             pb::ApiMessage::kRegisterDataProviderResponse);
+    providerBinary.clear();
+    provider.sendBinaryMessage(serialize(declareRpm(3)));
+    QTRY_COMPARE(providerBinary.count(), 1);
+    providerBinary.clear();
+
+    consumer.sendBinaryMessage(serialize(subscribeRpm(4)));
+    QTRY_COMPARE(consumerBinary.count(), 2);
+    QCOMPARE(parseMessage(consumerBinary.at(0).at(0).toByteArray()).payload_case(),
+             pb::ApiMessage::kSubscribeDataChannelsResponse);
+    QCOMPARE(parseMessage(consumerBinary.at(1).at(0).toByteArray()).payload_case(),
+             pb::ApiMessage::kDataChannelAvailabilityEvent);
+    consumerBinary.clear();
+
+    provider.sendBinaryMessage(serialize(publishRpm(777.0)));
+    QTRY_COMPARE(consumerBinary.count(), 1);
+    const pb::ApiMessage value =
+        parseMessage(consumerBinary.at(0).at(0).toByteArray());
+    QCOMPARE(value.payload_case(), pb::ApiMessage::kDataValuesEvent);
+    QCOMPARE(value.data_values_event().samples(0).value().double_value(), 777.0);
+    provider.close();
+    consumer.close();
+    server.stop();
 }
 
 QTEST_MAIN(TestApiLoopback)
