@@ -4,6 +4,7 @@
 
 #include <QDebug>
 #include <QPointer>
+#include <QRegularExpression>
 
 #include <optional>
 #include <algorithm>
@@ -116,6 +117,73 @@ void toProto(const data::Catalog& source, pb::DataCatalog* target) {
     }
 }
 
+pb::DataQuality toProto(data::Quality quality) {
+    switch (quality) {
+    case data::Quality::Unknown:     return pb::DATA_QUALITY_UNSPECIFIED;
+    case data::Quality::Good:        return pb::DATA_QUALITY_GOOD;
+    case data::Quality::Degraded:    return pb::DATA_QUALITY_DEGRADED;
+    case data::Quality::Stale:       return pb::DATA_QUALITY_STALE;
+    case data::Quality::Invalid:     return pb::DATA_QUALITY_INVALID;
+    case data::Quality::Unavailable: return pb::DATA_QUALITY_UNAVAILABLE;
+    }
+    return pb::DATA_QUALITY_UNSPECIFIED;
+}
+
+pb::DataUnavailableReason toProto(data::UnavailableReason reason) {
+    switch (reason) {
+    case data::UnavailableReason::ProviderAbsent:
+        return pb::DATA_UNAVAILABLE_REASON_PROVIDER_ABSENT;
+    case data::UnavailableReason::ChannelAbsent:
+        return pb::DATA_UNAVAILABLE_REASON_CHANNEL_ABSENT;
+    case data::UnavailableReason::ProviderDisconnected:
+        return pb::DATA_UNAVAILABLE_REASON_PROVIDER_DISCONNECTED;
+    case data::UnavailableReason::ChannelRemoved:
+        return pb::DATA_UNAVAILABLE_REASON_CHANNEL_REMOVED;
+    case data::UnavailableReason::None:
+        return pb::DATA_UNAVAILABLE_REASON_UNSPECIFIED;
+    }
+    return pb::DATA_UNAVAILABLE_REASON_UNSPECIFIED;
+}
+
+void toProto(const data::ChannelRef& source, pb::DataChannelRef* target) {
+    target->set_provider_namespace(source.providerNamespace.toStdString());
+    target->set_channel_name(source.channelName.toStdString());
+}
+
+void toProto(const data::Scalar& source, pb::DataScalar* target) {
+    if (const auto* value = std::get_if<double>(&source))
+        target->set_double_value(*value);
+    else if (const auto* value = std::get_if<qint64>(&source))
+        target->set_signed_integer_value(*value);
+    else if (const auto* value = std::get_if<quint64>(&source))
+        target->set_unsigned_integer_value(*value);
+    else if (const auto* value = std::get_if<bool>(&source))
+        target->set_boolean_value(*value);
+    else if (const auto* value = std::get_if<QString>(&source))
+        target->set_string_value(value->toStdString());
+    else if (const auto* value = std::get_if<data::EnumScalar>(&source))
+        target->set_enum_value(value->value);
+}
+
+void toProto(const data::Sample& source, pb::DataSample* target) {
+    target->set_channel_name(source.channelName.toStdString());
+    if (source.value) toProto(*source.value, target->mutable_value());
+    if (source.observedAtUnixMs)
+        target->set_observed_at_unix_ms(*source.observedAtUnixMs);
+    target->set_quality(toProto(source.quality));
+}
+
+bool validIdentifier(const QString& value) {
+    static const QRegularExpression pattern(
+        QStringLiteral("^[a-z0-9][a-z0-9._-]{0,127}$"));
+    return pattern.match(value).hasMatch();
+}
+
+data::ChannelRef fromProto(const pb::DataChannelRef& source) {
+    return {QString::fromStdString(source.provider_namespace()),
+            QString::fromStdString(source.channel_name())};
+}
+
 std::optional<data::Quality> fromProto(pb::DataQuality quality) {
     switch (quality) {
     case pb::DATA_QUALITY_UNSPECIFIED: return data::Quality::Unknown;
@@ -182,7 +250,19 @@ ApiDataBridge::ApiDataBridge(data::DataRegistry* registry, QObject* parent)
     : QObject(parent), registry_(registry) {
     Q_ASSERT(registry_);
     connect(registry_, &data::DataRegistry::catalogChanged,
-            this, [this](quint64) { fanOutCatalog(); });
+            this, [this](quint64) { fanOutCatalog(registry_->catalog()); });
+    connect(registry_, &data::DataRegistry::availabilityChanged,
+            this,
+            [this](const data::ChannelRef& ref, bool available,
+                   data::UnavailableReason reason, quint64 revision) {
+                AvailabilityBoundary boundary;
+                boundary.available = available;
+                boundary.reason = reason;
+                if (available) boundary.definition = registry_->definition(ref);
+                fanOutAvailability(ref, boundary, revision);
+            });
+    connect(registry_, &data::DataRegistry::valuesAccepted,
+            this, &ApiDataBridge::fanOutValues);
 }
 
 data::OwnerToken ApiDataBridge::ownerToken(ApiSession* session) {
@@ -221,6 +301,14 @@ bool ApiDataBridge::handleRequest(ApiSession* session, quint64 requestId,
     case pb::ApiMessage::kWatchDataCatalogRequest:
         if (requireRequestId(session, requestId))
             handleWatchCatalog(session, requestId, message);
+        return true;
+    case pb::ApiMessage::kSubscribeDataChannelsRequest:
+        if (requireRequestId(session, requestId))
+            handleSubscribe(session, requestId, message);
+        return true;
+    case pb::ApiMessage::kUnsubscribeDataChannelsRequest:
+        if (requireRequestId(session, requestId))
+            handleUnsubscribe(session, requestId, message);
         return true;
     default:
         if (!isServerOnlyDataPayload(message.payload_case())) return false;
@@ -351,13 +439,14 @@ void ApiDataBridge::sendCatalogEvent(ApiSession* session,
     session->sendMessage(0, event);
 }
 
-void ApiDataBridge::fanOutCatalog() {
-    pendingCatalogs_.append(registry_->catalog());
+void ApiDataBridge::fanOutCatalog(const data::Catalog& catalog) {
+    pendingCatalogs_.append(catalog);
     if (catalogFanOutActive_) return;
 
     catalogFanOutActive_ = true;
     while (!pendingCatalogs_.isEmpty()) {
         const data::Catalog catalog = pendingCatalogs_.takeFirst();
+        reconcileAvailability();
         QList<QPointer<ApiSession>> destinations;
         destinations.reserve(sessions_.size());
         for (auto it = sessions_.cbegin(); it != sessions_.cend(); ++it) {
@@ -373,6 +462,215 @@ void ApiDataBridge::fanOutCatalog() {
         }
     }
     catalogFanOutActive_ = false;
+}
+
+void ApiDataBridge::handleSubscribe(ApiSession* session, quint64 requestId,
+                                    const PbMessage& message) {
+    QList<data::ChannelRef> accepted;
+    PbMessage response;
+    auto* payload = response.mutable_subscribe_data_channels_response();
+    SessionState& state = sessions_[session];
+    for (const pb::DataChannelRef& source :
+         message.subscribe_data_channels_request().channels()) {
+        const data::ChannelRef ref = fromProto(source);
+        auto* result = payload->add_results();
+        toProto(ref, result->mutable_channel());
+        const bool valid = validIdentifier(ref.providerNamespace)
+            && validIdentifier(ref.channelName);
+        result->set_accepted(valid);
+        if (!valid) {
+            result->set_reason("invalid channel reference");
+            continue;
+        }
+        state.subscriptions.insert(ref);
+        accepted.append(ref);
+    }
+
+    QPointer<ApiSession> guarded(session);
+    session->sendMessage(requestId, response);
+    for (const data::ChannelRef& ref : accepted) {
+        if (!guarded || guarded->state() != ApiSession::State::Ready) return;
+        auto stateIt = sessions_.find(guarded.data());
+        if (stateIt == sessions_.end() || !stateIt->subscriptions.contains(ref))
+            continue;
+        const AvailabilityBoundary boundary = currentBoundary(ref);
+        stateIt->lastAvailability.insert(ref, boundary);
+        sendAvailability(guarded.data(), ref, boundary,
+                         registry_->catalogRevision());
+        if (!guarded || guarded->state() != ApiSession::State::Ready) return;
+        if (!boundary.available) continue;
+        const std::optional<data::Sample> retained = registry_->latestSample(ref);
+        if (retained)
+            sendValues(guarded.data(), ref.providerNamespace, {*retained});
+    }
+}
+
+void ApiDataBridge::handleUnsubscribe(ApiSession* session, quint64 requestId,
+                                      const PbMessage& message) {
+    auto state = sessions_.find(session);
+    if (state != sessions_.end()) {
+        for (const pb::DataChannelRef& source :
+             message.unsubscribe_data_channels_request().channels()) {
+            const data::ChannelRef ref = fromProto(source);
+            state->subscriptions.remove(ref);
+            state->lastAvailability.remove(ref);
+        }
+    }
+    PbMessage response;
+    response.mutable_ack();
+    session->sendMessage(requestId, response);
+}
+
+ApiDataBridge::AvailabilityBoundary ApiDataBridge::currentBoundary(
+    const data::ChannelRef& ref) const {
+    AvailabilityBoundary result;
+    if (!registry_->providerExists(ref.providerNamespace)) {
+        result.reason = data::UnavailableReason::ProviderAbsent;
+        return result;
+    }
+    result.definition = registry_->definition(ref);
+    if (!result.definition) {
+        result.reason = data::UnavailableReason::ChannelAbsent;
+        return result;
+    }
+    result.available = true;
+    result.reason = data::UnavailableReason::None;
+    return result;
+}
+
+void ApiDataBridge::sendAvailability(
+    ApiSession* session, const data::ChannelRef& ref,
+    const AvailabilityBoundary& boundary, quint64 revision) {
+    PbMessage message;
+    auto* event = message.mutable_data_channel_availability_event();
+    toProto(ref, event->mutable_channel());
+    event->set_catalog_revision(revision);
+    if (boundary.available) {
+        event->set_availability(pb::DATA_CHANNEL_AVAILABILITY_AVAILABLE);
+        if (boundary.definition)
+            toProto(*boundary.definition, event->mutable_definition());
+    } else {
+        event->set_availability(pb::DATA_CHANNEL_AVAILABILITY_UNAVAILABLE);
+        event->set_unavailable_reason(toProto(boundary.reason));
+    }
+    session->sendMessage(0, message);
+}
+
+void ApiDataBridge::sendValues(ApiSession* session,
+                               const QString& providerNamespace,
+                               const QList<data::Sample>& samples) {
+    if (samples.isEmpty()) return;
+    PbMessage message;
+    auto* event = message.mutable_data_values_event();
+    event->set_provider_namespace(providerNamespace.toStdString());
+    for (const data::Sample& sample : samples)
+        toProto(sample, event->add_samples());
+    session->sendMessage(0, message);
+}
+
+void ApiDataBridge::reconcileAvailability() {
+    QList<QPair<QPointer<ApiSession>, data::ChannelRef>> interests;
+    for (auto state = sessions_.cbegin(); state != sessions_.cend(); ++state) {
+        for (const data::ChannelRef& ref : state->subscriptions)
+            interests.append({QPointer<ApiSession>(state.key()), ref});
+    }
+
+    for (const auto& interest : interests) {
+        const QPointer<ApiSession>& session = interest.first;
+        const data::ChannelRef& ref = interest.second;
+        if (!session || session->state() != ApiSession::State::Ready) continue;
+        const auto state = sessions_.constFind(session.data());
+        if (state == sessions_.cend() || !state->subscriptions.contains(ref))
+            continue;
+        const auto last = state->lastAvailability.constFind(ref);
+        AvailabilityBoundary boundary = currentBoundary(ref);
+        // Explicit lifecycle events are more informative than the structural
+        // state observed immediately afterward. Keep CHANNEL_REMOVED while
+        // that provider remains present, and PROVIDER_DISCONNECTED while it
+        // remains absent; a later provider presence transition replaces them.
+        if (!boundary.available && last != state->lastAvailability.cend()) {
+            if (registry_->providerExists(ref.providerNamespace)
+                && (last->reason == data::UnavailableReason::ChannelRemoved
+                    || last->reason == data::UnavailableReason::ChannelAbsent)) {
+                boundary = *last;
+            } else if (!registry_->providerExists(ref.providerNamespace)
+                       && (last->reason
+                               == data::UnavailableReason::ProviderDisconnected
+                           || last->reason
+                               == data::UnavailableReason::ProviderAbsent)) {
+                boundary = *last;
+            }
+        }
+        if (last == state->lastAvailability.cend() || !(*last == boundary)) {
+            fanOutAvailability(ref, boundary, registry_->catalogRevision());
+        }
+    }
+}
+
+void ApiDataBridge::fanOutAvailability(
+    const data::ChannelRef& ref, const AvailabilityBoundary& boundary,
+    quint64 revision) {
+    pendingAvailability_.append({ref, boundary, revision});
+    if (availabilityFanOutActive_) return;
+
+    availabilityFanOutActive_ = true;
+    while (!pendingAvailability_.isEmpty()) {
+        const AvailabilityWork work = pendingAvailability_.takeFirst();
+        QList<QPointer<ApiSession>> destinations;
+        for (auto state = sessions_.cbegin(); state != sessions_.cend(); ++state) {
+            if (state->subscriptions.contains(work.ref))
+                destinations.append(QPointer<ApiSession>(state.key()));
+        }
+
+        for (const QPointer<ApiSession>& session : destinations) {
+            if (!session || session->state() != ApiSession::State::Ready) continue;
+            auto state = sessions_.find(session.data());
+            if (state == sessions_.end()
+                || !state->subscriptions.contains(work.ref)) {
+                continue;
+            }
+            const auto last = state->lastAvailability.constFind(work.ref);
+            if (last != state->lastAvailability.cend()
+                && *last == work.boundary) {
+                continue;
+            }
+            state->lastAvailability.insert(work.ref, work.boundary);
+            sendAvailability(session.data(), work.ref, work.boundary,
+                             work.revision);
+        }
+    }
+    availabilityFanOutActive_ = false;
+}
+
+void ApiDataBridge::fanOutValues(
+    const QString& providerNamespace, const QList<data::Sample>& samples) {
+    QList<QPointer<ApiSession>> destinations;
+    for (auto state = sessions_.cbegin(); state != sessions_.cend(); ++state) {
+        bool interested = false;
+        for (const data::Sample& sample : samples) {
+            if (state->subscriptions.contains(
+                    {providerNamespace, sample.channelName})) {
+                interested = true;
+                break;
+            }
+        }
+        if (interested) destinations.append(QPointer<ApiSession>(state.key()));
+    }
+
+    for (const QPointer<ApiSession>& session : destinations) {
+        if (!session || session->state() != ApiSession::State::Ready) continue;
+        const auto state = sessions_.constFind(session.data());
+        if (state == sessions_.cend()) continue;
+        QList<data::Sample> filtered;
+        for (const data::Sample& sample : samples) {
+            if (state->subscriptions.contains(
+                    {providerNamespace, sample.channelName})) {
+                filtered.append(sample);
+            }
+        }
+        if (!filtered.isEmpty())
+            sendValues(session.data(), providerNamespace, filtered);
+    }
 }
 
 void ApiDataBridge::sessionClosed(ApiSession* session) {
