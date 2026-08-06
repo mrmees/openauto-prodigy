@@ -313,6 +313,16 @@ limits, and a verification command before implementation.
 
 ## Web-Widget Runtime
 
+- **Widget picker has three nonblocking post-review cleanups** — Evidence:
+  **CODE-REVIEW CONFIRMED 2026-08-06; HARDWARE ACCEPTED**. The category-collision
+  regression proves distinct category IDs but does not select each tab and
+  assert the exact widget result; `HomeMenu` retains an unused `Toast` after
+  placement errors moved into the full-screen picker; and repeating the same
+  failed placement restarts the error timer without retriggering a visual
+  transition. Candidate deliverable: strengthen the focused filter assertions,
+  remove or justify the dead toast, and optionally retrigger the failure banner
+  animation without changing the accepted default-size-only placement flow.
+
 - **Package fetch treats non-GET methods as read requests** — Evidence:
   **CODE-REVIEW CONFIRMED 2026-08-05; HARDWARE NONBLOCKING**.
   `WebWidgetSchemeHandler::requestStarted()` resolves and returns package files

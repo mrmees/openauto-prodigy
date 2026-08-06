@@ -4,6 +4,42 @@ Newest entries first.
 
 ---
 
+## 2026-08-06 — Full-screen widget picker completed
+
+**What changed:** replaced the compact add-widget sheet with a full-screen,
+touch-sized catalog. The picker now has top category tabs, three-column cards,
+readable two-line names, default and resize-range indicators, one-tap placement
+at the widget's declared default size, and an in-picker placement-error banner.
+Descriptions and the redundant instruction line were removed.
+
+**Why:** the prior screen was difficult to scan and operate in a vehicle. The
+new flow keeps widget packages authoritative for sizing while making catalog
+navigation and the result of a tap obvious.
+
+**Status:** HARDWARE ACCEPTED. The visible design was accepted at `5698d2a`;
+the reviewed remediation at `f147355` is deployed on the Pi. Category switching,
+full-screen layout, and one-tap placement of the Date widget at its 2x1 default
+were exercised live.
+
+**Verification:** the native build, explicit `openauto-prodigy` target,
+`QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, and
+`./cross-build.sh` passed. The deployed service remained active with no new
+warning or alert journal entries. Documentation uses
+`python3 scripts/check-doc-links.py --scope tracked-live` and `git diff --check`.
+
+**Review:** Opus pass 1 reported BLOCKER=0, MAJOR=1, MINOR=4. Four findings were
+fixed (placement feedback, divider placement, collision-safe category IDs, and
+the roadmap anchor); the X-only full-screen close remained an intentional
+design choice. Pass 2 reported BLOCKER=0, MAJOR=0, MINOR=3. Those three
+nonblocking cleanup findings are confirmed and deferred to the engineering
+backlog. Overall: confirmed 8, dismissed 0, fixed 4, accepted 1, deferred 3.
+
+**Next 1–3 steps:** push the two implementation commits and this completion
+record when authorized; optionally remove the test Date widget from the
+dashboard; treat the three review cleanups as a separate future task.
+
+---
+
 ## 2026-08-06 — Cross-repository live vehicle-data slice completed
 
 **What changed:** updated Prodigy's current roadmap after Gauge Studio and the
