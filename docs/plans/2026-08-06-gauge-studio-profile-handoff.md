@@ -175,7 +175,8 @@ simulation adapter, or a Prodigy top-level `widget.yaml`.
 ```
 
 7. Reopen the Gauge configuration screen to rescan choices. Restart Prodigy
-   after replacing a profile currently in use.
+   after replacing or restoring a profile currently in use; reopening
+   configuration alone does not reload an active widget.
 
 ## Remote Catalog Work
 
@@ -189,9 +190,11 @@ The remote client must:
   flow;
 - store only the credentials required by the existing public API contract;
 - list and sort provider catalogs defensively;
-- show numeric-compatible double, signed integer, unsigned integer, and enum
+- show numeric-compatible double, signed integer, and unsigned integer
   channels;
-- keep boolean and string channels visible but disabled with an explanation;
+- keep enum, boolean, and string channels visible but disabled with an
+  explanation; enum/status presentation belongs to a future non-gauge widget,
+  not this numeric Gauge runtime;
 - pin the selected exact provider namespace, channel, type, and unit;
 - leave manual binding usable when the Pi or catalog is unavailable.
 
@@ -199,7 +202,7 @@ Direct profile upload is explicitly deferred.
 
 ## Existing Fixture Migration
 
-Convert:
+In the Gauge Studio repository, convert:
 
 ```text
 examples/webwidgets/engine-rpm/
@@ -225,8 +228,9 @@ normal Gauge Studio export must not recreate one picker entry per profile.
 | Type or unit mismatch | `Invalid Data Binding` |
 | Stale sample | Authored retained/dimmed stale presentation |
 
-Restoring a missing profile with the same stable ID repairs the saved widget
-after reload/restart. The runtime must not modify Prodigy dashboard placement.
+Restoring a missing profile with the same stable ID and restarting Prodigy
+repairs the saved widget. The runtime must not modify Prodigy dashboard
+placement.
 
 ## Out of Scope for the Gauge Studio Session
 
@@ -262,4 +266,3 @@ instances select RPM and voltage profiles independently, both render live
 backend data, resize and persist, report backend disconnection, recover on
 reconnect, and preserve a missing profile's placement until the same ID is
 restored.
-

@@ -323,7 +323,8 @@ scp -r engine-rpm/ \
 Prodigy is not responsible for completing or repairing a partial copy. The
 collection scan ignores incomplete entries without a valid `item.yaml`.
 Closing and reopening configuration rescans choices. A Prodigy restart is the
-documented recovery path after replacing an active profile.
+documented recovery path after replacing or restoring a profile selected by an
+active widget; merely reopening configuration does not reload that widget.
 
 ## Gauge Runtime Data Flow
 
@@ -357,9 +358,9 @@ server subscription among local callbacks; this is transparent to profiles.
 | Sample stale | Gauge profile/runtime | Retain/dim/label exactly as authored |
 
 Removing a selected profile never removes or retargets the dashboard widget.
-The saved ID survives so restoring that item can repair the instance. Provider
-and channel recovery remains automatic through the existing public data shim.
-Profile file replacement is not hot-reloaded in version one.
+The saved ID survives so restoring that item and restarting Prodigy repairs the
+instance. Provider and channel recovery remains automatic through the existing
+public data shim. Profile file replacement is not hot-reloaded in version one.
 
 ## Migration from the Live Proof
 
@@ -406,7 +407,7 @@ API change is required.
 5. Confirm resize and per-instance persistence.
 6. Stop and restart the backend; both gauges become unavailable and recover.
 7. Remove one profile; its placement remains and reports unavailable.
-8. Restore the profile and restart or reopen configuration; it renders again.
+8. Restore the profile and restart Prodigy; it renders again.
 
 ## Implementation Sequencing
 
@@ -419,4 +420,3 @@ API change is required.
    implementation plan when the cross-repository behavior is accepted.
 
 No Gauge Studio source changes belong in the Prodigy implementation session.
-

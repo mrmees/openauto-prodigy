@@ -28,7 +28,12 @@ backend contract/runtime remain unchanged.
 `git diff --check`. The design requires a bounded Fable review before Prodigy
 implementation planning.
 
-**Next 1–3 steps:** complete the design self-review and Fable gate; obtain user
+**Review:** Fable pass 1 reported BLOCKER=0, MAJOR=0, MINOR=3. All three
+findings were confirmed and remediated: missing-profile recovery now requires
+an explicit Prodigy restart, enum channels are visibly unsupported by this
+numeric Gauge runtime, and fixture paths identify the Gauge Studio repository.
+
+**Next 1–3 steps:** complete the bounded remediation review; obtain user
 acceptance of the written artifacts; write the Prodigy implementation plan.
 Use `docs/plans/2026-08-06-gauge-studio-profile-handoff.md` as the input to the
 later Gauge Studio session.
