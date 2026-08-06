@@ -4,6 +4,42 @@ Newest entries first.
 
 ---
 
+## 2026-08-05 — Package-local web-widget fetch and live gauge verification
+
+**What changed:** fixed the `prodigy://widgets` scheme registration so Chromium
+permits package-local Fetch API requests while retaining the canonical-path
+jail and denying local-file access. Engine RPM and control-module-voltage gauge
+packages can now load their generated `gauge.json` at runtime. The code fix is
+commit `9830f7f`.
+
+**Status:** LIVE-VERIFIED on the vehicle Pi. The deployed ARM binary matched
+local SHA-256
+`2c9b9b09e282c99cc92767d6cc1210030409f7c7e9e5193b7149902cae1d4dcc`.
+Both gauges rendered live data, resized correctly, showed `PROVIDER
+DISCONNECTED` after a clean backend stop, and recovered automatically after
+the provider restarted. The temporary provider is stopped; no further hardware
+time is required for this fix.
+
+**Verification:** the focused scheme-flags regression was observed failing
+before implementation and passed afterward. The native app target,
+`QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, and
+`./cross-build.sh` passed. The Pi service remained active with zero restarts;
+its journal contained no post-fix Fetch API errors. A public API subscriber
+observed `engine.rpm=861.25` and
+`electrical.control-module-voltage=13.662` during the live run.
+
+**Review:** Opus pass 1 reported BLOCKER=0, MAJOR=0, MINOR=3. Live hardware
+resolved the request for end-to-end Fetch evidence. The shared-origin package
+visibility was documented as part of the accepted trusted-local-widget model.
+Non-GET package-fetch semantics are nonblocking and recorded in the engineering
+backlog.
+
+**Next 1–3 steps:** optionally define strict non-GET package-scheme behavior;
+polish or replace the example gauge designs in Gauge Studio; resume the longer
+OBD transport soak/reliability work in the backend repository when convenient.
+
+---
+
 ## 2026-08-02 — External data-provider API implemented and reviewed
 
 **What changed:** implemented the approved source-agnostic typed-scalar bridge

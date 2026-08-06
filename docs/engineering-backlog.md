@@ -313,6 +313,14 @@ limits, and a verification command before implementation.
 
 ## Web-Widget Runtime
 
+- **Package fetch treats non-GET methods as read requests** — Evidence:
+  **CODE-REVIEW CONFIRMED 2026-08-05; HARDWARE NONBLOCKING**.
+  `WebWidgetSchemeHandler::requestStarted()` resolves and returns package files
+  without checking the request method, so a same-origin `POST` currently gets
+  the same read-only response as `GET`. No mutation path exists. Candidate
+  deliverable: define the package-scheme method contract and reject methods
+  other than `GET` (and optionally support `HEAD`) with focused coverage.
+
 - **Shim readiness is one-shot across reconnects** — Evidence:
   **CODE-CONFIRMED 2026-07-24**. prodigy.ready resolves once and never represents
   a later disconnected interval. Candidate deliverable: callers can reliably
