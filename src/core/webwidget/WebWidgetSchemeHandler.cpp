@@ -6,6 +6,12 @@
 
 namespace oap {
 
+QWebEngineUrlScheme::Flags webWidgetSchemeFlags()
+{
+    return QWebEngineUrlScheme::SecureScheme
+        | QWebEngineUrlScheme::FetchApiAllowed;
+}
+
 WebWidgetSchemeHandler::WebWidgetSchemeHandler(WebWidgetContentResolver* resolver,
                                                QObject* parent)
     : QWebEngineUrlSchemeHandler(parent), resolver_(resolver) {}

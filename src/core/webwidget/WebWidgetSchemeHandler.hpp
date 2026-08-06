@@ -1,10 +1,13 @@
 #pragma once
 
+#include <QWebEngineUrlScheme>
 #include <QWebEngineUrlSchemeHandler>
 
 #include "core/webwidget/WebWidgetContentResolver.hpp"
 
 namespace oap {
+
+QWebEngineUrlScheme::Flags webWidgetSchemeFlags();
 
 // Serves prodigy://widgets/<id>/<path> from scanned package directories.
 // All decisions live in WebWidgetContentResolver; this class only speaks

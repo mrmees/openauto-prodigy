@@ -10,6 +10,12 @@ Read [Known Limitations (v1)](#known-limitations-v1) before you write any code. 
 
 A web widget is a directory of HTML/CSS/JS served over a custom `prodigy://widgets/<id>/<entry>` scheme and rendered inside a `WebEngineView` tile on the dashboard grid — the same grid, same sizing contract, same picker as native QML widgets. Content never touches the filesystem or the network directly; it's read in-process from the package directory by a scheme handler.
 
+Relative same-origin `fetch()` requests are supported for package resources,
+including JSON configuration files. For example, `fetch('gauge.json')` from
+`index.html` resolves inside that widget package. The resolver applies the same
+canonical-path jail as script, stylesheet, and image loads; this does not grant
+`file://` access.
+
 Web widgets talk to the head unit exclusively through the **External API** (WebSocket, `ws://127.0.0.1:<api.ws_port>`) via an injected `window.prodigy` convenience shim — there is no QWebChannel, no direct QML access, no second RPC surface. If you want the full architecture (why `prodigy://` instead of `file://`, single-origin rationale, packaging/discovery, shim internals, security model), read the design doc (design history): `docs/archive/plans/2026-07-06-js-runtime-design.md`. This guide doesn't re-derive that — it's the practical "how do I build one" companion.
 
 ---
