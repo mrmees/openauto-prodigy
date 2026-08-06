@@ -18,15 +18,16 @@ widgets would clutter the picker and incorrectly push gauge semantics into
 Prodigy. The new boundary lets Prodigy host opaque configuration while each
 widget owns its data and meaning.
 
-**Status:** DESIGN APPROVED; implementation plan not yet written. Grounded on
-Prodigy `2506041`, Gauge Studio `f784bf7`, and `prodigy-obd` `34632d7`.
-Gauge Studio work is deliberately deferred to a separate session and the
-backend contract/runtime remain unchanged.
+**Status:** DESIGN APPROVED; PRODIGY IMPLEMENTATION PLAN ACTIVE. The design is
+grounded on Prodigy `2506041`, Gauge Studio `f784bf7`, and `prodigy-obd`
+`34632d7`; the implementation plan is grounded on the clean-review record at
+`6194114`. Gauge Studio work is deliberately deferred to a separate session
+and the backend contract/runtime remain unchanged.
 
 **Verification:** documentation-only gate:
 `python3 scripts/check-doc-links.py --scope tracked-live` and
-`git diff --check`. The design requires a bounded Fable review before Prodigy
-implementation planning.
+`git diff --check`. The implementation plan was checked against the approved
+design and current source interfaces after the bounded Fable design review.
 
 **Review:** Fable pass 1 reported BLOCKER=0, MAJOR=0, MINOR=3. All three
 findings were confirmed and remediated: missing-profile recovery now requires
@@ -35,11 +36,15 @@ numeric Gauge runtime, and fixture paths identify the Gauge Studio repository.
 Pass 2 reviewed the exact remediation range and reported BLOCKER=0, MAJOR=0,
 MINOR=0. Overall: confirmed 3, dismissed 0, fixed 3, deferred 0.
 
-**Next 1–3 steps:** obtain user acceptance of the written artifacts; write the
-Prodigy implementation plan; execute Gauge Studio work only in its later
-repository session.
-Use `docs/plans/2026-08-06-gauge-studio-profile-handoff.md` as the input to the
-later Gauge Studio session.
+**Planning:** the five-task Prodigy plan adds the manifest schema, jailed
+widget-data collections, full-screen draft lifecycle, public JavaScript config
+snapshots, and a domain-neutral Pi fixture. It explicitly excludes Gauge
+runtime/profile implementation and any provider/protobuf change.
+
+**Next 1–3 steps:** execute the Prodigy implementation plan inline; complete
+its bounded Fable review and generic Pi fixture checklist; then use
+`docs/plans/2026-08-06-gauge-studio-profile-handoff.md` as the input to the
+separate Gauge Studio session.
 
 ---
 

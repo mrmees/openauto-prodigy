@@ -24,8 +24,9 @@ spike, or research-first feasibility work.
   widget configuration lifecycle plus generic widget-owned data collections.
   Gauge Studio will later distribute one Gauge runtime and independent profiles
   instead of one picker card per gauge. The Prodigy design and the standalone
-  Gauge Studio handoff are in `docs/plans/`; implementation planning follows
-  their review. The provider API and `prodigy-obd` runtime remain unchanged.
+  Gauge Studio handoff are in `docs/plans/`; the reviewed design now has an
+  executable five-task Prodigy implementation plan. The provider API and
+  `prodigy-obd` runtime remain unchanged.
 
 ## Done (recent)
 

@@ -75,7 +75,9 @@ Active plans:
 - [Generic configurable web widgets and Gauge profiles](plans/2026-08-06-generic-configurable-web-widgets-design.md)
   — approved cross-repository design for one configurable Gauge runtime,
   independent widget-owned profiles, and a generic full-screen configuration
-  lifecycle. The companion
+  lifecycle. The executable
+  [Prodigy implementation plan](plans/2026-08-06-generic-configurable-web-widgets-implementation-plan.md)
+  covers only the generic host. The companion
   [Gauge Studio handoff](plans/2026-08-06-gauge-studio-profile-handoff.md)
   is standalone input for the later Gauge Studio session.
 
