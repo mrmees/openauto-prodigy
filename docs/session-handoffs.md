@@ -4,6 +4,37 @@ Newest entries first.
 
 ---
 
+## 2026-08-06 — Generic configurable web-widget design approved
+
+**What changed:** captured the approved cross-repository design for an
+explicit-opt-in, full-screen widget configuration lifecycle; generic
+widget-owned data collections; one Gauge Studio-owned Gauge runtime; and
+independent manually copied gauge profiles. Added a standalone Gauge Studio
+handoff that defines the runtime, package, migration, remote-catalog, and test
+contracts without requiring this session history.
+
+**Why:** exporting RPM, voltage, and every future instrument as separate web
+widgets would clutter the picker and incorrectly push gauge semantics into
+Prodigy. The new boundary lets Prodigy host opaque configuration while each
+widget owns its data and meaning.
+
+**Status:** DESIGN APPROVED; implementation plan not yet written. Grounded on
+Prodigy `2506041`, Gauge Studio `f784bf7`, and `prodigy-obd` `34632d7`.
+Gauge Studio work is deliberately deferred to a separate session and the
+backend contract/runtime remain unchanged.
+
+**Verification:** documentation-only gate:
+`python3 scripts/check-doc-links.py --scope tracked-live` and
+`git diff --check`. The design requires a bounded Fable review before Prodigy
+implementation planning.
+
+**Next 1–3 steps:** complete the design self-review and Fable gate; obtain user
+acceptance of the written artifacts; write the Prodigy implementation plan.
+Use `docs/plans/2026-08-06-gauge-studio-profile-handoff.md` as the input to the
+later Gauge Studio session.
+
+---
+
 ## 2026-08-06 — Full-screen widget picker completed
 
 **What changed:** replaced the compact add-widget sheet with a full-screen,

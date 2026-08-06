@@ -19,11 +19,13 @@ spike, or research-first feasibility work.
 
 ## Now
 
-- No promoted implementation is currently queued. The generic provider bridge,
-  exported Gauge Studio widgets, and the separately owned `prodigy-obd`
-  backend have completed their shared Pi proof. Future OBD/CAN transport,
-  decoding, setup, and reliability work remains in the backend repository;
-  Prodigy changes only when a source-agnostic public capability is missing.
+- Generic configurable web widgets and one-profile-selecting Gauge entry —
+  **DESIGN ACTIVE 2026-08-06**. Prodigy will add a full-screen, explicit-opt-in
+  widget configuration lifecycle plus generic widget-owned data collections.
+  Gauge Studio will later distribute one Gauge runtime and independent profiles
+  instead of one picker card per gauge. The Prodigy design and the standalone
+  Gauge Studio handoff are in `docs/plans/`; implementation planning follows
+  their review. The provider API and `prodigy-obd` runtime remain unchanged.
 
 ## Done (recent)
 
