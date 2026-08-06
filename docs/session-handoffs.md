@@ -32,9 +32,12 @@ implementation planning.
 findings were confirmed and remediated: missing-profile recovery now requires
 an explicit Prodigy restart, enum channels are visibly unsupported by this
 numeric Gauge runtime, and fixture paths identify the Gauge Studio repository.
+Pass 2 reviewed the exact remediation range and reported BLOCKER=0, MAJOR=0,
+MINOR=0. Overall: confirmed 3, dismissed 0, fixed 3, deferred 0.
 
-**Next 1–3 steps:** complete the bounded remediation review; obtain user
-acceptance of the written artifacts; write the Prodigy implementation plan.
+**Next 1–3 steps:** obtain user acceptance of the written artifacts; write the
+Prodigy implementation plan; execute Gauge Studio work only in its later
+repository session.
 Use `docs/plans/2026-08-06-gauge-studio-profile-handoff.md` as the input to the
 later Gauge Studio session.
 
