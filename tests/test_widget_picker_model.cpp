@@ -12,12 +12,15 @@ private slots:
     void testCategoryRoleReturnsId();
     void testCategoryLabelRole();
     void testDescriptionRole();
+    void testSizeSummaryRoles();
     void testSortOrderNoWidgetFirst();
     void testSortOrderCategoryPriority();
     void testUncategorizedSortLast();
     void testUnknownCategoryCapitalized();
     void testSingletonHiddenFromPicker();
     void testSizeConstraintRoles();
+    void testCategoriesExposeAllAndAvailableGroups();
+    void testCategoryFilterShowsOnlySelectedGroup();
 
 private:
     oap::WidgetRegistry* registry_ = nullptr;
@@ -199,6 +202,62 @@ void TestWidgetPickerModel::testSizeConstraintRoles() {
         }
     }
     QFAIL("Sizeable widget not found in model");
+}
+
+void TestWidgetPickerModel::testSizeSummaryRoles() {
+    oap::WidgetDescriptor desc;
+    desc.id = "test.gauge";
+    desc.displayName = "Gauge";
+    desc.qmlComponent = QUrl("qrc:/test.qml");
+    desc.minCols = 1;
+    desc.minRows = 1;
+    desc.maxCols = 3;
+    desc.maxRows = 2;
+    desc.defaultCols = 2;
+    desc.defaultRows = 2;
+    registry_->registerWidget(desc);
+
+    oap::WidgetPickerModel model(registry_);
+    model.filterByAvailableSpace(6, 4, false);
+
+    const QModelIndex index = model.index(0, 0);
+    QCOMPARE(model.data(index, oap::WidgetPickerModel::DefaultSizeLabelRole).toString(),
+             QString("2×2"));
+    QCOMPARE(model.data(index, oap::WidgetPickerModel::SizeRangeLabelRole).toString(),
+             QString("1×1–3×2"));
+}
+
+void TestWidgetPickerModel::testCategoriesExposeAllAndAvailableGroups() {
+    registerTestWidget("test.np", "Now Playing", "media", "Track info");
+    registerTestWidget("test.clock", "Clock", "status", "Current time");
+    registerTestWidget("test.utility", "Utility", "utilities", "Utility data");
+    registerTestWidget("test.other", "Other", "", "Other data");
+
+    oap::WidgetPickerModel model(registry_);
+    model.filterByAvailableSpace(6, 4, false);
+
+    const QVariantList categories = model.categories();
+    QCOMPARE(categories.size(), 5);
+    QCOMPARE(categories.at(0).toMap(), QVariantMap({{"id", ""}, {"label", "All"}}));
+    QCOMPARE(categories.at(1).toMap(), QVariantMap({{"id", "status"}, {"label", "Status"}}));
+    QCOMPARE(categories.at(2).toMap(), QVariantMap({{"id", "media"}, {"label", "Media"}}));
+    QCOMPARE(categories.at(3).toMap(), QVariantMap({{"id", "utilities"}, {"label", "Utilities"}}));
+    QCOMPARE(categories.at(4).toMap(),
+             QVariantMap({{"id", "__uncategorized__"}, {"label", "Other"}}));
+}
+
+void TestWidgetPickerModel::testCategoryFilterShowsOnlySelectedGroup() {
+    registerTestWidget("test.np", "Now Playing", "media", "Track info");
+    registerTestWidget("test.clock", "Clock", "status", "Current time");
+
+    oap::WidgetPickerModel model(registry_);
+    model.filterByAvailableSpace(6, 4, false);
+    model.setCategoryFilter("media");
+
+    QCOMPARE(model.categoryFilter(), QString("media"));
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(model.data(model.index(0, 0), oap::WidgetPickerModel::WidgetIdRole).toString(),
+             QString("test.np"));
 }
 
 QTEST_GUILESS_MAIN(TestWidgetPickerModel)

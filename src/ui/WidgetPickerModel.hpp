@@ -9,6 +9,8 @@ class WidgetRegistry;
 
 class WidgetPickerModel : public QAbstractListModel {
     Q_OBJECT
+    Q_PROPERTY(QVariantList categories READ categories NOTIFY categoriesChanged)
+    Q_PROPERTY(QString categoryFilter READ categoryFilter WRITE setCategoryFilter NOTIFY categoryFilterChanged)
 public:
     enum Roles {
         WidgetIdRole = Qt::UserRole + 1,
@@ -22,7 +24,9 @@ public:
         MinColsRole,
         MinRowsRole,
         MaxColsRole,
-        MaxRowsRole
+        MaxRowsRole,
+        DefaultSizeLabelRole,
+        SizeRangeLabelRole
     };
 
     explicit WidgetPickerModel(WidgetRegistry* registry, QObject* parent = nullptr);
@@ -32,10 +36,21 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     Q_INVOKABLE void filterByAvailableSpace(int availCols, int availRows, bool includeNoWidget = true);
+    QVariantList categories() const;
+    QString categoryFilter() const { return categoryFilter_; }
+    Q_INVOKABLE void setCategoryFilter(const QString& categoryId);
+
+signals:
+    void categoriesChanged();
+    void categoryFilterChanged();
 
 private:
+    void rebuildFiltered();
+
     WidgetRegistry* registry_;
+    QList<WidgetDescriptor> available_;
     QList<WidgetDescriptor> filtered_;
+    QString categoryFilter_;
 };
 
 } // namespace oap

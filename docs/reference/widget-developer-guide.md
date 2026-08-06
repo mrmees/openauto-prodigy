@@ -28,7 +28,8 @@ A widget in OpenAuto Prodigy is a lightweight QML component that lives in a cell
 
 ### Categories
 
-Widgets are grouped into four categories, displayed in this fixed order in the widget picker:
+Widgets are grouped into touch-sized tabs in the full-screen picker. `All`
+appears first, followed by these built-in categories in fixed order:
 
 | Category | Order | Purpose | Example |
 |----------|-------|---------|---------|
@@ -36,6 +37,13 @@ Widgets are grouped into four categories, displayed in this fixed order in the w
 | `media` | 1 | Audio/media information | Now Playing |
 | `navigation` | 2 | Turn-by-turn / map data | Navigation |
 | `launcher` | 3 | App launchers | Settings, Android Auto |
+
+Unknown extension categories follow the built-ins, and uncategorized widgets
+appear under `Other`. Picker cards place the descriptor's default size with one
+tap and show that default beside the supported minimum-to-maximum resize range.
+Descriptions remain available as descriptor metadata but are not rendered on
+the compact in-vehicle card. Resizing remains available from dashboard edit
+mode.
 
 ---
 

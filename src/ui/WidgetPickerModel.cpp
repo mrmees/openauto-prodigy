@@ -1,8 +1,15 @@
 #include "ui/WidgetPickerModel.hpp"
 #include "core/widget/WidgetRegistry.hpp"
+#include <QSet>
 #include <algorithm>
 
 namespace oap {
+
+static const QString kUncategorizedFilter = QStringLiteral("__uncategorized__");
+
+static QString sizeLabel(int cols, int rows) {
+    return QStringLiteral("%1×%2").arg(cols).arg(rows);
+}
 
 static int categoryOrder(const QString& id, bool isNoWidget) {
     if (isNoWidget) return -1;
@@ -59,6 +66,12 @@ QVariant WidgetPickerModel::data(const QModelIndex& index, int role) const {
         case MinRowsRole: return desc.minRows;
         case MaxColsRole: return desc.maxCols;
         case MaxRowsRole: return desc.maxRows;
+        case DefaultSizeLabelRole: return sizeLabel(desc.defaultCols, desc.defaultRows);
+        case SizeRangeLabelRole:
+            if (desc.minCols == desc.maxCols && desc.minRows == desc.maxRows)
+                return QString();
+            return sizeLabel(desc.minCols, desc.minRows) + QChar(0x2013)
+                + sizeLabel(desc.maxCols, desc.maxRows);
         default: return {};
     }
 }
@@ -76,13 +89,15 @@ QHash<int, QByteArray> WidgetPickerModel::roleNames() const {
         {MinColsRole, "minCols"},
         {MinRowsRole, "minRows"},
         {MaxColsRole, "maxCols"},
-        {MaxRowsRole, "maxRows"}
+        {MaxRowsRole, "maxRows"},
+        {DefaultSizeLabelRole, "defaultSizeLabel"},
+        {SizeRangeLabelRole, "sizeRangeLabel"}
     };
 }
 
 void WidgetPickerModel::filterByAvailableSpace(int availCols, int availRows, bool includeNoWidget) {
     beginResetModel();
-    filtered_.clear();
+    available_.clear();
 
     if (includeNoWidget) {
         // Add a "No Widget" option at the top to allow clearing the slot
@@ -90,13 +105,13 @@ void WidgetPickerModel::filterByAvailableSpace(int availCols, int availRows, boo
         noneDesc.id = QString();
         noneDesc.displayName = QStringLiteral("No Widget");
         noneDesc.iconName = QStringLiteral("\ue5cd"); // close/clear icon
-        filtered_.append(noneDesc);
+        available_.append(noneDesc);
     }
 
-    filtered_.append(registry_->widgetsFittingSpace(availCols, availRows));
+    available_.append(registry_->widgetsFittingSpace(availCols, availRows));
 
     // Sort: "No Widget" first (empty id), then by category order, then alpha by name
-    std::stable_sort(filtered_.begin(), filtered_.end(),
+    std::stable_sort(available_.begin(), available_.end(),
         [](const WidgetDescriptor& a, const WidgetDescriptor& b) {
             bool aIsNone = a.id.isEmpty() && a.displayName == QStringLiteral("No Widget");
             bool bIsNone = b.id.isEmpty() && b.displayName == QStringLiteral("No Widget");
@@ -106,7 +121,67 @@ void WidgetPickerModel::filterByAvailableSpace(int availCols, int availRows, boo
             return a.displayName.compare(b.displayName, Qt::CaseInsensitive) < 0;
         });
 
+    const bool filterChanged = !categoryFilter_.isEmpty();
+    categoryFilter_.clear();
+    rebuildFiltered();
     endResetModel();
+    emit categoriesChanged();
+    if (filterChanged)
+        emit categoryFilterChanged();
+}
+
+QVariantList WidgetPickerModel::categories() const {
+    QVariantList result;
+    result.append(QVariantMap{{QStringLiteral("id"), QString()},
+                              {QStringLiteral("label"), QStringLiteral("All")}});
+
+    QSet<QString> seen;
+    for (const auto& desc : available_) {
+        const bool isNoWidget = desc.id.isEmpty()
+            && desc.displayName == QStringLiteral("No Widget");
+        if (isNoWidget)
+            continue;
+
+        const QString id = desc.category.isEmpty() ? kUncategorizedFilter : desc.category;
+        if (seen.contains(id))
+            continue;
+        seen.insert(id);
+        result.append(QVariantMap{{QStringLiteral("id"), id},
+                                  {QStringLiteral("label"), categoryLabel(desc.category)}});
+    }
+
+    return result;
+}
+
+void WidgetPickerModel::setCategoryFilter(const QString& categoryId) {
+    if (categoryFilter_ == categoryId)
+        return;
+
+    beginResetModel();
+    categoryFilter_ = categoryId;
+    rebuildFiltered();
+    endResetModel();
+    emit categoryFilterChanged();
+}
+
+void WidgetPickerModel::rebuildFiltered() {
+    filtered_.clear();
+    for (const auto& desc : available_) {
+        if (categoryFilter_.isEmpty()) {
+            filtered_.append(desc);
+            continue;
+        }
+
+        const bool isNoWidget = desc.id.isEmpty()
+            && desc.displayName == QStringLiteral("No Widget");
+        if (isNoWidget)
+            continue;
+
+        if ((categoryFilter_ == kUncategorizedFilter && desc.category.isEmpty())
+            || desc.category == categoryFilter_) {
+            filtered_.append(desc);
+        }
+    }
 }
 
 } // namespace oap

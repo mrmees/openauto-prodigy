@@ -400,7 +400,7 @@ Each widget descriptor declares a dashboard contribution with typed metadata:
 | `displayName` | `QString` | (required) | Human-readable name shown in picker |
 | `iconName` | `QString` | `""` | Material Icon codepoint (e.g. `"\ue8b5"`) |
 | `category` | `QString` | `""` | Category ID: `"status"`, `"media"`, `"navigation"`, `"launcher"` |
-| `description` | `QString` | `""` | Short description for picker display |
+| `description` | `QString` | `""` | Widget metadata; not rendered on the compact in-vehicle picker card |
 | `qmlComponent` | `QUrl` | `QUrl()` | QRC URL of the widget's QML file |
 | `pluginId` | `QString` | `""` | Source plugin ID. Must be set explicitly to your plugin's `id()` in `widgetDescriptors()`. |
 | `contributionKind` | `DashboardContributionKind` | `Widget` | `Widget`, deferred `LiveSurfaceWidget`, or manifest-backed `WebWidget`. |

@@ -27,6 +27,15 @@ spike, or research-first feasibility work.
 
 ## Done (recent)
 
+- Full-screen widget picker — **COMPLETED 2026-08-06; HARDWARE ACCEPTED**.
+  The former 60%-height nested scrollers are replaced by a full-screen,
+  three-column catalog with model-owned `All`/category filtering and touch
+  targets of at least 64 pixels on the reference display. Cards use readable
+  two-line names, omit competing descriptions, show the filled default size
+  beside the minimum-to-maximum resize range, and place that default with one
+  tap. The live Pi run verified category filtering and immediate `2×1` Date
+  placement; the native/app/offscreen CTest/ARM gates passed.
+
 - Backend → Prodigy → dashboard-gauge vertical slice — **COMPLETED 2026-08-06;
   HARDWARE ACCEPTED** at Prodigy code anchor `3a7955f`, Gauge Studio anchor
   `f784bf7`, and `prodigy-obd` anchor `34632d7`. Two replaceable exported

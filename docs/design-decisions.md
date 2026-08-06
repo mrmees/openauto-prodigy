@@ -232,16 +232,32 @@ from one additional row or column is bounded.
 
 **Rationale:** The dock consumed fixed vertical space that could not be reclaimed by the grid. Singleton widgets (e.g., `org.openauto.settings-launcher`, `org.openauto.aa-launcher`) participate in the same grid model as regular widgets, unifying the layout system. They are marked `singleton = true` — system-seeded, non-removable, and hidden from the picker. The reserved page is derived from singleton presence, not stored as explicit state.
 
-### Model filtering with lightweight QML grouping
+### Model-owned widget-picker categories
 
-**Decision:** `WidgetPickerModel` filters descriptors by available space and
-sorts them by category/name; QML uses small JavaScript arrays to build category
-sections and their cards rather than adding another proxy model.
+**Decision:** `WidgetPickerModel` filters descriptors by available space,
+sorts them by category/name, exposes the available category tabs, and applies
+the active category filter. QML renders the resulting model as a full-screen
+three-column catalog.
 
 **Rationale:** The registry is assembled at startup from built-ins, plugin
 contributions, and optional web-widget packages, so its size is not a stable
-constant. Space filtering and ordering belong in the typed model; presentation
-grouping remains simple enough to keep in the picker QML.
+constant. Space/category filtering and ordering belong in the typed model;
+QML owns only touch presentation. The full-screen catalog avoids nested
+horizontal scrollers, keeps category targets at least 64 pixels high on the
+reference display, and leaves enough room for readable metadata.
+
+### Widget picker uses default-size placement
+
+**Decision:** Tapping a picker card places the widget at its descriptor's
+default size immediately. Cards show a filled default-size indicator plus one
+outlined minimum-to-maximum range; actual resizing remains in dashboard edit
+mode. Descriptions remain descriptor metadata but are omitted from the compact
+in-vehicle card.
+
+**Rationale:** Choosing a size before placement duplicated the existing resize
+workflow and added a modal step in a touch-first vehicle UI. Descriptor authors
+retain full min/default/max control, while users can see the sizing envelope
+without being forced through another decision.
 
 ### Category Order Hardcoded
 
