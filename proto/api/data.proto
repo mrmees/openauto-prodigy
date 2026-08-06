@@ -1,0 +1,193 @@
+// OpenAuto Prodigy External API v1 — generic external data providers.
+//
+// Providers register one live namespace per API session, declare arbitrary
+// typed-scalar channels, and publish at their own cadence. Consumers discover
+// the live catalog and subscribe to exact provider/channel identities. This
+// contract deliberately contains no OBD, CAN, vehicle, EventBus, D-Bus, or
+// Android Auto source semantics.
+
+syntax = "proto3";
+
+package prodigy.api.v1;
+
+enum DataValueType {
+  DATA_VALUE_TYPE_UNSPECIFIED = 0;
+  DATA_VALUE_TYPE_DOUBLE = 1;
+  DATA_VALUE_TYPE_SIGNED_INTEGER = 2;
+  DATA_VALUE_TYPE_UNSIGNED_INTEGER = 3;
+  DATA_VALUE_TYPE_BOOLEAN = 4;
+  DATA_VALUE_TYPE_STRING = 5;
+  DATA_VALUE_TYPE_ENUM = 6;
+}
+
+message DataEnumOption {
+  sint64 value = 1;
+  string label = 2;
+}
+
+message DataChannelDefinition {
+  string channel_name = 1;
+  string display_name = 2;
+  DataValueType value_type = 3;
+  optional string unit = 4;
+  optional string description = 5;
+  optional uint32 nominal_interval_ms = 6;
+  optional uint32 stale_after_ms = 7;
+  optional double suggested_minimum = 8;
+  optional double suggested_maximum = 9;
+  repeated DataEnumOption enum_options = 10;
+  reserved 11 to 20;
+}
+
+message DataScalar {
+  oneof value {
+    double double_value = 1;
+    sint64 signed_integer_value = 2;
+    uint64 unsigned_integer_value = 3;
+    bool boolean_value = 4;
+    string string_value = 5;
+    sint64 enum_value = 6;
+  }
+  reserved 7 to 15;
+}
+
+enum DataQuality {
+  DATA_QUALITY_UNSPECIFIED = 0;
+  DATA_QUALITY_GOOD = 1;
+  DATA_QUALITY_DEGRADED = 2;
+  DATA_QUALITY_STALE = 3;
+  DATA_QUALITY_INVALID = 4;
+  DATA_QUALITY_UNAVAILABLE = 5;
+}
+
+message DataSample {
+  string channel_name = 1;
+  DataScalar value = 2;
+  optional int64 observed_at_unix_ms = 3;
+  DataQuality quality = 4;
+  reserved 5 to 12;
+}
+
+// READY-state provider report. It is fire-and-forget with request_id 0.
+message PublishDataValues {
+  repeated DataSample samples = 1;
+}
+
+message DataProviderDefinition {
+  string provider_namespace = 1;
+  string display_name = 2;
+  optional string description = 3;
+  optional string provider_version = 4;
+  reserved 5 to 12;
+}
+
+message DataProviderCatalog {
+  DataProviderDefinition provider = 1;
+  repeated DataChannelDefinition channels = 2;
+}
+
+message DataCatalog {
+  uint64 catalog_revision = 1;
+  repeated DataProviderCatalog providers = 2;
+  reserved 3 to 8;
+}
+
+message ListDataCatalogRequest {
+}
+
+message ListDataCatalogResponse {
+  DataCatalog catalog = 1;
+}
+
+message WatchDataCatalogRequest {
+  bool enabled = 1;
+  reserved 2 to 8;
+}
+
+// Server-initiated full catalog snapshot with request_id 0.
+message DataCatalogEvent {
+  DataCatalog catalog = 1;
+  reserved 2 to 8;
+}
+
+message DataChannelRef {
+  string provider_namespace = 1;
+  string channel_name = 2;
+  reserved 3 to 8;
+}
+
+message SubscribeDataChannelsRequest {
+  repeated DataChannelRef channels = 1;
+}
+
+message DataChannelSubscriptionResult {
+  DataChannelRef channel = 1;
+  bool accepted = 2;
+  string reason = 3;
+}
+
+message SubscribeDataChannelsResponse {
+  repeated DataChannelSubscriptionResult results = 1;
+}
+
+message UnsubscribeDataChannelsRequest {
+  repeated DataChannelRef channels = 1;
+}
+
+enum DataChannelAvailability {
+  DATA_CHANNEL_AVAILABILITY_UNSPECIFIED = 0;
+  DATA_CHANNEL_AVAILABILITY_AVAILABLE = 1;
+  DATA_CHANNEL_AVAILABILITY_UNAVAILABLE = 2;
+}
+
+enum DataUnavailableReason {
+  DATA_UNAVAILABLE_REASON_UNSPECIFIED = 0;
+  DATA_UNAVAILABLE_REASON_PROVIDER_ABSENT = 1;
+  DATA_UNAVAILABLE_REASON_CHANNEL_ABSENT = 2;
+  DATA_UNAVAILABLE_REASON_PROVIDER_DISCONNECTED = 3;
+  DATA_UNAVAILABLE_REASON_CHANNEL_REMOVED = 4;
+}
+
+// Server-initiated exact-channel lifecycle event with request_id 0.
+message DataChannelAvailabilityEvent {
+  DataChannelRef channel = 1;
+  DataChannelAvailability availability = 2;
+  DataChannelDefinition definition = 3;
+  DataUnavailableReason unavailable_reason = 4;
+  uint64 catalog_revision = 5;
+  reserved 6 to 12;
+}
+
+// Server-initiated filtered values from one provider publication, request_id 0.
+message DataValuesEvent {
+  string provider_namespace = 1;
+  repeated DataSample samples = 2;
+  reserved 3 to 10;
+}
+
+message RegisterDataProviderRequest {
+  DataProviderDefinition provider = 1;
+}
+
+message RegisterDataProviderResponse {
+  bool accepted = 1;
+  string reason = 2;
+}
+
+message DeclareDataChannelsRequest {
+  repeated DataChannelDefinition channels = 1;
+}
+
+message DataChannelDeclarationResult {
+  string channel_name = 1;
+  bool accepted = 2;
+  string reason = 3;
+}
+
+message DeclareDataChannelsResponse {
+  repeated DataChannelDeclarationResult results = 1;
+}
+
+message RemoveDataChannelsRequest {
+  repeated string channel_names = 1;
+}

@@ -19,6 +19,7 @@
 #include "core/services/NotificationService.hpp"
 #include "core/services/ThemeService.hpp"
 #include "core/services/PhoneStateService.hpp"
+#include "core/services/DataRegistry.hpp"
 
 #include "api/api.pb.h"
 
@@ -100,6 +101,7 @@ class TestApiServer : public QObject {
         oap::NotificationService notifications;
         oap::ThemeService theme;
         oap::PhoneStateService phone;
+        oap::data::DataRegistry data;
 
         ApiServiceRefs refs() {
             ApiServiceRefs r;
@@ -109,6 +111,7 @@ class TestApiServer : public QObject {
             r.notifications = &notifications;
             r.actions = &actions;
             r.config = &config;
+            r.dataRegistry = &data;
             return r;
         }
     };
@@ -124,6 +127,7 @@ private slots:
     void testDoubleStartIsIdempotentNoOp();
     void testCorruptClientStoreDisablesPairing();
     void testShutdownUnregistersAndStartRestoresPairingActions();
+    void testCapabilityAbsentWithoutRegistry();
 };
 
 void TestApiServer::testStartsAndBindsEphemeral() {
@@ -201,6 +205,8 @@ void TestApiServer::testTcpEndToEndHelloSubscribe() {
     const pb::Capabilities& caps = hello.server_hello().capabilities();
     QVERIFY(caps.has_secure_pairing_code());
     QVERIFY(caps.secure_pairing_code());
+    QVERIFY(caps.has_data_provider_bridge());
+    QVERIFY(caps.data_provider_bridge());
     QVERIFY(capabilitiesHaveTopic(caps, pb::TOPIC_MEDIA));
     QVERIFY(!capabilitiesHaveTopic(caps, pb::TOPIC_NAVIGATION));
 
@@ -224,6 +230,28 @@ void TestApiServer::testTcpEndToEndHelloSubscribe() {
     QCOMPARE(QString::fromStdString(delta.media_status().title()),
              QString("DeltaSong"));
 
+    server.stop();
+}
+
+void TestApiServer::testCapabilityAbsentWithoutRegistry() {
+    Fixture f;
+    f.config.setValue("api.tcp_port", 0);
+    f.config.setValue("api.ws_port", 0);
+    ApiServiceRefs refs = f.refs();
+    refs.dataRegistry = nullptr;
+    ApiServer server(refs);
+    server.setStorePathForTest("/tmp/oap_test_api_server_clients.yaml");
+    QVERIFY(server.start());
+
+    QTcpSocket socket;
+    socket.connectToHost(QHostAddress::LocalHost, server.tcpPort());
+    QVERIFY(socket.waitForConnected(3000));
+    ApiFramer framer;
+    QList<QByteArray> queue;
+    sendFramed(socket, clientHello(1));
+    const pb::ApiMessage hello = readFramed(socket, framer, queue);
+    QCOMPARE(hello.payload_case(), pb::ApiMessage::kServerHello);
+    QVERIFY(!hello.server_hello().capabilities().has_data_provider_bridge());
     server.stop();
 }
 

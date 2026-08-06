@@ -19,11 +19,39 @@ spike, or research-first feasibility work.
 
 ## Now
 
-No work is currently promoted. Unpromoted user capabilities live in
-`docs/wishlist.md`; technical leads live in `docs/engineering-backlog.md` and
-require fresh research before promotion.
+- No promoted implementation is currently queued. The generic provider bridge,
+  exported Gauge Studio widgets, and the separately owned `prodigy-obd`
+  backend have completed their shared Pi proof. Future OBD/CAN transport,
+  decoding, setup, and reliability work remains in the backend repository;
+  Prodigy changes only when a source-agnostic public capability is missing.
 
 ## Done (recent)
+
+- Backend → Prodigy → dashboard-gauge vertical slice — **COMPLETED 2026-08-06;
+  HARDWARE ACCEPTED** at Prodigy code anchor `3a7955f`, Gauge Studio anchor
+  `f784bf7`, and `prodigy-obd` anchor `34632d7`. Two replaceable exported
+  gauges consumed live engine RPM and control-module voltage exclusively
+  through `window.prodigy.data`, resized through the supported dashboard
+  workflow, reported provider disconnection, and recovered automatically. The
+  production backend now supports Bluetooth and stable-path USB ELM adapters,
+  decoded PID selection, transactional command-line setup, reboot and physical
+  disconnect recovery, and a passing production soak. No OBD, CAN, PID, ECU,
+  or vehicle-bus semantics entered Prodigy or Gauge Studio.
+
+- External Data Provider API bridge — **COMPLETED 2026-08-02**. Paired
+  sessions can own one live provider namespace, declare arbitrary typed scalar
+  channels, publish at backend-selected cadence, and serve deterministic
+  catalogs plus exact waiting subscriptions over TCP or WebSocket. Prodigy
+  retains only current values, forwards availability and metadata boundaries,
+  and exposes the same capability to web widgets through `prodigy.data` with
+  exact `bigint` integers/enums and browser-monotonic receipt timestamps. The
+  native/app/offscreen CTest/ARM gates passed. The bounded two-pass Fable review
+  found no blocker; its one major compatibility issue was fixed, and the
+  remediation pass returned no blocker or major. Gauge Studio integration and
+  the first independent vehicle backend are now live-validated as the separate
+  cross-repository slice above. Completed
+  [design](archive/plans/2026-08-02-external-data-provider-api-design.md) and
+  [implementation plan](archive/plans/2026-08-02-external-data-provider-api-implementation-plan.md).
 
 - Native Android Auto dashboard richer trip data — **COMPLETED 2026-07-31;
   HARDWARE ACCEPTED** at code anchor `e26e940`. Exact replacement snapshots now

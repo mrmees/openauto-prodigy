@@ -16,6 +16,21 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 INSTALL_SCRIPT = REPO_ROOT / "install.sh"
 
 
+def extract_function(script: pathlib.Path, name: str) -> str:
+    lines = script.read_text(encoding="utf-8").splitlines()
+    start = next(
+        (index for index, line in enumerate(lines) if line == f"{name}() {{"),
+        None,
+    )
+    if start is None:
+        raise AssertionError(f"{script.name} does not define {name}()")
+
+    for end in range(start + 1, len(lines)):
+        if lines[end] == "}":
+            return "\n".join(lines[start : end + 1]) + "\n"
+    raise AssertionError(f"{script.name} has an unterminated {name}()")
+
+
 def run(
     args: list[str],
     *,
@@ -129,6 +144,117 @@ def assert_unsupported_source_forms_rejected() -> None:
             raise AssertionError(
                 f"unsupported execution reached mutation commands: {mutation_log.read_text()}"
             )
+
+
+def assert_protocol_submodule_uses_dist_and_gitlink() -> None:
+    with tempfile.TemporaryDirectory(prefix="oap-protocol-submodule-") as tmp:
+        root = pathlib.Path(tmp)
+        upstream = root / "upstream"
+        checkout = root / "checkout"
+        proto_relative = pathlib.Path("libs/prodigy-oaa-protocol/proto")
+        proto = checkout / proto_relative
+
+        for repository in (upstream, checkout):
+            subprocess.run(
+                ["git", "init", "-q", "-b", "dist", str(repository)], check=True
+            )
+            subprocess.run(
+                ["git", "config", "user.email", "installer-test@example.invalid"],
+                cwd=repository,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.name", "Installer Test"],
+                cwd=repository,
+                check=True,
+            )
+
+        (upstream / "oaa").mkdir()
+        (upstream / "oaa/test.proto").write_text("syntax = \"proto2\";\n")
+        subprocess.run(["git", "add", "."], cwd=upstream, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "dist protocol"], cwd=upstream, check=True
+        )
+        pin = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=upstream, text=True
+        ).strip()
+        subprocess.run(["git", "switch", "-q", "-c", "main"], cwd=upstream, check=True)
+        (upstream / "research-only.txt").write_text("not part of dist\n")
+        subprocess.run(["git", "add", "."], cwd=upstream, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "main research"], cwd=upstream, check=True
+        )
+
+        (checkout / ".gitmodules").write_text(
+            '[submodule "libs/prodigy-oaa-protocol/proto"]\n'
+            "\tpath = libs/prodigy-oaa-protocol/proto\n"
+            f"\turl = {upstream.as_uri()}\n"
+            "\tshallow = true\n"
+            "\tbranch = dist\n"
+        )
+        subprocess.run(["git", "add", ".gitmodules"], cwd=checkout, check=True)
+        subprocess.run(
+            [
+                "git",
+                "update-index",
+                "--add",
+                "--cacheinfo",
+                f"160000,{pin},{proto_relative.as_posix()}",
+            ],
+            cwd=checkout,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "pin protocol"], cwd=checkout, check=True
+        )
+
+        helper = REPO_ROOT / "scripts/initialize-protocol-submodule.sh"
+        if helper.is_file():
+            (checkout / "scripts").mkdir()
+            shutil.copy2(helper, checkout / "scripts" / helper.name)
+        build_project = extract_function(INSTALL_SCRIPT, "build_project")
+        shell = f"""
+set -euo pipefail
+INSTALL_DIR={checkout!s}
+update_step() {{ :; }}
+run_with_spinner() {{
+    shift
+    "$@"
+    exit 91
+}}
+{build_project}
+build_project
+"""
+        for state in ("fresh", "already initialized"):
+            result = run(
+                ["bash", "-c", shell],
+                cwd=checkout,
+                env={"GIT_ALLOW_PROTOCOL": "file"},
+            )
+            if result.returncode != 91:
+                raise AssertionError(
+                    f"{state} protocol initialization failed:\n"
+                    f"{result.stdout}\n{result.stderr}"
+                )
+            if not (proto / ".git").is_file():
+                raise AssertionError(f"{state} protocol checkout is not a gitfile submodule")
+            actual_pin = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=proto, text=True
+            ).strip()
+            if actual_pin != pin:
+                raise AssertionError(
+                    f"{state} protocol checkout used {actual_pin}, expected pin {pin}"
+                )
+            fetchspec = subprocess.check_output(
+                ["git", "config", "--get-all", "remote.origin.fetch"],
+                cwd=proto,
+                text=True,
+            ).splitlines()
+            expected_fetchspec = ["+refs/heads/dist:refs/remotes/origin/dist"]
+            if fetchspec != expected_fetchspec:
+                raise AssertionError(
+                    f"{state} protocol checkout fetches {fetchspec}, expected dist only"
+                )
 
 
 def pid_is_running(pid: int) -> bool:
@@ -335,6 +461,7 @@ def assert_service_state_restoration() -> None:
 def main() -> int:
     assert_source_root_discovery()
     assert_unsupported_source_forms_rejected()
+    assert_protocol_submodule_uses_dist_and_gitlink()
     assert_owned_command_statuses()
     assert_signal_cleanup()
     assert_cleanup_idempotence()

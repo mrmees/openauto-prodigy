@@ -4,39 +4,39 @@
 
     // Common aliases
     var $Reader = $protobuf.Reader, $Writer = $protobuf.Writer, $util = $protobuf.util;
-    
+
     // Exported root namespace
     var $root = $protobuf.roots["prodigy-api"] || ($protobuf.roots["prodigy-api"] = {});
-    
+
     $root.prodigy = (function() {
-    
+
         /**
          * Namespace prodigy.
          * @exports prodigy
          * @namespace
          */
         var prodigy = {};
-    
+
         prodigy.api = (function() {
-    
+
             /**
              * Namespace api.
              * @memberof prodigy
              * @namespace
              */
             var api = {};
-    
+
             api.v1 = (function() {
-    
+
                 /**
                  * Namespace v1.
                  * @memberof prodigy.api
                  * @namespace
                  */
                 var v1 = {};
-    
+
                 v1.ActionInfo = (function() {
-    
+
                     /**
                      * Properties of an ActionInfo.
                      * @memberof prodigy.api.v1
@@ -45,7 +45,7 @@
                      * @property {string|null} [label] ActionInfo label
                      * @property {boolean|null} [clientOwned] ActionInfo clientOwned
                      */
-    
+
                     /**
                      * Constructs a new ActionInfo.
                      * @memberof prodigy.api.v1
@@ -60,7 +60,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * ActionInfo id.
                      * @member {string} id
@@ -68,7 +68,7 @@
                      * @instance
                      */
                     ActionInfo.prototype.id = "";
-    
+
                     /**
                      * ActionInfo label.
                      * @member {string} label
@@ -76,7 +76,7 @@
                      * @instance
                      */
                     ActionInfo.prototype.label = "";
-    
+
                     /**
                      * ActionInfo clientOwned.
                      * @member {boolean} clientOwned
@@ -84,7 +84,7 @@
                      * @instance
                      */
                     ActionInfo.prototype.clientOwned = false;
-    
+
                     /**
                      * Creates a new ActionInfo instance using the specified properties.
                      * @function create
@@ -96,7 +96,7 @@
                     ActionInfo.create = function create(properties) {
                         return new ActionInfo(properties);
                     };
-    
+
                     /**
                      * Encodes the specified ActionInfo message. Does not implicitly {@link prodigy.api.v1.ActionInfo.verify|verify} messages.
                      * @function encode
@@ -121,7 +121,7 @@
                             writer.uint32(/* id 3, wireType 0 =*/24).bool(message.clientOwned);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes an ActionInfo message from the specified reader or buffer.
                      * @function decode
@@ -165,7 +165,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies an ActionInfo message.
                      * @function verify
@@ -192,7 +192,7 @@
                                 return "clientOwned: boolean expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates an ActionInfo message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -219,7 +219,7 @@
                             message.clientOwned = Boolean(object.clientOwned);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from an ActionInfo message. Also converts values to other types if specified.
                      * @function toObject
@@ -250,7 +250,7 @@
                             object.clientOwned = message.clientOwned;
                         return object;
                     };
-    
+
                     /**
                      * Converts this ActionInfo to JSON.
                      * @function toJSON
@@ -261,7 +261,7 @@
                     ActionInfo.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for ActionInfo
                      * @function getTypeUrl
@@ -276,18 +276,18 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.ActionInfo";
                     };
-    
+
                     return ActionInfo;
                 })();
-    
+
                 v1.ListActionsRequest = (function() {
-    
+
                     /**
                      * Properties of a ListActionsRequest.
                      * @memberof prodigy.api.v1
                      * @interface IListActionsRequest
                      */
-    
+
                     /**
                      * Constructs a new ListActionsRequest.
                      * @memberof prodigy.api.v1
@@ -302,7 +302,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * Creates a new ListActionsRequest instance using the specified properties.
                      * @function create
@@ -314,7 +314,7 @@
                     ListActionsRequest.create = function create(properties) {
                         return new ListActionsRequest(properties);
                     };
-    
+
                     /**
                      * Encodes the specified ListActionsRequest message. Does not implicitly {@link prodigy.api.v1.ListActionsRequest.verify|verify} messages.
                      * @function encode
@@ -333,7 +333,7 @@
                             throw Error("max depth exceeded");
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a ListActionsRequest message from the specified reader or buffer.
                      * @function decode
@@ -365,7 +365,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a ListActionsRequest message.
                      * @function verify
@@ -383,7 +383,7 @@
                             return "maximum nesting depth exceeded";
                         return null;
                     };
-    
+
                     /**
                      * Creates a ListActionsRequest message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -397,7 +397,7 @@
                             return object;
                         return new $root.prodigy.api.v1.ListActionsRequest();
                     };
-    
+
                     /**
                      * Creates a plain object from a ListActionsRequest message. Also converts values to other types if specified.
                      * @function toObject
@@ -410,7 +410,7 @@
                     ListActionsRequest.toObject = function toObject() {
                         return {};
                     };
-    
+
                     /**
                      * Converts this ListActionsRequest to JSON.
                      * @function toJSON
@@ -421,7 +421,7 @@
                     ListActionsRequest.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for ListActionsRequest
                      * @function getTypeUrl
@@ -436,19 +436,19 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.ListActionsRequest";
                     };
-    
+
                     return ListActionsRequest;
                 })();
-    
+
                 v1.ListActionsResponse = (function() {
-    
+
                     /**
                      * Properties of a ListActionsResponse.
                      * @memberof prodigy.api.v1
                      * @interface IListActionsResponse
                      * @property {Array.<prodigy.api.v1.IActionInfo>|null} [actions] ListActionsResponse actions
                      */
-    
+
                     /**
                      * Constructs a new ListActionsResponse.
                      * @memberof prodigy.api.v1
@@ -464,7 +464,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * ListActionsResponse actions.
                      * @member {Array.<prodigy.api.v1.IActionInfo>} actions
@@ -472,7 +472,7 @@
                      * @instance
                      */
                     ListActionsResponse.prototype.actions = $util.emptyArray;
-    
+
                     /**
                      * Creates a new ListActionsResponse instance using the specified properties.
                      * @function create
@@ -484,7 +484,7 @@
                     ListActionsResponse.create = function create(properties) {
                         return new ListActionsResponse(properties);
                     };
-    
+
                     /**
                      * Encodes the specified ListActionsResponse message. Does not implicitly {@link prodigy.api.v1.ListActionsResponse.verify|verify} messages.
                      * @function encode
@@ -506,7 +506,7 @@
                                 $root.prodigy.api.v1.ActionInfo.encode(message.actions[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a ListActionsResponse message from the specified reader or buffer.
                      * @function decode
@@ -544,7 +544,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a ListActionsResponse message.
                      * @function verify
@@ -571,7 +571,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates a ListActionsResponse message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -602,7 +602,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a ListActionsResponse message. Also converts values to other types if specified.
                      * @function toObject
@@ -629,7 +629,7 @@
                         }
                         return object;
                     };
-    
+
                     /**
                      * Converts this ListActionsResponse to JSON.
                      * @function toJSON
@@ -640,7 +640,7 @@
                     ListActionsResponse.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for ListActionsResponse
                      * @function getTypeUrl
@@ -655,12 +655,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.ListActionsResponse";
                     };
-    
+
                     return ListActionsResponse;
                 })();
-    
+
                 v1.DispatchActionRequest = (function() {
-    
+
                     /**
                      * Properties of a DispatchActionRequest.
                      * @memberof prodigy.api.v1
@@ -668,7 +668,7 @@
                      * @property {string|null} [id] DispatchActionRequest id
                      * @property {string|null} [payloadJson] DispatchActionRequest payloadJson
                      */
-    
+
                     /**
                      * Constructs a new DispatchActionRequest.
                      * @memberof prodigy.api.v1
@@ -683,7 +683,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * DispatchActionRequest id.
                      * @member {string} id
@@ -691,7 +691,7 @@
                      * @instance
                      */
                     DispatchActionRequest.prototype.id = "";
-    
+
                     /**
                      * DispatchActionRequest payloadJson.
                      * @member {string|null|undefined} payloadJson
@@ -699,16 +699,16 @@
                      * @instance
                      */
                     DispatchActionRequest.prototype.payloadJson = null;
-    
+
                     // OneOf field names bound to virtual getters and setters
                     var $oneOfFields;
-    
+
                     // Virtual OneOf for proto3 optional field
                     Object.defineProperty(DispatchActionRequest.prototype, "_payloadJson", {
                         get: $util.oneOfGetter($oneOfFields = ["payloadJson"]),
                         set: $util.oneOfSetter($oneOfFields)
                     });
-    
+
                     /**
                      * Creates a new DispatchActionRequest instance using the specified properties.
                      * @function create
@@ -720,7 +720,7 @@
                     DispatchActionRequest.create = function create(properties) {
                         return new DispatchActionRequest(properties);
                     };
-    
+
                     /**
                      * Encodes the specified DispatchActionRequest message. Does not implicitly {@link prodigy.api.v1.DispatchActionRequest.verify|verify} messages.
                      * @function encode
@@ -743,7 +743,7 @@
                             writer.uint32(/* id 2, wireType 2 =*/18).string(message.payloadJson);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a DispatchActionRequest message from the specified reader or buffer.
                      * @function decode
@@ -783,7 +783,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a DispatchActionRequest message.
                      * @function verify
@@ -810,7 +810,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates a DispatchActionRequest message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -835,7 +835,7 @@
                             message.payloadJson = String(object.payloadJson);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a DispatchActionRequest message. Also converts values to other types if specified.
                      * @function toObject
@@ -864,7 +864,7 @@
                         }
                         return object;
                     };
-    
+
                     /**
                      * Converts this DispatchActionRequest to JSON.
                      * @function toJSON
@@ -875,7 +875,7 @@
                     DispatchActionRequest.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for DispatchActionRequest
                      * @function getTypeUrl
@@ -890,19 +890,19 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.DispatchActionRequest";
                     };
-    
+
                     return DispatchActionRequest;
                 })();
-    
+
                 v1.DispatchActionResponse = (function() {
-    
+
                     /**
                      * Properties of a DispatchActionResponse.
                      * @memberof prodigy.api.v1
                      * @interface IDispatchActionResponse
                      * @property {boolean|null} [dispatched] DispatchActionResponse dispatched
                      */
-    
+
                     /**
                      * Constructs a new DispatchActionResponse.
                      * @memberof prodigy.api.v1
@@ -917,7 +917,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * DispatchActionResponse dispatched.
                      * @member {boolean} dispatched
@@ -925,7 +925,7 @@
                      * @instance
                      */
                     DispatchActionResponse.prototype.dispatched = false;
-    
+
                     /**
                      * Creates a new DispatchActionResponse instance using the specified properties.
                      * @function create
@@ -937,7 +937,7 @@
                     DispatchActionResponse.create = function create(properties) {
                         return new DispatchActionResponse(properties);
                     };
-    
+
                     /**
                      * Encodes the specified DispatchActionResponse message. Does not implicitly {@link prodigy.api.v1.DispatchActionResponse.verify|verify} messages.
                      * @function encode
@@ -958,7 +958,7 @@
                             writer.uint32(/* id 1, wireType 0 =*/8).bool(message.dispatched);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a DispatchActionResponse message from the specified reader or buffer.
                      * @function decode
@@ -994,7 +994,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a DispatchActionResponse message.
                      * @function verify
@@ -1015,7 +1015,7 @@
                                 return "dispatched: boolean expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a DispatchActionResponse message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -1038,7 +1038,7 @@
                             message.dispatched = Boolean(object.dispatched);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a DispatchActionResponse message. Also converts values to other types if specified.
                      * @function toObject
@@ -1062,7 +1062,7 @@
                             object.dispatched = message.dispatched;
                         return object;
                     };
-    
+
                     /**
                      * Converts this DispatchActionResponse to JSON.
                      * @function toJSON
@@ -1073,7 +1073,7 @@
                     DispatchActionResponse.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for DispatchActionResponse
                      * @function getTypeUrl
@@ -1088,12 +1088,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.DispatchActionResponse";
                     };
-    
+
                     return DispatchActionResponse;
                 })();
-    
+
                 v1.ActionSpec = (function() {
-    
+
                     /**
                      * Properties of an ActionSpec.
                      * @memberof prodigy.api.v1
@@ -1101,7 +1101,7 @@
                      * @property {string|null} [id] ActionSpec id
                      * @property {string|null} [label] ActionSpec label
                      */
-    
+
                     /**
                      * Constructs a new ActionSpec.
                      * @memberof prodigy.api.v1
@@ -1116,7 +1116,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * ActionSpec id.
                      * @member {string} id
@@ -1124,7 +1124,7 @@
                      * @instance
                      */
                     ActionSpec.prototype.id = "";
-    
+
                     /**
                      * ActionSpec label.
                      * @member {string} label
@@ -1132,7 +1132,7 @@
                      * @instance
                      */
                     ActionSpec.prototype.label = "";
-    
+
                     /**
                      * Creates a new ActionSpec instance using the specified properties.
                      * @function create
@@ -1144,7 +1144,7 @@
                     ActionSpec.create = function create(properties) {
                         return new ActionSpec(properties);
                     };
-    
+
                     /**
                      * Encodes the specified ActionSpec message. Does not implicitly {@link prodigy.api.v1.ActionSpec.verify|verify} messages.
                      * @function encode
@@ -1167,7 +1167,7 @@
                             writer.uint32(/* id 2, wireType 2 =*/18).string(message.label);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes an ActionSpec message from the specified reader or buffer.
                      * @function decode
@@ -1207,7 +1207,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies an ActionSpec message.
                      * @function verify
@@ -1231,7 +1231,7 @@
                                 return "label: string expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates an ActionSpec message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -1256,7 +1256,7 @@
                             message.label = String(object.label);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from an ActionSpec message. Also converts values to other types if specified.
                      * @function toObject
@@ -1284,7 +1284,7 @@
                             object.label = message.label;
                         return object;
                     };
-    
+
                     /**
                      * Converts this ActionSpec to JSON.
                      * @function toJSON
@@ -1295,7 +1295,7 @@
                     ActionSpec.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for ActionSpec
                      * @function getTypeUrl
@@ -1310,19 +1310,19 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.ActionSpec";
                     };
-    
+
                     return ActionSpec;
                 })();
-    
+
                 v1.RegisterActionsRequest = (function() {
-    
+
                     /**
                      * Properties of a RegisterActionsRequest.
                      * @memberof prodigy.api.v1
                      * @interface IRegisterActionsRequest
                      * @property {Array.<prodigy.api.v1.IActionSpec>|null} [actions] RegisterActionsRequest actions
                      */
-    
+
                     /**
                      * Constructs a new RegisterActionsRequest.
                      * @memberof prodigy.api.v1
@@ -1338,7 +1338,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * RegisterActionsRequest actions.
                      * @member {Array.<prodigy.api.v1.IActionSpec>} actions
@@ -1346,7 +1346,7 @@
                      * @instance
                      */
                     RegisterActionsRequest.prototype.actions = $util.emptyArray;
-    
+
                     /**
                      * Creates a new RegisterActionsRequest instance using the specified properties.
                      * @function create
@@ -1358,7 +1358,7 @@
                     RegisterActionsRequest.create = function create(properties) {
                         return new RegisterActionsRequest(properties);
                     };
-    
+
                     /**
                      * Encodes the specified RegisterActionsRequest message. Does not implicitly {@link prodigy.api.v1.RegisterActionsRequest.verify|verify} messages.
                      * @function encode
@@ -1380,7 +1380,7 @@
                                 $root.prodigy.api.v1.ActionSpec.encode(message.actions[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a RegisterActionsRequest message from the specified reader or buffer.
                      * @function decode
@@ -1418,7 +1418,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a RegisterActionsRequest message.
                      * @function verify
@@ -1445,7 +1445,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates a RegisterActionsRequest message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -1476,7 +1476,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a RegisterActionsRequest message. Also converts values to other types if specified.
                      * @function toObject
@@ -1503,7 +1503,7 @@
                         }
                         return object;
                     };
-    
+
                     /**
                      * Converts this RegisterActionsRequest to JSON.
                      * @function toJSON
@@ -1514,7 +1514,7 @@
                     RegisterActionsRequest.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for RegisterActionsRequest
                      * @function getTypeUrl
@@ -1529,12 +1529,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.RegisterActionsRequest";
                     };
-    
+
                     return RegisterActionsRequest;
                 })();
-    
+
                 v1.ActionRegistrationResult = (function() {
-    
+
                     /**
                      * Properties of an ActionRegistrationResult.
                      * @memberof prodigy.api.v1
@@ -1543,7 +1543,7 @@
                      * @property {boolean|null} [accepted] ActionRegistrationResult accepted
                      * @property {string|null} [reason] ActionRegistrationResult reason
                      */
-    
+
                     /**
                      * Constructs a new ActionRegistrationResult.
                      * @memberof prodigy.api.v1
@@ -1558,7 +1558,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * ActionRegistrationResult id.
                      * @member {string} id
@@ -1566,7 +1566,7 @@
                      * @instance
                      */
                     ActionRegistrationResult.prototype.id = "";
-    
+
                     /**
                      * ActionRegistrationResult accepted.
                      * @member {boolean} accepted
@@ -1574,7 +1574,7 @@
                      * @instance
                      */
                     ActionRegistrationResult.prototype.accepted = false;
-    
+
                     /**
                      * ActionRegistrationResult reason.
                      * @member {string} reason
@@ -1582,7 +1582,7 @@
                      * @instance
                      */
                     ActionRegistrationResult.prototype.reason = "";
-    
+
                     /**
                      * Creates a new ActionRegistrationResult instance using the specified properties.
                      * @function create
@@ -1594,7 +1594,7 @@
                     ActionRegistrationResult.create = function create(properties) {
                         return new ActionRegistrationResult(properties);
                     };
-    
+
                     /**
                      * Encodes the specified ActionRegistrationResult message. Does not implicitly {@link prodigy.api.v1.ActionRegistrationResult.verify|verify} messages.
                      * @function encode
@@ -1619,7 +1619,7 @@
                             writer.uint32(/* id 3, wireType 2 =*/26).string(message.reason);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes an ActionRegistrationResult message from the specified reader or buffer.
                      * @function decode
@@ -1663,7 +1663,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies an ActionRegistrationResult message.
                      * @function verify
@@ -1690,7 +1690,7 @@
                                 return "reason: string expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates an ActionRegistrationResult message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -1717,7 +1717,7 @@
                             message.reason = String(object.reason);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from an ActionRegistrationResult message. Also converts values to other types if specified.
                      * @function toObject
@@ -1748,7 +1748,7 @@
                             object.reason = message.reason;
                         return object;
                     };
-    
+
                     /**
                      * Converts this ActionRegistrationResult to JSON.
                      * @function toJSON
@@ -1759,7 +1759,7 @@
                     ActionRegistrationResult.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for ActionRegistrationResult
                      * @function getTypeUrl
@@ -1774,19 +1774,19 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.ActionRegistrationResult";
                     };
-    
+
                     return ActionRegistrationResult;
                 })();
-    
+
                 v1.RegisterActionsResponse = (function() {
-    
+
                     /**
                      * Properties of a RegisterActionsResponse.
                      * @memberof prodigy.api.v1
                      * @interface IRegisterActionsResponse
                      * @property {Array.<prodigy.api.v1.IActionRegistrationResult>|null} [results] RegisterActionsResponse results
                      */
-    
+
                     /**
                      * Constructs a new RegisterActionsResponse.
                      * @memberof prodigy.api.v1
@@ -1802,7 +1802,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * RegisterActionsResponse results.
                      * @member {Array.<prodigy.api.v1.IActionRegistrationResult>} results
@@ -1810,7 +1810,7 @@
                      * @instance
                      */
                     RegisterActionsResponse.prototype.results = $util.emptyArray;
-    
+
                     /**
                      * Creates a new RegisterActionsResponse instance using the specified properties.
                      * @function create
@@ -1822,7 +1822,7 @@
                     RegisterActionsResponse.create = function create(properties) {
                         return new RegisterActionsResponse(properties);
                     };
-    
+
                     /**
                      * Encodes the specified RegisterActionsResponse message. Does not implicitly {@link prodigy.api.v1.RegisterActionsResponse.verify|verify} messages.
                      * @function encode
@@ -1844,7 +1844,7 @@
                                 $root.prodigy.api.v1.ActionRegistrationResult.encode(message.results[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a RegisterActionsResponse message from the specified reader or buffer.
                      * @function decode
@@ -1882,7 +1882,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a RegisterActionsResponse message.
                      * @function verify
@@ -1909,7 +1909,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates a RegisterActionsResponse message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -1940,7 +1940,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a RegisterActionsResponse message. Also converts values to other types if specified.
                      * @function toObject
@@ -1967,7 +1967,7 @@
                         }
                         return object;
                     };
-    
+
                     /**
                      * Converts this RegisterActionsResponse to JSON.
                      * @function toJSON
@@ -1978,7 +1978,7 @@
                     RegisterActionsResponse.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for RegisterActionsResponse
                      * @function getTypeUrl
@@ -1993,19 +1993,19 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.RegisterActionsResponse";
                     };
-    
+
                     return RegisterActionsResponse;
                 })();
-    
+
                 v1.UnregisterActionsRequest = (function() {
-    
+
                     /**
                      * Properties of an UnregisterActionsRequest.
                      * @memberof prodigy.api.v1
                      * @interface IUnregisterActionsRequest
                      * @property {Array.<string>|null} [ids] UnregisterActionsRequest ids
                      */
-    
+
                     /**
                      * Constructs a new UnregisterActionsRequest.
                      * @memberof prodigy.api.v1
@@ -2021,7 +2021,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * UnregisterActionsRequest ids.
                      * @member {Array.<string>} ids
@@ -2029,7 +2029,7 @@
                      * @instance
                      */
                     UnregisterActionsRequest.prototype.ids = $util.emptyArray;
-    
+
                     /**
                      * Creates a new UnregisterActionsRequest instance using the specified properties.
                      * @function create
@@ -2041,7 +2041,7 @@
                     UnregisterActionsRequest.create = function create(properties) {
                         return new UnregisterActionsRequest(properties);
                     };
-    
+
                     /**
                      * Encodes the specified UnregisterActionsRequest message. Does not implicitly {@link prodigy.api.v1.UnregisterActionsRequest.verify|verify} messages.
                      * @function encode
@@ -2063,7 +2063,7 @@
                                 writer.uint32(/* id 1, wireType 2 =*/10).string(message.ids[i]);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes an UnregisterActionsRequest message from the specified reader or buffer.
                      * @function decode
@@ -2101,7 +2101,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies an UnregisterActionsRequest message.
                      * @function verify
@@ -2126,7 +2126,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates an UnregisterActionsRequest message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -2154,7 +2154,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from an UnregisterActionsRequest message. Also converts values to other types if specified.
                      * @function toObject
@@ -2181,7 +2181,7 @@
                         }
                         return object;
                     };
-    
+
                     /**
                      * Converts this UnregisterActionsRequest to JSON.
                      * @function toJSON
@@ -2192,7 +2192,7 @@
                     UnregisterActionsRequest.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for UnregisterActionsRequest
                      * @function getTypeUrl
@@ -2207,12 +2207,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.UnregisterActionsRequest";
                     };
-    
+
                     return UnregisterActionsRequest;
                 })();
-    
+
                 v1.ActionInvokedEvent = (function() {
-    
+
                     /**
                      * Properties of an ActionInvokedEvent.
                      * @memberof prodigy.api.v1
@@ -2220,7 +2220,7 @@
                      * @property {string|null} [id] ActionInvokedEvent id
                      * @property {string|null} [payloadJson] ActionInvokedEvent payloadJson
                      */
-    
+
                     /**
                      * Constructs a new ActionInvokedEvent.
                      * @memberof prodigy.api.v1
@@ -2235,7 +2235,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * ActionInvokedEvent id.
                      * @member {string} id
@@ -2243,7 +2243,7 @@
                      * @instance
                      */
                     ActionInvokedEvent.prototype.id = "";
-    
+
                     /**
                      * ActionInvokedEvent payloadJson.
                      * @member {string|null|undefined} payloadJson
@@ -2251,16 +2251,16 @@
                      * @instance
                      */
                     ActionInvokedEvent.prototype.payloadJson = null;
-    
+
                     // OneOf field names bound to virtual getters and setters
                     var $oneOfFields;
-    
+
                     // Virtual OneOf for proto3 optional field
                     Object.defineProperty(ActionInvokedEvent.prototype, "_payloadJson", {
                         get: $util.oneOfGetter($oneOfFields = ["payloadJson"]),
                         set: $util.oneOfSetter($oneOfFields)
                     });
-    
+
                     /**
                      * Creates a new ActionInvokedEvent instance using the specified properties.
                      * @function create
@@ -2272,7 +2272,7 @@
                     ActionInvokedEvent.create = function create(properties) {
                         return new ActionInvokedEvent(properties);
                     };
-    
+
                     /**
                      * Encodes the specified ActionInvokedEvent message. Does not implicitly {@link prodigy.api.v1.ActionInvokedEvent.verify|verify} messages.
                      * @function encode
@@ -2295,7 +2295,7 @@
                             writer.uint32(/* id 2, wireType 2 =*/18).string(message.payloadJson);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes an ActionInvokedEvent message from the specified reader or buffer.
                      * @function decode
@@ -2335,7 +2335,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies an ActionInvokedEvent message.
                      * @function verify
@@ -2362,7 +2362,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates an ActionInvokedEvent message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -2387,7 +2387,7 @@
                             message.payloadJson = String(object.payloadJson);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from an ActionInvokedEvent message. Also converts values to other types if specified.
                      * @function toObject
@@ -2416,7 +2416,7 @@
                         }
                         return object;
                     };
-    
+
                     /**
                      * Converts this ActionInvokedEvent to JSON.
                      * @function toJSON
@@ -2427,7 +2427,7 @@
                     ActionInvokedEvent.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for ActionInvokedEvent
                      * @function getTypeUrl
@@ -2442,10 +2442,10 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.ActionInvokedEvent";
                     };
-    
+
                     return ActionInvokedEvent;
                 })();
-    
+
                 /**
                  * ClientKind enum.
                  * @name prodigy.api.v1.ClientKind
@@ -2465,9 +2465,9 @@
                     values[valuesById[4] = "CLIENT_KIND_DIAGNOSTIC"] = 4;
                     return values;
                 })();
-    
+
                 v1.AuthCredentials = (function() {
-    
+
                     /**
                      * Properties of an AuthCredentials.
                      * @memberof prodigy.api.v1
@@ -2475,7 +2475,7 @@
                      * @property {string|null} [clientId] AuthCredentials clientId
                      * @property {boolean|null} [pairingRequest] AuthCredentials pairingRequest
                      */
-    
+
                     /**
                      * Constructs a new AuthCredentials.
                      * @memberof prodigy.api.v1
@@ -2490,7 +2490,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * AuthCredentials clientId.
                      * @member {string} clientId
@@ -2498,7 +2498,7 @@
                      * @instance
                      */
                     AuthCredentials.prototype.clientId = "";
-    
+
                     /**
                      * AuthCredentials pairingRequest.
                      * @member {boolean} pairingRequest
@@ -2506,7 +2506,7 @@
                      * @instance
                      */
                     AuthCredentials.prototype.pairingRequest = false;
-    
+
                     /**
                      * Creates a new AuthCredentials instance using the specified properties.
                      * @function create
@@ -2518,7 +2518,7 @@
                     AuthCredentials.create = function create(properties) {
                         return new AuthCredentials(properties);
                     };
-    
+
                     /**
                      * Encodes the specified AuthCredentials message. Does not implicitly {@link prodigy.api.v1.AuthCredentials.verify|verify} messages.
                      * @function encode
@@ -2541,7 +2541,7 @@
                             writer.uint32(/* id 2, wireType 0 =*/16).bool(message.pairingRequest);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes an AuthCredentials message from the specified reader or buffer.
                      * @function decode
@@ -2581,7 +2581,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies an AuthCredentials message.
                      * @function verify
@@ -2605,7 +2605,7 @@
                                 return "pairingRequest: boolean expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates an AuthCredentials message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -2630,7 +2630,7 @@
                             message.pairingRequest = Boolean(object.pairingRequest);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from an AuthCredentials message. Also converts values to other types if specified.
                      * @function toObject
@@ -2658,7 +2658,7 @@
                             object.pairingRequest = message.pairingRequest;
                         return object;
                     };
-    
+
                     /**
                      * Converts this AuthCredentials to JSON.
                      * @function toJSON
@@ -2669,7 +2669,7 @@
                     AuthCredentials.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for AuthCredentials
                      * @function getTypeUrl
@@ -2684,12 +2684,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.AuthCredentials";
                     };
-    
+
                     return AuthCredentials;
                 })();
-    
+
                 v1.ClientHello = (function() {
-    
+
                     /**
                      * Properties of a ClientHello.
                      * @memberof prodigy.api.v1
@@ -2700,7 +2700,7 @@
                      * @property {prodigy.api.v1.ClientKind|null} [clientKind] ClientHello clientKind
                      * @property {prodigy.api.v1.IAuthCredentials|null} [auth] ClientHello auth
                      */
-    
+
                     /**
                      * Constructs a new ClientHello.
                      * @memberof prodigy.api.v1
@@ -2715,7 +2715,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * ClientHello requestedApiVersionMajor.
                      * @member {number} requestedApiVersionMajor
@@ -2723,7 +2723,7 @@
                      * @instance
                      */
                     ClientHello.prototype.requestedApiVersionMajor = 0;
-    
+
                     /**
                      * ClientHello requestedApiVersionMinor.
                      * @member {number} requestedApiVersionMinor
@@ -2731,7 +2731,7 @@
                      * @instance
                      */
                     ClientHello.prototype.requestedApiVersionMinor = 0;
-    
+
                     /**
                      * ClientHello clientName.
                      * @member {string} clientName
@@ -2739,7 +2739,7 @@
                      * @instance
                      */
                     ClientHello.prototype.clientName = "";
-    
+
                     /**
                      * ClientHello clientKind.
                      * @member {prodigy.api.v1.ClientKind} clientKind
@@ -2747,7 +2747,7 @@
                      * @instance
                      */
                     ClientHello.prototype.clientKind = 0;
-    
+
                     /**
                      * ClientHello auth.
                      * @member {prodigy.api.v1.IAuthCredentials|null|undefined} auth
@@ -2755,7 +2755,7 @@
                      * @instance
                      */
                     ClientHello.prototype.auth = null;
-    
+
                     /**
                      * Creates a new ClientHello instance using the specified properties.
                      * @function create
@@ -2767,7 +2767,7 @@
                     ClientHello.create = function create(properties) {
                         return new ClientHello(properties);
                     };
-    
+
                     /**
                      * Encodes the specified ClientHello message. Does not implicitly {@link prodigy.api.v1.ClientHello.verify|verify} messages.
                      * @function encode
@@ -2796,7 +2796,7 @@
                             $root.prodigy.api.v1.AuthCredentials.encode(message.auth, writer.uint32(/* id 5, wireType 2 =*/42).fork(), q + 1).ldelim();
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a ClientHello message from the specified reader or buffer.
                      * @function decode
@@ -2848,7 +2848,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a ClientHello message.
                      * @function verify
@@ -2891,7 +2891,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates a ClientHello message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -2951,7 +2951,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a ClientHello message. Also converts values to other types if specified.
                      * @function toObject
@@ -2988,7 +2988,7 @@
                             object.auth = $root.prodigy.api.v1.AuthCredentials.toObject(message.auth, options, q + 1);
                         return object;
                     };
-    
+
                     /**
                      * Converts this ClientHello to JSON.
                      * @function toJSON
@@ -2999,7 +2999,7 @@
                     ClientHello.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for ClientHello
                      * @function getTypeUrl
@@ -3014,12 +3014,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.ClientHello";
                     };
-    
+
                     return ClientHello;
                 })();
-    
+
                 v1.ServerHello = (function() {
-    
+
                     /**
                      * Properties of a ServerHello.
                      * @memberof prodigy.api.v1
@@ -3033,7 +3033,7 @@
                      * @property {prodigy.api.v1.ICapabilities|null} [capabilities] ServerHello capabilities
                      * @property {string|null} [serverId] ServerHello serverId
                      */
-    
+
                     /**
                      * Constructs a new ServerHello.
                      * @memberof prodigy.api.v1
@@ -3048,7 +3048,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * ServerHello apiVersionMajor.
                      * @member {number} apiVersionMajor
@@ -3056,7 +3056,7 @@
                      * @instance
                      */
                     ServerHello.prototype.apiVersionMajor = 0;
-    
+
                     /**
                      * ServerHello apiVersionMinor.
                      * @member {number} apiVersionMinor
@@ -3064,7 +3064,7 @@
                      * @instance
                      */
                     ServerHello.prototype.apiVersionMinor = 0;
-    
+
                     /**
                      * ServerHello serverName.
                      * @member {string} serverName
@@ -3072,7 +3072,7 @@
                      * @instance
                      */
                     ServerHello.prototype.serverName = "";
-    
+
                     /**
                      * ServerHello appVersion.
                      * @member {string} appVersion
@@ -3080,7 +3080,7 @@
                      * @instance
                      */
                     ServerHello.prototype.appVersion = "";
-    
+
                     /**
                      * ServerHello sessionId.
                      * @member {string} sessionId
@@ -3088,7 +3088,7 @@
                      * @instance
                      */
                     ServerHello.prototype.sessionId = "";
-    
+
                     /**
                      * ServerHello grantedClientId.
                      * @member {string|null|undefined} grantedClientId
@@ -3096,7 +3096,7 @@
                      * @instance
                      */
                     ServerHello.prototype.grantedClientId = null;
-    
+
                     /**
                      * ServerHello capabilities.
                      * @member {prodigy.api.v1.ICapabilities|null|undefined} capabilities
@@ -3104,7 +3104,7 @@
                      * @instance
                      */
                     ServerHello.prototype.capabilities = null;
-    
+
                     /**
                      * ServerHello serverId.
                      * @member {string|null|undefined} serverId
@@ -3112,22 +3112,22 @@
                      * @instance
                      */
                     ServerHello.prototype.serverId = null;
-    
+
                     // OneOf field names bound to virtual getters and setters
                     var $oneOfFields;
-    
+
                     // Virtual OneOf for proto3 optional field
                     Object.defineProperty(ServerHello.prototype, "_grantedClientId", {
                         get: $util.oneOfGetter($oneOfFields = ["grantedClientId"]),
                         set: $util.oneOfSetter($oneOfFields)
                     });
-    
+
                     // Virtual OneOf for proto3 optional field
                     Object.defineProperty(ServerHello.prototype, "_serverId", {
                         get: $util.oneOfGetter($oneOfFields = ["serverId"]),
                         set: $util.oneOfSetter($oneOfFields)
                     });
-    
+
                     /**
                      * Creates a new ServerHello instance using the specified properties.
                      * @function create
@@ -3139,7 +3139,7 @@
                     ServerHello.create = function create(properties) {
                         return new ServerHello(properties);
                     };
-    
+
                     /**
                      * Encodes the specified ServerHello message. Does not implicitly {@link prodigy.api.v1.ServerHello.verify|verify} messages.
                      * @function encode
@@ -3174,7 +3174,7 @@
                             writer.uint32(/* id 8, wireType 2 =*/66).string(message.serverId);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a ServerHello message from the specified reader or buffer.
                      * @function decode
@@ -3238,7 +3238,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a ServerHello message.
                      * @function verify
@@ -3287,7 +3287,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates a ServerHello message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -3327,7 +3327,7 @@
                             message.serverId = String(object.serverId);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a ServerHello message. Also converts values to other types if specified.
                      * @function toObject
@@ -3377,7 +3377,7 @@
                         }
                         return object;
                     };
-    
+
                     /**
                      * Converts this ServerHello to JSON.
                      * @function toJSON
@@ -3388,7 +3388,7 @@
                     ServerHello.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for ServerHello
                      * @function getTypeUrl
@@ -3403,19 +3403,19 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.ServerHello";
                     };
-    
+
                     return ServerHello;
                 })();
-    
+
                 v1.AuthRequired = (function() {
-    
+
                     /**
                      * Properties of an AuthRequired.
                      * @memberof prodigy.api.v1
                      * @interface IAuthRequired
                      * @property {Uint8Array|null} [nonce] AuthRequired nonce
                      */
-    
+
                     /**
                      * Constructs a new AuthRequired.
                      * @memberof prodigy.api.v1
@@ -3430,7 +3430,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * AuthRequired nonce.
                      * @member {Uint8Array} nonce
@@ -3438,7 +3438,7 @@
                      * @instance
                      */
                     AuthRequired.prototype.nonce = $util.newBuffer([]);
-    
+
                     /**
                      * Creates a new AuthRequired instance using the specified properties.
                      * @function create
@@ -3450,7 +3450,7 @@
                     AuthRequired.create = function create(properties) {
                         return new AuthRequired(properties);
                     };
-    
+
                     /**
                      * Encodes the specified AuthRequired message. Does not implicitly {@link prodigy.api.v1.AuthRequired.verify|verify} messages.
                      * @function encode
@@ -3471,7 +3471,7 @@
                             writer.uint32(/* id 1, wireType 2 =*/10).bytes(message.nonce);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes an AuthRequired message from the specified reader or buffer.
                      * @function decode
@@ -3507,7 +3507,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies an AuthRequired message.
                      * @function verify
@@ -3528,7 +3528,7 @@
                                 return "nonce: buffer expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates an AuthRequired message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -3554,7 +3554,7 @@
                                 message.nonce = object.nonce;
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from an AuthRequired message. Also converts values to other types if specified.
                      * @function toObject
@@ -3584,7 +3584,7 @@
                             object.nonce = options.bytes === String ? $util.base64.encode(message.nonce, 0, message.nonce.length) : options.bytes === Array ? Array.prototype.slice.call(message.nonce) : message.nonce;
                         return object;
                     };
-    
+
                     /**
                      * Converts this AuthRequired to JSON.
                      * @function toJSON
@@ -3595,7 +3595,7 @@
                     AuthRequired.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for AuthRequired
                      * @function getTypeUrl
@@ -3610,12 +3610,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.AuthRequired";
                     };
-    
+
                     return AuthRequired;
                 })();
-    
+
                 v1.AuthResponse = (function() {
-    
+
                     /**
                      * Properties of an AuthResponse.
                      * @memberof prodigy.api.v1
@@ -3623,7 +3623,7 @@
                      * @property {string|null} [clientId] AuthResponse clientId
                      * @property {Uint8Array|null} [proof] AuthResponse proof
                      */
-    
+
                     /**
                      * Constructs a new AuthResponse.
                      * @memberof prodigy.api.v1
@@ -3638,7 +3638,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * AuthResponse clientId.
                      * @member {string} clientId
@@ -3646,7 +3646,7 @@
                      * @instance
                      */
                     AuthResponse.prototype.clientId = "";
-    
+
                     /**
                      * AuthResponse proof.
                      * @member {Uint8Array} proof
@@ -3654,7 +3654,7 @@
                      * @instance
                      */
                     AuthResponse.prototype.proof = $util.newBuffer([]);
-    
+
                     /**
                      * Creates a new AuthResponse instance using the specified properties.
                      * @function create
@@ -3666,7 +3666,7 @@
                     AuthResponse.create = function create(properties) {
                         return new AuthResponse(properties);
                     };
-    
+
                     /**
                      * Encodes the specified AuthResponse message. Does not implicitly {@link prodigy.api.v1.AuthResponse.verify|verify} messages.
                      * @function encode
@@ -3689,7 +3689,7 @@
                             writer.uint32(/* id 2, wireType 2 =*/18).bytes(message.proof);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes an AuthResponse message from the specified reader or buffer.
                      * @function decode
@@ -3729,7 +3729,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies an AuthResponse message.
                      * @function verify
@@ -3753,7 +3753,7 @@
                                 return "proof: buffer expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates an AuthResponse message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -3781,7 +3781,7 @@
                                 message.proof = object.proof;
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from an AuthResponse message. Also converts values to other types if specified.
                      * @function toObject
@@ -3815,7 +3815,7 @@
                             object.proof = options.bytes === String ? $util.base64.encode(message.proof, 0, message.proof.length) : options.bytes === Array ? Array.prototype.slice.call(message.proof) : message.proof;
                         return object;
                     };
-    
+
                     /**
                      * Converts this AuthResponse to JSON.
                      * @function toJSON
@@ -3826,7 +3826,7 @@
                     AuthResponse.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for AuthResponse
                      * @function getTypeUrl
@@ -3841,19 +3841,34 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.AuthResponse";
                     };
-    
+
                     return AuthResponse;
                 })();
-    
+
+                /**
+                 * AuthRejectCode enum.
+                 * @name prodigy.api.v1.AuthRejectCode
+                 * @enum {number}
+                 * @property {number} AUTH_REJECT_CODE_UNSPECIFIED=0 AUTH_REJECT_CODE_UNSPECIFIED value
+                 * @property {number} AUTH_REJECT_CODE_CREDENTIAL_UPGRADE_REQUIRED=1 AUTH_REJECT_CODE_CREDENTIAL_UPGRADE_REQUIRED value
+                 */
+                v1.AuthRejectCode = (function() {
+                    var valuesById = {}, values = Object.create(valuesById);
+                    values[valuesById[0] = "AUTH_REJECT_CODE_UNSPECIFIED"] = 0;
+                    values[valuesById[1] = "AUTH_REJECT_CODE_CREDENTIAL_UPGRADE_REQUIRED"] = 1;
+                    return values;
+                })();
+
                 v1.AuthReject = (function() {
-    
+
                     /**
                      * Properties of an AuthReject.
                      * @memberof prodigy.api.v1
                      * @interface IAuthReject
                      * @property {string|null} [reason] AuthReject reason
+                     * @property {prodigy.api.v1.AuthRejectCode|null} [code] AuthReject code
                      */
-    
+
                     /**
                      * Constructs a new AuthReject.
                      * @memberof prodigy.api.v1
@@ -3868,7 +3883,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * AuthReject reason.
                      * @member {string} reason
@@ -3876,7 +3891,15 @@
                      * @instance
                      */
                     AuthReject.prototype.reason = "";
-    
+
+                    /**
+                     * AuthReject code.
+                     * @member {prodigy.api.v1.AuthRejectCode} code
+                     * @memberof prodigy.api.v1.AuthReject
+                     * @instance
+                     */
+                    AuthReject.prototype.code = 0;
+
                     /**
                      * Creates a new AuthReject instance using the specified properties.
                      * @function create
@@ -3888,7 +3911,7 @@
                     AuthReject.create = function create(properties) {
                         return new AuthReject(properties);
                     };
-    
+
                     /**
                      * Encodes the specified AuthReject message. Does not implicitly {@link prodigy.api.v1.AuthReject.verify|verify} messages.
                      * @function encode
@@ -3907,9 +3930,11 @@
                             throw Error("max depth exceeded");
                         if (message.reason != null && Object.hasOwnProperty.call(message, "reason"))
                             writer.uint32(/* id 1, wireType 2 =*/10).string(message.reason);
+                        if (message.code != null && Object.hasOwnProperty.call(message, "code"))
+                            writer.uint32(/* id 6, wireType 0 =*/48).int32(message.code);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes an AuthReject message from the specified reader or buffer.
                      * @function decode
@@ -3938,6 +3963,10 @@
                                     message.reason = reader.string();
                                     break;
                                 }
+                            case 6: {
+                                    message.code = reader.int32();
+                                    break;
+                                }
                             default:
                                 reader.skipType(tag & 7, long);
                                 break;
@@ -3945,7 +3974,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies an AuthReject message.
                      * @function verify
@@ -3964,9 +3993,17 @@
                         if (message.reason != null && Object.hasOwnProperty.call(message, "reason"))
                             if (!$util.isString(message.reason))
                                 return "reason: string expected";
+                        if (message.code != null && Object.hasOwnProperty.call(message, "code"))
+                            switch (message.code) {
+                            default:
+                                return "code: enum value expected";
+                            case 0:
+                            case 1:
+                                break;
+                            }
                         return null;
                     };
-    
+
                     /**
                      * Creates an AuthReject message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -3987,9 +4024,25 @@
                         var message = new $root.prodigy.api.v1.AuthReject();
                         if (object.reason != null)
                             message.reason = String(object.reason);
+                        switch (object.code) {
+                        default:
+                            if (typeof object.code === "number") {
+                                message.code = object.code;
+                                break;
+                            }
+                            break;
+                        case "AUTH_REJECT_CODE_UNSPECIFIED":
+                        case 0:
+                            message.code = 0;
+                            break;
+                        case "AUTH_REJECT_CODE_CREDENTIAL_UPGRADE_REQUIRED":
+                        case 1:
+                            message.code = 1;
+                            break;
+                        }
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from an AuthReject message. Also converts values to other types if specified.
                      * @function toObject
@@ -4007,13 +4060,17 @@
                         if (q > $util.recursionLimit)
                             throw Error("max depth exceeded");
                         var object = {};
-                        if (options.defaults)
+                        if (options.defaults) {
                             object.reason = "";
+                            object.code = options.enums === String ? "AUTH_REJECT_CODE_UNSPECIFIED" : 0;
+                        }
                         if (message.reason != null && Object.hasOwnProperty.call(message, "reason"))
                             object.reason = message.reason;
+                        if (message.code != null && Object.hasOwnProperty.call(message, "code"))
+                            object.code = options.enums === String ? $root.prodigy.api.v1.AuthRejectCode[message.code] === undefined ? message.code : $root.prodigy.api.v1.AuthRejectCode[message.code] : message.code;
                         return object;
                     };
-    
+
                     /**
                      * Converts this AuthReject to JSON.
                      * @function toJSON
@@ -4024,7 +4081,7 @@
                     AuthReject.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for AuthReject
                      * @function getTypeUrl
@@ -4039,20 +4096,37 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.AuthReject";
                     };
-    
+
                     return AuthReject;
                 })();
-    
+
+                /**
+                 * PairingSecretFormat enum.
+                 * @name prodigy.api.v1.PairingSecretFormat
+                 * @enum {number}
+                 * @property {number} PAIRING_SECRET_FORMAT_UNSPECIFIED=0 PAIRING_SECRET_FORMAT_UNSPECIFIED value
+                 * @property {number} PAIRING_SECRET_FORMAT_LEGACY_SIX_DIGIT=1 PAIRING_SECRET_FORMAT_LEGACY_SIX_DIGIT value
+                 * @property {number} PAIRING_SECRET_FORMAT_BASE32_120=2 PAIRING_SECRET_FORMAT_BASE32_120 value
+                 */
+                v1.PairingSecretFormat = (function() {
+                    var valuesById = {}, values = Object.create(valuesById);
+                    values[valuesById[0] = "PAIRING_SECRET_FORMAT_UNSPECIFIED"] = 0;
+                    values[valuesById[1] = "PAIRING_SECRET_FORMAT_LEGACY_SIX_DIGIT"] = 1;
+                    values[valuesById[2] = "PAIRING_SECRET_FORMAT_BASE32_120"] = 2;
+                    return values;
+                })();
+
                 v1.PairingChallenge = (function() {
-    
+
                     /**
                      * Properties of a PairingChallenge.
                      * @memberof prodigy.api.v1
                      * @interface IPairingChallenge
                      * @property {Uint8Array|null} [nonce] PairingChallenge nonce
                      * @property {Uint8Array|null} [salt] PairingChallenge salt
+                     * @property {prodigy.api.v1.PairingSecretFormat|null} [secretFormat] PairingChallenge secretFormat
                      */
-    
+
                     /**
                      * Constructs a new PairingChallenge.
                      * @memberof prodigy.api.v1
@@ -4067,7 +4141,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * PairingChallenge nonce.
                      * @member {Uint8Array} nonce
@@ -4075,7 +4149,7 @@
                      * @instance
                      */
                     PairingChallenge.prototype.nonce = $util.newBuffer([]);
-    
+
                     /**
                      * PairingChallenge salt.
                      * @member {Uint8Array} salt
@@ -4083,7 +4157,15 @@
                      * @instance
                      */
                     PairingChallenge.prototype.salt = $util.newBuffer([]);
-    
+
+                    /**
+                     * PairingChallenge secretFormat.
+                     * @member {prodigy.api.v1.PairingSecretFormat} secretFormat
+                     * @memberof prodigy.api.v1.PairingChallenge
+                     * @instance
+                     */
+                    PairingChallenge.prototype.secretFormat = 0;
+
                     /**
                      * Creates a new PairingChallenge instance using the specified properties.
                      * @function create
@@ -4095,7 +4177,7 @@
                     PairingChallenge.create = function create(properties) {
                         return new PairingChallenge(properties);
                     };
-    
+
                     /**
                      * Encodes the specified PairingChallenge message. Does not implicitly {@link prodigy.api.v1.PairingChallenge.verify|verify} messages.
                      * @function encode
@@ -4116,9 +4198,11 @@
                             writer.uint32(/* id 1, wireType 2 =*/10).bytes(message.nonce);
                         if (message.salt != null && Object.hasOwnProperty.call(message, "salt"))
                             writer.uint32(/* id 2, wireType 2 =*/18).bytes(message.salt);
+                        if (message.secretFormat != null && Object.hasOwnProperty.call(message, "secretFormat"))
+                            writer.uint32(/* id 7, wireType 0 =*/56).int32(message.secretFormat);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a PairingChallenge message from the specified reader or buffer.
                      * @function decode
@@ -4151,6 +4235,10 @@
                                     message.salt = reader.bytes();
                                     break;
                                 }
+                            case 7: {
+                                    message.secretFormat = reader.int32();
+                                    break;
+                                }
                             default:
                                 reader.skipType(tag & 7, long);
                                 break;
@@ -4158,7 +4246,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a PairingChallenge message.
                      * @function verify
@@ -4180,9 +4268,18 @@
                         if (message.salt != null && Object.hasOwnProperty.call(message, "salt"))
                             if (!(message.salt && typeof message.salt.length === "number" || $util.isString(message.salt)))
                                 return "salt: buffer expected";
+                        if (message.secretFormat != null && Object.hasOwnProperty.call(message, "secretFormat"))
+                            switch (message.secretFormat) {
+                            default:
+                                return "secretFormat: enum value expected";
+                            case 0:
+                            case 1:
+                            case 2:
+                                break;
+                            }
                         return null;
                     };
-    
+
                     /**
                      * Creates a PairingChallenge message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -4211,9 +4308,29 @@
                                 $util.base64.decode(object.salt, message.salt = $util.newBuffer($util.base64.length(object.salt)), 0);
                             else if (object.salt.length >= 0)
                                 message.salt = object.salt;
+                        switch (object.secretFormat) {
+                        default:
+                            if (typeof object.secretFormat === "number") {
+                                message.secretFormat = object.secretFormat;
+                                break;
+                            }
+                            break;
+                        case "PAIRING_SECRET_FORMAT_UNSPECIFIED":
+                        case 0:
+                            message.secretFormat = 0;
+                            break;
+                        case "PAIRING_SECRET_FORMAT_LEGACY_SIX_DIGIT":
+                        case 1:
+                            message.secretFormat = 1;
+                            break;
+                        case "PAIRING_SECRET_FORMAT_BASE32_120":
+                        case 2:
+                            message.secretFormat = 2;
+                            break;
+                        }
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a PairingChallenge message. Also converts values to other types if specified.
                      * @function toObject
@@ -4246,14 +4363,17 @@
                                 if (options.bytes !== Array)
                                     object.salt = $util.newBuffer(object.salt);
                             }
+                            object.secretFormat = options.enums === String ? "PAIRING_SECRET_FORMAT_UNSPECIFIED" : 0;
                         }
                         if (message.nonce != null && Object.hasOwnProperty.call(message, "nonce"))
                             object.nonce = options.bytes === String ? $util.base64.encode(message.nonce, 0, message.nonce.length) : options.bytes === Array ? Array.prototype.slice.call(message.nonce) : message.nonce;
                         if (message.salt != null && Object.hasOwnProperty.call(message, "salt"))
                             object.salt = options.bytes === String ? $util.base64.encode(message.salt, 0, message.salt.length) : options.bytes === Array ? Array.prototype.slice.call(message.salt) : message.salt;
+                        if (message.secretFormat != null && Object.hasOwnProperty.call(message, "secretFormat"))
+                            object.secretFormat = options.enums === String ? $root.prodigy.api.v1.PairingSecretFormat[message.secretFormat] === undefined ? message.secretFormat : $root.prodigy.api.v1.PairingSecretFormat[message.secretFormat] : message.secretFormat;
                         return object;
                     };
-    
+
                     /**
                      * Converts this PairingChallenge to JSON.
                      * @function toJSON
@@ -4264,7 +4384,7 @@
                     PairingChallenge.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for PairingChallenge
                      * @function getTypeUrl
@@ -4279,19 +4399,19 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.PairingChallenge";
                     };
-    
+
                     return PairingChallenge;
                 })();
-    
+
                 v1.PairingResponse = (function() {
-    
+
                     /**
                      * Properties of a PairingResponse.
                      * @memberof prodigy.api.v1
                      * @interface IPairingResponse
                      * @property {Uint8Array|null} [proof] PairingResponse proof
                      */
-    
+
                     /**
                      * Constructs a new PairingResponse.
                      * @memberof prodigy.api.v1
@@ -4306,7 +4426,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * PairingResponse proof.
                      * @member {Uint8Array} proof
@@ -4314,7 +4434,7 @@
                      * @instance
                      */
                     PairingResponse.prototype.proof = $util.newBuffer([]);
-    
+
                     /**
                      * Creates a new PairingResponse instance using the specified properties.
                      * @function create
@@ -4326,7 +4446,7 @@
                     PairingResponse.create = function create(properties) {
                         return new PairingResponse(properties);
                     };
-    
+
                     /**
                      * Encodes the specified PairingResponse message. Does not implicitly {@link prodigy.api.v1.PairingResponse.verify|verify} messages.
                      * @function encode
@@ -4347,7 +4467,7 @@
                             writer.uint32(/* id 1, wireType 2 =*/10).bytes(message.proof);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a PairingResponse message from the specified reader or buffer.
                      * @function decode
@@ -4383,7 +4503,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a PairingResponse message.
                      * @function verify
@@ -4404,7 +4524,7 @@
                                 return "proof: buffer expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a PairingResponse message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -4430,7 +4550,7 @@
                                 message.proof = object.proof;
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a PairingResponse message. Also converts values to other types if specified.
                      * @function toObject
@@ -4460,7 +4580,7 @@
                             object.proof = options.bytes === String ? $util.base64.encode(message.proof, 0, message.proof.length) : options.bytes === Array ? Array.prototype.slice.call(message.proof) : message.proof;
                         return object;
                     };
-    
+
                     /**
                      * Converts this PairingResponse to JSON.
                      * @function toJSON
@@ -4471,7 +4591,7 @@
                     PairingResponse.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for PairingResponse
                      * @function getTypeUrl
@@ -4486,20 +4606,22 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.PairingResponse";
                     };
-    
+
                     return PairingResponse;
                 })();
-    
+
                 v1.Capabilities = (function() {
-    
+
                     /**
                      * Properties of a Capabilities.
                      * @memberof prodigy.api.v1
                      * @interface ICapabilities
                      * @property {Array.<prodigy.api.v1.Topic>|null} [supportedTopics] Capabilities supportedTopics
                      * @property {prodigy.api.v1.IPhoneCapabilities|null} [phone] Capabilities phone
+                     * @property {boolean|null} [dataProviderBridge] Capabilities dataProviderBridge
+                     * @property {boolean|null} [securePairingCode] Capabilities securePairingCode
                      */
-    
+
                     /**
                      * Constructs a new Capabilities.
                      * @memberof prodigy.api.v1
@@ -4515,7 +4637,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * Capabilities supportedTopics.
                      * @member {Array.<prodigy.api.v1.Topic>} supportedTopics
@@ -4523,7 +4645,7 @@
                      * @instance
                      */
                     Capabilities.prototype.supportedTopics = $util.emptyArray;
-    
+
                     /**
                      * Capabilities phone.
                      * @member {prodigy.api.v1.IPhoneCapabilities|null|undefined} phone
@@ -4531,7 +4653,38 @@
                      * @instance
                      */
                     Capabilities.prototype.phone = null;
-    
+
+                    /**
+                     * Capabilities dataProviderBridge.
+                     * @member {boolean|null|undefined} dataProviderBridge
+                     * @memberof prodigy.api.v1.Capabilities
+                     * @instance
+                     */
+                    Capabilities.prototype.dataProviderBridge = null;
+
+                    /**
+                     * Capabilities securePairingCode.
+                     * @member {boolean|null|undefined} securePairingCode
+                     * @memberof prodigy.api.v1.Capabilities
+                     * @instance
+                     */
+                    Capabilities.prototype.securePairingCode = null;
+
+                    // OneOf field names bound to virtual getters and setters
+                    var $oneOfFields;
+
+                    // Virtual OneOf for proto3 optional field
+                    Object.defineProperty(Capabilities.prototype, "_dataProviderBridge", {
+                        get: $util.oneOfGetter($oneOfFields = ["dataProviderBridge"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    // Virtual OneOf for proto3 optional field
+                    Object.defineProperty(Capabilities.prototype, "_securePairingCode", {
+                        get: $util.oneOfGetter($oneOfFields = ["securePairingCode"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
                     /**
                      * Creates a new Capabilities instance using the specified properties.
                      * @function create
@@ -4543,7 +4696,7 @@
                     Capabilities.create = function create(properties) {
                         return new Capabilities(properties);
                     };
-    
+
                     /**
                      * Encodes the specified Capabilities message. Does not implicitly {@link prodigy.api.v1.Capabilities.verify|verify} messages.
                      * @function encode
@@ -4568,9 +4721,13 @@
                         }
                         if (message.phone != null && Object.hasOwnProperty.call(message, "phone"))
                             $root.prodigy.api.v1.PhoneCapabilities.encode(message.phone, writer.uint32(/* id 2, wireType 2 =*/18).fork(), q + 1).ldelim();
+                        if (message.dataProviderBridge != null && Object.hasOwnProperty.call(message, "dataProviderBridge"))
+                            writer.uint32(/* id 3, wireType 0 =*/24).bool(message.dataProviderBridge);
+                        if (message.securePairingCode != null && Object.hasOwnProperty.call(message, "securePairingCode"))
+                            writer.uint32(/* id 13, wireType 0 =*/104).bool(message.securePairingCode);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a Capabilities message from the specified reader or buffer.
                      * @function decode
@@ -4610,6 +4767,14 @@
                                     message.phone = $root.prodigy.api.v1.PhoneCapabilities.decode(reader, reader.uint32(), undefined, long + 1);
                                     break;
                                 }
+                            case 3: {
+                                    message.dataProviderBridge = reader.bool();
+                                    break;
+                                }
+                            case 13: {
+                                    message.securePairingCode = reader.bool();
+                                    break;
+                                }
                             default:
                                 reader.skipType(tag & 7, long);
                                 break;
@@ -4617,7 +4782,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a Capabilities message.
                      * @function verify
@@ -4633,6 +4798,7 @@
                             long = 0;
                         if (long > $util.recursionLimit)
                             return "maximum nesting depth exceeded";
+                        var properties = {};
                         if (message.supportedTopics != null && Object.hasOwnProperty.call(message, "supportedTopics")) {
                             if (!Array.isArray(message.supportedTopics))
                                 return "supportedTopics: array expected";
@@ -4654,9 +4820,19 @@
                             if (error)
                                 return "phone." + error;
                         }
+                        if (message.dataProviderBridge != null && Object.hasOwnProperty.call(message, "dataProviderBridge")) {
+                            properties._dataProviderBridge = 1;
+                            if (typeof message.dataProviderBridge !== "boolean")
+                                return "dataProviderBridge: boolean expected";
+                        }
+                        if (message.securePairingCode != null && Object.hasOwnProperty.call(message, "securePairingCode")) {
+                            properties._securePairingCode = 1;
+                            if (typeof message.securePairingCode !== "boolean")
+                                return "securePairingCode: boolean expected";
+                        }
                         return null;
                     };
-    
+
                     /**
                      * Creates a Capabilities message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -4717,9 +4893,13 @@
                                 throw TypeError(".prodigy.api.v1.Capabilities.phone: object expected");
                             message.phone = $root.prodigy.api.v1.PhoneCapabilities.fromObject(object.phone, long + 1);
                         }
+                        if (object.dataProviderBridge != null)
+                            message.dataProviderBridge = Boolean(object.dataProviderBridge);
+                        if (object.securePairingCode != null)
+                            message.securePairingCode = Boolean(object.securePairingCode);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a Capabilities message. Also converts values to other types if specified.
                      * @function toObject
@@ -4748,9 +4928,19 @@
                         }
                         if (message.phone != null && Object.hasOwnProperty.call(message, "phone"))
                             object.phone = $root.prodigy.api.v1.PhoneCapabilities.toObject(message.phone, options, q + 1);
+                        if (message.dataProviderBridge != null && Object.hasOwnProperty.call(message, "dataProviderBridge")) {
+                            object.dataProviderBridge = message.dataProviderBridge;
+                            if (options.oneofs)
+                                object._dataProviderBridge = "dataProviderBridge";
+                        }
+                        if (message.securePairingCode != null && Object.hasOwnProperty.call(message, "securePairingCode")) {
+                            object.securePairingCode = message.securePairingCode;
+                            if (options.oneofs)
+                                object._securePairingCode = "securePairingCode";
+                        }
                         return object;
                     };
-    
+
                     /**
                      * Converts this Capabilities to JSON.
                      * @function toJSON
@@ -4761,7 +4951,7 @@
                     Capabilities.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for Capabilities
                      * @function getTypeUrl
@@ -4776,18 +4966,18 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.Capabilities";
                     };
-    
+
                     return Capabilities;
                 })();
-    
+
                 v1.GetCapabilitiesRequest = (function() {
-    
+
                     /**
                      * Properties of a GetCapabilitiesRequest.
                      * @memberof prodigy.api.v1
                      * @interface IGetCapabilitiesRequest
                      */
-    
+
                     /**
                      * Constructs a new GetCapabilitiesRequest.
                      * @memberof prodigy.api.v1
@@ -4802,7 +4992,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * Creates a new GetCapabilitiesRequest instance using the specified properties.
                      * @function create
@@ -4814,7 +5004,7 @@
                     GetCapabilitiesRequest.create = function create(properties) {
                         return new GetCapabilitiesRequest(properties);
                     };
-    
+
                     /**
                      * Encodes the specified GetCapabilitiesRequest message. Does not implicitly {@link prodigy.api.v1.GetCapabilitiesRequest.verify|verify} messages.
                      * @function encode
@@ -4833,7 +5023,7 @@
                             throw Error("max depth exceeded");
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a GetCapabilitiesRequest message from the specified reader or buffer.
                      * @function decode
@@ -4865,7 +5055,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a GetCapabilitiesRequest message.
                      * @function verify
@@ -4883,7 +5073,7 @@
                             return "maximum nesting depth exceeded";
                         return null;
                     };
-    
+
                     /**
                      * Creates a GetCapabilitiesRequest message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -4897,7 +5087,7 @@
                             return object;
                         return new $root.prodigy.api.v1.GetCapabilitiesRequest();
                     };
-    
+
                     /**
                      * Creates a plain object from a GetCapabilitiesRequest message. Also converts values to other types if specified.
                      * @function toObject
@@ -4910,7 +5100,7 @@
                     GetCapabilitiesRequest.toObject = function toObject() {
                         return {};
                     };
-    
+
                     /**
                      * Converts this GetCapabilitiesRequest to JSON.
                      * @function toJSON
@@ -4921,7 +5111,7 @@
                     GetCapabilitiesRequest.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for GetCapabilitiesRequest
                      * @function getTypeUrl
@@ -4936,19 +5126,19 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.GetCapabilitiesRequest";
                     };
-    
+
                     return GetCapabilitiesRequest;
                 })();
-    
+
                 v1.CapabilitiesResponse = (function() {
-    
+
                     /**
                      * Properties of a CapabilitiesResponse.
                      * @memberof prodigy.api.v1
                      * @interface ICapabilitiesResponse
                      * @property {prodigy.api.v1.ICapabilities|null} [capabilities] CapabilitiesResponse capabilities
                      */
-    
+
                     /**
                      * Constructs a new CapabilitiesResponse.
                      * @memberof prodigy.api.v1
@@ -4963,7 +5153,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * CapabilitiesResponse capabilities.
                      * @member {prodigy.api.v1.ICapabilities|null|undefined} capabilities
@@ -4971,7 +5161,7 @@
                      * @instance
                      */
                     CapabilitiesResponse.prototype.capabilities = null;
-    
+
                     /**
                      * Creates a new CapabilitiesResponse instance using the specified properties.
                      * @function create
@@ -4983,7 +5173,7 @@
                     CapabilitiesResponse.create = function create(properties) {
                         return new CapabilitiesResponse(properties);
                     };
-    
+
                     /**
                      * Encodes the specified CapabilitiesResponse message. Does not implicitly {@link prodigy.api.v1.CapabilitiesResponse.verify|verify} messages.
                      * @function encode
@@ -5004,7 +5194,7 @@
                             $root.prodigy.api.v1.Capabilities.encode(message.capabilities, writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a CapabilitiesResponse message from the specified reader or buffer.
                      * @function decode
@@ -5040,7 +5230,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a CapabilitiesResponse message.
                      * @function verify
@@ -5063,7 +5253,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates a CapabilitiesResponse message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -5089,7 +5279,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a CapabilitiesResponse message. Also converts values to other types if specified.
                      * @function toObject
@@ -5113,7 +5303,7 @@
                             object.capabilities = $root.prodigy.api.v1.Capabilities.toObject(message.capabilities, options, q + 1);
                         return object;
                     };
-    
+
                     /**
                      * Converts this CapabilitiesResponse to JSON.
                      * @function toJSON
@@ -5124,7 +5314,7 @@
                     CapabilitiesResponse.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for CapabilitiesResponse
                      * @function getTypeUrl
@@ -5139,19 +5329,19 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.CapabilitiesResponse";
                     };
-    
+
                     return CapabilitiesResponse;
                 })();
-    
+
                 v1.SubscribeRequest = (function() {
-    
+
                     /**
                      * Properties of a SubscribeRequest.
                      * @memberof prodigy.api.v1
                      * @interface ISubscribeRequest
                      * @property {Array.<prodigy.api.v1.Topic>|null} [topics] SubscribeRequest topics
                      */
-    
+
                     /**
                      * Constructs a new SubscribeRequest.
                      * @memberof prodigy.api.v1
@@ -5167,7 +5357,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * SubscribeRequest topics.
                      * @member {Array.<prodigy.api.v1.Topic>} topics
@@ -5175,7 +5365,7 @@
                      * @instance
                      */
                     SubscribeRequest.prototype.topics = $util.emptyArray;
-    
+
                     /**
                      * Creates a new SubscribeRequest instance using the specified properties.
                      * @function create
@@ -5187,7 +5377,7 @@
                     SubscribeRequest.create = function create(properties) {
                         return new SubscribeRequest(properties);
                     };
-    
+
                     /**
                      * Encodes the specified SubscribeRequest message. Does not implicitly {@link prodigy.api.v1.SubscribeRequest.verify|verify} messages.
                      * @function encode
@@ -5212,7 +5402,7 @@
                         }
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a SubscribeRequest message from the specified reader or buffer.
                      * @function decode
@@ -5255,7 +5445,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a SubscribeRequest message.
                      * @function verify
@@ -5289,7 +5479,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates a SubscribeRequest message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -5347,7 +5537,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a SubscribeRequest message. Also converts values to other types if specified.
                      * @function toObject
@@ -5374,7 +5564,7 @@
                         }
                         return object;
                     };
-    
+
                     /**
                      * Converts this SubscribeRequest to JSON.
                      * @function toJSON
@@ -5385,7 +5575,7 @@
                     SubscribeRequest.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for SubscribeRequest
                      * @function getTypeUrl
@@ -5400,12 +5590,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.SubscribeRequest";
                     };
-    
+
                     return SubscribeRequest;
                 })();
-    
+
                 v1.TopicSubscriptionResult = (function() {
-    
+
                     /**
                      * Properties of a TopicSubscriptionResult.
                      * @memberof prodigy.api.v1
@@ -5414,7 +5604,7 @@
                      * @property {boolean|null} [accepted] TopicSubscriptionResult accepted
                      * @property {string|null} [reason] TopicSubscriptionResult reason
                      */
-    
+
                     /**
                      * Constructs a new TopicSubscriptionResult.
                      * @memberof prodigy.api.v1
@@ -5429,7 +5619,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * TopicSubscriptionResult topic.
                      * @member {prodigy.api.v1.Topic} topic
@@ -5437,7 +5627,7 @@
                      * @instance
                      */
                     TopicSubscriptionResult.prototype.topic = 0;
-    
+
                     /**
                      * TopicSubscriptionResult accepted.
                      * @member {boolean} accepted
@@ -5445,7 +5635,7 @@
                      * @instance
                      */
                     TopicSubscriptionResult.prototype.accepted = false;
-    
+
                     /**
                      * TopicSubscriptionResult reason.
                      * @member {string} reason
@@ -5453,7 +5643,7 @@
                      * @instance
                      */
                     TopicSubscriptionResult.prototype.reason = "";
-    
+
                     /**
                      * Creates a new TopicSubscriptionResult instance using the specified properties.
                      * @function create
@@ -5465,7 +5655,7 @@
                     TopicSubscriptionResult.create = function create(properties) {
                         return new TopicSubscriptionResult(properties);
                     };
-    
+
                     /**
                      * Encodes the specified TopicSubscriptionResult message. Does not implicitly {@link prodigy.api.v1.TopicSubscriptionResult.verify|verify} messages.
                      * @function encode
@@ -5490,7 +5680,7 @@
                             writer.uint32(/* id 3, wireType 2 =*/26).string(message.reason);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a TopicSubscriptionResult message from the specified reader or buffer.
                      * @function decode
@@ -5534,7 +5724,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a TopicSubscriptionResult message.
                      * @function verify
@@ -5570,7 +5760,7 @@
                                 return "reason: string expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a TopicSubscriptionResult message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -5627,7 +5817,7 @@
                             message.reason = String(object.reason);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a TopicSubscriptionResult message. Also converts values to other types if specified.
                      * @function toObject
@@ -5658,7 +5848,7 @@
                             object.reason = message.reason;
                         return object;
                     };
-    
+
                     /**
                      * Converts this TopicSubscriptionResult to JSON.
                      * @function toJSON
@@ -5669,7 +5859,7 @@
                     TopicSubscriptionResult.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for TopicSubscriptionResult
                      * @function getTypeUrl
@@ -5684,19 +5874,19 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.TopicSubscriptionResult";
                     };
-    
+
                     return TopicSubscriptionResult;
                 })();
-    
+
                 v1.SubscribeResponse = (function() {
-    
+
                     /**
                      * Properties of a SubscribeResponse.
                      * @memberof prodigy.api.v1
                      * @interface ISubscribeResponse
                      * @property {Array.<prodigy.api.v1.ITopicSubscriptionResult>|null} [results] SubscribeResponse results
                      */
-    
+
                     /**
                      * Constructs a new SubscribeResponse.
                      * @memberof prodigy.api.v1
@@ -5712,7 +5902,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * SubscribeResponse results.
                      * @member {Array.<prodigy.api.v1.ITopicSubscriptionResult>} results
@@ -5720,7 +5910,7 @@
                      * @instance
                      */
                     SubscribeResponse.prototype.results = $util.emptyArray;
-    
+
                     /**
                      * Creates a new SubscribeResponse instance using the specified properties.
                      * @function create
@@ -5732,7 +5922,7 @@
                     SubscribeResponse.create = function create(properties) {
                         return new SubscribeResponse(properties);
                     };
-    
+
                     /**
                      * Encodes the specified SubscribeResponse message. Does not implicitly {@link prodigy.api.v1.SubscribeResponse.verify|verify} messages.
                      * @function encode
@@ -5754,7 +5944,7 @@
                                 $root.prodigy.api.v1.TopicSubscriptionResult.encode(message.results[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a SubscribeResponse message from the specified reader or buffer.
                      * @function decode
@@ -5792,7 +5982,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a SubscribeResponse message.
                      * @function verify
@@ -5819,7 +6009,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates a SubscribeResponse message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -5850,7 +6040,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a SubscribeResponse message. Also converts values to other types if specified.
                      * @function toObject
@@ -5877,7 +6067,7 @@
                         }
                         return object;
                     };
-    
+
                     /**
                      * Converts this SubscribeResponse to JSON.
                      * @function toJSON
@@ -5888,7 +6078,7 @@
                     SubscribeResponse.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for SubscribeResponse
                      * @function getTypeUrl
@@ -5903,19 +6093,19 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.SubscribeResponse";
                     };
-    
+
                     return SubscribeResponse;
                 })();
-    
+
                 v1.UnsubscribeRequest = (function() {
-    
+
                     /**
                      * Properties of an UnsubscribeRequest.
                      * @memberof prodigy.api.v1
                      * @interface IUnsubscribeRequest
                      * @property {Array.<prodigy.api.v1.Topic>|null} [topics] UnsubscribeRequest topics
                      */
-    
+
                     /**
                      * Constructs a new UnsubscribeRequest.
                      * @memberof prodigy.api.v1
@@ -5931,7 +6121,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * UnsubscribeRequest topics.
                      * @member {Array.<prodigy.api.v1.Topic>} topics
@@ -5939,7 +6129,7 @@
                      * @instance
                      */
                     UnsubscribeRequest.prototype.topics = $util.emptyArray;
-    
+
                     /**
                      * Creates a new UnsubscribeRequest instance using the specified properties.
                      * @function create
@@ -5951,7 +6141,7 @@
                     UnsubscribeRequest.create = function create(properties) {
                         return new UnsubscribeRequest(properties);
                     };
-    
+
                     /**
                      * Encodes the specified UnsubscribeRequest message. Does not implicitly {@link prodigy.api.v1.UnsubscribeRequest.verify|verify} messages.
                      * @function encode
@@ -5976,7 +6166,7 @@
                         }
                         return writer;
                     };
-    
+
                     /**
                      * Decodes an UnsubscribeRequest message from the specified reader or buffer.
                      * @function decode
@@ -6019,7 +6209,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies an UnsubscribeRequest message.
                      * @function verify
@@ -6053,7 +6243,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates an UnsubscribeRequest message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -6111,7 +6301,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from an UnsubscribeRequest message. Also converts values to other types if specified.
                      * @function toObject
@@ -6138,7 +6328,7 @@
                         }
                         return object;
                     };
-    
+
                     /**
                      * Converts this UnsubscribeRequest to JSON.
                      * @function toJSON
@@ -6149,7 +6339,7 @@
                     UnsubscribeRequest.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for UnsubscribeRequest
                      * @function getTypeUrl
@@ -6164,12 +6354,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.UnsubscribeRequest";
                     };
-    
+
                     return UnsubscribeRequest;
                 })();
-    
+
                 v1.ApiMessage = (function() {
-    
+
                     /**
                      * Properties of an ApiMessage.
                      * @memberof prodigy.api.v1
@@ -6216,8 +6406,23 @@
                      * @property {prodigy.api.v1.IBatteryReport|null} [batteryReport] ApiMessage batteryReport
                      * @property {prodigy.api.v1.IConnectivityReport|null} [connectivityReport] ApiMessage connectivityReport
                      * @property {prodigy.api.v1.ITimeReport|null} [timeReport] ApiMessage timeReport
+                     * @property {prodigy.api.v1.IRegisterDataProviderRequest|null} [registerDataProviderRequest] ApiMessage registerDataProviderRequest
+                     * @property {prodigy.api.v1.IRegisterDataProviderResponse|null} [registerDataProviderResponse] ApiMessage registerDataProviderResponse
+                     * @property {prodigy.api.v1.IDeclareDataChannelsRequest|null} [declareDataChannelsRequest] ApiMessage declareDataChannelsRequest
+                     * @property {prodigy.api.v1.IDeclareDataChannelsResponse|null} [declareDataChannelsResponse] ApiMessage declareDataChannelsResponse
+                     * @property {prodigy.api.v1.IRemoveDataChannelsRequest|null} [removeDataChannelsRequest] ApiMessage removeDataChannelsRequest
+                     * @property {prodigy.api.v1.IPublishDataValues|null} [publishDataValues] ApiMessage publishDataValues
+                     * @property {prodigy.api.v1.IListDataCatalogRequest|null} [listDataCatalogRequest] ApiMessage listDataCatalogRequest
+                     * @property {prodigy.api.v1.IListDataCatalogResponse|null} [listDataCatalogResponse] ApiMessage listDataCatalogResponse
+                     * @property {prodigy.api.v1.ISubscribeDataChannelsRequest|null} [subscribeDataChannelsRequest] ApiMessage subscribeDataChannelsRequest
+                     * @property {prodigy.api.v1.ISubscribeDataChannelsResponse|null} [subscribeDataChannelsResponse] ApiMessage subscribeDataChannelsResponse
+                     * @property {prodigy.api.v1.IUnsubscribeDataChannelsRequest|null} [unsubscribeDataChannelsRequest] ApiMessage unsubscribeDataChannelsRequest
+                     * @property {prodigy.api.v1.IDataValuesEvent|null} [dataValuesEvent] ApiMessage dataValuesEvent
+                     * @property {prodigy.api.v1.IWatchDataCatalogRequest|null} [watchDataCatalogRequest] ApiMessage watchDataCatalogRequest
+                     * @property {prodigy.api.v1.IDataCatalogEvent|null} [dataCatalogEvent] ApiMessage dataCatalogEvent
+                     * @property {prodigy.api.v1.IDataChannelAvailabilityEvent|null} [dataChannelAvailabilityEvent] ApiMessage dataChannelAvailabilityEvent
                      */
-    
+
                     /**
                      * Constructs a new ApiMessage.
                      * @memberof prodigy.api.v1
@@ -6232,7 +6437,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * ApiMessage requestId.
                      * @member {number|Long} requestId
@@ -6240,7 +6445,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.requestId = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
-    
+
                     /**
                      * ApiMessage error.
                      * @member {prodigy.api.v1.IError|null|undefined} error
@@ -6248,7 +6453,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.error = null;
-    
+
                     /**
                      * ApiMessage ack.
                      * @member {prodigy.api.v1.IAck|null|undefined} ack
@@ -6256,7 +6461,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.ack = null;
-    
+
                     /**
                      * ApiMessage ping.
                      * @member {prodigy.api.v1.IPing|null|undefined} ping
@@ -6264,7 +6469,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.ping = null;
-    
+
                     /**
                      * ApiMessage pong.
                      * @member {prodigy.api.v1.IPong|null|undefined} pong
@@ -6272,7 +6477,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.pong = null;
-    
+
                     /**
                      * ApiMessage clientHello.
                      * @member {prodigy.api.v1.IClientHello|null|undefined} clientHello
@@ -6280,7 +6485,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.clientHello = null;
-    
+
                     /**
                      * ApiMessage serverHello.
                      * @member {prodigy.api.v1.IServerHello|null|undefined} serverHello
@@ -6288,7 +6493,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.serverHello = null;
-    
+
                     /**
                      * ApiMessage authRequired.
                      * @member {prodigy.api.v1.IAuthRequired|null|undefined} authRequired
@@ -6296,7 +6501,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.authRequired = null;
-    
+
                     /**
                      * ApiMessage authResponse.
                      * @member {prodigy.api.v1.IAuthResponse|null|undefined} authResponse
@@ -6304,7 +6509,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.authResponse = null;
-    
+
                     /**
                      * ApiMessage authReject.
                      * @member {prodigy.api.v1.IAuthReject|null|undefined} authReject
@@ -6312,7 +6517,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.authReject = null;
-    
+
                     /**
                      * ApiMessage pairingChallenge.
                      * @member {prodigy.api.v1.IPairingChallenge|null|undefined} pairingChallenge
@@ -6320,7 +6525,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.pairingChallenge = null;
-    
+
                     /**
                      * ApiMessage pairingResponse.
                      * @member {prodigy.api.v1.IPairingResponse|null|undefined} pairingResponse
@@ -6328,7 +6533,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.pairingResponse = null;
-    
+
                     /**
                      * ApiMessage subscribeRequest.
                      * @member {prodigy.api.v1.ISubscribeRequest|null|undefined} subscribeRequest
@@ -6336,7 +6541,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.subscribeRequest = null;
-    
+
                     /**
                      * ApiMessage subscribeResponse.
                      * @member {prodigy.api.v1.ISubscribeResponse|null|undefined} subscribeResponse
@@ -6344,7 +6549,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.subscribeResponse = null;
-    
+
                     /**
                      * ApiMessage unsubscribeRequest.
                      * @member {prodigy.api.v1.IUnsubscribeRequest|null|undefined} unsubscribeRequest
@@ -6352,7 +6557,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.unsubscribeRequest = null;
-    
+
                     /**
                      * ApiMessage getCapabilitiesRequest.
                      * @member {prodigy.api.v1.IGetCapabilitiesRequest|null|undefined} getCapabilitiesRequest
@@ -6360,7 +6565,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.getCapabilitiesRequest = null;
-    
+
                     /**
                      * ApiMessage capabilitiesResponse.
                      * @member {prodigy.api.v1.ICapabilitiesResponse|null|undefined} capabilitiesResponse
@@ -6368,7 +6573,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.capabilitiesResponse = null;
-    
+
                     /**
                      * ApiMessage mediaStatus.
                      * @member {prodigy.api.v1.IMediaStatus|null|undefined} mediaStatus
@@ -6376,7 +6581,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.mediaStatus = null;
-    
+
                     /**
                      * ApiMessage navigationStatus.
                      * @member {prodigy.api.v1.INavigationStatus|null|undefined} navigationStatus
@@ -6384,7 +6589,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.navigationStatus = null;
-    
+
                     /**
                      * ApiMessage projectionStatus.
                      * @member {prodigy.api.v1.IProjectionStatus|null|undefined} projectionStatus
@@ -6392,7 +6597,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.projectionStatus = null;
-    
+
                     /**
                      * ApiMessage phoneStatus.
                      * @member {prodigy.api.v1.IPhoneStatus|null|undefined} phoneStatus
@@ -6400,7 +6605,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.phoneStatus = null;
-    
+
                     /**
                      * ApiMessage systemStatus.
                      * @member {prodigy.api.v1.ISystemStatus|null|undefined} systemStatus
@@ -6408,7 +6613,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.systemStatus = null;
-    
+
                     /**
                      * ApiMessage listActionsRequest.
                      * @member {prodigy.api.v1.IListActionsRequest|null|undefined} listActionsRequest
@@ -6416,7 +6621,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.listActionsRequest = null;
-    
+
                     /**
                      * ApiMessage listActionsResponse.
                      * @member {prodigy.api.v1.IListActionsResponse|null|undefined} listActionsResponse
@@ -6424,7 +6629,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.listActionsResponse = null;
-    
+
                     /**
                      * ApiMessage dispatchActionRequest.
                      * @member {prodigy.api.v1.IDispatchActionRequest|null|undefined} dispatchActionRequest
@@ -6432,7 +6637,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.dispatchActionRequest = null;
-    
+
                     /**
                      * ApiMessage dispatchActionResponse.
                      * @member {prodigy.api.v1.IDispatchActionResponse|null|undefined} dispatchActionResponse
@@ -6440,7 +6645,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.dispatchActionResponse = null;
-    
+
                     /**
                      * ApiMessage registerActionsRequest.
                      * @member {prodigy.api.v1.IRegisterActionsRequest|null|undefined} registerActionsRequest
@@ -6448,7 +6653,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.registerActionsRequest = null;
-    
+
                     /**
                      * ApiMessage registerActionsResponse.
                      * @member {prodigy.api.v1.IRegisterActionsResponse|null|undefined} registerActionsResponse
@@ -6456,7 +6661,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.registerActionsResponse = null;
-    
+
                     /**
                      * ApiMessage unregisterActionsRequest.
                      * @member {prodigy.api.v1.IUnregisterActionsRequest|null|undefined} unregisterActionsRequest
@@ -6464,7 +6669,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.unregisterActionsRequest = null;
-    
+
                     /**
                      * ApiMessage actionInvoked.
                      * @member {prodigy.api.v1.IActionInvokedEvent|null|undefined} actionInvoked
@@ -6472,7 +6677,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.actionInvoked = null;
-    
+
                     /**
                      * ApiMessage postNotificationRequest.
                      * @member {prodigy.api.v1.IPostNotificationRequest|null|undefined} postNotificationRequest
@@ -6480,7 +6685,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.postNotificationRequest = null;
-    
+
                     /**
                      * ApiMessage postNotificationResponse.
                      * @member {prodigy.api.v1.IPostNotificationResponse|null|undefined} postNotificationResponse
@@ -6488,7 +6693,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.postNotificationResponse = null;
-    
+
                     /**
                      * ApiMessage dismissNotificationRequest.
                      * @member {prodigy.api.v1.IDismissNotificationRequest|null|undefined} dismissNotificationRequest
@@ -6496,7 +6701,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.dismissNotificationRequest = null;
-    
+
                     /**
                      * ApiMessage dialRequest.
                      * @member {prodigy.api.v1.IDialRequest|null|undefined} dialRequest
@@ -6504,7 +6709,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.dialRequest = null;
-    
+
                     /**
                      * ApiMessage answerCallRequest.
                      * @member {prodigy.api.v1.IAnswerCallRequest|null|undefined} answerCallRequest
@@ -6512,7 +6717,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.answerCallRequest = null;
-    
+
                     /**
                      * ApiMessage hangupRequest.
                      * @member {prodigy.api.v1.IHangupRequest|null|undefined} hangupRequest
@@ -6520,7 +6725,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.hangupRequest = null;
-    
+
                     /**
                      * ApiMessage sendDtmfRequest.
                      * @member {prodigy.api.v1.ISendDtmfRequest|null|undefined} sendDtmfRequest
@@ -6528,7 +6733,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.sendDtmfRequest = null;
-    
+
                     /**
                      * ApiMessage phoneCommandResponse.
                      * @member {prodigy.api.v1.IPhoneCommandResponse|null|undefined} phoneCommandResponse
@@ -6536,7 +6741,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.phoneCommandResponse = null;
-    
+
                     /**
                      * ApiMessage gpsReport.
                      * @member {prodigy.api.v1.IGpsReport|null|undefined} gpsReport
@@ -6544,7 +6749,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.gpsReport = null;
-    
+
                     /**
                      * ApiMessage batteryReport.
                      * @member {prodigy.api.v1.IBatteryReport|null|undefined} batteryReport
@@ -6552,7 +6757,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.batteryReport = null;
-    
+
                     /**
                      * ApiMessage connectivityReport.
                      * @member {prodigy.api.v1.IConnectivityReport|null|undefined} connectivityReport
@@ -6560,7 +6765,7 @@
                      * @instance
                      */
                     ApiMessage.prototype.connectivityReport = null;
-    
+
                     /**
                      * ApiMessage timeReport.
                      * @member {prodigy.api.v1.ITimeReport|null|undefined} timeReport
@@ -6568,21 +6773,141 @@
                      * @instance
                      */
                     ApiMessage.prototype.timeReport = null;
-    
+
+                    /**
+                     * ApiMessage registerDataProviderRequest.
+                     * @member {prodigy.api.v1.IRegisterDataProviderRequest|null|undefined} registerDataProviderRequest
+                     * @memberof prodigy.api.v1.ApiMessage
+                     * @instance
+                     */
+                    ApiMessage.prototype.registerDataProviderRequest = null;
+
+                    /**
+                     * ApiMessage registerDataProviderResponse.
+                     * @member {prodigy.api.v1.IRegisterDataProviderResponse|null|undefined} registerDataProviderResponse
+                     * @memberof prodigy.api.v1.ApiMessage
+                     * @instance
+                     */
+                    ApiMessage.prototype.registerDataProviderResponse = null;
+
+                    /**
+                     * ApiMessage declareDataChannelsRequest.
+                     * @member {prodigy.api.v1.IDeclareDataChannelsRequest|null|undefined} declareDataChannelsRequest
+                     * @memberof prodigy.api.v1.ApiMessage
+                     * @instance
+                     */
+                    ApiMessage.prototype.declareDataChannelsRequest = null;
+
+                    /**
+                     * ApiMessage declareDataChannelsResponse.
+                     * @member {prodigy.api.v1.IDeclareDataChannelsResponse|null|undefined} declareDataChannelsResponse
+                     * @memberof prodigy.api.v1.ApiMessage
+                     * @instance
+                     */
+                    ApiMessage.prototype.declareDataChannelsResponse = null;
+
+                    /**
+                     * ApiMessage removeDataChannelsRequest.
+                     * @member {prodigy.api.v1.IRemoveDataChannelsRequest|null|undefined} removeDataChannelsRequest
+                     * @memberof prodigy.api.v1.ApiMessage
+                     * @instance
+                     */
+                    ApiMessage.prototype.removeDataChannelsRequest = null;
+
+                    /**
+                     * ApiMessage publishDataValues.
+                     * @member {prodigy.api.v1.IPublishDataValues|null|undefined} publishDataValues
+                     * @memberof prodigy.api.v1.ApiMessage
+                     * @instance
+                     */
+                    ApiMessage.prototype.publishDataValues = null;
+
+                    /**
+                     * ApiMessage listDataCatalogRequest.
+                     * @member {prodigy.api.v1.IListDataCatalogRequest|null|undefined} listDataCatalogRequest
+                     * @memberof prodigy.api.v1.ApiMessage
+                     * @instance
+                     */
+                    ApiMessage.prototype.listDataCatalogRequest = null;
+
+                    /**
+                     * ApiMessage listDataCatalogResponse.
+                     * @member {prodigy.api.v1.IListDataCatalogResponse|null|undefined} listDataCatalogResponse
+                     * @memberof prodigy.api.v1.ApiMessage
+                     * @instance
+                     */
+                    ApiMessage.prototype.listDataCatalogResponse = null;
+
+                    /**
+                     * ApiMessage subscribeDataChannelsRequest.
+                     * @member {prodigy.api.v1.ISubscribeDataChannelsRequest|null|undefined} subscribeDataChannelsRequest
+                     * @memberof prodigy.api.v1.ApiMessage
+                     * @instance
+                     */
+                    ApiMessage.prototype.subscribeDataChannelsRequest = null;
+
+                    /**
+                     * ApiMessage subscribeDataChannelsResponse.
+                     * @member {prodigy.api.v1.ISubscribeDataChannelsResponse|null|undefined} subscribeDataChannelsResponse
+                     * @memberof prodigy.api.v1.ApiMessage
+                     * @instance
+                     */
+                    ApiMessage.prototype.subscribeDataChannelsResponse = null;
+
+                    /**
+                     * ApiMessage unsubscribeDataChannelsRequest.
+                     * @member {prodigy.api.v1.IUnsubscribeDataChannelsRequest|null|undefined} unsubscribeDataChannelsRequest
+                     * @memberof prodigy.api.v1.ApiMessage
+                     * @instance
+                     */
+                    ApiMessage.prototype.unsubscribeDataChannelsRequest = null;
+
+                    /**
+                     * ApiMessage dataValuesEvent.
+                     * @member {prodigy.api.v1.IDataValuesEvent|null|undefined} dataValuesEvent
+                     * @memberof prodigy.api.v1.ApiMessage
+                     * @instance
+                     */
+                    ApiMessage.prototype.dataValuesEvent = null;
+
+                    /**
+                     * ApiMessage watchDataCatalogRequest.
+                     * @member {prodigy.api.v1.IWatchDataCatalogRequest|null|undefined} watchDataCatalogRequest
+                     * @memberof prodigy.api.v1.ApiMessage
+                     * @instance
+                     */
+                    ApiMessage.prototype.watchDataCatalogRequest = null;
+
+                    /**
+                     * ApiMessage dataCatalogEvent.
+                     * @member {prodigy.api.v1.IDataCatalogEvent|null|undefined} dataCatalogEvent
+                     * @memberof prodigy.api.v1.ApiMessage
+                     * @instance
+                     */
+                    ApiMessage.prototype.dataCatalogEvent = null;
+
+                    /**
+                     * ApiMessage dataChannelAvailabilityEvent.
+                     * @member {prodigy.api.v1.IDataChannelAvailabilityEvent|null|undefined} dataChannelAvailabilityEvent
+                     * @memberof prodigy.api.v1.ApiMessage
+                     * @instance
+                     */
+                    ApiMessage.prototype.dataChannelAvailabilityEvent = null;
+
                     // OneOf field names bound to virtual getters and setters
                     var $oneOfFields;
-    
+
                     /**
                      * ApiMessage payload.
-                     * @member {"error"|"ack"|"ping"|"pong"|"clientHello"|"serverHello"|"authRequired"|"authResponse"|"authReject"|"pairingChallenge"|"pairingResponse"|"subscribeRequest"|"subscribeResponse"|"unsubscribeRequest"|"getCapabilitiesRequest"|"capabilitiesResponse"|"mediaStatus"|"navigationStatus"|"projectionStatus"|"phoneStatus"|"systemStatus"|"listActionsRequest"|"listActionsResponse"|"dispatchActionRequest"|"dispatchActionResponse"|"registerActionsRequest"|"registerActionsResponse"|"unregisterActionsRequest"|"actionInvoked"|"postNotificationRequest"|"postNotificationResponse"|"dismissNotificationRequest"|"dialRequest"|"answerCallRequest"|"hangupRequest"|"sendDtmfRequest"|"phoneCommandResponse"|"gpsReport"|"batteryReport"|"connectivityReport"|"timeReport"|undefined} payload
+                     * @member {"error"|"ack"|"ping"|"pong"|"clientHello"|"serverHello"|"authRequired"|"authResponse"|"authReject"|"pairingChallenge"|"pairingResponse"|"subscribeRequest"|"subscribeResponse"|"unsubscribeRequest"|"getCapabilitiesRequest"|"capabilitiesResponse"|"mediaStatus"|"navigationStatus"|"projectionStatus"|"phoneStatus"|"systemStatus"|"listActionsRequest"|"listActionsResponse"|"dispatchActionRequest"|"dispatchActionResponse"|"registerActionsRequest"|"registerActionsResponse"|"unregisterActionsRequest"|"actionInvoked"|"postNotificationRequest"|"postNotificationResponse"|"dismissNotificationRequest"|"dialRequest"|"answerCallRequest"|"hangupRequest"|"sendDtmfRequest"|"phoneCommandResponse"|"gpsReport"|"batteryReport"|"connectivityReport"|"timeReport"|"registerDataProviderRequest"|"registerDataProviderResponse"|"declareDataChannelsRequest"|"declareDataChannelsResponse"|"removeDataChannelsRequest"|"publishDataValues"|"listDataCatalogRequest"|"listDataCatalogResponse"|"subscribeDataChannelsRequest"|"subscribeDataChannelsResponse"|"unsubscribeDataChannelsRequest"|"dataValuesEvent"|"watchDataCatalogRequest"|"dataCatalogEvent"|"dataChannelAvailabilityEvent"|undefined} payload
                      * @memberof prodigy.api.v1.ApiMessage
                      * @instance
                      */
                     Object.defineProperty(ApiMessage.prototype, "payload", {
-                        get: $util.oneOfGetter($oneOfFields = ["error", "ack", "ping", "pong", "clientHello", "serverHello", "authRequired", "authResponse", "authReject", "pairingChallenge", "pairingResponse", "subscribeRequest", "subscribeResponse", "unsubscribeRequest", "getCapabilitiesRequest", "capabilitiesResponse", "mediaStatus", "navigationStatus", "projectionStatus", "phoneStatus", "systemStatus", "listActionsRequest", "listActionsResponse", "dispatchActionRequest", "dispatchActionResponse", "registerActionsRequest", "registerActionsResponse", "unregisterActionsRequest", "actionInvoked", "postNotificationRequest", "postNotificationResponse", "dismissNotificationRequest", "dialRequest", "answerCallRequest", "hangupRequest", "sendDtmfRequest", "phoneCommandResponse", "gpsReport", "batteryReport", "connectivityReport", "timeReport"]),
+                        get: $util.oneOfGetter($oneOfFields = ["error", "ack", "ping", "pong", "clientHello", "serverHello", "authRequired", "authResponse", "authReject", "pairingChallenge", "pairingResponse", "subscribeRequest", "subscribeResponse", "unsubscribeRequest", "getCapabilitiesRequest", "capabilitiesResponse", "mediaStatus", "navigationStatus", "projectionStatus", "phoneStatus", "systemStatus", "listActionsRequest", "listActionsResponse", "dispatchActionRequest", "dispatchActionResponse", "registerActionsRequest", "registerActionsResponse", "unregisterActionsRequest", "actionInvoked", "postNotificationRequest", "postNotificationResponse", "dismissNotificationRequest", "dialRequest", "answerCallRequest", "hangupRequest", "sendDtmfRequest", "phoneCommandResponse", "gpsReport", "batteryReport", "connectivityReport", "timeReport", "registerDataProviderRequest", "registerDataProviderResponse", "declareDataChannelsRequest", "declareDataChannelsResponse", "removeDataChannelsRequest", "publishDataValues", "listDataCatalogRequest", "listDataCatalogResponse", "subscribeDataChannelsRequest", "subscribeDataChannelsResponse", "unsubscribeDataChannelsRequest", "dataValuesEvent", "watchDataCatalogRequest", "dataCatalogEvent", "dataChannelAvailabilityEvent"]),
                         set: $util.oneOfSetter($oneOfFields)
                     });
-    
+
                     /**
                      * Creates a new ApiMessage instance using the specified properties.
                      * @function create
@@ -6594,7 +6919,7 @@
                     ApiMessage.create = function create(properties) {
                         return new ApiMessage(properties);
                     };
-    
+
                     /**
                      * Encodes the specified ApiMessage message. Does not implicitly {@link prodigy.api.v1.ApiMessage.verify|verify} messages.
                      * @function encode
@@ -6695,9 +7020,39 @@
                             $root.prodigy.api.v1.ConnectivityReport.encode(message.connectivityReport, writer.uint32(/* id 72, wireType 2 =*/578).fork(), q + 1).ldelim();
                         if (message.timeReport != null && Object.hasOwnProperty.call(message, "timeReport"))
                             $root.prodigy.api.v1.TimeReport.encode(message.timeReport, writer.uint32(/* id 73, wireType 2 =*/586).fork(), q + 1).ldelim();
+                        if (message.registerDataProviderRequest != null && Object.hasOwnProperty.call(message, "registerDataProviderRequest"))
+                            $root.prodigy.api.v1.RegisterDataProviderRequest.encode(message.registerDataProviderRequest, writer.uint32(/* id 80, wireType 2 =*/642).fork(), q + 1).ldelim();
+                        if (message.registerDataProviderResponse != null && Object.hasOwnProperty.call(message, "registerDataProviderResponse"))
+                            $root.prodigy.api.v1.RegisterDataProviderResponse.encode(message.registerDataProviderResponse, writer.uint32(/* id 81, wireType 2 =*/650).fork(), q + 1).ldelim();
+                        if (message.declareDataChannelsRequest != null && Object.hasOwnProperty.call(message, "declareDataChannelsRequest"))
+                            $root.prodigy.api.v1.DeclareDataChannelsRequest.encode(message.declareDataChannelsRequest, writer.uint32(/* id 82, wireType 2 =*/658).fork(), q + 1).ldelim();
+                        if (message.declareDataChannelsResponse != null && Object.hasOwnProperty.call(message, "declareDataChannelsResponse"))
+                            $root.prodigy.api.v1.DeclareDataChannelsResponse.encode(message.declareDataChannelsResponse, writer.uint32(/* id 83, wireType 2 =*/666).fork(), q + 1).ldelim();
+                        if (message.removeDataChannelsRequest != null && Object.hasOwnProperty.call(message, "removeDataChannelsRequest"))
+                            $root.prodigy.api.v1.RemoveDataChannelsRequest.encode(message.removeDataChannelsRequest, writer.uint32(/* id 84, wireType 2 =*/674).fork(), q + 1).ldelim();
+                        if (message.publishDataValues != null && Object.hasOwnProperty.call(message, "publishDataValues"))
+                            $root.prodigy.api.v1.PublishDataValues.encode(message.publishDataValues, writer.uint32(/* id 85, wireType 2 =*/682).fork(), q + 1).ldelim();
+                        if (message.listDataCatalogRequest != null && Object.hasOwnProperty.call(message, "listDataCatalogRequest"))
+                            $root.prodigy.api.v1.ListDataCatalogRequest.encode(message.listDataCatalogRequest, writer.uint32(/* id 86, wireType 2 =*/690).fork(), q + 1).ldelim();
+                        if (message.listDataCatalogResponse != null && Object.hasOwnProperty.call(message, "listDataCatalogResponse"))
+                            $root.prodigy.api.v1.ListDataCatalogResponse.encode(message.listDataCatalogResponse, writer.uint32(/* id 87, wireType 2 =*/698).fork(), q + 1).ldelim();
+                        if (message.subscribeDataChannelsRequest != null && Object.hasOwnProperty.call(message, "subscribeDataChannelsRequest"))
+                            $root.prodigy.api.v1.SubscribeDataChannelsRequest.encode(message.subscribeDataChannelsRequest, writer.uint32(/* id 88, wireType 2 =*/706).fork(), q + 1).ldelim();
+                        if (message.subscribeDataChannelsResponse != null && Object.hasOwnProperty.call(message, "subscribeDataChannelsResponse"))
+                            $root.prodigy.api.v1.SubscribeDataChannelsResponse.encode(message.subscribeDataChannelsResponse, writer.uint32(/* id 89, wireType 2 =*/714).fork(), q + 1).ldelim();
+                        if (message.unsubscribeDataChannelsRequest != null && Object.hasOwnProperty.call(message, "unsubscribeDataChannelsRequest"))
+                            $root.prodigy.api.v1.UnsubscribeDataChannelsRequest.encode(message.unsubscribeDataChannelsRequest, writer.uint32(/* id 90, wireType 2 =*/722).fork(), q + 1).ldelim();
+                        if (message.dataValuesEvent != null && Object.hasOwnProperty.call(message, "dataValuesEvent"))
+                            $root.prodigy.api.v1.DataValuesEvent.encode(message.dataValuesEvent, writer.uint32(/* id 91, wireType 2 =*/730).fork(), q + 1).ldelim();
+                        if (message.watchDataCatalogRequest != null && Object.hasOwnProperty.call(message, "watchDataCatalogRequest"))
+                            $root.prodigy.api.v1.WatchDataCatalogRequest.encode(message.watchDataCatalogRequest, writer.uint32(/* id 92, wireType 2 =*/738).fork(), q + 1).ldelim();
+                        if (message.dataCatalogEvent != null && Object.hasOwnProperty.call(message, "dataCatalogEvent"))
+                            $root.prodigy.api.v1.DataCatalogEvent.encode(message.dataCatalogEvent, writer.uint32(/* id 93, wireType 2 =*/746).fork(), q + 1).ldelim();
+                        if (message.dataChannelAvailabilityEvent != null && Object.hasOwnProperty.call(message, "dataChannelAvailabilityEvent"))
+                            $root.prodigy.api.v1.DataChannelAvailabilityEvent.encode(message.dataChannelAvailabilityEvent, writer.uint32(/* id 94, wireType 2 =*/754).fork(), q + 1).ldelim();
                         return writer;
                     };
-    
+
                     /**
                      * Decodes an ApiMessage message from the specified reader or buffer.
                      * @function decode
@@ -6890,6 +7245,66 @@
                                     message.timeReport = $root.prodigy.api.v1.TimeReport.decode(reader, reader.uint32(), undefined, long + 1);
                                     break;
                                 }
+                            case 80: {
+                                    message.registerDataProviderRequest = $root.prodigy.api.v1.RegisterDataProviderRequest.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 81: {
+                                    message.registerDataProviderResponse = $root.prodigy.api.v1.RegisterDataProviderResponse.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 82: {
+                                    message.declareDataChannelsRequest = $root.prodigy.api.v1.DeclareDataChannelsRequest.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 83: {
+                                    message.declareDataChannelsResponse = $root.prodigy.api.v1.DeclareDataChannelsResponse.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 84: {
+                                    message.removeDataChannelsRequest = $root.prodigy.api.v1.RemoveDataChannelsRequest.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 85: {
+                                    message.publishDataValues = $root.prodigy.api.v1.PublishDataValues.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 86: {
+                                    message.listDataCatalogRequest = $root.prodigy.api.v1.ListDataCatalogRequest.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 87: {
+                                    message.listDataCatalogResponse = $root.prodigy.api.v1.ListDataCatalogResponse.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 88: {
+                                    message.subscribeDataChannelsRequest = $root.prodigy.api.v1.SubscribeDataChannelsRequest.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 89: {
+                                    message.subscribeDataChannelsResponse = $root.prodigy.api.v1.SubscribeDataChannelsResponse.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 90: {
+                                    message.unsubscribeDataChannelsRequest = $root.prodigy.api.v1.UnsubscribeDataChannelsRequest.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 91: {
+                                    message.dataValuesEvent = $root.prodigy.api.v1.DataValuesEvent.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 92: {
+                                    message.watchDataCatalogRequest = $root.prodigy.api.v1.WatchDataCatalogRequest.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 93: {
+                                    message.dataCatalogEvent = $root.prodigy.api.v1.DataCatalogEvent.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 94: {
+                                    message.dataChannelAvailabilityEvent = $root.prodigy.api.v1.DataChannelAvailabilityEvent.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
                             default:
                                 reader.skipType(tag & 7, long);
                                 break;
@@ -6897,7 +7312,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies an ApiMessage message.
                      * @function verify
@@ -7325,9 +7740,159 @@
                                     return "timeReport." + error;
                             }
                         }
+                        if (message.registerDataProviderRequest != null && Object.hasOwnProperty.call(message, "registerDataProviderRequest")) {
+                            if (properties.payload === 1)
+                                return "payload: multiple values";
+                            properties.payload = 1;
+                            {
+                                var error = $root.prodigy.api.v1.RegisterDataProviderRequest.verify(message.registerDataProviderRequest, long + 1);
+                                if (error)
+                                    return "registerDataProviderRequest." + error;
+                            }
+                        }
+                        if (message.registerDataProviderResponse != null && Object.hasOwnProperty.call(message, "registerDataProviderResponse")) {
+                            if (properties.payload === 1)
+                                return "payload: multiple values";
+                            properties.payload = 1;
+                            {
+                                var error = $root.prodigy.api.v1.RegisterDataProviderResponse.verify(message.registerDataProviderResponse, long + 1);
+                                if (error)
+                                    return "registerDataProviderResponse." + error;
+                            }
+                        }
+                        if (message.declareDataChannelsRequest != null && Object.hasOwnProperty.call(message, "declareDataChannelsRequest")) {
+                            if (properties.payload === 1)
+                                return "payload: multiple values";
+                            properties.payload = 1;
+                            {
+                                var error = $root.prodigy.api.v1.DeclareDataChannelsRequest.verify(message.declareDataChannelsRequest, long + 1);
+                                if (error)
+                                    return "declareDataChannelsRequest." + error;
+                            }
+                        }
+                        if (message.declareDataChannelsResponse != null && Object.hasOwnProperty.call(message, "declareDataChannelsResponse")) {
+                            if (properties.payload === 1)
+                                return "payload: multiple values";
+                            properties.payload = 1;
+                            {
+                                var error = $root.prodigy.api.v1.DeclareDataChannelsResponse.verify(message.declareDataChannelsResponse, long + 1);
+                                if (error)
+                                    return "declareDataChannelsResponse." + error;
+                            }
+                        }
+                        if (message.removeDataChannelsRequest != null && Object.hasOwnProperty.call(message, "removeDataChannelsRequest")) {
+                            if (properties.payload === 1)
+                                return "payload: multiple values";
+                            properties.payload = 1;
+                            {
+                                var error = $root.prodigy.api.v1.RemoveDataChannelsRequest.verify(message.removeDataChannelsRequest, long + 1);
+                                if (error)
+                                    return "removeDataChannelsRequest." + error;
+                            }
+                        }
+                        if (message.publishDataValues != null && Object.hasOwnProperty.call(message, "publishDataValues")) {
+                            if (properties.payload === 1)
+                                return "payload: multiple values";
+                            properties.payload = 1;
+                            {
+                                var error = $root.prodigy.api.v1.PublishDataValues.verify(message.publishDataValues, long + 1);
+                                if (error)
+                                    return "publishDataValues." + error;
+                            }
+                        }
+                        if (message.listDataCatalogRequest != null && Object.hasOwnProperty.call(message, "listDataCatalogRequest")) {
+                            if (properties.payload === 1)
+                                return "payload: multiple values";
+                            properties.payload = 1;
+                            {
+                                var error = $root.prodigy.api.v1.ListDataCatalogRequest.verify(message.listDataCatalogRequest, long + 1);
+                                if (error)
+                                    return "listDataCatalogRequest." + error;
+                            }
+                        }
+                        if (message.listDataCatalogResponse != null && Object.hasOwnProperty.call(message, "listDataCatalogResponse")) {
+                            if (properties.payload === 1)
+                                return "payload: multiple values";
+                            properties.payload = 1;
+                            {
+                                var error = $root.prodigy.api.v1.ListDataCatalogResponse.verify(message.listDataCatalogResponse, long + 1);
+                                if (error)
+                                    return "listDataCatalogResponse." + error;
+                            }
+                        }
+                        if (message.subscribeDataChannelsRequest != null && Object.hasOwnProperty.call(message, "subscribeDataChannelsRequest")) {
+                            if (properties.payload === 1)
+                                return "payload: multiple values";
+                            properties.payload = 1;
+                            {
+                                var error = $root.prodigy.api.v1.SubscribeDataChannelsRequest.verify(message.subscribeDataChannelsRequest, long + 1);
+                                if (error)
+                                    return "subscribeDataChannelsRequest." + error;
+                            }
+                        }
+                        if (message.subscribeDataChannelsResponse != null && Object.hasOwnProperty.call(message, "subscribeDataChannelsResponse")) {
+                            if (properties.payload === 1)
+                                return "payload: multiple values";
+                            properties.payload = 1;
+                            {
+                                var error = $root.prodigy.api.v1.SubscribeDataChannelsResponse.verify(message.subscribeDataChannelsResponse, long + 1);
+                                if (error)
+                                    return "subscribeDataChannelsResponse." + error;
+                            }
+                        }
+                        if (message.unsubscribeDataChannelsRequest != null && Object.hasOwnProperty.call(message, "unsubscribeDataChannelsRequest")) {
+                            if (properties.payload === 1)
+                                return "payload: multiple values";
+                            properties.payload = 1;
+                            {
+                                var error = $root.prodigy.api.v1.UnsubscribeDataChannelsRequest.verify(message.unsubscribeDataChannelsRequest, long + 1);
+                                if (error)
+                                    return "unsubscribeDataChannelsRequest." + error;
+                            }
+                        }
+                        if (message.dataValuesEvent != null && Object.hasOwnProperty.call(message, "dataValuesEvent")) {
+                            if (properties.payload === 1)
+                                return "payload: multiple values";
+                            properties.payload = 1;
+                            {
+                                var error = $root.prodigy.api.v1.DataValuesEvent.verify(message.dataValuesEvent, long + 1);
+                                if (error)
+                                    return "dataValuesEvent." + error;
+                            }
+                        }
+                        if (message.watchDataCatalogRequest != null && Object.hasOwnProperty.call(message, "watchDataCatalogRequest")) {
+                            if (properties.payload === 1)
+                                return "payload: multiple values";
+                            properties.payload = 1;
+                            {
+                                var error = $root.prodigy.api.v1.WatchDataCatalogRequest.verify(message.watchDataCatalogRequest, long + 1);
+                                if (error)
+                                    return "watchDataCatalogRequest." + error;
+                            }
+                        }
+                        if (message.dataCatalogEvent != null && Object.hasOwnProperty.call(message, "dataCatalogEvent")) {
+                            if (properties.payload === 1)
+                                return "payload: multiple values";
+                            properties.payload = 1;
+                            {
+                                var error = $root.prodigy.api.v1.DataCatalogEvent.verify(message.dataCatalogEvent, long + 1);
+                                if (error)
+                                    return "dataCatalogEvent." + error;
+                            }
+                        }
+                        if (message.dataChannelAvailabilityEvent != null && Object.hasOwnProperty.call(message, "dataChannelAvailabilityEvent")) {
+                            if (properties.payload === 1)
+                                return "payload: multiple values";
+                            properties.payload = 1;
+                            {
+                                var error = $root.prodigy.api.v1.DataChannelAvailabilityEvent.verify(message.dataChannelAvailabilityEvent, long + 1);
+                                if (error)
+                                    return "dataChannelAvailabilityEvent." + error;
+                            }
+                        }
                         return null;
                     };
-    
+
                     /**
                      * Creates an ApiMessage message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -7560,9 +8125,84 @@
                                 throw TypeError(".prodigy.api.v1.ApiMessage.timeReport: object expected");
                             message.timeReport = $root.prodigy.api.v1.TimeReport.fromObject(object.timeReport, long + 1);
                         }
+                        if (object.registerDataProviderRequest != null) {
+                            if (!$util.isObject(object.registerDataProviderRequest))
+                                throw TypeError(".prodigy.api.v1.ApiMessage.registerDataProviderRequest: object expected");
+                            message.registerDataProviderRequest = $root.prodigy.api.v1.RegisterDataProviderRequest.fromObject(object.registerDataProviderRequest, long + 1);
+                        }
+                        if (object.registerDataProviderResponse != null) {
+                            if (!$util.isObject(object.registerDataProviderResponse))
+                                throw TypeError(".prodigy.api.v1.ApiMessage.registerDataProviderResponse: object expected");
+                            message.registerDataProviderResponse = $root.prodigy.api.v1.RegisterDataProviderResponse.fromObject(object.registerDataProviderResponse, long + 1);
+                        }
+                        if (object.declareDataChannelsRequest != null) {
+                            if (!$util.isObject(object.declareDataChannelsRequest))
+                                throw TypeError(".prodigy.api.v1.ApiMessage.declareDataChannelsRequest: object expected");
+                            message.declareDataChannelsRequest = $root.prodigy.api.v1.DeclareDataChannelsRequest.fromObject(object.declareDataChannelsRequest, long + 1);
+                        }
+                        if (object.declareDataChannelsResponse != null) {
+                            if (!$util.isObject(object.declareDataChannelsResponse))
+                                throw TypeError(".prodigy.api.v1.ApiMessage.declareDataChannelsResponse: object expected");
+                            message.declareDataChannelsResponse = $root.prodigy.api.v1.DeclareDataChannelsResponse.fromObject(object.declareDataChannelsResponse, long + 1);
+                        }
+                        if (object.removeDataChannelsRequest != null) {
+                            if (!$util.isObject(object.removeDataChannelsRequest))
+                                throw TypeError(".prodigy.api.v1.ApiMessage.removeDataChannelsRequest: object expected");
+                            message.removeDataChannelsRequest = $root.prodigy.api.v1.RemoveDataChannelsRequest.fromObject(object.removeDataChannelsRequest, long + 1);
+                        }
+                        if (object.publishDataValues != null) {
+                            if (!$util.isObject(object.publishDataValues))
+                                throw TypeError(".prodigy.api.v1.ApiMessage.publishDataValues: object expected");
+                            message.publishDataValues = $root.prodigy.api.v1.PublishDataValues.fromObject(object.publishDataValues, long + 1);
+                        }
+                        if (object.listDataCatalogRequest != null) {
+                            if (!$util.isObject(object.listDataCatalogRequest))
+                                throw TypeError(".prodigy.api.v1.ApiMessage.listDataCatalogRequest: object expected");
+                            message.listDataCatalogRequest = $root.prodigy.api.v1.ListDataCatalogRequest.fromObject(object.listDataCatalogRequest, long + 1);
+                        }
+                        if (object.listDataCatalogResponse != null) {
+                            if (!$util.isObject(object.listDataCatalogResponse))
+                                throw TypeError(".prodigy.api.v1.ApiMessage.listDataCatalogResponse: object expected");
+                            message.listDataCatalogResponse = $root.prodigy.api.v1.ListDataCatalogResponse.fromObject(object.listDataCatalogResponse, long + 1);
+                        }
+                        if (object.subscribeDataChannelsRequest != null) {
+                            if (!$util.isObject(object.subscribeDataChannelsRequest))
+                                throw TypeError(".prodigy.api.v1.ApiMessage.subscribeDataChannelsRequest: object expected");
+                            message.subscribeDataChannelsRequest = $root.prodigy.api.v1.SubscribeDataChannelsRequest.fromObject(object.subscribeDataChannelsRequest, long + 1);
+                        }
+                        if (object.subscribeDataChannelsResponse != null) {
+                            if (!$util.isObject(object.subscribeDataChannelsResponse))
+                                throw TypeError(".prodigy.api.v1.ApiMessage.subscribeDataChannelsResponse: object expected");
+                            message.subscribeDataChannelsResponse = $root.prodigy.api.v1.SubscribeDataChannelsResponse.fromObject(object.subscribeDataChannelsResponse, long + 1);
+                        }
+                        if (object.unsubscribeDataChannelsRequest != null) {
+                            if (!$util.isObject(object.unsubscribeDataChannelsRequest))
+                                throw TypeError(".prodigy.api.v1.ApiMessage.unsubscribeDataChannelsRequest: object expected");
+                            message.unsubscribeDataChannelsRequest = $root.prodigy.api.v1.UnsubscribeDataChannelsRequest.fromObject(object.unsubscribeDataChannelsRequest, long + 1);
+                        }
+                        if (object.dataValuesEvent != null) {
+                            if (!$util.isObject(object.dataValuesEvent))
+                                throw TypeError(".prodigy.api.v1.ApiMessage.dataValuesEvent: object expected");
+                            message.dataValuesEvent = $root.prodigy.api.v1.DataValuesEvent.fromObject(object.dataValuesEvent, long + 1);
+                        }
+                        if (object.watchDataCatalogRequest != null) {
+                            if (!$util.isObject(object.watchDataCatalogRequest))
+                                throw TypeError(".prodigy.api.v1.ApiMessage.watchDataCatalogRequest: object expected");
+                            message.watchDataCatalogRequest = $root.prodigy.api.v1.WatchDataCatalogRequest.fromObject(object.watchDataCatalogRequest, long + 1);
+                        }
+                        if (object.dataCatalogEvent != null) {
+                            if (!$util.isObject(object.dataCatalogEvent))
+                                throw TypeError(".prodigy.api.v1.ApiMessage.dataCatalogEvent: object expected");
+                            message.dataCatalogEvent = $root.prodigy.api.v1.DataCatalogEvent.fromObject(object.dataCatalogEvent, long + 1);
+                        }
+                        if (object.dataChannelAvailabilityEvent != null) {
+                            if (!$util.isObject(object.dataChannelAvailabilityEvent))
+                                throw TypeError(".prodigy.api.v1.ApiMessage.dataChannelAvailabilityEvent: object expected");
+                            message.dataChannelAvailabilityEvent = $root.prodigy.api.v1.DataChannelAvailabilityEvent.fromObject(object.dataChannelAvailabilityEvent, long + 1);
+                        }
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from an ApiMessage message. Also converts values to other types if specified.
                      * @function toObject
@@ -7798,9 +8438,84 @@
                             if (options.oneofs)
                                 object.payload = "timeReport";
                         }
+                        if (message.registerDataProviderRequest != null && Object.hasOwnProperty.call(message, "registerDataProviderRequest")) {
+                            object.registerDataProviderRequest = $root.prodigy.api.v1.RegisterDataProviderRequest.toObject(message.registerDataProviderRequest, options, q + 1);
+                            if (options.oneofs)
+                                object.payload = "registerDataProviderRequest";
+                        }
+                        if (message.registerDataProviderResponse != null && Object.hasOwnProperty.call(message, "registerDataProviderResponse")) {
+                            object.registerDataProviderResponse = $root.prodigy.api.v1.RegisterDataProviderResponse.toObject(message.registerDataProviderResponse, options, q + 1);
+                            if (options.oneofs)
+                                object.payload = "registerDataProviderResponse";
+                        }
+                        if (message.declareDataChannelsRequest != null && Object.hasOwnProperty.call(message, "declareDataChannelsRequest")) {
+                            object.declareDataChannelsRequest = $root.prodigy.api.v1.DeclareDataChannelsRequest.toObject(message.declareDataChannelsRequest, options, q + 1);
+                            if (options.oneofs)
+                                object.payload = "declareDataChannelsRequest";
+                        }
+                        if (message.declareDataChannelsResponse != null && Object.hasOwnProperty.call(message, "declareDataChannelsResponse")) {
+                            object.declareDataChannelsResponse = $root.prodigy.api.v1.DeclareDataChannelsResponse.toObject(message.declareDataChannelsResponse, options, q + 1);
+                            if (options.oneofs)
+                                object.payload = "declareDataChannelsResponse";
+                        }
+                        if (message.removeDataChannelsRequest != null && Object.hasOwnProperty.call(message, "removeDataChannelsRequest")) {
+                            object.removeDataChannelsRequest = $root.prodigy.api.v1.RemoveDataChannelsRequest.toObject(message.removeDataChannelsRequest, options, q + 1);
+                            if (options.oneofs)
+                                object.payload = "removeDataChannelsRequest";
+                        }
+                        if (message.publishDataValues != null && Object.hasOwnProperty.call(message, "publishDataValues")) {
+                            object.publishDataValues = $root.prodigy.api.v1.PublishDataValues.toObject(message.publishDataValues, options, q + 1);
+                            if (options.oneofs)
+                                object.payload = "publishDataValues";
+                        }
+                        if (message.listDataCatalogRequest != null && Object.hasOwnProperty.call(message, "listDataCatalogRequest")) {
+                            object.listDataCatalogRequest = $root.prodigy.api.v1.ListDataCatalogRequest.toObject(message.listDataCatalogRequest, options, q + 1);
+                            if (options.oneofs)
+                                object.payload = "listDataCatalogRequest";
+                        }
+                        if (message.listDataCatalogResponse != null && Object.hasOwnProperty.call(message, "listDataCatalogResponse")) {
+                            object.listDataCatalogResponse = $root.prodigy.api.v1.ListDataCatalogResponse.toObject(message.listDataCatalogResponse, options, q + 1);
+                            if (options.oneofs)
+                                object.payload = "listDataCatalogResponse";
+                        }
+                        if (message.subscribeDataChannelsRequest != null && Object.hasOwnProperty.call(message, "subscribeDataChannelsRequest")) {
+                            object.subscribeDataChannelsRequest = $root.prodigy.api.v1.SubscribeDataChannelsRequest.toObject(message.subscribeDataChannelsRequest, options, q + 1);
+                            if (options.oneofs)
+                                object.payload = "subscribeDataChannelsRequest";
+                        }
+                        if (message.subscribeDataChannelsResponse != null && Object.hasOwnProperty.call(message, "subscribeDataChannelsResponse")) {
+                            object.subscribeDataChannelsResponse = $root.prodigy.api.v1.SubscribeDataChannelsResponse.toObject(message.subscribeDataChannelsResponse, options, q + 1);
+                            if (options.oneofs)
+                                object.payload = "subscribeDataChannelsResponse";
+                        }
+                        if (message.unsubscribeDataChannelsRequest != null && Object.hasOwnProperty.call(message, "unsubscribeDataChannelsRequest")) {
+                            object.unsubscribeDataChannelsRequest = $root.prodigy.api.v1.UnsubscribeDataChannelsRequest.toObject(message.unsubscribeDataChannelsRequest, options, q + 1);
+                            if (options.oneofs)
+                                object.payload = "unsubscribeDataChannelsRequest";
+                        }
+                        if (message.dataValuesEvent != null && Object.hasOwnProperty.call(message, "dataValuesEvent")) {
+                            object.dataValuesEvent = $root.prodigy.api.v1.DataValuesEvent.toObject(message.dataValuesEvent, options, q + 1);
+                            if (options.oneofs)
+                                object.payload = "dataValuesEvent";
+                        }
+                        if (message.watchDataCatalogRequest != null && Object.hasOwnProperty.call(message, "watchDataCatalogRequest")) {
+                            object.watchDataCatalogRequest = $root.prodigy.api.v1.WatchDataCatalogRequest.toObject(message.watchDataCatalogRequest, options, q + 1);
+                            if (options.oneofs)
+                                object.payload = "watchDataCatalogRequest";
+                        }
+                        if (message.dataCatalogEvent != null && Object.hasOwnProperty.call(message, "dataCatalogEvent")) {
+                            object.dataCatalogEvent = $root.prodigy.api.v1.DataCatalogEvent.toObject(message.dataCatalogEvent, options, q + 1);
+                            if (options.oneofs)
+                                object.payload = "dataCatalogEvent";
+                        }
+                        if (message.dataChannelAvailabilityEvent != null && Object.hasOwnProperty.call(message, "dataChannelAvailabilityEvent")) {
+                            object.dataChannelAvailabilityEvent = $root.prodigy.api.v1.DataChannelAvailabilityEvent.toObject(message.dataChannelAvailabilityEvent, options, q + 1);
+                            if (options.oneofs)
+                                object.payload = "dataChannelAvailabilityEvent";
+                        }
                         return object;
                     };
-    
+
                     /**
                      * Converts this ApiMessage to JSON.
                      * @function toJSON
@@ -7811,7 +8526,7 @@
                     ApiMessage.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for ApiMessage
                      * @function getTypeUrl
@@ -7826,10 +8541,10 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.ApiMessage";
                     };
-    
+
                     return ApiMessage;
                 })();
-    
+
                 /**
                  * Topic enum.
                  * @name prodigy.api.v1.Topic
@@ -7851,7 +8566,7 @@
                     values[valuesById[5] = "TOPIC_SYSTEM"] = 5;
                     return values;
                 })();
-    
+
                 /**
                  * ErrorCode enum.
                  * @name prodigy.api.v1.ErrorCode
@@ -7883,9 +8598,9 @@
                     values[valuesById[10] = "ERROR_CODE_INTERNAL"] = 10;
                     return values;
                 })();
-    
+
                 v1.Error = (function() {
-    
+
                     /**
                      * Properties of an Error.
                      * @memberof prodigy.api.v1
@@ -7893,7 +8608,7 @@
                      * @property {prodigy.api.v1.ErrorCode|null} [code] Error code
                      * @property {string|null} [message] Error message
                      */
-    
+
                     /**
                      * Constructs a new Error.
                      * @memberof prodigy.api.v1
@@ -7908,7 +8623,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * Error code.
                      * @member {prodigy.api.v1.ErrorCode} code
@@ -7916,7 +8631,7 @@
                      * @instance
                      */
                     Error.prototype.code = 0;
-    
+
                     /**
                      * Error message.
                      * @member {string} message
@@ -7924,7 +8639,7 @@
                      * @instance
                      */
                     Error.prototype.message = "";
-    
+
                     /**
                      * Creates a new Error instance using the specified properties.
                      * @function create
@@ -7936,7 +8651,7 @@
                     Error.create = function create(properties) {
                         return new Error(properties);
                     };
-    
+
                     /**
                      * Encodes the specified Error message. Does not implicitly {@link prodigy.api.v1.Error.verify|verify} messages.
                      * @function encode
@@ -7959,7 +8674,7 @@
                             writer.uint32(/* id 2, wireType 2 =*/18).string(message.message);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes an Error message from the specified reader or buffer.
                      * @function decode
@@ -7999,7 +8714,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies an Error message.
                      * @function verify
@@ -8037,7 +8752,7 @@
                                 return "message: string expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates an Error message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -8112,7 +8827,7 @@
                             message.message = String(object.message);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from an Error message. Also converts values to other types if specified.
                      * @function toObject
@@ -8140,7 +8855,7 @@
                             object.message = message.message;
                         return object;
                     };
-    
+
                     /**
                      * Converts this Error to JSON.
                      * @function toJSON
@@ -8151,7 +8866,7 @@
                     Error.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for Error
                      * @function getTypeUrl
@@ -8166,18 +8881,18 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.Error";
                     };
-    
+
                     return Error;
                 })();
-    
+
                 v1.Ack = (function() {
-    
+
                     /**
                      * Properties of an Ack.
                      * @memberof prodigy.api.v1
                      * @interface IAck
                      */
-    
+
                     /**
                      * Constructs a new Ack.
                      * @memberof prodigy.api.v1
@@ -8192,7 +8907,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * Creates a new Ack instance using the specified properties.
                      * @function create
@@ -8204,7 +8919,7 @@
                     Ack.create = function create(properties) {
                         return new Ack(properties);
                     };
-    
+
                     /**
                      * Encodes the specified Ack message. Does not implicitly {@link prodigy.api.v1.Ack.verify|verify} messages.
                      * @function encode
@@ -8223,7 +8938,7 @@
                             throw Error("max depth exceeded");
                         return writer;
                     };
-    
+
                     /**
                      * Decodes an Ack message from the specified reader or buffer.
                      * @function decode
@@ -8255,7 +8970,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies an Ack message.
                      * @function verify
@@ -8273,7 +8988,7 @@
                             return "maximum nesting depth exceeded";
                         return null;
                     };
-    
+
                     /**
                      * Creates an Ack message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -8287,7 +9002,7 @@
                             return object;
                         return new $root.prodigy.api.v1.Ack();
                     };
-    
+
                     /**
                      * Creates a plain object from an Ack message. Also converts values to other types if specified.
                      * @function toObject
@@ -8300,7 +9015,7 @@
                     Ack.toObject = function toObject() {
                         return {};
                     };
-    
+
                     /**
                      * Converts this Ack to JSON.
                      * @function toJSON
@@ -8311,7 +9026,7 @@
                     Ack.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for Ack
                      * @function getTypeUrl
@@ -8326,18 +9041,18 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.Ack";
                     };
-    
+
                     return Ack;
                 })();
-    
+
                 v1.Ping = (function() {
-    
+
                     /**
                      * Properties of a Ping.
                      * @memberof prodigy.api.v1
                      * @interface IPing
                      */
-    
+
                     /**
                      * Constructs a new Ping.
                      * @memberof prodigy.api.v1
@@ -8352,7 +9067,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * Creates a new Ping instance using the specified properties.
                      * @function create
@@ -8364,7 +9079,7 @@
                     Ping.create = function create(properties) {
                         return new Ping(properties);
                     };
-    
+
                     /**
                      * Encodes the specified Ping message. Does not implicitly {@link prodigy.api.v1.Ping.verify|verify} messages.
                      * @function encode
@@ -8383,7 +9098,7 @@
                             throw Error("max depth exceeded");
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a Ping message from the specified reader or buffer.
                      * @function decode
@@ -8415,7 +9130,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a Ping message.
                      * @function verify
@@ -8433,7 +9148,7 @@
                             return "maximum nesting depth exceeded";
                         return null;
                     };
-    
+
                     /**
                      * Creates a Ping message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -8447,7 +9162,7 @@
                             return object;
                         return new $root.prodigy.api.v1.Ping();
                     };
-    
+
                     /**
                      * Creates a plain object from a Ping message. Also converts values to other types if specified.
                      * @function toObject
@@ -8460,7 +9175,7 @@
                     Ping.toObject = function toObject() {
                         return {};
                     };
-    
+
                     /**
                      * Converts this Ping to JSON.
                      * @function toJSON
@@ -8471,7 +9186,7 @@
                     Ping.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for Ping
                      * @function getTypeUrl
@@ -8486,18 +9201,18 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.Ping";
                     };
-    
+
                     return Ping;
                 })();
-    
+
                 v1.Pong = (function() {
-    
+
                     /**
                      * Properties of a Pong.
                      * @memberof prodigy.api.v1
                      * @interface IPong
                      */
-    
+
                     /**
                      * Constructs a new Pong.
                      * @memberof prodigy.api.v1
@@ -8512,7 +9227,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * Creates a new Pong instance using the specified properties.
                      * @function create
@@ -8524,7 +9239,7 @@
                     Pong.create = function create(properties) {
                         return new Pong(properties);
                     };
-    
+
                     /**
                      * Encodes the specified Pong message. Does not implicitly {@link prodigy.api.v1.Pong.verify|verify} messages.
                      * @function encode
@@ -8543,7 +9258,7 @@
                             throw Error("max depth exceeded");
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a Pong message from the specified reader or buffer.
                      * @function decode
@@ -8575,7 +9290,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a Pong message.
                      * @function verify
@@ -8593,7 +9308,7 @@
                             return "maximum nesting depth exceeded";
                         return null;
                     };
-    
+
                     /**
                      * Creates a Pong message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -8607,7 +9322,7 @@
                             return object;
                         return new $root.prodigy.api.v1.Pong();
                     };
-    
+
                     /**
                      * Creates a plain object from a Pong message. Also converts values to other types if specified.
                      * @function toObject
@@ -8620,7 +9335,7 @@
                     Pong.toObject = function toObject() {
                         return {};
                     };
-    
+
                     /**
                      * Converts this Pong to JSON.
                      * @function toJSON
@@ -8631,7 +9346,7 @@
                     Pong.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for Pong
                      * @function getTypeUrl
@@ -8646,10 +9361,6452 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.Pong";
                     };
-    
+
                     return Pong;
                 })();
-    
+
+                /**
+                 * DataValueType enum.
+                 * @name prodigy.api.v1.DataValueType
+                 * @enum {number}
+                 * @property {number} DATA_VALUE_TYPE_UNSPECIFIED=0 DATA_VALUE_TYPE_UNSPECIFIED value
+                 * @property {number} DATA_VALUE_TYPE_DOUBLE=1 DATA_VALUE_TYPE_DOUBLE value
+                 * @property {number} DATA_VALUE_TYPE_SIGNED_INTEGER=2 DATA_VALUE_TYPE_SIGNED_INTEGER value
+                 * @property {number} DATA_VALUE_TYPE_UNSIGNED_INTEGER=3 DATA_VALUE_TYPE_UNSIGNED_INTEGER value
+                 * @property {number} DATA_VALUE_TYPE_BOOLEAN=4 DATA_VALUE_TYPE_BOOLEAN value
+                 * @property {number} DATA_VALUE_TYPE_STRING=5 DATA_VALUE_TYPE_STRING value
+                 * @property {number} DATA_VALUE_TYPE_ENUM=6 DATA_VALUE_TYPE_ENUM value
+                 */
+                v1.DataValueType = (function() {
+                    var valuesById = {}, values = Object.create(valuesById);
+                    values[valuesById[0] = "DATA_VALUE_TYPE_UNSPECIFIED"] = 0;
+                    values[valuesById[1] = "DATA_VALUE_TYPE_DOUBLE"] = 1;
+                    values[valuesById[2] = "DATA_VALUE_TYPE_SIGNED_INTEGER"] = 2;
+                    values[valuesById[3] = "DATA_VALUE_TYPE_UNSIGNED_INTEGER"] = 3;
+                    values[valuesById[4] = "DATA_VALUE_TYPE_BOOLEAN"] = 4;
+                    values[valuesById[5] = "DATA_VALUE_TYPE_STRING"] = 5;
+                    values[valuesById[6] = "DATA_VALUE_TYPE_ENUM"] = 6;
+                    return values;
+                })();
+
+                v1.DataEnumOption = (function() {
+
+                    /**
+                     * Properties of a DataEnumOption.
+                     * @memberof prodigy.api.v1
+                     * @interface IDataEnumOption
+                     * @property {number|Long|null} [value] DataEnumOption value
+                     * @property {string|null} [label] DataEnumOption label
+                     */
+
+                    /**
+                     * Constructs a new DataEnumOption.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a DataEnumOption.
+                     * @implements IDataEnumOption
+                     * @constructor
+                     * @param {prodigy.api.v1.IDataEnumOption=} [properties] Properties to set
+                     */
+                    function DataEnumOption(properties) {
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * DataEnumOption value.
+                     * @member {number|Long} value
+                     * @memberof prodigy.api.v1.DataEnumOption
+                     * @instance
+                     */
+                    DataEnumOption.prototype.value = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                    /**
+                     * DataEnumOption label.
+                     * @member {string} label
+                     * @memberof prodigy.api.v1.DataEnumOption
+                     * @instance
+                     */
+                    DataEnumOption.prototype.label = "";
+
+                    /**
+                     * Creates a new DataEnumOption instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.DataEnumOption
+                     * @static
+                     * @param {prodigy.api.v1.IDataEnumOption=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.DataEnumOption} DataEnumOption instance
+                     */
+                    DataEnumOption.create = function create(properties) {
+                        return new DataEnumOption(properties);
+                    };
+
+                    /**
+                     * Encodes the specified DataEnumOption message. Does not implicitly {@link prodigy.api.v1.DataEnumOption.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.DataEnumOption
+                     * @static
+                     * @param {prodigy.api.v1.IDataEnumOption} message DataEnumOption message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    DataEnumOption.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.value != null && Object.hasOwnProperty.call(message, "value"))
+                            writer.uint32(/* id 1, wireType 0 =*/8).sint64(message.value);
+                        if (message.label != null && Object.hasOwnProperty.call(message, "label"))
+                            writer.uint32(/* id 2, wireType 2 =*/18).string(message.label);
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a DataEnumOption message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.DataEnumOption
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.DataEnumOption} DataEnumOption
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    DataEnumOption.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.DataEnumOption();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.value = reader.sint64();
+                                    break;
+                                }
+                            case 2: {
+                                    message.label = reader.string();
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a DataEnumOption message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.DataEnumOption
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    DataEnumOption.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.value != null && Object.hasOwnProperty.call(message, "value"))
+                            if (!$util.isInteger(message.value) && !(message.value && $util.isInteger(message.value.low) && $util.isInteger(message.value.high)))
+                                return "value: integer|Long expected";
+                        if (message.label != null && Object.hasOwnProperty.call(message, "label"))
+                            if (!$util.isString(message.label))
+                                return "label: string expected";
+                        return null;
+                    };
+
+                    /**
+                     * Creates a DataEnumOption message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.DataEnumOption
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.DataEnumOption} DataEnumOption
+                     */
+                    DataEnumOption.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.DataEnumOption)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.DataEnumOption: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.DataEnumOption();
+                        if (object.value != null)
+                            if ($util.Long)
+                                message.value = $util.Long.fromValue(object.value, false);
+                            else if (typeof object.value === "string")
+                                message.value = parseInt(object.value, 10);
+                            else if (typeof object.value === "number")
+                                message.value = object.value;
+                            else if (typeof object.value === "object")
+                                message.value = new $util.LongBits(object.value.low >>> 0, object.value.high >>> 0).toNumber();
+                        if (object.label != null)
+                            message.label = String(object.label);
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a DataEnumOption message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.DataEnumOption
+                     * @static
+                     * @param {prodigy.api.v1.DataEnumOption} message DataEnumOption
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    DataEnumOption.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.defaults) {
+                            if ($util.Long) {
+                                var long = new $util.Long(0, 0, false);
+                                object.value = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
+                            } else
+                                object.value = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
+                            object.label = "";
+                        }
+                        if (message.value != null && Object.hasOwnProperty.call(message, "value"))
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.value = typeof message.value === "number" ? BigInt(message.value) : $util.Long.fromBits(message.value.low >>> 0, message.value.high >>> 0, false).toBigInt();
+                            else if (typeof message.value === "number")
+                                object.value = options.longs === String ? String(message.value) : message.value;
+                            else
+                                object.value = options.longs === String ? $util.Long.prototype.toString.call(message.value) : options.longs === Number ? new $util.LongBits(message.value.low >>> 0, message.value.high >>> 0).toNumber() : message.value;
+                        if (message.label != null && Object.hasOwnProperty.call(message, "label"))
+                            object.label = message.label;
+                        return object;
+                    };
+
+                    /**
+                     * Converts this DataEnumOption to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.DataEnumOption
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    DataEnumOption.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for DataEnumOption
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.DataEnumOption
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    DataEnumOption.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.DataEnumOption";
+                    };
+
+                    return DataEnumOption;
+                })();
+
+                v1.DataChannelDefinition = (function() {
+
+                    /**
+                     * Properties of a DataChannelDefinition.
+                     * @memberof prodigy.api.v1
+                     * @interface IDataChannelDefinition
+                     * @property {string|null} [channelName] DataChannelDefinition channelName
+                     * @property {string|null} [displayName] DataChannelDefinition displayName
+                     * @property {prodigy.api.v1.DataValueType|null} [valueType] DataChannelDefinition valueType
+                     * @property {string|null} [unit] DataChannelDefinition unit
+                     * @property {string|null} [description] DataChannelDefinition description
+                     * @property {number|null} [nominalIntervalMs] DataChannelDefinition nominalIntervalMs
+                     * @property {number|null} [staleAfterMs] DataChannelDefinition staleAfterMs
+                     * @property {number|null} [suggestedMinimum] DataChannelDefinition suggestedMinimum
+                     * @property {number|null} [suggestedMaximum] DataChannelDefinition suggestedMaximum
+                     * @property {Array.<prodigy.api.v1.IDataEnumOption>|null} [enumOptions] DataChannelDefinition enumOptions
+                     */
+
+                    /**
+                     * Constructs a new DataChannelDefinition.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a DataChannelDefinition.
+                     * @implements IDataChannelDefinition
+                     * @constructor
+                     * @param {prodigy.api.v1.IDataChannelDefinition=} [properties] Properties to set
+                     */
+                    function DataChannelDefinition(properties) {
+                        this.enumOptions = [];
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * DataChannelDefinition channelName.
+                     * @member {string} channelName
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @instance
+                     */
+                    DataChannelDefinition.prototype.channelName = "";
+
+                    /**
+                     * DataChannelDefinition displayName.
+                     * @member {string} displayName
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @instance
+                     */
+                    DataChannelDefinition.prototype.displayName = "";
+
+                    /**
+                     * DataChannelDefinition valueType.
+                     * @member {prodigy.api.v1.DataValueType} valueType
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @instance
+                     */
+                    DataChannelDefinition.prototype.valueType = 0;
+
+                    /**
+                     * DataChannelDefinition unit.
+                     * @member {string|null|undefined} unit
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @instance
+                     */
+                    DataChannelDefinition.prototype.unit = null;
+
+                    /**
+                     * DataChannelDefinition description.
+                     * @member {string|null|undefined} description
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @instance
+                     */
+                    DataChannelDefinition.prototype.description = null;
+
+                    /**
+                     * DataChannelDefinition nominalIntervalMs.
+                     * @member {number|null|undefined} nominalIntervalMs
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @instance
+                     */
+                    DataChannelDefinition.prototype.nominalIntervalMs = null;
+
+                    /**
+                     * DataChannelDefinition staleAfterMs.
+                     * @member {number|null|undefined} staleAfterMs
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @instance
+                     */
+                    DataChannelDefinition.prototype.staleAfterMs = null;
+
+                    /**
+                     * DataChannelDefinition suggestedMinimum.
+                     * @member {number|null|undefined} suggestedMinimum
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @instance
+                     */
+                    DataChannelDefinition.prototype.suggestedMinimum = null;
+
+                    /**
+                     * DataChannelDefinition suggestedMaximum.
+                     * @member {number|null|undefined} suggestedMaximum
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @instance
+                     */
+                    DataChannelDefinition.prototype.suggestedMaximum = null;
+
+                    /**
+                     * DataChannelDefinition enumOptions.
+                     * @member {Array.<prodigy.api.v1.IDataEnumOption>} enumOptions
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @instance
+                     */
+                    DataChannelDefinition.prototype.enumOptions = $util.emptyArray;
+
+                    // OneOf field names bound to virtual getters and setters
+                    var $oneOfFields;
+
+                    // Virtual OneOf for proto3 optional field
+                    Object.defineProperty(DataChannelDefinition.prototype, "_unit", {
+                        get: $util.oneOfGetter($oneOfFields = ["unit"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    // Virtual OneOf for proto3 optional field
+                    Object.defineProperty(DataChannelDefinition.prototype, "_description", {
+                        get: $util.oneOfGetter($oneOfFields = ["description"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    // Virtual OneOf for proto3 optional field
+                    Object.defineProperty(DataChannelDefinition.prototype, "_nominalIntervalMs", {
+                        get: $util.oneOfGetter($oneOfFields = ["nominalIntervalMs"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    // Virtual OneOf for proto3 optional field
+                    Object.defineProperty(DataChannelDefinition.prototype, "_staleAfterMs", {
+                        get: $util.oneOfGetter($oneOfFields = ["staleAfterMs"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    // Virtual OneOf for proto3 optional field
+                    Object.defineProperty(DataChannelDefinition.prototype, "_suggestedMinimum", {
+                        get: $util.oneOfGetter($oneOfFields = ["suggestedMinimum"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    // Virtual OneOf for proto3 optional field
+                    Object.defineProperty(DataChannelDefinition.prototype, "_suggestedMaximum", {
+                        get: $util.oneOfGetter($oneOfFields = ["suggestedMaximum"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    /**
+                     * Creates a new DataChannelDefinition instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @static
+                     * @param {prodigy.api.v1.IDataChannelDefinition=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.DataChannelDefinition} DataChannelDefinition instance
+                     */
+                    DataChannelDefinition.create = function create(properties) {
+                        return new DataChannelDefinition(properties);
+                    };
+
+                    /**
+                     * Encodes the specified DataChannelDefinition message. Does not implicitly {@link prodigy.api.v1.DataChannelDefinition.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @static
+                     * @param {prodigy.api.v1.IDataChannelDefinition} message DataChannelDefinition message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    DataChannelDefinition.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.channelName != null && Object.hasOwnProperty.call(message, "channelName"))
+                            writer.uint32(/* id 1, wireType 2 =*/10).string(message.channelName);
+                        if (message.displayName != null && Object.hasOwnProperty.call(message, "displayName"))
+                            writer.uint32(/* id 2, wireType 2 =*/18).string(message.displayName);
+                        if (message.valueType != null && Object.hasOwnProperty.call(message, "valueType"))
+                            writer.uint32(/* id 3, wireType 0 =*/24).int32(message.valueType);
+                        if (message.unit != null && Object.hasOwnProperty.call(message, "unit"))
+                            writer.uint32(/* id 4, wireType 2 =*/34).string(message.unit);
+                        if (message.description != null && Object.hasOwnProperty.call(message, "description"))
+                            writer.uint32(/* id 5, wireType 2 =*/42).string(message.description);
+                        if (message.nominalIntervalMs != null && Object.hasOwnProperty.call(message, "nominalIntervalMs"))
+                            writer.uint32(/* id 6, wireType 0 =*/48).uint32(message.nominalIntervalMs);
+                        if (message.staleAfterMs != null && Object.hasOwnProperty.call(message, "staleAfterMs"))
+                            writer.uint32(/* id 7, wireType 0 =*/56).uint32(message.staleAfterMs);
+                        if (message.suggestedMinimum != null && Object.hasOwnProperty.call(message, "suggestedMinimum"))
+                            writer.uint32(/* id 8, wireType 1 =*/65).double(message.suggestedMinimum);
+                        if (message.suggestedMaximum != null && Object.hasOwnProperty.call(message, "suggestedMaximum"))
+                            writer.uint32(/* id 9, wireType 1 =*/73).double(message.suggestedMaximum);
+                        if (message.enumOptions != null && message.enumOptions.length)
+                            for (var i = 0; i < message.enumOptions.length; ++i)
+                                $root.prodigy.api.v1.DataEnumOption.encode(message.enumOptions[i], writer.uint32(/* id 10, wireType 2 =*/82).fork(), q + 1).ldelim();
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a DataChannelDefinition message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.DataChannelDefinition} DataChannelDefinition
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    DataChannelDefinition.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.DataChannelDefinition();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.channelName = reader.string();
+                                    break;
+                                }
+                            case 2: {
+                                    message.displayName = reader.string();
+                                    break;
+                                }
+                            case 3: {
+                                    message.valueType = reader.int32();
+                                    break;
+                                }
+                            case 4: {
+                                    message.unit = reader.string();
+                                    break;
+                                }
+                            case 5: {
+                                    message.description = reader.string();
+                                    break;
+                                }
+                            case 6: {
+                                    message.nominalIntervalMs = reader.uint32();
+                                    break;
+                                }
+                            case 7: {
+                                    message.staleAfterMs = reader.uint32();
+                                    break;
+                                }
+                            case 8: {
+                                    message.suggestedMinimum = reader.double();
+                                    break;
+                                }
+                            case 9: {
+                                    message.suggestedMaximum = reader.double();
+                                    break;
+                                }
+                            case 10: {
+                                    if (!(message.enumOptions && message.enumOptions.length))
+                                        message.enumOptions = [];
+                                    message.enumOptions.push($root.prodigy.api.v1.DataEnumOption.decode(reader, reader.uint32(), undefined, long + 1));
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a DataChannelDefinition message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    DataChannelDefinition.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        var properties = {};
+                        if (message.channelName != null && Object.hasOwnProperty.call(message, "channelName"))
+                            if (!$util.isString(message.channelName))
+                                return "channelName: string expected";
+                        if (message.displayName != null && Object.hasOwnProperty.call(message, "displayName"))
+                            if (!$util.isString(message.displayName))
+                                return "displayName: string expected";
+                        if (message.valueType != null && Object.hasOwnProperty.call(message, "valueType"))
+                            switch (message.valueType) {
+                            default:
+                                return "valueType: enum value expected";
+                            case 0:
+                            case 1:
+                            case 2:
+                            case 3:
+                            case 4:
+                            case 5:
+                            case 6:
+                                break;
+                            }
+                        if (message.unit != null && Object.hasOwnProperty.call(message, "unit")) {
+                            properties._unit = 1;
+                            if (!$util.isString(message.unit))
+                                return "unit: string expected";
+                        }
+                        if (message.description != null && Object.hasOwnProperty.call(message, "description")) {
+                            properties._description = 1;
+                            if (!$util.isString(message.description))
+                                return "description: string expected";
+                        }
+                        if (message.nominalIntervalMs != null && Object.hasOwnProperty.call(message, "nominalIntervalMs")) {
+                            properties._nominalIntervalMs = 1;
+                            if (!$util.isInteger(message.nominalIntervalMs))
+                                return "nominalIntervalMs: integer expected";
+                        }
+                        if (message.staleAfterMs != null && Object.hasOwnProperty.call(message, "staleAfterMs")) {
+                            properties._staleAfterMs = 1;
+                            if (!$util.isInteger(message.staleAfterMs))
+                                return "staleAfterMs: integer expected";
+                        }
+                        if (message.suggestedMinimum != null && Object.hasOwnProperty.call(message, "suggestedMinimum")) {
+                            properties._suggestedMinimum = 1;
+                            if (typeof message.suggestedMinimum !== "number")
+                                return "suggestedMinimum: number expected";
+                        }
+                        if (message.suggestedMaximum != null && Object.hasOwnProperty.call(message, "suggestedMaximum")) {
+                            properties._suggestedMaximum = 1;
+                            if (typeof message.suggestedMaximum !== "number")
+                                return "suggestedMaximum: number expected";
+                        }
+                        if (message.enumOptions != null && Object.hasOwnProperty.call(message, "enumOptions")) {
+                            if (!Array.isArray(message.enumOptions))
+                                return "enumOptions: array expected";
+                            for (var i = 0; i < message.enumOptions.length; ++i) {
+                                var error = $root.prodigy.api.v1.DataEnumOption.verify(message.enumOptions[i], long + 1);
+                                if (error)
+                                    return "enumOptions." + error;
+                            }
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a DataChannelDefinition message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.DataChannelDefinition} DataChannelDefinition
+                     */
+                    DataChannelDefinition.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.DataChannelDefinition)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.DataChannelDefinition: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.DataChannelDefinition();
+                        if (object.channelName != null)
+                            message.channelName = String(object.channelName);
+                        if (object.displayName != null)
+                            message.displayName = String(object.displayName);
+                        switch (object.valueType) {
+                        default:
+                            if (typeof object.valueType === "number") {
+                                message.valueType = object.valueType;
+                                break;
+                            }
+                            break;
+                        case "DATA_VALUE_TYPE_UNSPECIFIED":
+                        case 0:
+                            message.valueType = 0;
+                            break;
+                        case "DATA_VALUE_TYPE_DOUBLE":
+                        case 1:
+                            message.valueType = 1;
+                            break;
+                        case "DATA_VALUE_TYPE_SIGNED_INTEGER":
+                        case 2:
+                            message.valueType = 2;
+                            break;
+                        case "DATA_VALUE_TYPE_UNSIGNED_INTEGER":
+                        case 3:
+                            message.valueType = 3;
+                            break;
+                        case "DATA_VALUE_TYPE_BOOLEAN":
+                        case 4:
+                            message.valueType = 4;
+                            break;
+                        case "DATA_VALUE_TYPE_STRING":
+                        case 5:
+                            message.valueType = 5;
+                            break;
+                        case "DATA_VALUE_TYPE_ENUM":
+                        case 6:
+                            message.valueType = 6;
+                            break;
+                        }
+                        if (object.unit != null)
+                            message.unit = String(object.unit);
+                        if (object.description != null)
+                            message.description = String(object.description);
+                        if (object.nominalIntervalMs != null)
+                            message.nominalIntervalMs = object.nominalIntervalMs >>> 0;
+                        if (object.staleAfterMs != null)
+                            message.staleAfterMs = object.staleAfterMs >>> 0;
+                        if (object.suggestedMinimum != null)
+                            message.suggestedMinimum = Number(object.suggestedMinimum);
+                        if (object.suggestedMaximum != null)
+                            message.suggestedMaximum = Number(object.suggestedMaximum);
+                        if (object.enumOptions) {
+                            if (!Array.isArray(object.enumOptions))
+                                throw TypeError(".prodigy.api.v1.DataChannelDefinition.enumOptions: array expected");
+                            message.enumOptions = [];
+                            for (var i = 0; i < object.enumOptions.length; ++i) {
+                                if (!$util.isObject(object.enumOptions[i]))
+                                    throw TypeError(".prodigy.api.v1.DataChannelDefinition.enumOptions: object expected");
+                                message.enumOptions[i] = $root.prodigy.api.v1.DataEnumOption.fromObject(object.enumOptions[i], long + 1);
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a DataChannelDefinition message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @static
+                     * @param {prodigy.api.v1.DataChannelDefinition} message DataChannelDefinition
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    DataChannelDefinition.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.arrays || options.defaults)
+                            object.enumOptions = [];
+                        if (options.defaults) {
+                            object.channelName = "";
+                            object.displayName = "";
+                            object.valueType = options.enums === String ? "DATA_VALUE_TYPE_UNSPECIFIED" : 0;
+                        }
+                        if (message.channelName != null && Object.hasOwnProperty.call(message, "channelName"))
+                            object.channelName = message.channelName;
+                        if (message.displayName != null && Object.hasOwnProperty.call(message, "displayName"))
+                            object.displayName = message.displayName;
+                        if (message.valueType != null && Object.hasOwnProperty.call(message, "valueType"))
+                            object.valueType = options.enums === String ? $root.prodigy.api.v1.DataValueType[message.valueType] === undefined ? message.valueType : $root.prodigy.api.v1.DataValueType[message.valueType] : message.valueType;
+                        if (message.unit != null && Object.hasOwnProperty.call(message, "unit")) {
+                            object.unit = message.unit;
+                            if (options.oneofs)
+                                object._unit = "unit";
+                        }
+                        if (message.description != null && Object.hasOwnProperty.call(message, "description")) {
+                            object.description = message.description;
+                            if (options.oneofs)
+                                object._description = "description";
+                        }
+                        if (message.nominalIntervalMs != null && Object.hasOwnProperty.call(message, "nominalIntervalMs")) {
+                            object.nominalIntervalMs = message.nominalIntervalMs;
+                            if (options.oneofs)
+                                object._nominalIntervalMs = "nominalIntervalMs";
+                        }
+                        if (message.staleAfterMs != null && Object.hasOwnProperty.call(message, "staleAfterMs")) {
+                            object.staleAfterMs = message.staleAfterMs;
+                            if (options.oneofs)
+                                object._staleAfterMs = "staleAfterMs";
+                        }
+                        if (message.suggestedMinimum != null && Object.hasOwnProperty.call(message, "suggestedMinimum")) {
+                            object.suggestedMinimum = options.json && !isFinite(message.suggestedMinimum) ? String(message.suggestedMinimum) : message.suggestedMinimum;
+                            if (options.oneofs)
+                                object._suggestedMinimum = "suggestedMinimum";
+                        }
+                        if (message.suggestedMaximum != null && Object.hasOwnProperty.call(message, "suggestedMaximum")) {
+                            object.suggestedMaximum = options.json && !isFinite(message.suggestedMaximum) ? String(message.suggestedMaximum) : message.suggestedMaximum;
+                            if (options.oneofs)
+                                object._suggestedMaximum = "suggestedMaximum";
+                        }
+                        if (message.enumOptions && message.enumOptions.length) {
+                            object.enumOptions = [];
+                            for (var j = 0; j < message.enumOptions.length; ++j)
+                                object.enumOptions[j] = $root.prodigy.api.v1.DataEnumOption.toObject(message.enumOptions[j], options, q + 1);
+                        }
+                        return object;
+                    };
+
+                    /**
+                     * Converts this DataChannelDefinition to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    DataChannelDefinition.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for DataChannelDefinition
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.DataChannelDefinition
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    DataChannelDefinition.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.DataChannelDefinition";
+                    };
+
+                    return DataChannelDefinition;
+                })();
+
+                v1.DataScalar = (function() {
+
+                    /**
+                     * Properties of a DataScalar.
+                     * @memberof prodigy.api.v1
+                     * @interface IDataScalar
+                     * @property {number|null} [doubleValue] DataScalar doubleValue
+                     * @property {number|Long|null} [signedIntegerValue] DataScalar signedIntegerValue
+                     * @property {number|Long|null} [unsignedIntegerValue] DataScalar unsignedIntegerValue
+                     * @property {boolean|null} [booleanValue] DataScalar booleanValue
+                     * @property {string|null} [stringValue] DataScalar stringValue
+                     * @property {number|Long|null} [enumValue] DataScalar enumValue
+                     */
+
+                    /**
+                     * Constructs a new DataScalar.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a DataScalar.
+                     * @implements IDataScalar
+                     * @constructor
+                     * @param {prodigy.api.v1.IDataScalar=} [properties] Properties to set
+                     */
+                    function DataScalar(properties) {
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * DataScalar doubleValue.
+                     * @member {number|null|undefined} doubleValue
+                     * @memberof prodigy.api.v1.DataScalar
+                     * @instance
+                     */
+                    DataScalar.prototype.doubleValue = null;
+
+                    /**
+                     * DataScalar signedIntegerValue.
+                     * @member {number|Long|null|undefined} signedIntegerValue
+                     * @memberof prodigy.api.v1.DataScalar
+                     * @instance
+                     */
+                    DataScalar.prototype.signedIntegerValue = null;
+
+                    /**
+                     * DataScalar unsignedIntegerValue.
+                     * @member {number|Long|null|undefined} unsignedIntegerValue
+                     * @memberof prodigy.api.v1.DataScalar
+                     * @instance
+                     */
+                    DataScalar.prototype.unsignedIntegerValue = null;
+
+                    /**
+                     * DataScalar booleanValue.
+                     * @member {boolean|null|undefined} booleanValue
+                     * @memberof prodigy.api.v1.DataScalar
+                     * @instance
+                     */
+                    DataScalar.prototype.booleanValue = null;
+
+                    /**
+                     * DataScalar stringValue.
+                     * @member {string|null|undefined} stringValue
+                     * @memberof prodigy.api.v1.DataScalar
+                     * @instance
+                     */
+                    DataScalar.prototype.stringValue = null;
+
+                    /**
+                     * DataScalar enumValue.
+                     * @member {number|Long|null|undefined} enumValue
+                     * @memberof prodigy.api.v1.DataScalar
+                     * @instance
+                     */
+                    DataScalar.prototype.enumValue = null;
+
+                    // OneOf field names bound to virtual getters and setters
+                    var $oneOfFields;
+
+                    /**
+                     * DataScalar value.
+                     * @member {"doubleValue"|"signedIntegerValue"|"unsignedIntegerValue"|"booleanValue"|"stringValue"|"enumValue"|undefined} value
+                     * @memberof prodigy.api.v1.DataScalar
+                     * @instance
+                     */
+                    Object.defineProperty(DataScalar.prototype, "value", {
+                        get: $util.oneOfGetter($oneOfFields = ["doubleValue", "signedIntegerValue", "unsignedIntegerValue", "booleanValue", "stringValue", "enumValue"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    /**
+                     * Creates a new DataScalar instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.DataScalar
+                     * @static
+                     * @param {prodigy.api.v1.IDataScalar=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.DataScalar} DataScalar instance
+                     */
+                    DataScalar.create = function create(properties) {
+                        return new DataScalar(properties);
+                    };
+
+                    /**
+                     * Encodes the specified DataScalar message. Does not implicitly {@link prodigy.api.v1.DataScalar.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.DataScalar
+                     * @static
+                     * @param {prodigy.api.v1.IDataScalar} message DataScalar message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    DataScalar.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.doubleValue != null && Object.hasOwnProperty.call(message, "doubleValue"))
+                            writer.uint32(/* id 1, wireType 1 =*/9).double(message.doubleValue);
+                        if (message.signedIntegerValue != null && Object.hasOwnProperty.call(message, "signedIntegerValue"))
+                            writer.uint32(/* id 2, wireType 0 =*/16).sint64(message.signedIntegerValue);
+                        if (message.unsignedIntegerValue != null && Object.hasOwnProperty.call(message, "unsignedIntegerValue"))
+                            writer.uint32(/* id 3, wireType 0 =*/24).uint64(message.unsignedIntegerValue);
+                        if (message.booleanValue != null && Object.hasOwnProperty.call(message, "booleanValue"))
+                            writer.uint32(/* id 4, wireType 0 =*/32).bool(message.booleanValue);
+                        if (message.stringValue != null && Object.hasOwnProperty.call(message, "stringValue"))
+                            writer.uint32(/* id 5, wireType 2 =*/42).string(message.stringValue);
+                        if (message.enumValue != null && Object.hasOwnProperty.call(message, "enumValue"))
+                            writer.uint32(/* id 6, wireType 0 =*/48).sint64(message.enumValue);
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a DataScalar message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.DataScalar
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.DataScalar} DataScalar
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    DataScalar.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.DataScalar();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.doubleValue = reader.double();
+                                    break;
+                                }
+                            case 2: {
+                                    message.signedIntegerValue = reader.sint64();
+                                    break;
+                                }
+                            case 3: {
+                                    message.unsignedIntegerValue = reader.uint64();
+                                    break;
+                                }
+                            case 4: {
+                                    message.booleanValue = reader.bool();
+                                    break;
+                                }
+                            case 5: {
+                                    message.stringValue = reader.string();
+                                    break;
+                                }
+                            case 6: {
+                                    message.enumValue = reader.sint64();
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a DataScalar message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.DataScalar
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    DataScalar.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        var properties = {};
+                        if (message.doubleValue != null && Object.hasOwnProperty.call(message, "doubleValue")) {
+                            properties.value = 1;
+                            if (typeof message.doubleValue !== "number")
+                                return "doubleValue: number expected";
+                        }
+                        if (message.signedIntegerValue != null && Object.hasOwnProperty.call(message, "signedIntegerValue")) {
+                            if (properties.value === 1)
+                                return "value: multiple values";
+                            properties.value = 1;
+                            if (!$util.isInteger(message.signedIntegerValue) && !(message.signedIntegerValue && $util.isInteger(message.signedIntegerValue.low) && $util.isInteger(message.signedIntegerValue.high)))
+                                return "signedIntegerValue: integer|Long expected";
+                        }
+                        if (message.unsignedIntegerValue != null && Object.hasOwnProperty.call(message, "unsignedIntegerValue")) {
+                            if (properties.value === 1)
+                                return "value: multiple values";
+                            properties.value = 1;
+                            if (!$util.isInteger(message.unsignedIntegerValue) && !(message.unsignedIntegerValue && $util.isInteger(message.unsignedIntegerValue.low) && $util.isInteger(message.unsignedIntegerValue.high)))
+                                return "unsignedIntegerValue: integer|Long expected";
+                        }
+                        if (message.booleanValue != null && Object.hasOwnProperty.call(message, "booleanValue")) {
+                            if (properties.value === 1)
+                                return "value: multiple values";
+                            properties.value = 1;
+                            if (typeof message.booleanValue !== "boolean")
+                                return "booleanValue: boolean expected";
+                        }
+                        if (message.stringValue != null && Object.hasOwnProperty.call(message, "stringValue")) {
+                            if (properties.value === 1)
+                                return "value: multiple values";
+                            properties.value = 1;
+                            if (!$util.isString(message.stringValue))
+                                return "stringValue: string expected";
+                        }
+                        if (message.enumValue != null && Object.hasOwnProperty.call(message, "enumValue")) {
+                            if (properties.value === 1)
+                                return "value: multiple values";
+                            properties.value = 1;
+                            if (!$util.isInteger(message.enumValue) && !(message.enumValue && $util.isInteger(message.enumValue.low) && $util.isInteger(message.enumValue.high)))
+                                return "enumValue: integer|Long expected";
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a DataScalar message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.DataScalar
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.DataScalar} DataScalar
+                     */
+                    DataScalar.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.DataScalar)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.DataScalar: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.DataScalar();
+                        if (object.doubleValue != null)
+                            message.doubleValue = Number(object.doubleValue);
+                        if (object.signedIntegerValue != null)
+                            if ($util.Long)
+                                message.signedIntegerValue = $util.Long.fromValue(object.signedIntegerValue, false);
+                            else if (typeof object.signedIntegerValue === "string")
+                                message.signedIntegerValue = parseInt(object.signedIntegerValue, 10);
+                            else if (typeof object.signedIntegerValue === "number")
+                                message.signedIntegerValue = object.signedIntegerValue;
+                            else if (typeof object.signedIntegerValue === "object")
+                                message.signedIntegerValue = new $util.LongBits(object.signedIntegerValue.low >>> 0, object.signedIntegerValue.high >>> 0).toNumber();
+                        if (object.unsignedIntegerValue != null)
+                            if ($util.Long)
+                                message.unsignedIntegerValue = $util.Long.fromValue(object.unsignedIntegerValue, true);
+                            else if (typeof object.unsignedIntegerValue === "string")
+                                message.unsignedIntegerValue = parseInt(object.unsignedIntegerValue, 10);
+                            else if (typeof object.unsignedIntegerValue === "number")
+                                message.unsignedIntegerValue = object.unsignedIntegerValue;
+                            else if (typeof object.unsignedIntegerValue === "object")
+                                message.unsignedIntegerValue = new $util.LongBits(object.unsignedIntegerValue.low >>> 0, object.unsignedIntegerValue.high >>> 0).toNumber(true);
+                        if (object.booleanValue != null)
+                            message.booleanValue = Boolean(object.booleanValue);
+                        if (object.stringValue != null)
+                            message.stringValue = String(object.stringValue);
+                        if (object.enumValue != null)
+                            if ($util.Long)
+                                message.enumValue = $util.Long.fromValue(object.enumValue, false);
+                            else if (typeof object.enumValue === "string")
+                                message.enumValue = parseInt(object.enumValue, 10);
+                            else if (typeof object.enumValue === "number")
+                                message.enumValue = object.enumValue;
+                            else if (typeof object.enumValue === "object")
+                                message.enumValue = new $util.LongBits(object.enumValue.low >>> 0, object.enumValue.high >>> 0).toNumber();
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a DataScalar message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.DataScalar
+                     * @static
+                     * @param {prodigy.api.v1.DataScalar} message DataScalar
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    DataScalar.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (message.doubleValue != null && Object.hasOwnProperty.call(message, "doubleValue")) {
+                            object.doubleValue = options.json && !isFinite(message.doubleValue) ? String(message.doubleValue) : message.doubleValue;
+                            if (options.oneofs)
+                                object.value = "doubleValue";
+                        }
+                        if (message.signedIntegerValue != null && Object.hasOwnProperty.call(message, "signedIntegerValue")) {
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.signedIntegerValue = typeof message.signedIntegerValue === "number" ? BigInt(message.signedIntegerValue) : $util.Long.fromBits(message.signedIntegerValue.low >>> 0, message.signedIntegerValue.high >>> 0, false).toBigInt();
+                            else if (typeof message.signedIntegerValue === "number")
+                                object.signedIntegerValue = options.longs === String ? String(message.signedIntegerValue) : message.signedIntegerValue;
+                            else
+                                object.signedIntegerValue = options.longs === String ? $util.Long.prototype.toString.call(message.signedIntegerValue) : options.longs === Number ? new $util.LongBits(message.signedIntegerValue.low >>> 0, message.signedIntegerValue.high >>> 0).toNumber() : message.signedIntegerValue;
+                            if (options.oneofs)
+                                object.value = "signedIntegerValue";
+                        }
+                        if (message.unsignedIntegerValue != null && Object.hasOwnProperty.call(message, "unsignedIntegerValue")) {
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.unsignedIntegerValue = typeof message.unsignedIntegerValue === "number" ? BigInt(message.unsignedIntegerValue) : $util.Long.fromBits(message.unsignedIntegerValue.low >>> 0, message.unsignedIntegerValue.high >>> 0, true).toBigInt();
+                            else if (typeof message.unsignedIntegerValue === "number")
+                                object.unsignedIntegerValue = options.longs === String ? String(message.unsignedIntegerValue) : message.unsignedIntegerValue;
+                            else
+                                object.unsignedIntegerValue = options.longs === String ? $util.Long.prototype.toString.call(message.unsignedIntegerValue) : options.longs === Number ? new $util.LongBits(message.unsignedIntegerValue.low >>> 0, message.unsignedIntegerValue.high >>> 0).toNumber(true) : message.unsignedIntegerValue;
+                            if (options.oneofs)
+                                object.value = "unsignedIntegerValue";
+                        }
+                        if (message.booleanValue != null && Object.hasOwnProperty.call(message, "booleanValue")) {
+                            object.booleanValue = message.booleanValue;
+                            if (options.oneofs)
+                                object.value = "booleanValue";
+                        }
+                        if (message.stringValue != null && Object.hasOwnProperty.call(message, "stringValue")) {
+                            object.stringValue = message.stringValue;
+                            if (options.oneofs)
+                                object.value = "stringValue";
+                        }
+                        if (message.enumValue != null && Object.hasOwnProperty.call(message, "enumValue")) {
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.enumValue = typeof message.enumValue === "number" ? BigInt(message.enumValue) : $util.Long.fromBits(message.enumValue.low >>> 0, message.enumValue.high >>> 0, false).toBigInt();
+                            else if (typeof message.enumValue === "number")
+                                object.enumValue = options.longs === String ? String(message.enumValue) : message.enumValue;
+                            else
+                                object.enumValue = options.longs === String ? $util.Long.prototype.toString.call(message.enumValue) : options.longs === Number ? new $util.LongBits(message.enumValue.low >>> 0, message.enumValue.high >>> 0).toNumber() : message.enumValue;
+                            if (options.oneofs)
+                                object.value = "enumValue";
+                        }
+                        return object;
+                    };
+
+                    /**
+                     * Converts this DataScalar to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.DataScalar
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    DataScalar.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for DataScalar
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.DataScalar
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    DataScalar.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.DataScalar";
+                    };
+
+                    return DataScalar;
+                })();
+
+                /**
+                 * DataQuality enum.
+                 * @name prodigy.api.v1.DataQuality
+                 * @enum {number}
+                 * @property {number} DATA_QUALITY_UNSPECIFIED=0 DATA_QUALITY_UNSPECIFIED value
+                 * @property {number} DATA_QUALITY_GOOD=1 DATA_QUALITY_GOOD value
+                 * @property {number} DATA_QUALITY_DEGRADED=2 DATA_QUALITY_DEGRADED value
+                 * @property {number} DATA_QUALITY_STALE=3 DATA_QUALITY_STALE value
+                 * @property {number} DATA_QUALITY_INVALID=4 DATA_QUALITY_INVALID value
+                 * @property {number} DATA_QUALITY_UNAVAILABLE=5 DATA_QUALITY_UNAVAILABLE value
+                 */
+                v1.DataQuality = (function() {
+                    var valuesById = {}, values = Object.create(valuesById);
+                    values[valuesById[0] = "DATA_QUALITY_UNSPECIFIED"] = 0;
+                    values[valuesById[1] = "DATA_QUALITY_GOOD"] = 1;
+                    values[valuesById[2] = "DATA_QUALITY_DEGRADED"] = 2;
+                    values[valuesById[3] = "DATA_QUALITY_STALE"] = 3;
+                    values[valuesById[4] = "DATA_QUALITY_INVALID"] = 4;
+                    values[valuesById[5] = "DATA_QUALITY_UNAVAILABLE"] = 5;
+                    return values;
+                })();
+
+                v1.DataSample = (function() {
+
+                    /**
+                     * Properties of a DataSample.
+                     * @memberof prodigy.api.v1
+                     * @interface IDataSample
+                     * @property {string|null} [channelName] DataSample channelName
+                     * @property {prodigy.api.v1.IDataScalar|null} [value] DataSample value
+                     * @property {number|Long|null} [observedAtUnixMs] DataSample observedAtUnixMs
+                     * @property {prodigy.api.v1.DataQuality|null} [quality] DataSample quality
+                     */
+
+                    /**
+                     * Constructs a new DataSample.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a DataSample.
+                     * @implements IDataSample
+                     * @constructor
+                     * @param {prodigy.api.v1.IDataSample=} [properties] Properties to set
+                     */
+                    function DataSample(properties) {
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * DataSample channelName.
+                     * @member {string} channelName
+                     * @memberof prodigy.api.v1.DataSample
+                     * @instance
+                     */
+                    DataSample.prototype.channelName = "";
+
+                    /**
+                     * DataSample value.
+                     * @member {prodigy.api.v1.IDataScalar|null|undefined} value
+                     * @memberof prodigy.api.v1.DataSample
+                     * @instance
+                     */
+                    DataSample.prototype.value = null;
+
+                    /**
+                     * DataSample observedAtUnixMs.
+                     * @member {number|Long|null|undefined} observedAtUnixMs
+                     * @memberof prodigy.api.v1.DataSample
+                     * @instance
+                     */
+                    DataSample.prototype.observedAtUnixMs = null;
+
+                    /**
+                     * DataSample quality.
+                     * @member {prodigy.api.v1.DataQuality} quality
+                     * @memberof prodigy.api.v1.DataSample
+                     * @instance
+                     */
+                    DataSample.prototype.quality = 0;
+
+                    // OneOf field names bound to virtual getters and setters
+                    var $oneOfFields;
+
+                    // Virtual OneOf for proto3 optional field
+                    Object.defineProperty(DataSample.prototype, "_observedAtUnixMs", {
+                        get: $util.oneOfGetter($oneOfFields = ["observedAtUnixMs"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    /**
+                     * Creates a new DataSample instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.DataSample
+                     * @static
+                     * @param {prodigy.api.v1.IDataSample=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.DataSample} DataSample instance
+                     */
+                    DataSample.create = function create(properties) {
+                        return new DataSample(properties);
+                    };
+
+                    /**
+                     * Encodes the specified DataSample message. Does not implicitly {@link prodigy.api.v1.DataSample.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.DataSample
+                     * @static
+                     * @param {prodigy.api.v1.IDataSample} message DataSample message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    DataSample.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.channelName != null && Object.hasOwnProperty.call(message, "channelName"))
+                            writer.uint32(/* id 1, wireType 2 =*/10).string(message.channelName);
+                        if (message.value != null && Object.hasOwnProperty.call(message, "value"))
+                            $root.prodigy.api.v1.DataScalar.encode(message.value, writer.uint32(/* id 2, wireType 2 =*/18).fork(), q + 1).ldelim();
+                        if (message.observedAtUnixMs != null && Object.hasOwnProperty.call(message, "observedAtUnixMs"))
+                            writer.uint32(/* id 3, wireType 0 =*/24).int64(message.observedAtUnixMs);
+                        if (message.quality != null && Object.hasOwnProperty.call(message, "quality"))
+                            writer.uint32(/* id 4, wireType 0 =*/32).int32(message.quality);
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a DataSample message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.DataSample
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.DataSample} DataSample
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    DataSample.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.DataSample();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.channelName = reader.string();
+                                    break;
+                                }
+                            case 2: {
+                                    message.value = $root.prodigy.api.v1.DataScalar.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 3: {
+                                    message.observedAtUnixMs = reader.int64();
+                                    break;
+                                }
+                            case 4: {
+                                    message.quality = reader.int32();
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a DataSample message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.DataSample
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    DataSample.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        var properties = {};
+                        if (message.channelName != null && Object.hasOwnProperty.call(message, "channelName"))
+                            if (!$util.isString(message.channelName))
+                                return "channelName: string expected";
+                        if (message.value != null && Object.hasOwnProperty.call(message, "value")) {
+                            var error = $root.prodigy.api.v1.DataScalar.verify(message.value, long + 1);
+                            if (error)
+                                return "value." + error;
+                        }
+                        if (message.observedAtUnixMs != null && Object.hasOwnProperty.call(message, "observedAtUnixMs")) {
+                            properties._observedAtUnixMs = 1;
+                            if (!$util.isInteger(message.observedAtUnixMs) && !(message.observedAtUnixMs && $util.isInteger(message.observedAtUnixMs.low) && $util.isInteger(message.observedAtUnixMs.high)))
+                                return "observedAtUnixMs: integer|Long expected";
+                        }
+                        if (message.quality != null && Object.hasOwnProperty.call(message, "quality"))
+                            switch (message.quality) {
+                            default:
+                                return "quality: enum value expected";
+                            case 0:
+                            case 1:
+                            case 2:
+                            case 3:
+                            case 4:
+                            case 5:
+                                break;
+                            }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a DataSample message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.DataSample
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.DataSample} DataSample
+                     */
+                    DataSample.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.DataSample)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.DataSample: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.DataSample();
+                        if (object.channelName != null)
+                            message.channelName = String(object.channelName);
+                        if (object.value != null) {
+                            if (!$util.isObject(object.value))
+                                throw TypeError(".prodigy.api.v1.DataSample.value: object expected");
+                            message.value = $root.prodigy.api.v1.DataScalar.fromObject(object.value, long + 1);
+                        }
+                        if (object.observedAtUnixMs != null)
+                            if ($util.Long)
+                                message.observedAtUnixMs = $util.Long.fromValue(object.observedAtUnixMs, false);
+                            else if (typeof object.observedAtUnixMs === "string")
+                                message.observedAtUnixMs = parseInt(object.observedAtUnixMs, 10);
+                            else if (typeof object.observedAtUnixMs === "number")
+                                message.observedAtUnixMs = object.observedAtUnixMs;
+                            else if (typeof object.observedAtUnixMs === "object")
+                                message.observedAtUnixMs = new $util.LongBits(object.observedAtUnixMs.low >>> 0, object.observedAtUnixMs.high >>> 0).toNumber();
+                        switch (object.quality) {
+                        default:
+                            if (typeof object.quality === "number") {
+                                message.quality = object.quality;
+                                break;
+                            }
+                            break;
+                        case "DATA_QUALITY_UNSPECIFIED":
+                        case 0:
+                            message.quality = 0;
+                            break;
+                        case "DATA_QUALITY_GOOD":
+                        case 1:
+                            message.quality = 1;
+                            break;
+                        case "DATA_QUALITY_DEGRADED":
+                        case 2:
+                            message.quality = 2;
+                            break;
+                        case "DATA_QUALITY_STALE":
+                        case 3:
+                            message.quality = 3;
+                            break;
+                        case "DATA_QUALITY_INVALID":
+                        case 4:
+                            message.quality = 4;
+                            break;
+                        case "DATA_QUALITY_UNAVAILABLE":
+                        case 5:
+                            message.quality = 5;
+                            break;
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a DataSample message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.DataSample
+                     * @static
+                     * @param {prodigy.api.v1.DataSample} message DataSample
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    DataSample.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.defaults) {
+                            object.channelName = "";
+                            object.value = null;
+                            object.quality = options.enums === String ? "DATA_QUALITY_UNSPECIFIED" : 0;
+                        }
+                        if (message.channelName != null && Object.hasOwnProperty.call(message, "channelName"))
+                            object.channelName = message.channelName;
+                        if (message.value != null && Object.hasOwnProperty.call(message, "value"))
+                            object.value = $root.prodigy.api.v1.DataScalar.toObject(message.value, options, q + 1);
+                        if (message.observedAtUnixMs != null && Object.hasOwnProperty.call(message, "observedAtUnixMs")) {
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.observedAtUnixMs = typeof message.observedAtUnixMs === "number" ? BigInt(message.observedAtUnixMs) : $util.Long.fromBits(message.observedAtUnixMs.low >>> 0, message.observedAtUnixMs.high >>> 0, false).toBigInt();
+                            else if (typeof message.observedAtUnixMs === "number")
+                                object.observedAtUnixMs = options.longs === String ? String(message.observedAtUnixMs) : message.observedAtUnixMs;
+                            else
+                                object.observedAtUnixMs = options.longs === String ? $util.Long.prototype.toString.call(message.observedAtUnixMs) : options.longs === Number ? new $util.LongBits(message.observedAtUnixMs.low >>> 0, message.observedAtUnixMs.high >>> 0).toNumber() : message.observedAtUnixMs;
+                            if (options.oneofs)
+                                object._observedAtUnixMs = "observedAtUnixMs";
+                        }
+                        if (message.quality != null && Object.hasOwnProperty.call(message, "quality"))
+                            object.quality = options.enums === String ? $root.prodigy.api.v1.DataQuality[message.quality] === undefined ? message.quality : $root.prodigy.api.v1.DataQuality[message.quality] : message.quality;
+                        return object;
+                    };
+
+                    /**
+                     * Converts this DataSample to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.DataSample
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    DataSample.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for DataSample
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.DataSample
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    DataSample.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.DataSample";
+                    };
+
+                    return DataSample;
+                })();
+
+                v1.PublishDataValues = (function() {
+
+                    /**
+                     * Properties of a PublishDataValues.
+                     * @memberof prodigy.api.v1
+                     * @interface IPublishDataValues
+                     * @property {Array.<prodigy.api.v1.IDataSample>|null} [samples] PublishDataValues samples
+                     */
+
+                    /**
+                     * Constructs a new PublishDataValues.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a PublishDataValues.
+                     * @implements IPublishDataValues
+                     * @constructor
+                     * @param {prodigy.api.v1.IPublishDataValues=} [properties] Properties to set
+                     */
+                    function PublishDataValues(properties) {
+                        this.samples = [];
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * PublishDataValues samples.
+                     * @member {Array.<prodigy.api.v1.IDataSample>} samples
+                     * @memberof prodigy.api.v1.PublishDataValues
+                     * @instance
+                     */
+                    PublishDataValues.prototype.samples = $util.emptyArray;
+
+                    /**
+                     * Creates a new PublishDataValues instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.PublishDataValues
+                     * @static
+                     * @param {prodigy.api.v1.IPublishDataValues=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.PublishDataValues} PublishDataValues instance
+                     */
+                    PublishDataValues.create = function create(properties) {
+                        return new PublishDataValues(properties);
+                    };
+
+                    /**
+                     * Encodes the specified PublishDataValues message. Does not implicitly {@link prodigy.api.v1.PublishDataValues.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.PublishDataValues
+                     * @static
+                     * @param {prodigy.api.v1.IPublishDataValues} message PublishDataValues message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    PublishDataValues.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.samples != null && message.samples.length)
+                            for (var i = 0; i < message.samples.length; ++i)
+                                $root.prodigy.api.v1.DataSample.encode(message.samples[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a PublishDataValues message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.PublishDataValues
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.PublishDataValues} PublishDataValues
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    PublishDataValues.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.PublishDataValues();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    if (!(message.samples && message.samples.length))
+                                        message.samples = [];
+                                    message.samples.push($root.prodigy.api.v1.DataSample.decode(reader, reader.uint32(), undefined, long + 1));
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a PublishDataValues message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.PublishDataValues
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    PublishDataValues.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.samples != null && Object.hasOwnProperty.call(message, "samples")) {
+                            if (!Array.isArray(message.samples))
+                                return "samples: array expected";
+                            for (var i = 0; i < message.samples.length; ++i) {
+                                var error = $root.prodigy.api.v1.DataSample.verify(message.samples[i], long + 1);
+                                if (error)
+                                    return "samples." + error;
+                            }
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a PublishDataValues message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.PublishDataValues
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.PublishDataValues} PublishDataValues
+                     */
+                    PublishDataValues.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.PublishDataValues)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.PublishDataValues: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.PublishDataValues();
+                        if (object.samples) {
+                            if (!Array.isArray(object.samples))
+                                throw TypeError(".prodigy.api.v1.PublishDataValues.samples: array expected");
+                            message.samples = [];
+                            for (var i = 0; i < object.samples.length; ++i) {
+                                if (!$util.isObject(object.samples[i]))
+                                    throw TypeError(".prodigy.api.v1.PublishDataValues.samples: object expected");
+                                message.samples[i] = $root.prodigy.api.v1.DataSample.fromObject(object.samples[i], long + 1);
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a PublishDataValues message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.PublishDataValues
+                     * @static
+                     * @param {prodigy.api.v1.PublishDataValues} message PublishDataValues
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    PublishDataValues.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.arrays || options.defaults)
+                            object.samples = [];
+                        if (message.samples && message.samples.length) {
+                            object.samples = [];
+                            for (var j = 0; j < message.samples.length; ++j)
+                                object.samples[j] = $root.prodigy.api.v1.DataSample.toObject(message.samples[j], options, q + 1);
+                        }
+                        return object;
+                    };
+
+                    /**
+                     * Converts this PublishDataValues to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.PublishDataValues
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    PublishDataValues.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for PublishDataValues
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.PublishDataValues
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    PublishDataValues.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.PublishDataValues";
+                    };
+
+                    return PublishDataValues;
+                })();
+
+                v1.DataProviderDefinition = (function() {
+
+                    /**
+                     * Properties of a DataProviderDefinition.
+                     * @memberof prodigy.api.v1
+                     * @interface IDataProviderDefinition
+                     * @property {string|null} [providerNamespace] DataProviderDefinition providerNamespace
+                     * @property {string|null} [displayName] DataProviderDefinition displayName
+                     * @property {string|null} [description] DataProviderDefinition description
+                     * @property {string|null} [providerVersion] DataProviderDefinition providerVersion
+                     */
+
+                    /**
+                     * Constructs a new DataProviderDefinition.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a DataProviderDefinition.
+                     * @implements IDataProviderDefinition
+                     * @constructor
+                     * @param {prodigy.api.v1.IDataProviderDefinition=} [properties] Properties to set
+                     */
+                    function DataProviderDefinition(properties) {
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * DataProviderDefinition providerNamespace.
+                     * @member {string} providerNamespace
+                     * @memberof prodigy.api.v1.DataProviderDefinition
+                     * @instance
+                     */
+                    DataProviderDefinition.prototype.providerNamespace = "";
+
+                    /**
+                     * DataProviderDefinition displayName.
+                     * @member {string} displayName
+                     * @memberof prodigy.api.v1.DataProviderDefinition
+                     * @instance
+                     */
+                    DataProviderDefinition.prototype.displayName = "";
+
+                    /**
+                     * DataProviderDefinition description.
+                     * @member {string|null|undefined} description
+                     * @memberof prodigy.api.v1.DataProviderDefinition
+                     * @instance
+                     */
+                    DataProviderDefinition.prototype.description = null;
+
+                    /**
+                     * DataProviderDefinition providerVersion.
+                     * @member {string|null|undefined} providerVersion
+                     * @memberof prodigy.api.v1.DataProviderDefinition
+                     * @instance
+                     */
+                    DataProviderDefinition.prototype.providerVersion = null;
+
+                    // OneOf field names bound to virtual getters and setters
+                    var $oneOfFields;
+
+                    // Virtual OneOf for proto3 optional field
+                    Object.defineProperty(DataProviderDefinition.prototype, "_description", {
+                        get: $util.oneOfGetter($oneOfFields = ["description"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    // Virtual OneOf for proto3 optional field
+                    Object.defineProperty(DataProviderDefinition.prototype, "_providerVersion", {
+                        get: $util.oneOfGetter($oneOfFields = ["providerVersion"]),
+                        set: $util.oneOfSetter($oneOfFields)
+                    });
+
+                    /**
+                     * Creates a new DataProviderDefinition instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.DataProviderDefinition
+                     * @static
+                     * @param {prodigy.api.v1.IDataProviderDefinition=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.DataProviderDefinition} DataProviderDefinition instance
+                     */
+                    DataProviderDefinition.create = function create(properties) {
+                        return new DataProviderDefinition(properties);
+                    };
+
+                    /**
+                     * Encodes the specified DataProviderDefinition message. Does not implicitly {@link prodigy.api.v1.DataProviderDefinition.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.DataProviderDefinition
+                     * @static
+                     * @param {prodigy.api.v1.IDataProviderDefinition} message DataProviderDefinition message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    DataProviderDefinition.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.providerNamespace != null && Object.hasOwnProperty.call(message, "providerNamespace"))
+                            writer.uint32(/* id 1, wireType 2 =*/10).string(message.providerNamespace);
+                        if (message.displayName != null && Object.hasOwnProperty.call(message, "displayName"))
+                            writer.uint32(/* id 2, wireType 2 =*/18).string(message.displayName);
+                        if (message.description != null && Object.hasOwnProperty.call(message, "description"))
+                            writer.uint32(/* id 3, wireType 2 =*/26).string(message.description);
+                        if (message.providerVersion != null && Object.hasOwnProperty.call(message, "providerVersion"))
+                            writer.uint32(/* id 4, wireType 2 =*/34).string(message.providerVersion);
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a DataProviderDefinition message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.DataProviderDefinition
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.DataProviderDefinition} DataProviderDefinition
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    DataProviderDefinition.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.DataProviderDefinition();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.providerNamespace = reader.string();
+                                    break;
+                                }
+                            case 2: {
+                                    message.displayName = reader.string();
+                                    break;
+                                }
+                            case 3: {
+                                    message.description = reader.string();
+                                    break;
+                                }
+                            case 4: {
+                                    message.providerVersion = reader.string();
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a DataProviderDefinition message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.DataProviderDefinition
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    DataProviderDefinition.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        var properties = {};
+                        if (message.providerNamespace != null && Object.hasOwnProperty.call(message, "providerNamespace"))
+                            if (!$util.isString(message.providerNamespace))
+                                return "providerNamespace: string expected";
+                        if (message.displayName != null && Object.hasOwnProperty.call(message, "displayName"))
+                            if (!$util.isString(message.displayName))
+                                return "displayName: string expected";
+                        if (message.description != null && Object.hasOwnProperty.call(message, "description")) {
+                            properties._description = 1;
+                            if (!$util.isString(message.description))
+                                return "description: string expected";
+                        }
+                        if (message.providerVersion != null && Object.hasOwnProperty.call(message, "providerVersion")) {
+                            properties._providerVersion = 1;
+                            if (!$util.isString(message.providerVersion))
+                                return "providerVersion: string expected";
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a DataProviderDefinition message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.DataProviderDefinition
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.DataProviderDefinition} DataProviderDefinition
+                     */
+                    DataProviderDefinition.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.DataProviderDefinition)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.DataProviderDefinition: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.DataProviderDefinition();
+                        if (object.providerNamespace != null)
+                            message.providerNamespace = String(object.providerNamespace);
+                        if (object.displayName != null)
+                            message.displayName = String(object.displayName);
+                        if (object.description != null)
+                            message.description = String(object.description);
+                        if (object.providerVersion != null)
+                            message.providerVersion = String(object.providerVersion);
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a DataProviderDefinition message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.DataProviderDefinition
+                     * @static
+                     * @param {prodigy.api.v1.DataProviderDefinition} message DataProviderDefinition
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    DataProviderDefinition.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.defaults) {
+                            object.providerNamespace = "";
+                            object.displayName = "";
+                        }
+                        if (message.providerNamespace != null && Object.hasOwnProperty.call(message, "providerNamespace"))
+                            object.providerNamespace = message.providerNamespace;
+                        if (message.displayName != null && Object.hasOwnProperty.call(message, "displayName"))
+                            object.displayName = message.displayName;
+                        if (message.description != null && Object.hasOwnProperty.call(message, "description")) {
+                            object.description = message.description;
+                            if (options.oneofs)
+                                object._description = "description";
+                        }
+                        if (message.providerVersion != null && Object.hasOwnProperty.call(message, "providerVersion")) {
+                            object.providerVersion = message.providerVersion;
+                            if (options.oneofs)
+                                object._providerVersion = "providerVersion";
+                        }
+                        return object;
+                    };
+
+                    /**
+                     * Converts this DataProviderDefinition to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.DataProviderDefinition
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    DataProviderDefinition.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for DataProviderDefinition
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.DataProviderDefinition
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    DataProviderDefinition.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.DataProviderDefinition";
+                    };
+
+                    return DataProviderDefinition;
+                })();
+
+                v1.DataProviderCatalog = (function() {
+
+                    /**
+                     * Properties of a DataProviderCatalog.
+                     * @memberof prodigy.api.v1
+                     * @interface IDataProviderCatalog
+                     * @property {prodigy.api.v1.IDataProviderDefinition|null} [provider] DataProviderCatalog provider
+                     * @property {Array.<prodigy.api.v1.IDataChannelDefinition>|null} [channels] DataProviderCatalog channels
+                     */
+
+                    /**
+                     * Constructs a new DataProviderCatalog.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a DataProviderCatalog.
+                     * @implements IDataProviderCatalog
+                     * @constructor
+                     * @param {prodigy.api.v1.IDataProviderCatalog=} [properties] Properties to set
+                     */
+                    function DataProviderCatalog(properties) {
+                        this.channels = [];
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * DataProviderCatalog provider.
+                     * @member {prodigy.api.v1.IDataProviderDefinition|null|undefined} provider
+                     * @memberof prodigy.api.v1.DataProviderCatalog
+                     * @instance
+                     */
+                    DataProviderCatalog.prototype.provider = null;
+
+                    /**
+                     * DataProviderCatalog channels.
+                     * @member {Array.<prodigy.api.v1.IDataChannelDefinition>} channels
+                     * @memberof prodigy.api.v1.DataProviderCatalog
+                     * @instance
+                     */
+                    DataProviderCatalog.prototype.channels = $util.emptyArray;
+
+                    /**
+                     * Creates a new DataProviderCatalog instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.DataProviderCatalog
+                     * @static
+                     * @param {prodigy.api.v1.IDataProviderCatalog=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.DataProviderCatalog} DataProviderCatalog instance
+                     */
+                    DataProviderCatalog.create = function create(properties) {
+                        return new DataProviderCatalog(properties);
+                    };
+
+                    /**
+                     * Encodes the specified DataProviderCatalog message. Does not implicitly {@link prodigy.api.v1.DataProviderCatalog.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.DataProviderCatalog
+                     * @static
+                     * @param {prodigy.api.v1.IDataProviderCatalog} message DataProviderCatalog message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    DataProviderCatalog.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.provider != null && Object.hasOwnProperty.call(message, "provider"))
+                            $root.prodigy.api.v1.DataProviderDefinition.encode(message.provider, writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
+                        if (message.channels != null && message.channels.length)
+                            for (var i = 0; i < message.channels.length; ++i)
+                                $root.prodigy.api.v1.DataChannelDefinition.encode(message.channels[i], writer.uint32(/* id 2, wireType 2 =*/18).fork(), q + 1).ldelim();
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a DataProviderCatalog message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.DataProviderCatalog
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.DataProviderCatalog} DataProviderCatalog
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    DataProviderCatalog.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.DataProviderCatalog();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.provider = $root.prodigy.api.v1.DataProviderDefinition.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 2: {
+                                    if (!(message.channels && message.channels.length))
+                                        message.channels = [];
+                                    message.channels.push($root.prodigy.api.v1.DataChannelDefinition.decode(reader, reader.uint32(), undefined, long + 1));
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a DataProviderCatalog message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.DataProviderCatalog
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    DataProviderCatalog.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.provider != null && Object.hasOwnProperty.call(message, "provider")) {
+                            var error = $root.prodigy.api.v1.DataProviderDefinition.verify(message.provider, long + 1);
+                            if (error)
+                                return "provider." + error;
+                        }
+                        if (message.channels != null && Object.hasOwnProperty.call(message, "channels")) {
+                            if (!Array.isArray(message.channels))
+                                return "channels: array expected";
+                            for (var i = 0; i < message.channels.length; ++i) {
+                                var error = $root.prodigy.api.v1.DataChannelDefinition.verify(message.channels[i], long + 1);
+                                if (error)
+                                    return "channels." + error;
+                            }
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a DataProviderCatalog message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.DataProviderCatalog
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.DataProviderCatalog} DataProviderCatalog
+                     */
+                    DataProviderCatalog.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.DataProviderCatalog)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.DataProviderCatalog: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.DataProviderCatalog();
+                        if (object.provider != null) {
+                            if (!$util.isObject(object.provider))
+                                throw TypeError(".prodigy.api.v1.DataProviderCatalog.provider: object expected");
+                            message.provider = $root.prodigy.api.v1.DataProviderDefinition.fromObject(object.provider, long + 1);
+                        }
+                        if (object.channels) {
+                            if (!Array.isArray(object.channels))
+                                throw TypeError(".prodigy.api.v1.DataProviderCatalog.channels: array expected");
+                            message.channels = [];
+                            for (var i = 0; i < object.channels.length; ++i) {
+                                if (!$util.isObject(object.channels[i]))
+                                    throw TypeError(".prodigy.api.v1.DataProviderCatalog.channels: object expected");
+                                message.channels[i] = $root.prodigy.api.v1.DataChannelDefinition.fromObject(object.channels[i], long + 1);
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a DataProviderCatalog message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.DataProviderCatalog
+                     * @static
+                     * @param {prodigy.api.v1.DataProviderCatalog} message DataProviderCatalog
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    DataProviderCatalog.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.arrays || options.defaults)
+                            object.channels = [];
+                        if (options.defaults)
+                            object.provider = null;
+                        if (message.provider != null && Object.hasOwnProperty.call(message, "provider"))
+                            object.provider = $root.prodigy.api.v1.DataProviderDefinition.toObject(message.provider, options, q + 1);
+                        if (message.channels && message.channels.length) {
+                            object.channels = [];
+                            for (var j = 0; j < message.channels.length; ++j)
+                                object.channels[j] = $root.prodigy.api.v1.DataChannelDefinition.toObject(message.channels[j], options, q + 1);
+                        }
+                        return object;
+                    };
+
+                    /**
+                     * Converts this DataProviderCatalog to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.DataProviderCatalog
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    DataProviderCatalog.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for DataProviderCatalog
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.DataProviderCatalog
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    DataProviderCatalog.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.DataProviderCatalog";
+                    };
+
+                    return DataProviderCatalog;
+                })();
+
+                v1.DataCatalog = (function() {
+
+                    /**
+                     * Properties of a DataCatalog.
+                     * @memberof prodigy.api.v1
+                     * @interface IDataCatalog
+                     * @property {number|Long|null} [catalogRevision] DataCatalog catalogRevision
+                     * @property {Array.<prodigy.api.v1.IDataProviderCatalog>|null} [providers] DataCatalog providers
+                     */
+
+                    /**
+                     * Constructs a new DataCatalog.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a DataCatalog.
+                     * @implements IDataCatalog
+                     * @constructor
+                     * @param {prodigy.api.v1.IDataCatalog=} [properties] Properties to set
+                     */
+                    function DataCatalog(properties) {
+                        this.providers = [];
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * DataCatalog catalogRevision.
+                     * @member {number|Long} catalogRevision
+                     * @memberof prodigy.api.v1.DataCatalog
+                     * @instance
+                     */
+                    DataCatalog.prototype.catalogRevision = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                    /**
+                     * DataCatalog providers.
+                     * @member {Array.<prodigy.api.v1.IDataProviderCatalog>} providers
+                     * @memberof prodigy.api.v1.DataCatalog
+                     * @instance
+                     */
+                    DataCatalog.prototype.providers = $util.emptyArray;
+
+                    /**
+                     * Creates a new DataCatalog instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.DataCatalog
+                     * @static
+                     * @param {prodigy.api.v1.IDataCatalog=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.DataCatalog} DataCatalog instance
+                     */
+                    DataCatalog.create = function create(properties) {
+                        return new DataCatalog(properties);
+                    };
+
+                    /**
+                     * Encodes the specified DataCatalog message. Does not implicitly {@link prodigy.api.v1.DataCatalog.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.DataCatalog
+                     * @static
+                     * @param {prodigy.api.v1.IDataCatalog} message DataCatalog message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    DataCatalog.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.catalogRevision != null && Object.hasOwnProperty.call(message, "catalogRevision"))
+                            writer.uint32(/* id 1, wireType 0 =*/8).uint64(message.catalogRevision);
+                        if (message.providers != null && message.providers.length)
+                            for (var i = 0; i < message.providers.length; ++i)
+                                $root.prodigy.api.v1.DataProviderCatalog.encode(message.providers[i], writer.uint32(/* id 2, wireType 2 =*/18).fork(), q + 1).ldelim();
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a DataCatalog message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.DataCatalog
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.DataCatalog} DataCatalog
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    DataCatalog.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.DataCatalog();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.catalogRevision = reader.uint64();
+                                    break;
+                                }
+                            case 2: {
+                                    if (!(message.providers && message.providers.length))
+                                        message.providers = [];
+                                    message.providers.push($root.prodigy.api.v1.DataProviderCatalog.decode(reader, reader.uint32(), undefined, long + 1));
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a DataCatalog message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.DataCatalog
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    DataCatalog.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.catalogRevision != null && Object.hasOwnProperty.call(message, "catalogRevision"))
+                            if (!$util.isInteger(message.catalogRevision) && !(message.catalogRevision && $util.isInteger(message.catalogRevision.low) && $util.isInteger(message.catalogRevision.high)))
+                                return "catalogRevision: integer|Long expected";
+                        if (message.providers != null && Object.hasOwnProperty.call(message, "providers")) {
+                            if (!Array.isArray(message.providers))
+                                return "providers: array expected";
+                            for (var i = 0; i < message.providers.length; ++i) {
+                                var error = $root.prodigy.api.v1.DataProviderCatalog.verify(message.providers[i], long + 1);
+                                if (error)
+                                    return "providers." + error;
+                            }
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a DataCatalog message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.DataCatalog
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.DataCatalog} DataCatalog
+                     */
+                    DataCatalog.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.DataCatalog)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.DataCatalog: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.DataCatalog();
+                        if (object.catalogRevision != null)
+                            if ($util.Long)
+                                message.catalogRevision = $util.Long.fromValue(object.catalogRevision, true);
+                            else if (typeof object.catalogRevision === "string")
+                                message.catalogRevision = parseInt(object.catalogRevision, 10);
+                            else if (typeof object.catalogRevision === "number")
+                                message.catalogRevision = object.catalogRevision;
+                            else if (typeof object.catalogRevision === "object")
+                                message.catalogRevision = new $util.LongBits(object.catalogRevision.low >>> 0, object.catalogRevision.high >>> 0).toNumber(true);
+                        if (object.providers) {
+                            if (!Array.isArray(object.providers))
+                                throw TypeError(".prodigy.api.v1.DataCatalog.providers: array expected");
+                            message.providers = [];
+                            for (var i = 0; i < object.providers.length; ++i) {
+                                if (!$util.isObject(object.providers[i]))
+                                    throw TypeError(".prodigy.api.v1.DataCatalog.providers: object expected");
+                                message.providers[i] = $root.prodigy.api.v1.DataProviderCatalog.fromObject(object.providers[i], long + 1);
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a DataCatalog message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.DataCatalog
+                     * @static
+                     * @param {prodigy.api.v1.DataCatalog} message DataCatalog
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    DataCatalog.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.arrays || options.defaults)
+                            object.providers = [];
+                        if (options.defaults)
+                            if ($util.Long) {
+                                var long = new $util.Long(0, 0, true);
+                                object.catalogRevision = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
+                            } else
+                                object.catalogRevision = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
+                        if (message.catalogRevision != null && Object.hasOwnProperty.call(message, "catalogRevision"))
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.catalogRevision = typeof message.catalogRevision === "number" ? BigInt(message.catalogRevision) : $util.Long.fromBits(message.catalogRevision.low >>> 0, message.catalogRevision.high >>> 0, true).toBigInt();
+                            else if (typeof message.catalogRevision === "number")
+                                object.catalogRevision = options.longs === String ? String(message.catalogRevision) : message.catalogRevision;
+                            else
+                                object.catalogRevision = options.longs === String ? $util.Long.prototype.toString.call(message.catalogRevision) : options.longs === Number ? new $util.LongBits(message.catalogRevision.low >>> 0, message.catalogRevision.high >>> 0).toNumber(true) : message.catalogRevision;
+                        if (message.providers && message.providers.length) {
+                            object.providers = [];
+                            for (var j = 0; j < message.providers.length; ++j)
+                                object.providers[j] = $root.prodigy.api.v1.DataProviderCatalog.toObject(message.providers[j], options, q + 1);
+                        }
+                        return object;
+                    };
+
+                    /**
+                     * Converts this DataCatalog to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.DataCatalog
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    DataCatalog.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for DataCatalog
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.DataCatalog
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    DataCatalog.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.DataCatalog";
+                    };
+
+                    return DataCatalog;
+                })();
+
+                v1.ListDataCatalogRequest = (function() {
+
+                    /**
+                     * Properties of a ListDataCatalogRequest.
+                     * @memberof prodigy.api.v1
+                     * @interface IListDataCatalogRequest
+                     */
+
+                    /**
+                     * Constructs a new ListDataCatalogRequest.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a ListDataCatalogRequest.
+                     * @implements IListDataCatalogRequest
+                     * @constructor
+                     * @param {prodigy.api.v1.IListDataCatalogRequest=} [properties] Properties to set
+                     */
+                    function ListDataCatalogRequest(properties) {
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * Creates a new ListDataCatalogRequest instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.ListDataCatalogRequest
+                     * @static
+                     * @param {prodigy.api.v1.IListDataCatalogRequest=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.ListDataCatalogRequest} ListDataCatalogRequest instance
+                     */
+                    ListDataCatalogRequest.create = function create(properties) {
+                        return new ListDataCatalogRequest(properties);
+                    };
+
+                    /**
+                     * Encodes the specified ListDataCatalogRequest message. Does not implicitly {@link prodigy.api.v1.ListDataCatalogRequest.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.ListDataCatalogRequest
+                     * @static
+                     * @param {prodigy.api.v1.IListDataCatalogRequest} message ListDataCatalogRequest message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    ListDataCatalogRequest.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a ListDataCatalogRequest message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.ListDataCatalogRequest
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.ListDataCatalogRequest} ListDataCatalogRequest
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    ListDataCatalogRequest.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.ListDataCatalogRequest();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a ListDataCatalogRequest message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.ListDataCatalogRequest
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    ListDataCatalogRequest.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        return null;
+                    };
+
+                    /**
+                     * Creates a ListDataCatalogRequest message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.ListDataCatalogRequest
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.ListDataCatalogRequest} ListDataCatalogRequest
+                     */
+                    ListDataCatalogRequest.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.ListDataCatalogRequest)
+                            return object;
+                        return new $root.prodigy.api.v1.ListDataCatalogRequest();
+                    };
+
+                    /**
+                     * Creates a plain object from a ListDataCatalogRequest message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.ListDataCatalogRequest
+                     * @static
+                     * @param {prodigy.api.v1.ListDataCatalogRequest} message ListDataCatalogRequest
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    ListDataCatalogRequest.toObject = function toObject() {
+                        return {};
+                    };
+
+                    /**
+                     * Converts this ListDataCatalogRequest to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.ListDataCatalogRequest
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    ListDataCatalogRequest.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for ListDataCatalogRequest
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.ListDataCatalogRequest
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    ListDataCatalogRequest.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.ListDataCatalogRequest";
+                    };
+
+                    return ListDataCatalogRequest;
+                })();
+
+                v1.ListDataCatalogResponse = (function() {
+
+                    /**
+                     * Properties of a ListDataCatalogResponse.
+                     * @memberof prodigy.api.v1
+                     * @interface IListDataCatalogResponse
+                     * @property {prodigy.api.v1.IDataCatalog|null} [catalog] ListDataCatalogResponse catalog
+                     */
+
+                    /**
+                     * Constructs a new ListDataCatalogResponse.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a ListDataCatalogResponse.
+                     * @implements IListDataCatalogResponse
+                     * @constructor
+                     * @param {prodigy.api.v1.IListDataCatalogResponse=} [properties] Properties to set
+                     */
+                    function ListDataCatalogResponse(properties) {
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * ListDataCatalogResponse catalog.
+                     * @member {prodigy.api.v1.IDataCatalog|null|undefined} catalog
+                     * @memberof prodigy.api.v1.ListDataCatalogResponse
+                     * @instance
+                     */
+                    ListDataCatalogResponse.prototype.catalog = null;
+
+                    /**
+                     * Creates a new ListDataCatalogResponse instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.ListDataCatalogResponse
+                     * @static
+                     * @param {prodigy.api.v1.IListDataCatalogResponse=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.ListDataCatalogResponse} ListDataCatalogResponse instance
+                     */
+                    ListDataCatalogResponse.create = function create(properties) {
+                        return new ListDataCatalogResponse(properties);
+                    };
+
+                    /**
+                     * Encodes the specified ListDataCatalogResponse message. Does not implicitly {@link prodigy.api.v1.ListDataCatalogResponse.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.ListDataCatalogResponse
+                     * @static
+                     * @param {prodigy.api.v1.IListDataCatalogResponse} message ListDataCatalogResponse message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    ListDataCatalogResponse.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.catalog != null && Object.hasOwnProperty.call(message, "catalog"))
+                            $root.prodigy.api.v1.DataCatalog.encode(message.catalog, writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a ListDataCatalogResponse message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.ListDataCatalogResponse
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.ListDataCatalogResponse} ListDataCatalogResponse
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    ListDataCatalogResponse.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.ListDataCatalogResponse();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.catalog = $root.prodigy.api.v1.DataCatalog.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a ListDataCatalogResponse message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.ListDataCatalogResponse
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    ListDataCatalogResponse.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.catalog != null && Object.hasOwnProperty.call(message, "catalog")) {
+                            var error = $root.prodigy.api.v1.DataCatalog.verify(message.catalog, long + 1);
+                            if (error)
+                                return "catalog." + error;
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a ListDataCatalogResponse message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.ListDataCatalogResponse
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.ListDataCatalogResponse} ListDataCatalogResponse
+                     */
+                    ListDataCatalogResponse.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.ListDataCatalogResponse)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.ListDataCatalogResponse: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.ListDataCatalogResponse();
+                        if (object.catalog != null) {
+                            if (!$util.isObject(object.catalog))
+                                throw TypeError(".prodigy.api.v1.ListDataCatalogResponse.catalog: object expected");
+                            message.catalog = $root.prodigy.api.v1.DataCatalog.fromObject(object.catalog, long + 1);
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a ListDataCatalogResponse message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.ListDataCatalogResponse
+                     * @static
+                     * @param {prodigy.api.v1.ListDataCatalogResponse} message ListDataCatalogResponse
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    ListDataCatalogResponse.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.defaults)
+                            object.catalog = null;
+                        if (message.catalog != null && Object.hasOwnProperty.call(message, "catalog"))
+                            object.catalog = $root.prodigy.api.v1.DataCatalog.toObject(message.catalog, options, q + 1);
+                        return object;
+                    };
+
+                    /**
+                     * Converts this ListDataCatalogResponse to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.ListDataCatalogResponse
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    ListDataCatalogResponse.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for ListDataCatalogResponse
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.ListDataCatalogResponse
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    ListDataCatalogResponse.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.ListDataCatalogResponse";
+                    };
+
+                    return ListDataCatalogResponse;
+                })();
+
+                v1.WatchDataCatalogRequest = (function() {
+
+                    /**
+                     * Properties of a WatchDataCatalogRequest.
+                     * @memberof prodigy.api.v1
+                     * @interface IWatchDataCatalogRequest
+                     * @property {boolean|null} [enabled] WatchDataCatalogRequest enabled
+                     */
+
+                    /**
+                     * Constructs a new WatchDataCatalogRequest.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a WatchDataCatalogRequest.
+                     * @implements IWatchDataCatalogRequest
+                     * @constructor
+                     * @param {prodigy.api.v1.IWatchDataCatalogRequest=} [properties] Properties to set
+                     */
+                    function WatchDataCatalogRequest(properties) {
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * WatchDataCatalogRequest enabled.
+                     * @member {boolean} enabled
+                     * @memberof prodigy.api.v1.WatchDataCatalogRequest
+                     * @instance
+                     */
+                    WatchDataCatalogRequest.prototype.enabled = false;
+
+                    /**
+                     * Creates a new WatchDataCatalogRequest instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.WatchDataCatalogRequest
+                     * @static
+                     * @param {prodigy.api.v1.IWatchDataCatalogRequest=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.WatchDataCatalogRequest} WatchDataCatalogRequest instance
+                     */
+                    WatchDataCatalogRequest.create = function create(properties) {
+                        return new WatchDataCatalogRequest(properties);
+                    };
+
+                    /**
+                     * Encodes the specified WatchDataCatalogRequest message. Does not implicitly {@link prodigy.api.v1.WatchDataCatalogRequest.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.WatchDataCatalogRequest
+                     * @static
+                     * @param {prodigy.api.v1.IWatchDataCatalogRequest} message WatchDataCatalogRequest message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    WatchDataCatalogRequest.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.enabled != null && Object.hasOwnProperty.call(message, "enabled"))
+                            writer.uint32(/* id 1, wireType 0 =*/8).bool(message.enabled);
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a WatchDataCatalogRequest message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.WatchDataCatalogRequest
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.WatchDataCatalogRequest} WatchDataCatalogRequest
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    WatchDataCatalogRequest.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.WatchDataCatalogRequest();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.enabled = reader.bool();
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a WatchDataCatalogRequest message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.WatchDataCatalogRequest
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    WatchDataCatalogRequest.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.enabled != null && Object.hasOwnProperty.call(message, "enabled"))
+                            if (typeof message.enabled !== "boolean")
+                                return "enabled: boolean expected";
+                        return null;
+                    };
+
+                    /**
+                     * Creates a WatchDataCatalogRequest message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.WatchDataCatalogRequest
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.WatchDataCatalogRequest} WatchDataCatalogRequest
+                     */
+                    WatchDataCatalogRequest.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.WatchDataCatalogRequest)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.WatchDataCatalogRequest: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.WatchDataCatalogRequest();
+                        if (object.enabled != null)
+                            message.enabled = Boolean(object.enabled);
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a WatchDataCatalogRequest message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.WatchDataCatalogRequest
+                     * @static
+                     * @param {prodigy.api.v1.WatchDataCatalogRequest} message WatchDataCatalogRequest
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    WatchDataCatalogRequest.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.defaults)
+                            object.enabled = false;
+                        if (message.enabled != null && Object.hasOwnProperty.call(message, "enabled"))
+                            object.enabled = message.enabled;
+                        return object;
+                    };
+
+                    /**
+                     * Converts this WatchDataCatalogRequest to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.WatchDataCatalogRequest
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    WatchDataCatalogRequest.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for WatchDataCatalogRequest
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.WatchDataCatalogRequest
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    WatchDataCatalogRequest.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.WatchDataCatalogRequest";
+                    };
+
+                    return WatchDataCatalogRequest;
+                })();
+
+                v1.DataCatalogEvent = (function() {
+
+                    /**
+                     * Properties of a DataCatalogEvent.
+                     * @memberof prodigy.api.v1
+                     * @interface IDataCatalogEvent
+                     * @property {prodigy.api.v1.IDataCatalog|null} [catalog] DataCatalogEvent catalog
+                     */
+
+                    /**
+                     * Constructs a new DataCatalogEvent.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a DataCatalogEvent.
+                     * @implements IDataCatalogEvent
+                     * @constructor
+                     * @param {prodigy.api.v1.IDataCatalogEvent=} [properties] Properties to set
+                     */
+                    function DataCatalogEvent(properties) {
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * DataCatalogEvent catalog.
+                     * @member {prodigy.api.v1.IDataCatalog|null|undefined} catalog
+                     * @memberof prodigy.api.v1.DataCatalogEvent
+                     * @instance
+                     */
+                    DataCatalogEvent.prototype.catalog = null;
+
+                    /**
+                     * Creates a new DataCatalogEvent instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.DataCatalogEvent
+                     * @static
+                     * @param {prodigy.api.v1.IDataCatalogEvent=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.DataCatalogEvent} DataCatalogEvent instance
+                     */
+                    DataCatalogEvent.create = function create(properties) {
+                        return new DataCatalogEvent(properties);
+                    };
+
+                    /**
+                     * Encodes the specified DataCatalogEvent message. Does not implicitly {@link prodigy.api.v1.DataCatalogEvent.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.DataCatalogEvent
+                     * @static
+                     * @param {prodigy.api.v1.IDataCatalogEvent} message DataCatalogEvent message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    DataCatalogEvent.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.catalog != null && Object.hasOwnProperty.call(message, "catalog"))
+                            $root.prodigy.api.v1.DataCatalog.encode(message.catalog, writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a DataCatalogEvent message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.DataCatalogEvent
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.DataCatalogEvent} DataCatalogEvent
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    DataCatalogEvent.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.DataCatalogEvent();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.catalog = $root.prodigy.api.v1.DataCatalog.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a DataCatalogEvent message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.DataCatalogEvent
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    DataCatalogEvent.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.catalog != null && Object.hasOwnProperty.call(message, "catalog")) {
+                            var error = $root.prodigy.api.v1.DataCatalog.verify(message.catalog, long + 1);
+                            if (error)
+                                return "catalog." + error;
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a DataCatalogEvent message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.DataCatalogEvent
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.DataCatalogEvent} DataCatalogEvent
+                     */
+                    DataCatalogEvent.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.DataCatalogEvent)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.DataCatalogEvent: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.DataCatalogEvent();
+                        if (object.catalog != null) {
+                            if (!$util.isObject(object.catalog))
+                                throw TypeError(".prodigy.api.v1.DataCatalogEvent.catalog: object expected");
+                            message.catalog = $root.prodigy.api.v1.DataCatalog.fromObject(object.catalog, long + 1);
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a DataCatalogEvent message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.DataCatalogEvent
+                     * @static
+                     * @param {prodigy.api.v1.DataCatalogEvent} message DataCatalogEvent
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    DataCatalogEvent.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.defaults)
+                            object.catalog = null;
+                        if (message.catalog != null && Object.hasOwnProperty.call(message, "catalog"))
+                            object.catalog = $root.prodigy.api.v1.DataCatalog.toObject(message.catalog, options, q + 1);
+                        return object;
+                    };
+
+                    /**
+                     * Converts this DataCatalogEvent to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.DataCatalogEvent
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    DataCatalogEvent.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for DataCatalogEvent
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.DataCatalogEvent
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    DataCatalogEvent.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.DataCatalogEvent";
+                    };
+
+                    return DataCatalogEvent;
+                })();
+
+                v1.DataChannelRef = (function() {
+
+                    /**
+                     * Properties of a DataChannelRef.
+                     * @memberof prodigy.api.v1
+                     * @interface IDataChannelRef
+                     * @property {string|null} [providerNamespace] DataChannelRef providerNamespace
+                     * @property {string|null} [channelName] DataChannelRef channelName
+                     */
+
+                    /**
+                     * Constructs a new DataChannelRef.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a DataChannelRef.
+                     * @implements IDataChannelRef
+                     * @constructor
+                     * @param {prodigy.api.v1.IDataChannelRef=} [properties] Properties to set
+                     */
+                    function DataChannelRef(properties) {
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * DataChannelRef providerNamespace.
+                     * @member {string} providerNamespace
+                     * @memberof prodigy.api.v1.DataChannelRef
+                     * @instance
+                     */
+                    DataChannelRef.prototype.providerNamespace = "";
+
+                    /**
+                     * DataChannelRef channelName.
+                     * @member {string} channelName
+                     * @memberof prodigy.api.v1.DataChannelRef
+                     * @instance
+                     */
+                    DataChannelRef.prototype.channelName = "";
+
+                    /**
+                     * Creates a new DataChannelRef instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.DataChannelRef
+                     * @static
+                     * @param {prodigy.api.v1.IDataChannelRef=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.DataChannelRef} DataChannelRef instance
+                     */
+                    DataChannelRef.create = function create(properties) {
+                        return new DataChannelRef(properties);
+                    };
+
+                    /**
+                     * Encodes the specified DataChannelRef message. Does not implicitly {@link prodigy.api.v1.DataChannelRef.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.DataChannelRef
+                     * @static
+                     * @param {prodigy.api.v1.IDataChannelRef} message DataChannelRef message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    DataChannelRef.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.providerNamespace != null && Object.hasOwnProperty.call(message, "providerNamespace"))
+                            writer.uint32(/* id 1, wireType 2 =*/10).string(message.providerNamespace);
+                        if (message.channelName != null && Object.hasOwnProperty.call(message, "channelName"))
+                            writer.uint32(/* id 2, wireType 2 =*/18).string(message.channelName);
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a DataChannelRef message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.DataChannelRef
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.DataChannelRef} DataChannelRef
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    DataChannelRef.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.DataChannelRef();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.providerNamespace = reader.string();
+                                    break;
+                                }
+                            case 2: {
+                                    message.channelName = reader.string();
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a DataChannelRef message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.DataChannelRef
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    DataChannelRef.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.providerNamespace != null && Object.hasOwnProperty.call(message, "providerNamespace"))
+                            if (!$util.isString(message.providerNamespace))
+                                return "providerNamespace: string expected";
+                        if (message.channelName != null && Object.hasOwnProperty.call(message, "channelName"))
+                            if (!$util.isString(message.channelName))
+                                return "channelName: string expected";
+                        return null;
+                    };
+
+                    /**
+                     * Creates a DataChannelRef message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.DataChannelRef
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.DataChannelRef} DataChannelRef
+                     */
+                    DataChannelRef.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.DataChannelRef)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.DataChannelRef: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.DataChannelRef();
+                        if (object.providerNamespace != null)
+                            message.providerNamespace = String(object.providerNamespace);
+                        if (object.channelName != null)
+                            message.channelName = String(object.channelName);
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a DataChannelRef message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.DataChannelRef
+                     * @static
+                     * @param {prodigy.api.v1.DataChannelRef} message DataChannelRef
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    DataChannelRef.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.defaults) {
+                            object.providerNamespace = "";
+                            object.channelName = "";
+                        }
+                        if (message.providerNamespace != null && Object.hasOwnProperty.call(message, "providerNamespace"))
+                            object.providerNamespace = message.providerNamespace;
+                        if (message.channelName != null && Object.hasOwnProperty.call(message, "channelName"))
+                            object.channelName = message.channelName;
+                        return object;
+                    };
+
+                    /**
+                     * Converts this DataChannelRef to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.DataChannelRef
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    DataChannelRef.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for DataChannelRef
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.DataChannelRef
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    DataChannelRef.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.DataChannelRef";
+                    };
+
+                    return DataChannelRef;
+                })();
+
+                v1.SubscribeDataChannelsRequest = (function() {
+
+                    /**
+                     * Properties of a SubscribeDataChannelsRequest.
+                     * @memberof prodigy.api.v1
+                     * @interface ISubscribeDataChannelsRequest
+                     * @property {Array.<prodigy.api.v1.IDataChannelRef>|null} [channels] SubscribeDataChannelsRequest channels
+                     */
+
+                    /**
+                     * Constructs a new SubscribeDataChannelsRequest.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a SubscribeDataChannelsRequest.
+                     * @implements ISubscribeDataChannelsRequest
+                     * @constructor
+                     * @param {prodigy.api.v1.ISubscribeDataChannelsRequest=} [properties] Properties to set
+                     */
+                    function SubscribeDataChannelsRequest(properties) {
+                        this.channels = [];
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * SubscribeDataChannelsRequest channels.
+                     * @member {Array.<prodigy.api.v1.IDataChannelRef>} channels
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsRequest
+                     * @instance
+                     */
+                    SubscribeDataChannelsRequest.prototype.channels = $util.emptyArray;
+
+                    /**
+                     * Creates a new SubscribeDataChannelsRequest instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsRequest
+                     * @static
+                     * @param {prodigy.api.v1.ISubscribeDataChannelsRequest=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.SubscribeDataChannelsRequest} SubscribeDataChannelsRequest instance
+                     */
+                    SubscribeDataChannelsRequest.create = function create(properties) {
+                        return new SubscribeDataChannelsRequest(properties);
+                    };
+
+                    /**
+                     * Encodes the specified SubscribeDataChannelsRequest message. Does not implicitly {@link prodigy.api.v1.SubscribeDataChannelsRequest.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsRequest
+                     * @static
+                     * @param {prodigy.api.v1.ISubscribeDataChannelsRequest} message SubscribeDataChannelsRequest message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    SubscribeDataChannelsRequest.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.channels != null && message.channels.length)
+                            for (var i = 0; i < message.channels.length; ++i)
+                                $root.prodigy.api.v1.DataChannelRef.encode(message.channels[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a SubscribeDataChannelsRequest message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsRequest
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.SubscribeDataChannelsRequest} SubscribeDataChannelsRequest
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    SubscribeDataChannelsRequest.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.SubscribeDataChannelsRequest();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    if (!(message.channels && message.channels.length))
+                                        message.channels = [];
+                                    message.channels.push($root.prodigy.api.v1.DataChannelRef.decode(reader, reader.uint32(), undefined, long + 1));
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a SubscribeDataChannelsRequest message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsRequest
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    SubscribeDataChannelsRequest.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.channels != null && Object.hasOwnProperty.call(message, "channels")) {
+                            if (!Array.isArray(message.channels))
+                                return "channels: array expected";
+                            for (var i = 0; i < message.channels.length; ++i) {
+                                var error = $root.prodigy.api.v1.DataChannelRef.verify(message.channels[i], long + 1);
+                                if (error)
+                                    return "channels." + error;
+                            }
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a SubscribeDataChannelsRequest message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsRequest
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.SubscribeDataChannelsRequest} SubscribeDataChannelsRequest
+                     */
+                    SubscribeDataChannelsRequest.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.SubscribeDataChannelsRequest)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.SubscribeDataChannelsRequest: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.SubscribeDataChannelsRequest();
+                        if (object.channels) {
+                            if (!Array.isArray(object.channels))
+                                throw TypeError(".prodigy.api.v1.SubscribeDataChannelsRequest.channels: array expected");
+                            message.channels = [];
+                            for (var i = 0; i < object.channels.length; ++i) {
+                                if (!$util.isObject(object.channels[i]))
+                                    throw TypeError(".prodigy.api.v1.SubscribeDataChannelsRequest.channels: object expected");
+                                message.channels[i] = $root.prodigy.api.v1.DataChannelRef.fromObject(object.channels[i], long + 1);
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a SubscribeDataChannelsRequest message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsRequest
+                     * @static
+                     * @param {prodigy.api.v1.SubscribeDataChannelsRequest} message SubscribeDataChannelsRequest
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    SubscribeDataChannelsRequest.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.arrays || options.defaults)
+                            object.channels = [];
+                        if (message.channels && message.channels.length) {
+                            object.channels = [];
+                            for (var j = 0; j < message.channels.length; ++j)
+                                object.channels[j] = $root.prodigy.api.v1.DataChannelRef.toObject(message.channels[j], options, q + 1);
+                        }
+                        return object;
+                    };
+
+                    /**
+                     * Converts this SubscribeDataChannelsRequest to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsRequest
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    SubscribeDataChannelsRequest.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for SubscribeDataChannelsRequest
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsRequest
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    SubscribeDataChannelsRequest.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.SubscribeDataChannelsRequest";
+                    };
+
+                    return SubscribeDataChannelsRequest;
+                })();
+
+                v1.DataChannelSubscriptionResult = (function() {
+
+                    /**
+                     * Properties of a DataChannelSubscriptionResult.
+                     * @memberof prodigy.api.v1
+                     * @interface IDataChannelSubscriptionResult
+                     * @property {prodigy.api.v1.IDataChannelRef|null} [channel] DataChannelSubscriptionResult channel
+                     * @property {boolean|null} [accepted] DataChannelSubscriptionResult accepted
+                     * @property {string|null} [reason] DataChannelSubscriptionResult reason
+                     */
+
+                    /**
+                     * Constructs a new DataChannelSubscriptionResult.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a DataChannelSubscriptionResult.
+                     * @implements IDataChannelSubscriptionResult
+                     * @constructor
+                     * @param {prodigy.api.v1.IDataChannelSubscriptionResult=} [properties] Properties to set
+                     */
+                    function DataChannelSubscriptionResult(properties) {
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * DataChannelSubscriptionResult channel.
+                     * @member {prodigy.api.v1.IDataChannelRef|null|undefined} channel
+                     * @memberof prodigy.api.v1.DataChannelSubscriptionResult
+                     * @instance
+                     */
+                    DataChannelSubscriptionResult.prototype.channel = null;
+
+                    /**
+                     * DataChannelSubscriptionResult accepted.
+                     * @member {boolean} accepted
+                     * @memberof prodigy.api.v1.DataChannelSubscriptionResult
+                     * @instance
+                     */
+                    DataChannelSubscriptionResult.prototype.accepted = false;
+
+                    /**
+                     * DataChannelSubscriptionResult reason.
+                     * @member {string} reason
+                     * @memberof prodigy.api.v1.DataChannelSubscriptionResult
+                     * @instance
+                     */
+                    DataChannelSubscriptionResult.prototype.reason = "";
+
+                    /**
+                     * Creates a new DataChannelSubscriptionResult instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.DataChannelSubscriptionResult
+                     * @static
+                     * @param {prodigy.api.v1.IDataChannelSubscriptionResult=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.DataChannelSubscriptionResult} DataChannelSubscriptionResult instance
+                     */
+                    DataChannelSubscriptionResult.create = function create(properties) {
+                        return new DataChannelSubscriptionResult(properties);
+                    };
+
+                    /**
+                     * Encodes the specified DataChannelSubscriptionResult message. Does not implicitly {@link prodigy.api.v1.DataChannelSubscriptionResult.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.DataChannelSubscriptionResult
+                     * @static
+                     * @param {prodigy.api.v1.IDataChannelSubscriptionResult} message DataChannelSubscriptionResult message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    DataChannelSubscriptionResult.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.channel != null && Object.hasOwnProperty.call(message, "channel"))
+                            $root.prodigy.api.v1.DataChannelRef.encode(message.channel, writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
+                        if (message.accepted != null && Object.hasOwnProperty.call(message, "accepted"))
+                            writer.uint32(/* id 2, wireType 0 =*/16).bool(message.accepted);
+                        if (message.reason != null && Object.hasOwnProperty.call(message, "reason"))
+                            writer.uint32(/* id 3, wireType 2 =*/26).string(message.reason);
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a DataChannelSubscriptionResult message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.DataChannelSubscriptionResult
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.DataChannelSubscriptionResult} DataChannelSubscriptionResult
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    DataChannelSubscriptionResult.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.DataChannelSubscriptionResult();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.channel = $root.prodigy.api.v1.DataChannelRef.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 2: {
+                                    message.accepted = reader.bool();
+                                    break;
+                                }
+                            case 3: {
+                                    message.reason = reader.string();
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a DataChannelSubscriptionResult message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.DataChannelSubscriptionResult
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    DataChannelSubscriptionResult.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.channel != null && Object.hasOwnProperty.call(message, "channel")) {
+                            var error = $root.prodigy.api.v1.DataChannelRef.verify(message.channel, long + 1);
+                            if (error)
+                                return "channel." + error;
+                        }
+                        if (message.accepted != null && Object.hasOwnProperty.call(message, "accepted"))
+                            if (typeof message.accepted !== "boolean")
+                                return "accepted: boolean expected";
+                        if (message.reason != null && Object.hasOwnProperty.call(message, "reason"))
+                            if (!$util.isString(message.reason))
+                                return "reason: string expected";
+                        return null;
+                    };
+
+                    /**
+                     * Creates a DataChannelSubscriptionResult message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.DataChannelSubscriptionResult
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.DataChannelSubscriptionResult} DataChannelSubscriptionResult
+                     */
+                    DataChannelSubscriptionResult.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.DataChannelSubscriptionResult)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.DataChannelSubscriptionResult: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.DataChannelSubscriptionResult();
+                        if (object.channel != null) {
+                            if (!$util.isObject(object.channel))
+                                throw TypeError(".prodigy.api.v1.DataChannelSubscriptionResult.channel: object expected");
+                            message.channel = $root.prodigy.api.v1.DataChannelRef.fromObject(object.channel, long + 1);
+                        }
+                        if (object.accepted != null)
+                            message.accepted = Boolean(object.accepted);
+                        if (object.reason != null)
+                            message.reason = String(object.reason);
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a DataChannelSubscriptionResult message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.DataChannelSubscriptionResult
+                     * @static
+                     * @param {prodigy.api.v1.DataChannelSubscriptionResult} message DataChannelSubscriptionResult
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    DataChannelSubscriptionResult.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.defaults) {
+                            object.channel = null;
+                            object.accepted = false;
+                            object.reason = "";
+                        }
+                        if (message.channel != null && Object.hasOwnProperty.call(message, "channel"))
+                            object.channel = $root.prodigy.api.v1.DataChannelRef.toObject(message.channel, options, q + 1);
+                        if (message.accepted != null && Object.hasOwnProperty.call(message, "accepted"))
+                            object.accepted = message.accepted;
+                        if (message.reason != null && Object.hasOwnProperty.call(message, "reason"))
+                            object.reason = message.reason;
+                        return object;
+                    };
+
+                    /**
+                     * Converts this DataChannelSubscriptionResult to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.DataChannelSubscriptionResult
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    DataChannelSubscriptionResult.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for DataChannelSubscriptionResult
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.DataChannelSubscriptionResult
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    DataChannelSubscriptionResult.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.DataChannelSubscriptionResult";
+                    };
+
+                    return DataChannelSubscriptionResult;
+                })();
+
+                v1.SubscribeDataChannelsResponse = (function() {
+
+                    /**
+                     * Properties of a SubscribeDataChannelsResponse.
+                     * @memberof prodigy.api.v1
+                     * @interface ISubscribeDataChannelsResponse
+                     * @property {Array.<prodigy.api.v1.IDataChannelSubscriptionResult>|null} [results] SubscribeDataChannelsResponse results
+                     */
+
+                    /**
+                     * Constructs a new SubscribeDataChannelsResponse.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a SubscribeDataChannelsResponse.
+                     * @implements ISubscribeDataChannelsResponse
+                     * @constructor
+                     * @param {prodigy.api.v1.ISubscribeDataChannelsResponse=} [properties] Properties to set
+                     */
+                    function SubscribeDataChannelsResponse(properties) {
+                        this.results = [];
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * SubscribeDataChannelsResponse results.
+                     * @member {Array.<prodigy.api.v1.IDataChannelSubscriptionResult>} results
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsResponse
+                     * @instance
+                     */
+                    SubscribeDataChannelsResponse.prototype.results = $util.emptyArray;
+
+                    /**
+                     * Creates a new SubscribeDataChannelsResponse instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsResponse
+                     * @static
+                     * @param {prodigy.api.v1.ISubscribeDataChannelsResponse=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.SubscribeDataChannelsResponse} SubscribeDataChannelsResponse instance
+                     */
+                    SubscribeDataChannelsResponse.create = function create(properties) {
+                        return new SubscribeDataChannelsResponse(properties);
+                    };
+
+                    /**
+                     * Encodes the specified SubscribeDataChannelsResponse message. Does not implicitly {@link prodigy.api.v1.SubscribeDataChannelsResponse.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsResponse
+                     * @static
+                     * @param {prodigy.api.v1.ISubscribeDataChannelsResponse} message SubscribeDataChannelsResponse message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    SubscribeDataChannelsResponse.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.results != null && message.results.length)
+                            for (var i = 0; i < message.results.length; ++i)
+                                $root.prodigy.api.v1.DataChannelSubscriptionResult.encode(message.results[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a SubscribeDataChannelsResponse message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsResponse
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.SubscribeDataChannelsResponse} SubscribeDataChannelsResponse
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    SubscribeDataChannelsResponse.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.SubscribeDataChannelsResponse();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    if (!(message.results && message.results.length))
+                                        message.results = [];
+                                    message.results.push($root.prodigy.api.v1.DataChannelSubscriptionResult.decode(reader, reader.uint32(), undefined, long + 1));
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a SubscribeDataChannelsResponse message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsResponse
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    SubscribeDataChannelsResponse.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.results != null && Object.hasOwnProperty.call(message, "results")) {
+                            if (!Array.isArray(message.results))
+                                return "results: array expected";
+                            for (var i = 0; i < message.results.length; ++i) {
+                                var error = $root.prodigy.api.v1.DataChannelSubscriptionResult.verify(message.results[i], long + 1);
+                                if (error)
+                                    return "results." + error;
+                            }
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a SubscribeDataChannelsResponse message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsResponse
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.SubscribeDataChannelsResponse} SubscribeDataChannelsResponse
+                     */
+                    SubscribeDataChannelsResponse.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.SubscribeDataChannelsResponse)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.SubscribeDataChannelsResponse: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.SubscribeDataChannelsResponse();
+                        if (object.results) {
+                            if (!Array.isArray(object.results))
+                                throw TypeError(".prodigy.api.v1.SubscribeDataChannelsResponse.results: array expected");
+                            message.results = [];
+                            for (var i = 0; i < object.results.length; ++i) {
+                                if (!$util.isObject(object.results[i]))
+                                    throw TypeError(".prodigy.api.v1.SubscribeDataChannelsResponse.results: object expected");
+                                message.results[i] = $root.prodigy.api.v1.DataChannelSubscriptionResult.fromObject(object.results[i], long + 1);
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a SubscribeDataChannelsResponse message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsResponse
+                     * @static
+                     * @param {prodigy.api.v1.SubscribeDataChannelsResponse} message SubscribeDataChannelsResponse
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    SubscribeDataChannelsResponse.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.arrays || options.defaults)
+                            object.results = [];
+                        if (message.results && message.results.length) {
+                            object.results = [];
+                            for (var j = 0; j < message.results.length; ++j)
+                                object.results[j] = $root.prodigy.api.v1.DataChannelSubscriptionResult.toObject(message.results[j], options, q + 1);
+                        }
+                        return object;
+                    };
+
+                    /**
+                     * Converts this SubscribeDataChannelsResponse to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsResponse
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    SubscribeDataChannelsResponse.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for SubscribeDataChannelsResponse
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.SubscribeDataChannelsResponse
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    SubscribeDataChannelsResponse.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.SubscribeDataChannelsResponse";
+                    };
+
+                    return SubscribeDataChannelsResponse;
+                })();
+
+                v1.UnsubscribeDataChannelsRequest = (function() {
+
+                    /**
+                     * Properties of an UnsubscribeDataChannelsRequest.
+                     * @memberof prodigy.api.v1
+                     * @interface IUnsubscribeDataChannelsRequest
+                     * @property {Array.<prodigy.api.v1.IDataChannelRef>|null} [channels] UnsubscribeDataChannelsRequest channels
+                     */
+
+                    /**
+                     * Constructs a new UnsubscribeDataChannelsRequest.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents an UnsubscribeDataChannelsRequest.
+                     * @implements IUnsubscribeDataChannelsRequest
+                     * @constructor
+                     * @param {prodigy.api.v1.IUnsubscribeDataChannelsRequest=} [properties] Properties to set
+                     */
+                    function UnsubscribeDataChannelsRequest(properties) {
+                        this.channels = [];
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * UnsubscribeDataChannelsRequest channels.
+                     * @member {Array.<prodigy.api.v1.IDataChannelRef>} channels
+                     * @memberof prodigy.api.v1.UnsubscribeDataChannelsRequest
+                     * @instance
+                     */
+                    UnsubscribeDataChannelsRequest.prototype.channels = $util.emptyArray;
+
+                    /**
+                     * Creates a new UnsubscribeDataChannelsRequest instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.UnsubscribeDataChannelsRequest
+                     * @static
+                     * @param {prodigy.api.v1.IUnsubscribeDataChannelsRequest=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.UnsubscribeDataChannelsRequest} UnsubscribeDataChannelsRequest instance
+                     */
+                    UnsubscribeDataChannelsRequest.create = function create(properties) {
+                        return new UnsubscribeDataChannelsRequest(properties);
+                    };
+
+                    /**
+                     * Encodes the specified UnsubscribeDataChannelsRequest message. Does not implicitly {@link prodigy.api.v1.UnsubscribeDataChannelsRequest.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.UnsubscribeDataChannelsRequest
+                     * @static
+                     * @param {prodigy.api.v1.IUnsubscribeDataChannelsRequest} message UnsubscribeDataChannelsRequest message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    UnsubscribeDataChannelsRequest.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.channels != null && message.channels.length)
+                            for (var i = 0; i < message.channels.length; ++i)
+                                $root.prodigy.api.v1.DataChannelRef.encode(message.channels[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes an UnsubscribeDataChannelsRequest message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.UnsubscribeDataChannelsRequest
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.UnsubscribeDataChannelsRequest} UnsubscribeDataChannelsRequest
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    UnsubscribeDataChannelsRequest.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.UnsubscribeDataChannelsRequest();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    if (!(message.channels && message.channels.length))
+                                        message.channels = [];
+                                    message.channels.push($root.prodigy.api.v1.DataChannelRef.decode(reader, reader.uint32(), undefined, long + 1));
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies an UnsubscribeDataChannelsRequest message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.UnsubscribeDataChannelsRequest
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    UnsubscribeDataChannelsRequest.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.channels != null && Object.hasOwnProperty.call(message, "channels")) {
+                            if (!Array.isArray(message.channels))
+                                return "channels: array expected";
+                            for (var i = 0; i < message.channels.length; ++i) {
+                                var error = $root.prodigy.api.v1.DataChannelRef.verify(message.channels[i], long + 1);
+                                if (error)
+                                    return "channels." + error;
+                            }
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates an UnsubscribeDataChannelsRequest message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.UnsubscribeDataChannelsRequest
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.UnsubscribeDataChannelsRequest} UnsubscribeDataChannelsRequest
+                     */
+                    UnsubscribeDataChannelsRequest.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.UnsubscribeDataChannelsRequest)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.UnsubscribeDataChannelsRequest: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.UnsubscribeDataChannelsRequest();
+                        if (object.channels) {
+                            if (!Array.isArray(object.channels))
+                                throw TypeError(".prodigy.api.v1.UnsubscribeDataChannelsRequest.channels: array expected");
+                            message.channels = [];
+                            for (var i = 0; i < object.channels.length; ++i) {
+                                if (!$util.isObject(object.channels[i]))
+                                    throw TypeError(".prodigy.api.v1.UnsubscribeDataChannelsRequest.channels: object expected");
+                                message.channels[i] = $root.prodigy.api.v1.DataChannelRef.fromObject(object.channels[i], long + 1);
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from an UnsubscribeDataChannelsRequest message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.UnsubscribeDataChannelsRequest
+                     * @static
+                     * @param {prodigy.api.v1.UnsubscribeDataChannelsRequest} message UnsubscribeDataChannelsRequest
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    UnsubscribeDataChannelsRequest.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.arrays || options.defaults)
+                            object.channels = [];
+                        if (message.channels && message.channels.length) {
+                            object.channels = [];
+                            for (var j = 0; j < message.channels.length; ++j)
+                                object.channels[j] = $root.prodigy.api.v1.DataChannelRef.toObject(message.channels[j], options, q + 1);
+                        }
+                        return object;
+                    };
+
+                    /**
+                     * Converts this UnsubscribeDataChannelsRequest to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.UnsubscribeDataChannelsRequest
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    UnsubscribeDataChannelsRequest.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for UnsubscribeDataChannelsRequest
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.UnsubscribeDataChannelsRequest
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    UnsubscribeDataChannelsRequest.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.UnsubscribeDataChannelsRequest";
+                    };
+
+                    return UnsubscribeDataChannelsRequest;
+                })();
+
+                /**
+                 * DataChannelAvailability enum.
+                 * @name prodigy.api.v1.DataChannelAvailability
+                 * @enum {number}
+                 * @property {number} DATA_CHANNEL_AVAILABILITY_UNSPECIFIED=0 DATA_CHANNEL_AVAILABILITY_UNSPECIFIED value
+                 * @property {number} DATA_CHANNEL_AVAILABILITY_AVAILABLE=1 DATA_CHANNEL_AVAILABILITY_AVAILABLE value
+                 * @property {number} DATA_CHANNEL_AVAILABILITY_UNAVAILABLE=2 DATA_CHANNEL_AVAILABILITY_UNAVAILABLE value
+                 */
+                v1.DataChannelAvailability = (function() {
+                    var valuesById = {}, values = Object.create(valuesById);
+                    values[valuesById[0] = "DATA_CHANNEL_AVAILABILITY_UNSPECIFIED"] = 0;
+                    values[valuesById[1] = "DATA_CHANNEL_AVAILABILITY_AVAILABLE"] = 1;
+                    values[valuesById[2] = "DATA_CHANNEL_AVAILABILITY_UNAVAILABLE"] = 2;
+                    return values;
+                })();
+
+                /**
+                 * DataUnavailableReason enum.
+                 * @name prodigy.api.v1.DataUnavailableReason
+                 * @enum {number}
+                 * @property {number} DATA_UNAVAILABLE_REASON_UNSPECIFIED=0 DATA_UNAVAILABLE_REASON_UNSPECIFIED value
+                 * @property {number} DATA_UNAVAILABLE_REASON_PROVIDER_ABSENT=1 DATA_UNAVAILABLE_REASON_PROVIDER_ABSENT value
+                 * @property {number} DATA_UNAVAILABLE_REASON_CHANNEL_ABSENT=2 DATA_UNAVAILABLE_REASON_CHANNEL_ABSENT value
+                 * @property {number} DATA_UNAVAILABLE_REASON_PROVIDER_DISCONNECTED=3 DATA_UNAVAILABLE_REASON_PROVIDER_DISCONNECTED value
+                 * @property {number} DATA_UNAVAILABLE_REASON_CHANNEL_REMOVED=4 DATA_UNAVAILABLE_REASON_CHANNEL_REMOVED value
+                 */
+                v1.DataUnavailableReason = (function() {
+                    var valuesById = {}, values = Object.create(valuesById);
+                    values[valuesById[0] = "DATA_UNAVAILABLE_REASON_UNSPECIFIED"] = 0;
+                    values[valuesById[1] = "DATA_UNAVAILABLE_REASON_PROVIDER_ABSENT"] = 1;
+                    values[valuesById[2] = "DATA_UNAVAILABLE_REASON_CHANNEL_ABSENT"] = 2;
+                    values[valuesById[3] = "DATA_UNAVAILABLE_REASON_PROVIDER_DISCONNECTED"] = 3;
+                    values[valuesById[4] = "DATA_UNAVAILABLE_REASON_CHANNEL_REMOVED"] = 4;
+                    return values;
+                })();
+
+                v1.DataChannelAvailabilityEvent = (function() {
+
+                    /**
+                     * Properties of a DataChannelAvailabilityEvent.
+                     * @memberof prodigy.api.v1
+                     * @interface IDataChannelAvailabilityEvent
+                     * @property {prodigy.api.v1.IDataChannelRef|null} [channel] DataChannelAvailabilityEvent channel
+                     * @property {prodigy.api.v1.DataChannelAvailability|null} [availability] DataChannelAvailabilityEvent availability
+                     * @property {prodigy.api.v1.IDataChannelDefinition|null} [definition] DataChannelAvailabilityEvent definition
+                     * @property {prodigy.api.v1.DataUnavailableReason|null} [unavailableReason] DataChannelAvailabilityEvent unavailableReason
+                     * @property {number|Long|null} [catalogRevision] DataChannelAvailabilityEvent catalogRevision
+                     */
+
+                    /**
+                     * Constructs a new DataChannelAvailabilityEvent.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a DataChannelAvailabilityEvent.
+                     * @implements IDataChannelAvailabilityEvent
+                     * @constructor
+                     * @param {prodigy.api.v1.IDataChannelAvailabilityEvent=} [properties] Properties to set
+                     */
+                    function DataChannelAvailabilityEvent(properties) {
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * DataChannelAvailabilityEvent channel.
+                     * @member {prodigy.api.v1.IDataChannelRef|null|undefined} channel
+                     * @memberof prodigy.api.v1.DataChannelAvailabilityEvent
+                     * @instance
+                     */
+                    DataChannelAvailabilityEvent.prototype.channel = null;
+
+                    /**
+                     * DataChannelAvailabilityEvent availability.
+                     * @member {prodigy.api.v1.DataChannelAvailability} availability
+                     * @memberof prodigy.api.v1.DataChannelAvailabilityEvent
+                     * @instance
+                     */
+                    DataChannelAvailabilityEvent.prototype.availability = 0;
+
+                    /**
+                     * DataChannelAvailabilityEvent definition.
+                     * @member {prodigy.api.v1.IDataChannelDefinition|null|undefined} definition
+                     * @memberof prodigy.api.v1.DataChannelAvailabilityEvent
+                     * @instance
+                     */
+                    DataChannelAvailabilityEvent.prototype.definition = null;
+
+                    /**
+                     * DataChannelAvailabilityEvent unavailableReason.
+                     * @member {prodigy.api.v1.DataUnavailableReason} unavailableReason
+                     * @memberof prodigy.api.v1.DataChannelAvailabilityEvent
+                     * @instance
+                     */
+                    DataChannelAvailabilityEvent.prototype.unavailableReason = 0;
+
+                    /**
+                     * DataChannelAvailabilityEvent catalogRevision.
+                     * @member {number|Long} catalogRevision
+                     * @memberof prodigy.api.v1.DataChannelAvailabilityEvent
+                     * @instance
+                     */
+                    DataChannelAvailabilityEvent.prototype.catalogRevision = $util.Long ? $util.Long.fromBits(0,0,true) : 0;
+
+                    /**
+                     * Creates a new DataChannelAvailabilityEvent instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.DataChannelAvailabilityEvent
+                     * @static
+                     * @param {prodigy.api.v1.IDataChannelAvailabilityEvent=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.DataChannelAvailabilityEvent} DataChannelAvailabilityEvent instance
+                     */
+                    DataChannelAvailabilityEvent.create = function create(properties) {
+                        return new DataChannelAvailabilityEvent(properties);
+                    };
+
+                    /**
+                     * Encodes the specified DataChannelAvailabilityEvent message. Does not implicitly {@link prodigy.api.v1.DataChannelAvailabilityEvent.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.DataChannelAvailabilityEvent
+                     * @static
+                     * @param {prodigy.api.v1.IDataChannelAvailabilityEvent} message DataChannelAvailabilityEvent message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    DataChannelAvailabilityEvent.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.channel != null && Object.hasOwnProperty.call(message, "channel"))
+                            $root.prodigy.api.v1.DataChannelRef.encode(message.channel, writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
+                        if (message.availability != null && Object.hasOwnProperty.call(message, "availability"))
+                            writer.uint32(/* id 2, wireType 0 =*/16).int32(message.availability);
+                        if (message.definition != null && Object.hasOwnProperty.call(message, "definition"))
+                            $root.prodigy.api.v1.DataChannelDefinition.encode(message.definition, writer.uint32(/* id 3, wireType 2 =*/26).fork(), q + 1).ldelim();
+                        if (message.unavailableReason != null && Object.hasOwnProperty.call(message, "unavailableReason"))
+                            writer.uint32(/* id 4, wireType 0 =*/32).int32(message.unavailableReason);
+                        if (message.catalogRevision != null && Object.hasOwnProperty.call(message, "catalogRevision"))
+                            writer.uint32(/* id 5, wireType 0 =*/40).uint64(message.catalogRevision);
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a DataChannelAvailabilityEvent message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.DataChannelAvailabilityEvent
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.DataChannelAvailabilityEvent} DataChannelAvailabilityEvent
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    DataChannelAvailabilityEvent.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.DataChannelAvailabilityEvent();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.channel = $root.prodigy.api.v1.DataChannelRef.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 2: {
+                                    message.availability = reader.int32();
+                                    break;
+                                }
+                            case 3: {
+                                    message.definition = $root.prodigy.api.v1.DataChannelDefinition.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            case 4: {
+                                    message.unavailableReason = reader.int32();
+                                    break;
+                                }
+                            case 5: {
+                                    message.catalogRevision = reader.uint64();
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a DataChannelAvailabilityEvent message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.DataChannelAvailabilityEvent
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    DataChannelAvailabilityEvent.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.channel != null && Object.hasOwnProperty.call(message, "channel")) {
+                            var error = $root.prodigy.api.v1.DataChannelRef.verify(message.channel, long + 1);
+                            if (error)
+                                return "channel." + error;
+                        }
+                        if (message.availability != null && Object.hasOwnProperty.call(message, "availability"))
+                            switch (message.availability) {
+                            default:
+                                return "availability: enum value expected";
+                            case 0:
+                            case 1:
+                            case 2:
+                                break;
+                            }
+                        if (message.definition != null && Object.hasOwnProperty.call(message, "definition")) {
+                            var error = $root.prodigy.api.v1.DataChannelDefinition.verify(message.definition, long + 1);
+                            if (error)
+                                return "definition." + error;
+                        }
+                        if (message.unavailableReason != null && Object.hasOwnProperty.call(message, "unavailableReason"))
+                            switch (message.unavailableReason) {
+                            default:
+                                return "unavailableReason: enum value expected";
+                            case 0:
+                            case 1:
+                            case 2:
+                            case 3:
+                            case 4:
+                                break;
+                            }
+                        if (message.catalogRevision != null && Object.hasOwnProperty.call(message, "catalogRevision"))
+                            if (!$util.isInteger(message.catalogRevision) && !(message.catalogRevision && $util.isInteger(message.catalogRevision.low) && $util.isInteger(message.catalogRevision.high)))
+                                return "catalogRevision: integer|Long expected";
+                        return null;
+                    };
+
+                    /**
+                     * Creates a DataChannelAvailabilityEvent message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.DataChannelAvailabilityEvent
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.DataChannelAvailabilityEvent} DataChannelAvailabilityEvent
+                     */
+                    DataChannelAvailabilityEvent.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.DataChannelAvailabilityEvent)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.DataChannelAvailabilityEvent: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.DataChannelAvailabilityEvent();
+                        if (object.channel != null) {
+                            if (!$util.isObject(object.channel))
+                                throw TypeError(".prodigy.api.v1.DataChannelAvailabilityEvent.channel: object expected");
+                            message.channel = $root.prodigy.api.v1.DataChannelRef.fromObject(object.channel, long + 1);
+                        }
+                        switch (object.availability) {
+                        default:
+                            if (typeof object.availability === "number") {
+                                message.availability = object.availability;
+                                break;
+                            }
+                            break;
+                        case "DATA_CHANNEL_AVAILABILITY_UNSPECIFIED":
+                        case 0:
+                            message.availability = 0;
+                            break;
+                        case "DATA_CHANNEL_AVAILABILITY_AVAILABLE":
+                        case 1:
+                            message.availability = 1;
+                            break;
+                        case "DATA_CHANNEL_AVAILABILITY_UNAVAILABLE":
+                        case 2:
+                            message.availability = 2;
+                            break;
+                        }
+                        if (object.definition != null) {
+                            if (!$util.isObject(object.definition))
+                                throw TypeError(".prodigy.api.v1.DataChannelAvailabilityEvent.definition: object expected");
+                            message.definition = $root.prodigy.api.v1.DataChannelDefinition.fromObject(object.definition, long + 1);
+                        }
+                        switch (object.unavailableReason) {
+                        default:
+                            if (typeof object.unavailableReason === "number") {
+                                message.unavailableReason = object.unavailableReason;
+                                break;
+                            }
+                            break;
+                        case "DATA_UNAVAILABLE_REASON_UNSPECIFIED":
+                        case 0:
+                            message.unavailableReason = 0;
+                            break;
+                        case "DATA_UNAVAILABLE_REASON_PROVIDER_ABSENT":
+                        case 1:
+                            message.unavailableReason = 1;
+                            break;
+                        case "DATA_UNAVAILABLE_REASON_CHANNEL_ABSENT":
+                        case 2:
+                            message.unavailableReason = 2;
+                            break;
+                        case "DATA_UNAVAILABLE_REASON_PROVIDER_DISCONNECTED":
+                        case 3:
+                            message.unavailableReason = 3;
+                            break;
+                        case "DATA_UNAVAILABLE_REASON_CHANNEL_REMOVED":
+                        case 4:
+                            message.unavailableReason = 4;
+                            break;
+                        }
+                        if (object.catalogRevision != null)
+                            if ($util.Long)
+                                message.catalogRevision = $util.Long.fromValue(object.catalogRevision, true);
+                            else if (typeof object.catalogRevision === "string")
+                                message.catalogRevision = parseInt(object.catalogRevision, 10);
+                            else if (typeof object.catalogRevision === "number")
+                                message.catalogRevision = object.catalogRevision;
+                            else if (typeof object.catalogRevision === "object")
+                                message.catalogRevision = new $util.LongBits(object.catalogRevision.low >>> 0, object.catalogRevision.high >>> 0).toNumber(true);
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a DataChannelAvailabilityEvent message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.DataChannelAvailabilityEvent
+                     * @static
+                     * @param {prodigy.api.v1.DataChannelAvailabilityEvent} message DataChannelAvailabilityEvent
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    DataChannelAvailabilityEvent.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.defaults) {
+                            object.channel = null;
+                            object.availability = options.enums === String ? "DATA_CHANNEL_AVAILABILITY_UNSPECIFIED" : 0;
+                            object.definition = null;
+                            object.unavailableReason = options.enums === String ? "DATA_UNAVAILABLE_REASON_UNSPECIFIED" : 0;
+                            if ($util.Long) {
+                                var long = new $util.Long(0, 0, true);
+                                object.catalogRevision = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
+                            } else
+                                object.catalogRevision = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
+                        }
+                        if (message.channel != null && Object.hasOwnProperty.call(message, "channel"))
+                            object.channel = $root.prodigy.api.v1.DataChannelRef.toObject(message.channel, options, q + 1);
+                        if (message.availability != null && Object.hasOwnProperty.call(message, "availability"))
+                            object.availability = options.enums === String ? $root.prodigy.api.v1.DataChannelAvailability[message.availability] === undefined ? message.availability : $root.prodigy.api.v1.DataChannelAvailability[message.availability] : message.availability;
+                        if (message.definition != null && Object.hasOwnProperty.call(message, "definition"))
+                            object.definition = $root.prodigy.api.v1.DataChannelDefinition.toObject(message.definition, options, q + 1);
+                        if (message.unavailableReason != null && Object.hasOwnProperty.call(message, "unavailableReason"))
+                            object.unavailableReason = options.enums === String ? $root.prodigy.api.v1.DataUnavailableReason[message.unavailableReason] === undefined ? message.unavailableReason : $root.prodigy.api.v1.DataUnavailableReason[message.unavailableReason] : message.unavailableReason;
+                        if (message.catalogRevision != null && Object.hasOwnProperty.call(message, "catalogRevision"))
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.catalogRevision = typeof message.catalogRevision === "number" ? BigInt(message.catalogRevision) : $util.Long.fromBits(message.catalogRevision.low >>> 0, message.catalogRevision.high >>> 0, true).toBigInt();
+                            else if (typeof message.catalogRevision === "number")
+                                object.catalogRevision = options.longs === String ? String(message.catalogRevision) : message.catalogRevision;
+                            else
+                                object.catalogRevision = options.longs === String ? $util.Long.prototype.toString.call(message.catalogRevision) : options.longs === Number ? new $util.LongBits(message.catalogRevision.low >>> 0, message.catalogRevision.high >>> 0).toNumber(true) : message.catalogRevision;
+                        return object;
+                    };
+
+                    /**
+                     * Converts this DataChannelAvailabilityEvent to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.DataChannelAvailabilityEvent
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    DataChannelAvailabilityEvent.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for DataChannelAvailabilityEvent
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.DataChannelAvailabilityEvent
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    DataChannelAvailabilityEvent.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.DataChannelAvailabilityEvent";
+                    };
+
+                    return DataChannelAvailabilityEvent;
+                })();
+
+                v1.DataValuesEvent = (function() {
+
+                    /**
+                     * Properties of a DataValuesEvent.
+                     * @memberof prodigy.api.v1
+                     * @interface IDataValuesEvent
+                     * @property {string|null} [providerNamespace] DataValuesEvent providerNamespace
+                     * @property {Array.<prodigy.api.v1.IDataSample>|null} [samples] DataValuesEvent samples
+                     */
+
+                    /**
+                     * Constructs a new DataValuesEvent.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a DataValuesEvent.
+                     * @implements IDataValuesEvent
+                     * @constructor
+                     * @param {prodigy.api.v1.IDataValuesEvent=} [properties] Properties to set
+                     */
+                    function DataValuesEvent(properties) {
+                        this.samples = [];
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * DataValuesEvent providerNamespace.
+                     * @member {string} providerNamespace
+                     * @memberof prodigy.api.v1.DataValuesEvent
+                     * @instance
+                     */
+                    DataValuesEvent.prototype.providerNamespace = "";
+
+                    /**
+                     * DataValuesEvent samples.
+                     * @member {Array.<prodigy.api.v1.IDataSample>} samples
+                     * @memberof prodigy.api.v1.DataValuesEvent
+                     * @instance
+                     */
+                    DataValuesEvent.prototype.samples = $util.emptyArray;
+
+                    /**
+                     * Creates a new DataValuesEvent instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.DataValuesEvent
+                     * @static
+                     * @param {prodigy.api.v1.IDataValuesEvent=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.DataValuesEvent} DataValuesEvent instance
+                     */
+                    DataValuesEvent.create = function create(properties) {
+                        return new DataValuesEvent(properties);
+                    };
+
+                    /**
+                     * Encodes the specified DataValuesEvent message. Does not implicitly {@link prodigy.api.v1.DataValuesEvent.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.DataValuesEvent
+                     * @static
+                     * @param {prodigy.api.v1.IDataValuesEvent} message DataValuesEvent message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    DataValuesEvent.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.providerNamespace != null && Object.hasOwnProperty.call(message, "providerNamespace"))
+                            writer.uint32(/* id 1, wireType 2 =*/10).string(message.providerNamespace);
+                        if (message.samples != null && message.samples.length)
+                            for (var i = 0; i < message.samples.length; ++i)
+                                $root.prodigy.api.v1.DataSample.encode(message.samples[i], writer.uint32(/* id 2, wireType 2 =*/18).fork(), q + 1).ldelim();
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a DataValuesEvent message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.DataValuesEvent
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.DataValuesEvent} DataValuesEvent
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    DataValuesEvent.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.DataValuesEvent();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.providerNamespace = reader.string();
+                                    break;
+                                }
+                            case 2: {
+                                    if (!(message.samples && message.samples.length))
+                                        message.samples = [];
+                                    message.samples.push($root.prodigy.api.v1.DataSample.decode(reader, reader.uint32(), undefined, long + 1));
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a DataValuesEvent message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.DataValuesEvent
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    DataValuesEvent.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.providerNamespace != null && Object.hasOwnProperty.call(message, "providerNamespace"))
+                            if (!$util.isString(message.providerNamespace))
+                                return "providerNamespace: string expected";
+                        if (message.samples != null && Object.hasOwnProperty.call(message, "samples")) {
+                            if (!Array.isArray(message.samples))
+                                return "samples: array expected";
+                            for (var i = 0; i < message.samples.length; ++i) {
+                                var error = $root.prodigy.api.v1.DataSample.verify(message.samples[i], long + 1);
+                                if (error)
+                                    return "samples." + error;
+                            }
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a DataValuesEvent message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.DataValuesEvent
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.DataValuesEvent} DataValuesEvent
+                     */
+                    DataValuesEvent.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.DataValuesEvent)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.DataValuesEvent: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.DataValuesEvent();
+                        if (object.providerNamespace != null)
+                            message.providerNamespace = String(object.providerNamespace);
+                        if (object.samples) {
+                            if (!Array.isArray(object.samples))
+                                throw TypeError(".prodigy.api.v1.DataValuesEvent.samples: array expected");
+                            message.samples = [];
+                            for (var i = 0; i < object.samples.length; ++i) {
+                                if (!$util.isObject(object.samples[i]))
+                                    throw TypeError(".prodigy.api.v1.DataValuesEvent.samples: object expected");
+                                message.samples[i] = $root.prodigy.api.v1.DataSample.fromObject(object.samples[i], long + 1);
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a DataValuesEvent message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.DataValuesEvent
+                     * @static
+                     * @param {prodigy.api.v1.DataValuesEvent} message DataValuesEvent
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    DataValuesEvent.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.arrays || options.defaults)
+                            object.samples = [];
+                        if (options.defaults)
+                            object.providerNamespace = "";
+                        if (message.providerNamespace != null && Object.hasOwnProperty.call(message, "providerNamespace"))
+                            object.providerNamespace = message.providerNamespace;
+                        if (message.samples && message.samples.length) {
+                            object.samples = [];
+                            for (var j = 0; j < message.samples.length; ++j)
+                                object.samples[j] = $root.prodigy.api.v1.DataSample.toObject(message.samples[j], options, q + 1);
+                        }
+                        return object;
+                    };
+
+                    /**
+                     * Converts this DataValuesEvent to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.DataValuesEvent
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    DataValuesEvent.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for DataValuesEvent
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.DataValuesEvent
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    DataValuesEvent.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.DataValuesEvent";
+                    };
+
+                    return DataValuesEvent;
+                })();
+
+                v1.RegisterDataProviderRequest = (function() {
+
+                    /**
+                     * Properties of a RegisterDataProviderRequest.
+                     * @memberof prodigy.api.v1
+                     * @interface IRegisterDataProviderRequest
+                     * @property {prodigy.api.v1.IDataProviderDefinition|null} [provider] RegisterDataProviderRequest provider
+                     */
+
+                    /**
+                     * Constructs a new RegisterDataProviderRequest.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a RegisterDataProviderRequest.
+                     * @implements IRegisterDataProviderRequest
+                     * @constructor
+                     * @param {prodigy.api.v1.IRegisterDataProviderRequest=} [properties] Properties to set
+                     */
+                    function RegisterDataProviderRequest(properties) {
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * RegisterDataProviderRequest provider.
+                     * @member {prodigy.api.v1.IDataProviderDefinition|null|undefined} provider
+                     * @memberof prodigy.api.v1.RegisterDataProviderRequest
+                     * @instance
+                     */
+                    RegisterDataProviderRequest.prototype.provider = null;
+
+                    /**
+                     * Creates a new RegisterDataProviderRequest instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.RegisterDataProviderRequest
+                     * @static
+                     * @param {prodigy.api.v1.IRegisterDataProviderRequest=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.RegisterDataProviderRequest} RegisterDataProviderRequest instance
+                     */
+                    RegisterDataProviderRequest.create = function create(properties) {
+                        return new RegisterDataProviderRequest(properties);
+                    };
+
+                    /**
+                     * Encodes the specified RegisterDataProviderRequest message. Does not implicitly {@link prodigy.api.v1.RegisterDataProviderRequest.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.RegisterDataProviderRequest
+                     * @static
+                     * @param {prodigy.api.v1.IRegisterDataProviderRequest} message RegisterDataProviderRequest message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    RegisterDataProviderRequest.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.provider != null && Object.hasOwnProperty.call(message, "provider"))
+                            $root.prodigy.api.v1.DataProviderDefinition.encode(message.provider, writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a RegisterDataProviderRequest message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.RegisterDataProviderRequest
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.RegisterDataProviderRequest} RegisterDataProviderRequest
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    RegisterDataProviderRequest.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.RegisterDataProviderRequest();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.provider = $root.prodigy.api.v1.DataProviderDefinition.decode(reader, reader.uint32(), undefined, long + 1);
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a RegisterDataProviderRequest message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.RegisterDataProviderRequest
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    RegisterDataProviderRequest.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.provider != null && Object.hasOwnProperty.call(message, "provider")) {
+                            var error = $root.prodigy.api.v1.DataProviderDefinition.verify(message.provider, long + 1);
+                            if (error)
+                                return "provider." + error;
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a RegisterDataProviderRequest message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.RegisterDataProviderRequest
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.RegisterDataProviderRequest} RegisterDataProviderRequest
+                     */
+                    RegisterDataProviderRequest.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.RegisterDataProviderRequest)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.RegisterDataProviderRequest: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.RegisterDataProviderRequest();
+                        if (object.provider != null) {
+                            if (!$util.isObject(object.provider))
+                                throw TypeError(".prodigy.api.v1.RegisterDataProviderRequest.provider: object expected");
+                            message.provider = $root.prodigy.api.v1.DataProviderDefinition.fromObject(object.provider, long + 1);
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a RegisterDataProviderRequest message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.RegisterDataProviderRequest
+                     * @static
+                     * @param {prodigy.api.v1.RegisterDataProviderRequest} message RegisterDataProviderRequest
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    RegisterDataProviderRequest.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.defaults)
+                            object.provider = null;
+                        if (message.provider != null && Object.hasOwnProperty.call(message, "provider"))
+                            object.provider = $root.prodigy.api.v1.DataProviderDefinition.toObject(message.provider, options, q + 1);
+                        return object;
+                    };
+
+                    /**
+                     * Converts this RegisterDataProviderRequest to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.RegisterDataProviderRequest
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    RegisterDataProviderRequest.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for RegisterDataProviderRequest
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.RegisterDataProviderRequest
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    RegisterDataProviderRequest.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.RegisterDataProviderRequest";
+                    };
+
+                    return RegisterDataProviderRequest;
+                })();
+
+                v1.RegisterDataProviderResponse = (function() {
+
+                    /**
+                     * Properties of a RegisterDataProviderResponse.
+                     * @memberof prodigy.api.v1
+                     * @interface IRegisterDataProviderResponse
+                     * @property {boolean|null} [accepted] RegisterDataProviderResponse accepted
+                     * @property {string|null} [reason] RegisterDataProviderResponse reason
+                     */
+
+                    /**
+                     * Constructs a new RegisterDataProviderResponse.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a RegisterDataProviderResponse.
+                     * @implements IRegisterDataProviderResponse
+                     * @constructor
+                     * @param {prodigy.api.v1.IRegisterDataProviderResponse=} [properties] Properties to set
+                     */
+                    function RegisterDataProviderResponse(properties) {
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * RegisterDataProviderResponse accepted.
+                     * @member {boolean} accepted
+                     * @memberof prodigy.api.v1.RegisterDataProviderResponse
+                     * @instance
+                     */
+                    RegisterDataProviderResponse.prototype.accepted = false;
+
+                    /**
+                     * RegisterDataProviderResponse reason.
+                     * @member {string} reason
+                     * @memberof prodigy.api.v1.RegisterDataProviderResponse
+                     * @instance
+                     */
+                    RegisterDataProviderResponse.prototype.reason = "";
+
+                    /**
+                     * Creates a new RegisterDataProviderResponse instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.RegisterDataProviderResponse
+                     * @static
+                     * @param {prodigy.api.v1.IRegisterDataProviderResponse=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.RegisterDataProviderResponse} RegisterDataProviderResponse instance
+                     */
+                    RegisterDataProviderResponse.create = function create(properties) {
+                        return new RegisterDataProviderResponse(properties);
+                    };
+
+                    /**
+                     * Encodes the specified RegisterDataProviderResponse message. Does not implicitly {@link prodigy.api.v1.RegisterDataProviderResponse.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.RegisterDataProviderResponse
+                     * @static
+                     * @param {prodigy.api.v1.IRegisterDataProviderResponse} message RegisterDataProviderResponse message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    RegisterDataProviderResponse.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.accepted != null && Object.hasOwnProperty.call(message, "accepted"))
+                            writer.uint32(/* id 1, wireType 0 =*/8).bool(message.accepted);
+                        if (message.reason != null && Object.hasOwnProperty.call(message, "reason"))
+                            writer.uint32(/* id 2, wireType 2 =*/18).string(message.reason);
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a RegisterDataProviderResponse message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.RegisterDataProviderResponse
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.RegisterDataProviderResponse} RegisterDataProviderResponse
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    RegisterDataProviderResponse.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.RegisterDataProviderResponse();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.accepted = reader.bool();
+                                    break;
+                                }
+                            case 2: {
+                                    message.reason = reader.string();
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a RegisterDataProviderResponse message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.RegisterDataProviderResponse
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    RegisterDataProviderResponse.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.accepted != null && Object.hasOwnProperty.call(message, "accepted"))
+                            if (typeof message.accepted !== "boolean")
+                                return "accepted: boolean expected";
+                        if (message.reason != null && Object.hasOwnProperty.call(message, "reason"))
+                            if (!$util.isString(message.reason))
+                                return "reason: string expected";
+                        return null;
+                    };
+
+                    /**
+                     * Creates a RegisterDataProviderResponse message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.RegisterDataProviderResponse
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.RegisterDataProviderResponse} RegisterDataProviderResponse
+                     */
+                    RegisterDataProviderResponse.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.RegisterDataProviderResponse)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.RegisterDataProviderResponse: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.RegisterDataProviderResponse();
+                        if (object.accepted != null)
+                            message.accepted = Boolean(object.accepted);
+                        if (object.reason != null)
+                            message.reason = String(object.reason);
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a RegisterDataProviderResponse message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.RegisterDataProviderResponse
+                     * @static
+                     * @param {prodigy.api.v1.RegisterDataProviderResponse} message RegisterDataProviderResponse
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    RegisterDataProviderResponse.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.defaults) {
+                            object.accepted = false;
+                            object.reason = "";
+                        }
+                        if (message.accepted != null && Object.hasOwnProperty.call(message, "accepted"))
+                            object.accepted = message.accepted;
+                        if (message.reason != null && Object.hasOwnProperty.call(message, "reason"))
+                            object.reason = message.reason;
+                        return object;
+                    };
+
+                    /**
+                     * Converts this RegisterDataProviderResponse to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.RegisterDataProviderResponse
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    RegisterDataProviderResponse.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for RegisterDataProviderResponse
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.RegisterDataProviderResponse
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    RegisterDataProviderResponse.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.RegisterDataProviderResponse";
+                    };
+
+                    return RegisterDataProviderResponse;
+                })();
+
+                v1.DeclareDataChannelsRequest = (function() {
+
+                    /**
+                     * Properties of a DeclareDataChannelsRequest.
+                     * @memberof prodigy.api.v1
+                     * @interface IDeclareDataChannelsRequest
+                     * @property {Array.<prodigy.api.v1.IDataChannelDefinition>|null} [channels] DeclareDataChannelsRequest channels
+                     */
+
+                    /**
+                     * Constructs a new DeclareDataChannelsRequest.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a DeclareDataChannelsRequest.
+                     * @implements IDeclareDataChannelsRequest
+                     * @constructor
+                     * @param {prodigy.api.v1.IDeclareDataChannelsRequest=} [properties] Properties to set
+                     */
+                    function DeclareDataChannelsRequest(properties) {
+                        this.channels = [];
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * DeclareDataChannelsRequest channels.
+                     * @member {Array.<prodigy.api.v1.IDataChannelDefinition>} channels
+                     * @memberof prodigy.api.v1.DeclareDataChannelsRequest
+                     * @instance
+                     */
+                    DeclareDataChannelsRequest.prototype.channels = $util.emptyArray;
+
+                    /**
+                     * Creates a new DeclareDataChannelsRequest instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.DeclareDataChannelsRequest
+                     * @static
+                     * @param {prodigy.api.v1.IDeclareDataChannelsRequest=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.DeclareDataChannelsRequest} DeclareDataChannelsRequest instance
+                     */
+                    DeclareDataChannelsRequest.create = function create(properties) {
+                        return new DeclareDataChannelsRequest(properties);
+                    };
+
+                    /**
+                     * Encodes the specified DeclareDataChannelsRequest message. Does not implicitly {@link prodigy.api.v1.DeclareDataChannelsRequest.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.DeclareDataChannelsRequest
+                     * @static
+                     * @param {prodigy.api.v1.IDeclareDataChannelsRequest} message DeclareDataChannelsRequest message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    DeclareDataChannelsRequest.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.channels != null && message.channels.length)
+                            for (var i = 0; i < message.channels.length; ++i)
+                                $root.prodigy.api.v1.DataChannelDefinition.encode(message.channels[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a DeclareDataChannelsRequest message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.DeclareDataChannelsRequest
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.DeclareDataChannelsRequest} DeclareDataChannelsRequest
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    DeclareDataChannelsRequest.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.DeclareDataChannelsRequest();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    if (!(message.channels && message.channels.length))
+                                        message.channels = [];
+                                    message.channels.push($root.prodigy.api.v1.DataChannelDefinition.decode(reader, reader.uint32(), undefined, long + 1));
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a DeclareDataChannelsRequest message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.DeclareDataChannelsRequest
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    DeclareDataChannelsRequest.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.channels != null && Object.hasOwnProperty.call(message, "channels")) {
+                            if (!Array.isArray(message.channels))
+                                return "channels: array expected";
+                            for (var i = 0; i < message.channels.length; ++i) {
+                                var error = $root.prodigy.api.v1.DataChannelDefinition.verify(message.channels[i], long + 1);
+                                if (error)
+                                    return "channels." + error;
+                            }
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a DeclareDataChannelsRequest message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.DeclareDataChannelsRequest
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.DeclareDataChannelsRequest} DeclareDataChannelsRequest
+                     */
+                    DeclareDataChannelsRequest.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.DeclareDataChannelsRequest)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.DeclareDataChannelsRequest: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.DeclareDataChannelsRequest();
+                        if (object.channels) {
+                            if (!Array.isArray(object.channels))
+                                throw TypeError(".prodigy.api.v1.DeclareDataChannelsRequest.channels: array expected");
+                            message.channels = [];
+                            for (var i = 0; i < object.channels.length; ++i) {
+                                if (!$util.isObject(object.channels[i]))
+                                    throw TypeError(".prodigy.api.v1.DeclareDataChannelsRequest.channels: object expected");
+                                message.channels[i] = $root.prodigy.api.v1.DataChannelDefinition.fromObject(object.channels[i], long + 1);
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a DeclareDataChannelsRequest message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.DeclareDataChannelsRequest
+                     * @static
+                     * @param {prodigy.api.v1.DeclareDataChannelsRequest} message DeclareDataChannelsRequest
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    DeclareDataChannelsRequest.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.arrays || options.defaults)
+                            object.channels = [];
+                        if (message.channels && message.channels.length) {
+                            object.channels = [];
+                            for (var j = 0; j < message.channels.length; ++j)
+                                object.channels[j] = $root.prodigy.api.v1.DataChannelDefinition.toObject(message.channels[j], options, q + 1);
+                        }
+                        return object;
+                    };
+
+                    /**
+                     * Converts this DeclareDataChannelsRequest to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.DeclareDataChannelsRequest
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    DeclareDataChannelsRequest.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for DeclareDataChannelsRequest
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.DeclareDataChannelsRequest
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    DeclareDataChannelsRequest.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.DeclareDataChannelsRequest";
+                    };
+
+                    return DeclareDataChannelsRequest;
+                })();
+
+                v1.DataChannelDeclarationResult = (function() {
+
+                    /**
+                     * Properties of a DataChannelDeclarationResult.
+                     * @memberof prodigy.api.v1
+                     * @interface IDataChannelDeclarationResult
+                     * @property {string|null} [channelName] DataChannelDeclarationResult channelName
+                     * @property {boolean|null} [accepted] DataChannelDeclarationResult accepted
+                     * @property {string|null} [reason] DataChannelDeclarationResult reason
+                     */
+
+                    /**
+                     * Constructs a new DataChannelDeclarationResult.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a DataChannelDeclarationResult.
+                     * @implements IDataChannelDeclarationResult
+                     * @constructor
+                     * @param {prodigy.api.v1.IDataChannelDeclarationResult=} [properties] Properties to set
+                     */
+                    function DataChannelDeclarationResult(properties) {
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * DataChannelDeclarationResult channelName.
+                     * @member {string} channelName
+                     * @memberof prodigy.api.v1.DataChannelDeclarationResult
+                     * @instance
+                     */
+                    DataChannelDeclarationResult.prototype.channelName = "";
+
+                    /**
+                     * DataChannelDeclarationResult accepted.
+                     * @member {boolean} accepted
+                     * @memberof prodigy.api.v1.DataChannelDeclarationResult
+                     * @instance
+                     */
+                    DataChannelDeclarationResult.prototype.accepted = false;
+
+                    /**
+                     * DataChannelDeclarationResult reason.
+                     * @member {string} reason
+                     * @memberof prodigy.api.v1.DataChannelDeclarationResult
+                     * @instance
+                     */
+                    DataChannelDeclarationResult.prototype.reason = "";
+
+                    /**
+                     * Creates a new DataChannelDeclarationResult instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.DataChannelDeclarationResult
+                     * @static
+                     * @param {prodigy.api.v1.IDataChannelDeclarationResult=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.DataChannelDeclarationResult} DataChannelDeclarationResult instance
+                     */
+                    DataChannelDeclarationResult.create = function create(properties) {
+                        return new DataChannelDeclarationResult(properties);
+                    };
+
+                    /**
+                     * Encodes the specified DataChannelDeclarationResult message. Does not implicitly {@link prodigy.api.v1.DataChannelDeclarationResult.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.DataChannelDeclarationResult
+                     * @static
+                     * @param {prodigy.api.v1.IDataChannelDeclarationResult} message DataChannelDeclarationResult message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    DataChannelDeclarationResult.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.channelName != null && Object.hasOwnProperty.call(message, "channelName"))
+                            writer.uint32(/* id 1, wireType 2 =*/10).string(message.channelName);
+                        if (message.accepted != null && Object.hasOwnProperty.call(message, "accepted"))
+                            writer.uint32(/* id 2, wireType 0 =*/16).bool(message.accepted);
+                        if (message.reason != null && Object.hasOwnProperty.call(message, "reason"))
+                            writer.uint32(/* id 3, wireType 2 =*/26).string(message.reason);
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a DataChannelDeclarationResult message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.DataChannelDeclarationResult
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.DataChannelDeclarationResult} DataChannelDeclarationResult
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    DataChannelDeclarationResult.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.DataChannelDeclarationResult();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    message.channelName = reader.string();
+                                    break;
+                                }
+                            case 2: {
+                                    message.accepted = reader.bool();
+                                    break;
+                                }
+                            case 3: {
+                                    message.reason = reader.string();
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a DataChannelDeclarationResult message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.DataChannelDeclarationResult
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    DataChannelDeclarationResult.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.channelName != null && Object.hasOwnProperty.call(message, "channelName"))
+                            if (!$util.isString(message.channelName))
+                                return "channelName: string expected";
+                        if (message.accepted != null && Object.hasOwnProperty.call(message, "accepted"))
+                            if (typeof message.accepted !== "boolean")
+                                return "accepted: boolean expected";
+                        if (message.reason != null && Object.hasOwnProperty.call(message, "reason"))
+                            if (!$util.isString(message.reason))
+                                return "reason: string expected";
+                        return null;
+                    };
+
+                    /**
+                     * Creates a DataChannelDeclarationResult message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.DataChannelDeclarationResult
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.DataChannelDeclarationResult} DataChannelDeclarationResult
+                     */
+                    DataChannelDeclarationResult.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.DataChannelDeclarationResult)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.DataChannelDeclarationResult: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.DataChannelDeclarationResult();
+                        if (object.channelName != null)
+                            message.channelName = String(object.channelName);
+                        if (object.accepted != null)
+                            message.accepted = Boolean(object.accepted);
+                        if (object.reason != null)
+                            message.reason = String(object.reason);
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a DataChannelDeclarationResult message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.DataChannelDeclarationResult
+                     * @static
+                     * @param {prodigy.api.v1.DataChannelDeclarationResult} message DataChannelDeclarationResult
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    DataChannelDeclarationResult.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.defaults) {
+                            object.channelName = "";
+                            object.accepted = false;
+                            object.reason = "";
+                        }
+                        if (message.channelName != null && Object.hasOwnProperty.call(message, "channelName"))
+                            object.channelName = message.channelName;
+                        if (message.accepted != null && Object.hasOwnProperty.call(message, "accepted"))
+                            object.accepted = message.accepted;
+                        if (message.reason != null && Object.hasOwnProperty.call(message, "reason"))
+                            object.reason = message.reason;
+                        return object;
+                    };
+
+                    /**
+                     * Converts this DataChannelDeclarationResult to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.DataChannelDeclarationResult
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    DataChannelDeclarationResult.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for DataChannelDeclarationResult
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.DataChannelDeclarationResult
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    DataChannelDeclarationResult.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.DataChannelDeclarationResult";
+                    };
+
+                    return DataChannelDeclarationResult;
+                })();
+
+                v1.DeclareDataChannelsResponse = (function() {
+
+                    /**
+                     * Properties of a DeclareDataChannelsResponse.
+                     * @memberof prodigy.api.v1
+                     * @interface IDeclareDataChannelsResponse
+                     * @property {Array.<prodigy.api.v1.IDataChannelDeclarationResult>|null} [results] DeclareDataChannelsResponse results
+                     */
+
+                    /**
+                     * Constructs a new DeclareDataChannelsResponse.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a DeclareDataChannelsResponse.
+                     * @implements IDeclareDataChannelsResponse
+                     * @constructor
+                     * @param {prodigy.api.v1.IDeclareDataChannelsResponse=} [properties] Properties to set
+                     */
+                    function DeclareDataChannelsResponse(properties) {
+                        this.results = [];
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * DeclareDataChannelsResponse results.
+                     * @member {Array.<prodigy.api.v1.IDataChannelDeclarationResult>} results
+                     * @memberof prodigy.api.v1.DeclareDataChannelsResponse
+                     * @instance
+                     */
+                    DeclareDataChannelsResponse.prototype.results = $util.emptyArray;
+
+                    /**
+                     * Creates a new DeclareDataChannelsResponse instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.DeclareDataChannelsResponse
+                     * @static
+                     * @param {prodigy.api.v1.IDeclareDataChannelsResponse=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.DeclareDataChannelsResponse} DeclareDataChannelsResponse instance
+                     */
+                    DeclareDataChannelsResponse.create = function create(properties) {
+                        return new DeclareDataChannelsResponse(properties);
+                    };
+
+                    /**
+                     * Encodes the specified DeclareDataChannelsResponse message. Does not implicitly {@link prodigy.api.v1.DeclareDataChannelsResponse.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.DeclareDataChannelsResponse
+                     * @static
+                     * @param {prodigy.api.v1.IDeclareDataChannelsResponse} message DeclareDataChannelsResponse message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    DeclareDataChannelsResponse.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.results != null && message.results.length)
+                            for (var i = 0; i < message.results.length; ++i)
+                                $root.prodigy.api.v1.DataChannelDeclarationResult.encode(message.results[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), q + 1).ldelim();
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a DeclareDataChannelsResponse message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.DeclareDataChannelsResponse
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.DeclareDataChannelsResponse} DeclareDataChannelsResponse
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    DeclareDataChannelsResponse.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.DeclareDataChannelsResponse();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    if (!(message.results && message.results.length))
+                                        message.results = [];
+                                    message.results.push($root.prodigy.api.v1.DataChannelDeclarationResult.decode(reader, reader.uint32(), undefined, long + 1));
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a DeclareDataChannelsResponse message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.DeclareDataChannelsResponse
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    DeclareDataChannelsResponse.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.results != null && Object.hasOwnProperty.call(message, "results")) {
+                            if (!Array.isArray(message.results))
+                                return "results: array expected";
+                            for (var i = 0; i < message.results.length; ++i) {
+                                var error = $root.prodigy.api.v1.DataChannelDeclarationResult.verify(message.results[i], long + 1);
+                                if (error)
+                                    return "results." + error;
+                            }
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a DeclareDataChannelsResponse message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.DeclareDataChannelsResponse
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.DeclareDataChannelsResponse} DeclareDataChannelsResponse
+                     */
+                    DeclareDataChannelsResponse.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.DeclareDataChannelsResponse)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.DeclareDataChannelsResponse: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.DeclareDataChannelsResponse();
+                        if (object.results) {
+                            if (!Array.isArray(object.results))
+                                throw TypeError(".prodigy.api.v1.DeclareDataChannelsResponse.results: array expected");
+                            message.results = [];
+                            for (var i = 0; i < object.results.length; ++i) {
+                                if (!$util.isObject(object.results[i]))
+                                    throw TypeError(".prodigy.api.v1.DeclareDataChannelsResponse.results: object expected");
+                                message.results[i] = $root.prodigy.api.v1.DataChannelDeclarationResult.fromObject(object.results[i], long + 1);
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a DeclareDataChannelsResponse message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.DeclareDataChannelsResponse
+                     * @static
+                     * @param {prodigy.api.v1.DeclareDataChannelsResponse} message DeclareDataChannelsResponse
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    DeclareDataChannelsResponse.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.arrays || options.defaults)
+                            object.results = [];
+                        if (message.results && message.results.length) {
+                            object.results = [];
+                            for (var j = 0; j < message.results.length; ++j)
+                                object.results[j] = $root.prodigy.api.v1.DataChannelDeclarationResult.toObject(message.results[j], options, q + 1);
+                        }
+                        return object;
+                    };
+
+                    /**
+                     * Converts this DeclareDataChannelsResponse to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.DeclareDataChannelsResponse
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    DeclareDataChannelsResponse.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for DeclareDataChannelsResponse
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.DeclareDataChannelsResponse
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    DeclareDataChannelsResponse.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.DeclareDataChannelsResponse";
+                    };
+
+                    return DeclareDataChannelsResponse;
+                })();
+
+                v1.RemoveDataChannelsRequest = (function() {
+
+                    /**
+                     * Properties of a RemoveDataChannelsRequest.
+                     * @memberof prodigy.api.v1
+                     * @interface IRemoveDataChannelsRequest
+                     * @property {Array.<string>|null} [channelNames] RemoveDataChannelsRequest channelNames
+                     */
+
+                    /**
+                     * Constructs a new RemoveDataChannelsRequest.
+                     * @memberof prodigy.api.v1
+                     * @classdesc Represents a RemoveDataChannelsRequest.
+                     * @implements IRemoveDataChannelsRequest
+                     * @constructor
+                     * @param {prodigy.api.v1.IRemoveDataChannelsRequest=} [properties] Properties to set
+                     */
+                    function RemoveDataChannelsRequest(properties) {
+                        this.channelNames = [];
+                        if (properties)
+                            for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
+                                    this[keys[i]] = properties[keys[i]];
+                    }
+
+                    /**
+                     * RemoveDataChannelsRequest channelNames.
+                     * @member {Array.<string>} channelNames
+                     * @memberof prodigy.api.v1.RemoveDataChannelsRequest
+                     * @instance
+                     */
+                    RemoveDataChannelsRequest.prototype.channelNames = $util.emptyArray;
+
+                    /**
+                     * Creates a new RemoveDataChannelsRequest instance using the specified properties.
+                     * @function create
+                     * @memberof prodigy.api.v1.RemoveDataChannelsRequest
+                     * @static
+                     * @param {prodigy.api.v1.IRemoveDataChannelsRequest=} [properties] Properties to set
+                     * @returns {prodigy.api.v1.RemoveDataChannelsRequest} RemoveDataChannelsRequest instance
+                     */
+                    RemoveDataChannelsRequest.create = function create(properties) {
+                        return new RemoveDataChannelsRequest(properties);
+                    };
+
+                    /**
+                     * Encodes the specified RemoveDataChannelsRequest message. Does not implicitly {@link prodigy.api.v1.RemoveDataChannelsRequest.verify|verify} messages.
+                     * @function encode
+                     * @memberof prodigy.api.v1.RemoveDataChannelsRequest
+                     * @static
+                     * @param {prodigy.api.v1.IRemoveDataChannelsRequest} message RemoveDataChannelsRequest message or plain object to encode
+                     * @param {$protobuf.Writer} [writer] Writer to encode to
+                     * @returns {$protobuf.Writer} Writer
+                     */
+                    RemoveDataChannelsRequest.encode = function encode(message, writer, q) {
+                        if (!writer)
+                            writer = $Writer.create();
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        if (message.channelNames != null && message.channelNames.length)
+                            for (var i = 0; i < message.channelNames.length; ++i)
+                                writer.uint32(/* id 1, wireType 2 =*/10).string(message.channelNames[i]);
+                        return writer;
+                    };
+
+                    /**
+                     * Decodes a RemoveDataChannelsRequest message from the specified reader or buffer.
+                     * @function decode
+                     * @memberof prodigy.api.v1.RemoveDataChannelsRequest
+                     * @static
+                     * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+                     * @param {number} [length] Message length if known beforehand
+                     * @returns {prodigy.api.v1.RemoveDataChannelsRequest} RemoveDataChannelsRequest
+                     * @throws {Error} If the payload is not a reader or valid buffer
+                     * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                     */
+                    RemoveDataChannelsRequest.decode = function decode(reader, length, error, long) {
+                        if (!(reader instanceof $Reader))
+                            reader = $Reader.create(reader);
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $Reader.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var end = length === undefined ? reader.len : reader.pos + length, message = new $root.prodigy.api.v1.RemoveDataChannelsRequest();
+                        while (reader.pos < end) {
+                            var tag = reader.uint32();
+                            if (tag === error)
+                                break;
+                            switch (tag >>> 3) {
+                            case 1: {
+                                    if (!(message.channelNames && message.channelNames.length))
+                                        message.channelNames = [];
+                                    message.channelNames.push(reader.string());
+                                    break;
+                                }
+                            default:
+                                reader.skipType(tag & 7, long);
+                                break;
+                            }
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Verifies a RemoveDataChannelsRequest message.
+                     * @function verify
+                     * @memberof prodigy.api.v1.RemoveDataChannelsRequest
+                     * @static
+                     * @param {Object.<string,*>} message Plain object to verify
+                     * @returns {string|null} `null` if valid, otherwise the reason why it is not
+                     */
+                    RemoveDataChannelsRequest.verify = function verify(message, long) {
+                        if (typeof message !== "object" || message === null)
+                            return "object expected";
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            return "maximum nesting depth exceeded";
+                        if (message.channelNames != null && Object.hasOwnProperty.call(message, "channelNames")) {
+                            if (!Array.isArray(message.channelNames))
+                                return "channelNames: array expected";
+                            for (var i = 0; i < message.channelNames.length; ++i)
+                                if (!$util.isString(message.channelNames[i]))
+                                    return "channelNames: string[] expected";
+                        }
+                        return null;
+                    };
+
+                    /**
+                     * Creates a RemoveDataChannelsRequest message from a plain object. Also converts values to their respective internal types.
+                     * @function fromObject
+                     * @memberof prodigy.api.v1.RemoveDataChannelsRequest
+                     * @static
+                     * @param {Object.<string,*>} object Plain object
+                     * @returns {prodigy.api.v1.RemoveDataChannelsRequest} RemoveDataChannelsRequest
+                     */
+                    RemoveDataChannelsRequest.fromObject = function fromObject(object, long) {
+                        if (object instanceof $root.prodigy.api.v1.RemoveDataChannelsRequest)
+                            return object;
+                        if (!$util.isObject(object))
+                            throw TypeError(".prodigy.api.v1.RemoveDataChannelsRequest: object expected");
+                        if (long === undefined)
+                            long = 0;
+                        if (long > $util.recursionLimit)
+                            throw Error("maximum nesting depth exceeded");
+                        var message = new $root.prodigy.api.v1.RemoveDataChannelsRequest();
+                        if (object.channelNames) {
+                            if (!Array.isArray(object.channelNames))
+                                throw TypeError(".prodigy.api.v1.RemoveDataChannelsRequest.channelNames: array expected");
+                            message.channelNames = [];
+                            for (var i = 0; i < object.channelNames.length; ++i)
+                                message.channelNames[i] = String(object.channelNames[i]);
+                        }
+                        return message;
+                    };
+
+                    /**
+                     * Creates a plain object from a RemoveDataChannelsRequest message. Also converts values to other types if specified.
+                     * @function toObject
+                     * @memberof prodigy.api.v1.RemoveDataChannelsRequest
+                     * @static
+                     * @param {prodigy.api.v1.RemoveDataChannelsRequest} message RemoveDataChannelsRequest
+                     * @param {$protobuf.IConversionOptions} [options] Conversion options
+                     * @returns {Object.<string,*>} Plain object
+                     */
+                    RemoveDataChannelsRequest.toObject = function toObject(message, options, q) {
+                        if (!options)
+                            options = {};
+                        if (q === undefined)
+                            q = 0;
+                        if (q > $util.recursionLimit)
+                            throw Error("max depth exceeded");
+                        var object = {};
+                        if (options.arrays || options.defaults)
+                            object.channelNames = [];
+                        if (message.channelNames && message.channelNames.length) {
+                            object.channelNames = [];
+                            for (var j = 0; j < message.channelNames.length; ++j)
+                                object.channelNames[j] = message.channelNames[j];
+                        }
+                        return object;
+                    };
+
+                    /**
+                     * Converts this RemoveDataChannelsRequest to JSON.
+                     * @function toJSON
+                     * @memberof prodigy.api.v1.RemoveDataChannelsRequest
+                     * @instance
+                     * @returns {Object.<string,*>} JSON object
+                     */
+                    RemoveDataChannelsRequest.prototype.toJSON = function toJSON() {
+                        return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+                    };
+
+                    /**
+                     * Gets the default type url for RemoveDataChannelsRequest
+                     * @function getTypeUrl
+                     * @memberof prodigy.api.v1.RemoveDataChannelsRequest
+                     * @static
+                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                     * @returns {string} The default type url
+                     */
+                    RemoveDataChannelsRequest.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                        if (typeUrlPrefix === undefined) {
+                            typeUrlPrefix = "type.googleapis.com";
+                        }
+                        return typeUrlPrefix + "/prodigy.api.v1.RemoveDataChannelsRequest";
+                    };
+
+                    return RemoveDataChannelsRequest;
+                })();
+
                 /**
                  * MediaSource enum.
                  * @name prodigy.api.v1.MediaSource
@@ -8658,6 +15815,7 @@
                  * @property {number} MEDIA_SOURCE_NONE=1 MEDIA_SOURCE_NONE value
                  * @property {number} MEDIA_SOURCE_BLUETOOTH=2 MEDIA_SOURCE_BLUETOOTH value
                  * @property {number} MEDIA_SOURCE_ANDROID_AUTO=3 MEDIA_SOURCE_ANDROID_AUTO value
+                 * @property {number} MEDIA_SOURCE_LOCAL_MEDIA=4 MEDIA_SOURCE_LOCAL_MEDIA value
                  */
                 v1.MediaSource = (function() {
                     var valuesById = {}, values = Object.create(valuesById);
@@ -8665,9 +15823,10 @@
                     values[valuesById[1] = "MEDIA_SOURCE_NONE"] = 1;
                     values[valuesById[2] = "MEDIA_SOURCE_BLUETOOTH"] = 2;
                     values[valuesById[3] = "MEDIA_SOURCE_ANDROID_AUTO"] = 3;
+                    values[valuesById[4] = "MEDIA_SOURCE_LOCAL_MEDIA"] = 4;
                     return values;
                 })();
-    
+
                 /**
                  * PlaybackState enum.
                  * @name prodigy.api.v1.PlaybackState
@@ -8685,9 +15844,9 @@
                     values[valuesById[3] = "PLAYBACK_STATE_PAUSED"] = 3;
                     return values;
                 })();
-    
+
                 v1.MediaStatus = (function() {
-    
+
                     /**
                      * Properties of a MediaStatus.
                      * @memberof prodigy.api.v1
@@ -8699,8 +15858,11 @@
                      * @property {prodigy.api.v1.PlaybackState|null} [playbackState] MediaStatus playbackState
                      * @property {prodigy.api.v1.MediaSource|null} [source] MediaStatus source
                      * @property {string|null} [appName] MediaStatus appName
+                     * @property {number|Long|null} [positionMs] MediaStatus positionMs
+                     * @property {number|Long|null} [durationMs] MediaStatus durationMs
+                     * @property {boolean|null} [hasPosition] MediaStatus hasPosition
                      */
-    
+
                     /**
                      * Constructs a new MediaStatus.
                      * @memberof prodigy.api.v1
@@ -8715,7 +15877,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * MediaStatus hasMedia.
                      * @member {boolean} hasMedia
@@ -8723,7 +15885,7 @@
                      * @instance
                      */
                     MediaStatus.prototype.hasMedia = false;
-    
+
                     /**
                      * MediaStatus title.
                      * @member {string} title
@@ -8731,7 +15893,7 @@
                      * @instance
                      */
                     MediaStatus.prototype.title = "";
-    
+
                     /**
                      * MediaStatus artist.
                      * @member {string} artist
@@ -8739,7 +15901,7 @@
                      * @instance
                      */
                     MediaStatus.prototype.artist = "";
-    
+
                     /**
                      * MediaStatus album.
                      * @member {string} album
@@ -8747,7 +15909,7 @@
                      * @instance
                      */
                     MediaStatus.prototype.album = "";
-    
+
                     /**
                      * MediaStatus playbackState.
                      * @member {prodigy.api.v1.PlaybackState} playbackState
@@ -8755,7 +15917,7 @@
                      * @instance
                      */
                     MediaStatus.prototype.playbackState = 0;
-    
+
                     /**
                      * MediaStatus source.
                      * @member {prodigy.api.v1.MediaSource} source
@@ -8763,7 +15925,7 @@
                      * @instance
                      */
                     MediaStatus.prototype.source = 0;
-    
+
                     /**
                      * MediaStatus appName.
                      * @member {string} appName
@@ -8771,7 +15933,31 @@
                      * @instance
                      */
                     MediaStatus.prototype.appName = "";
-    
+
+                    /**
+                     * MediaStatus positionMs.
+                     * @member {number|Long} positionMs
+                     * @memberof prodigy.api.v1.MediaStatus
+                     * @instance
+                     */
+                    MediaStatus.prototype.positionMs = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                    /**
+                     * MediaStatus durationMs.
+                     * @member {number|Long} durationMs
+                     * @memberof prodigy.api.v1.MediaStatus
+                     * @instance
+                     */
+                    MediaStatus.prototype.durationMs = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+                    /**
+                     * MediaStatus hasPosition.
+                     * @member {boolean} hasPosition
+                     * @memberof prodigy.api.v1.MediaStatus
+                     * @instance
+                     */
+                    MediaStatus.prototype.hasPosition = false;
+
                     /**
                      * Creates a new MediaStatus instance using the specified properties.
                      * @function create
@@ -8783,7 +15969,7 @@
                     MediaStatus.create = function create(properties) {
                         return new MediaStatus(properties);
                     };
-    
+
                     /**
                      * Encodes the specified MediaStatus message. Does not implicitly {@link prodigy.api.v1.MediaStatus.verify|verify} messages.
                      * @function encode
@@ -8814,9 +16000,15 @@
                             writer.uint32(/* id 6, wireType 0 =*/48).int32(message.source);
                         if (message.appName != null && Object.hasOwnProperty.call(message, "appName"))
                             writer.uint32(/* id 7, wireType 2 =*/58).string(message.appName);
+                        if (message.positionMs != null && Object.hasOwnProperty.call(message, "positionMs"))
+                            writer.uint32(/* id 8, wireType 0 =*/64).int64(message.positionMs);
+                        if (message.durationMs != null && Object.hasOwnProperty.call(message, "durationMs"))
+                            writer.uint32(/* id 9, wireType 0 =*/72).int64(message.durationMs);
+                        if (message.hasPosition != null && Object.hasOwnProperty.call(message, "hasPosition"))
+                            writer.uint32(/* id 10, wireType 0 =*/80).bool(message.hasPosition);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a MediaStatus message from the specified reader or buffer.
                      * @function decode
@@ -8869,6 +16061,18 @@
                                     message.appName = reader.string();
                                     break;
                                 }
+                            case 8: {
+                                    message.positionMs = reader.int64();
+                                    break;
+                                }
+                            case 9: {
+                                    message.durationMs = reader.int64();
+                                    break;
+                                }
+                            case 10: {
+                                    message.hasPosition = reader.bool();
+                                    break;
+                                }
                             default:
                                 reader.skipType(tag & 7, long);
                                 break;
@@ -8876,7 +16080,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a MediaStatus message.
                      * @function verify
@@ -8922,14 +16126,24 @@
                             case 1:
                             case 2:
                             case 3:
+                            case 4:
                                 break;
                             }
                         if (message.appName != null && Object.hasOwnProperty.call(message, "appName"))
                             if (!$util.isString(message.appName))
                                 return "appName: string expected";
+                        if (message.positionMs != null && Object.hasOwnProperty.call(message, "positionMs"))
+                            if (!$util.isInteger(message.positionMs) && !(message.positionMs && $util.isInteger(message.positionMs.low) && $util.isInteger(message.positionMs.high)))
+                                return "positionMs: integer|Long expected";
+                        if (message.durationMs != null && Object.hasOwnProperty.call(message, "durationMs"))
+                            if (!$util.isInteger(message.durationMs) && !(message.durationMs && $util.isInteger(message.durationMs.low) && $util.isInteger(message.durationMs.high)))
+                                return "durationMs: integer|Long expected";
+                        if (message.hasPosition != null && Object.hasOwnProperty.call(message, "hasPosition"))
+                            if (typeof message.hasPosition !== "boolean")
+                                return "hasPosition: boolean expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a MediaStatus message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -9003,12 +16217,36 @@
                         case 3:
                             message.source = 3;
                             break;
+                        case "MEDIA_SOURCE_LOCAL_MEDIA":
+                        case 4:
+                            message.source = 4;
+                            break;
                         }
                         if (object.appName != null)
                             message.appName = String(object.appName);
+                        if (object.positionMs != null)
+                            if ($util.Long)
+                                message.positionMs = $util.Long.fromValue(object.positionMs, false);
+                            else if (typeof object.positionMs === "string")
+                                message.positionMs = parseInt(object.positionMs, 10);
+                            else if (typeof object.positionMs === "number")
+                                message.positionMs = object.positionMs;
+                            else if (typeof object.positionMs === "object")
+                                message.positionMs = new $util.LongBits(object.positionMs.low >>> 0, object.positionMs.high >>> 0).toNumber();
+                        if (object.durationMs != null)
+                            if ($util.Long)
+                                message.durationMs = $util.Long.fromValue(object.durationMs, false);
+                            else if (typeof object.durationMs === "string")
+                                message.durationMs = parseInt(object.durationMs, 10);
+                            else if (typeof object.durationMs === "number")
+                                message.durationMs = object.durationMs;
+                            else if (typeof object.durationMs === "object")
+                                message.durationMs = new $util.LongBits(object.durationMs.low >>> 0, object.durationMs.high >>> 0).toNumber();
+                        if (object.hasPosition != null)
+                            message.hasPosition = Boolean(object.hasPosition);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a MediaStatus message. Also converts values to other types if specified.
                      * @function toObject
@@ -9034,6 +16272,17 @@
                             object.playbackState = options.enums === String ? "PLAYBACK_STATE_UNSPECIFIED" : 0;
                             object.source = options.enums === String ? "MEDIA_SOURCE_UNSPECIFIED" : 0;
                             object.appName = "";
+                            if ($util.Long) {
+                                var long = new $util.Long(0, 0, false);
+                                object.positionMs = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
+                            } else
+                                object.positionMs = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
+                            if ($util.Long) {
+                                var long = new $util.Long(0, 0, false);
+                                object.durationMs = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
+                            } else
+                                object.durationMs = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
+                            object.hasPosition = false;
                         }
                         if (message.hasMedia != null && Object.hasOwnProperty.call(message, "hasMedia"))
                             object.hasMedia = message.hasMedia;
@@ -9049,9 +16298,25 @@
                             object.source = options.enums === String ? $root.prodigy.api.v1.MediaSource[message.source] === undefined ? message.source : $root.prodigy.api.v1.MediaSource[message.source] : message.source;
                         if (message.appName != null && Object.hasOwnProperty.call(message, "appName"))
                             object.appName = message.appName;
+                        if (message.positionMs != null && Object.hasOwnProperty.call(message, "positionMs"))
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.positionMs = typeof message.positionMs === "number" ? BigInt(message.positionMs) : $util.Long.fromBits(message.positionMs.low >>> 0, message.positionMs.high >>> 0, false).toBigInt();
+                            else if (typeof message.positionMs === "number")
+                                object.positionMs = options.longs === String ? String(message.positionMs) : message.positionMs;
+                            else
+                                object.positionMs = options.longs === String ? $util.Long.prototype.toString.call(message.positionMs) : options.longs === Number ? new $util.LongBits(message.positionMs.low >>> 0, message.positionMs.high >>> 0).toNumber() : message.positionMs;
+                        if (message.durationMs != null && Object.hasOwnProperty.call(message, "durationMs"))
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.durationMs = typeof message.durationMs === "number" ? BigInt(message.durationMs) : $util.Long.fromBits(message.durationMs.low >>> 0, message.durationMs.high >>> 0, false).toBigInt();
+                            else if (typeof message.durationMs === "number")
+                                object.durationMs = options.longs === String ? String(message.durationMs) : message.durationMs;
+                            else
+                                object.durationMs = options.longs === String ? $util.Long.prototype.toString.call(message.durationMs) : options.longs === Number ? new $util.LongBits(message.durationMs.low >>> 0, message.durationMs.high >>> 0).toNumber() : message.durationMs;
+                        if (message.hasPosition != null && Object.hasOwnProperty.call(message, "hasPosition"))
+                            object.hasPosition = message.hasPosition;
                         return object;
                     };
-    
+
                     /**
                      * Converts this MediaStatus to JSON.
                      * @function toJSON
@@ -9062,7 +16327,7 @@
                     MediaStatus.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for MediaStatus
                      * @function getTypeUrl
@@ -9077,10 +16342,10 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.MediaStatus";
                     };
-    
+
                     return MediaStatus;
                 })();
-    
+
                 /**
                  * ManeuverType enum.
                  * @name prodigy.api.v1.ManeuverType
@@ -9128,7 +16393,7 @@
                     values[valuesById[18] = "MANEUVER_TYPE_NAME_CHANGE"] = 18;
                     return values;
                 })();
-    
+
                 /**
                  * TurnSide enum.
                  * @name prodigy.api.v1.TurnSide
@@ -9144,9 +16409,9 @@
                     values[valuesById[2] = "TURN_SIDE_RIGHT"] = 2;
                     return values;
                 })();
-    
+
                 v1.NavigationStatus = (function() {
-    
+
                     /**
                      * Properties of a NavigationStatus.
                      * @memberof prodigy.api.v1
@@ -9158,7 +16423,7 @@
                      * @property {number|null} [distanceMeters] NavigationStatus distanceMeters
                      * @property {string|null} [formattedDistance] NavigationStatus formattedDistance
                      */
-    
+
                     /**
                      * Constructs a new NavigationStatus.
                      * @memberof prodigy.api.v1
@@ -9173,7 +16438,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * NavigationStatus navActive.
                      * @member {boolean} navActive
@@ -9181,7 +16446,7 @@
                      * @instance
                      */
                     NavigationStatus.prototype.navActive = false;
-    
+
                     /**
                      * NavigationStatus roadName.
                      * @member {string} roadName
@@ -9189,7 +16454,7 @@
                      * @instance
                      */
                     NavigationStatus.prototype.roadName = "";
-    
+
                     /**
                      * NavigationStatus maneuver.
                      * @member {prodigy.api.v1.ManeuverType} maneuver
@@ -9197,7 +16462,7 @@
                      * @instance
                      */
                     NavigationStatus.prototype.maneuver = 0;
-    
+
                     /**
                      * NavigationStatus turnSide.
                      * @member {prodigy.api.v1.TurnSide} turnSide
@@ -9205,7 +16470,7 @@
                      * @instance
                      */
                     NavigationStatus.prototype.turnSide = 0;
-    
+
                     /**
                      * NavigationStatus distanceMeters.
                      * @member {number} distanceMeters
@@ -9213,7 +16478,7 @@
                      * @instance
                      */
                     NavigationStatus.prototype.distanceMeters = 0;
-    
+
                     /**
                      * NavigationStatus formattedDistance.
                      * @member {string} formattedDistance
@@ -9221,7 +16486,7 @@
                      * @instance
                      */
                     NavigationStatus.prototype.formattedDistance = "";
-    
+
                     /**
                      * Creates a new NavigationStatus instance using the specified properties.
                      * @function create
@@ -9233,7 +16498,7 @@
                     NavigationStatus.create = function create(properties) {
                         return new NavigationStatus(properties);
                     };
-    
+
                     /**
                      * Encodes the specified NavigationStatus message. Does not implicitly {@link prodigy.api.v1.NavigationStatus.verify|verify} messages.
                      * @function encode
@@ -9264,7 +16529,7 @@
                             writer.uint32(/* id 6, wireType 2 =*/50).string(message.formattedDistance);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a NavigationStatus message from the specified reader or buffer.
                      * @function decode
@@ -9320,7 +16585,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a NavigationStatus message.
                      * @function verify
@@ -9384,7 +16649,7 @@
                                 return "formattedDistance: string expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a NavigationStatus message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -9517,7 +16782,7 @@
                             message.formattedDistance = String(object.formattedDistance);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a NavigationStatus message. Also converts values to other types if specified.
                      * @function toObject
@@ -9557,7 +16822,7 @@
                             object.formattedDistance = message.formattedDistance;
                         return object;
                     };
-    
+
                     /**
                      * Converts this NavigationStatus to JSON.
                      * @function toJSON
@@ -9568,7 +16833,7 @@
                     NavigationStatus.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for NavigationStatus
                      * @function getTypeUrl
@@ -9583,10 +16848,10 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.NavigationStatus";
                     };
-    
+
                     return NavigationStatus;
                 })();
-    
+
                 /**
                  * ProjectionState enum.
                  * @name prodigy.api.v1.ProjectionState
@@ -9608,9 +16873,9 @@
                     values[valuesById[5] = "PROJECTION_STATE_BACKGROUNDED"] = 5;
                     return values;
                 })();
-    
+
                 v1.ProjectionStatus = (function() {
-    
+
                     /**
                      * Properties of a ProjectionStatus.
                      * @memberof prodigy.api.v1
@@ -9618,7 +16883,7 @@
                      * @property {prodigy.api.v1.ProjectionState|null} [state] ProjectionStatus state
                      * @property {string|null} [statusMessage] ProjectionStatus statusMessage
                      */
-    
+
                     /**
                      * Constructs a new ProjectionStatus.
                      * @memberof prodigy.api.v1
@@ -9633,7 +16898,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * ProjectionStatus state.
                      * @member {prodigy.api.v1.ProjectionState} state
@@ -9641,7 +16906,7 @@
                      * @instance
                      */
                     ProjectionStatus.prototype.state = 0;
-    
+
                     /**
                      * ProjectionStatus statusMessage.
                      * @member {string} statusMessage
@@ -9649,7 +16914,7 @@
                      * @instance
                      */
                     ProjectionStatus.prototype.statusMessage = "";
-    
+
                     /**
                      * Creates a new ProjectionStatus instance using the specified properties.
                      * @function create
@@ -9661,7 +16926,7 @@
                     ProjectionStatus.create = function create(properties) {
                         return new ProjectionStatus(properties);
                     };
-    
+
                     /**
                      * Encodes the specified ProjectionStatus message. Does not implicitly {@link prodigy.api.v1.ProjectionStatus.verify|verify} messages.
                      * @function encode
@@ -9684,7 +16949,7 @@
                             writer.uint32(/* id 2, wireType 2 =*/18).string(message.statusMessage);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a ProjectionStatus message from the specified reader or buffer.
                      * @function decode
@@ -9724,7 +16989,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a ProjectionStatus message.
                      * @function verify
@@ -9757,7 +17022,7 @@
                                 return "statusMessage: string expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a ProjectionStatus message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -9812,7 +17077,7 @@
                             message.statusMessage = String(object.statusMessage);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a ProjectionStatus message. Also converts values to other types if specified.
                      * @function toObject
@@ -9840,7 +17105,7 @@
                             object.statusMessage = message.statusMessage;
                         return object;
                     };
-    
+
                     /**
                      * Converts this ProjectionStatus to JSON.
                      * @function toJSON
@@ -9851,7 +17116,7 @@
                     ProjectionStatus.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for ProjectionStatus
                      * @function getTypeUrl
@@ -9866,10 +17131,10 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.ProjectionStatus";
                     };
-    
+
                     return ProjectionStatus;
                 })();
-    
+
                 /**
                  * CallState enum.
                  * @name prodigy.api.v1.CallState
@@ -9893,9 +17158,9 @@
                     values[valuesById[6] = "CALL_STATE_WAITING"] = 6;
                     return values;
                 })();
-    
+
                 v1.Call = (function() {
-    
+
                     /**
                      * Properties of a Call.
                      * @memberof prodigy.api.v1
@@ -9905,7 +17170,7 @@
                      * @property {string|null} [displayName] Call displayName
                      * @property {number|Long|null} [startedAtUnixMs] Call startedAtUnixMs
                      */
-    
+
                     /**
                      * Constructs a new Call.
                      * @memberof prodigy.api.v1
@@ -9920,7 +17185,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * Call state.
                      * @member {prodigy.api.v1.CallState} state
@@ -9928,7 +17193,7 @@
                      * @instance
                      */
                     Call.prototype.state = 0;
-    
+
                     /**
                      * Call lineIdentification.
                      * @member {string} lineIdentification
@@ -9936,7 +17201,7 @@
                      * @instance
                      */
                     Call.prototype.lineIdentification = "";
-    
+
                     /**
                      * Call displayName.
                      * @member {string} displayName
@@ -9944,7 +17209,7 @@
                      * @instance
                      */
                     Call.prototype.displayName = "";
-    
+
                     /**
                      * Call startedAtUnixMs.
                      * @member {number|Long} startedAtUnixMs
@@ -9952,7 +17217,7 @@
                      * @instance
                      */
                     Call.prototype.startedAtUnixMs = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
-    
+
                     /**
                      * Creates a new Call instance using the specified properties.
                      * @function create
@@ -9964,7 +17229,7 @@
                     Call.create = function create(properties) {
                         return new Call(properties);
                     };
-    
+
                     /**
                      * Encodes the specified Call message. Does not implicitly {@link prodigy.api.v1.Call.verify|verify} messages.
                      * @function encode
@@ -9991,7 +17256,7 @@
                             writer.uint32(/* id 4, wireType 0 =*/32).int64(message.startedAtUnixMs);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a Call message from the specified reader or buffer.
                      * @function decode
@@ -10039,7 +17304,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a Call message.
                      * @function verify
@@ -10079,7 +17344,7 @@
                                 return "startedAtUnixMs: integer|Long expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a Call message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -10149,7 +17414,7 @@
                                 message.startedAtUnixMs = new $util.LongBits(object.startedAtUnixMs.low >>> 0, object.startedAtUnixMs.high >>> 0).toNumber();
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a Call message. Also converts values to other types if specified.
                      * @function toObject
@@ -10192,7 +17457,7 @@
                                 object.startedAtUnixMs = options.longs === String ? $util.Long.prototype.toString.call(message.startedAtUnixMs) : options.longs === Number ? new $util.LongBits(message.startedAtUnixMs.low >>> 0, message.startedAtUnixMs.high >>> 0).toNumber() : message.startedAtUnixMs;
                         return object;
                     };
-    
+
                     /**
                      * Converts this Call to JSON.
                      * @function toJSON
@@ -10203,7 +17468,7 @@
                     Call.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for Call
                      * @function getTypeUrl
@@ -10218,12 +17483,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.Call";
                     };
-    
+
                     return Call;
                 })();
-    
+
                 v1.PhoneCapabilities = (function() {
-    
+
                     /**
                      * Properties of a PhoneCapabilities.
                      * @memberof prodigy.api.v1
@@ -10235,7 +17500,7 @@
                      * @property {boolean|null} [canHoldSwap] PhoneCapabilities canHoldSwap
                      * @property {boolean|null} [canMultiparty] PhoneCapabilities canMultiparty
                      */
-    
+
                     /**
                      * Constructs a new PhoneCapabilities.
                      * @memberof prodigy.api.v1
@@ -10250,7 +17515,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * PhoneCapabilities canDial.
                      * @member {boolean} canDial
@@ -10258,7 +17523,7 @@
                      * @instance
                      */
                     PhoneCapabilities.prototype.canDial = false;
-    
+
                     /**
                      * PhoneCapabilities canAnswer.
                      * @member {boolean} canAnswer
@@ -10266,7 +17531,7 @@
                      * @instance
                      */
                     PhoneCapabilities.prototype.canAnswer = false;
-    
+
                     /**
                      * PhoneCapabilities canHangup.
                      * @member {boolean} canHangup
@@ -10274,7 +17539,7 @@
                      * @instance
                      */
                     PhoneCapabilities.prototype.canHangup = false;
-    
+
                     /**
                      * PhoneCapabilities canSendDtmf.
                      * @member {boolean} canSendDtmf
@@ -10282,7 +17547,7 @@
                      * @instance
                      */
                     PhoneCapabilities.prototype.canSendDtmf = false;
-    
+
                     /**
                      * PhoneCapabilities canHoldSwap.
                      * @member {boolean} canHoldSwap
@@ -10290,7 +17555,7 @@
                      * @instance
                      */
                     PhoneCapabilities.prototype.canHoldSwap = false;
-    
+
                     /**
                      * PhoneCapabilities canMultiparty.
                      * @member {boolean} canMultiparty
@@ -10298,7 +17563,7 @@
                      * @instance
                      */
                     PhoneCapabilities.prototype.canMultiparty = false;
-    
+
                     /**
                      * Creates a new PhoneCapabilities instance using the specified properties.
                      * @function create
@@ -10310,7 +17575,7 @@
                     PhoneCapabilities.create = function create(properties) {
                         return new PhoneCapabilities(properties);
                     };
-    
+
                     /**
                      * Encodes the specified PhoneCapabilities message. Does not implicitly {@link prodigy.api.v1.PhoneCapabilities.verify|verify} messages.
                      * @function encode
@@ -10341,7 +17606,7 @@
                             writer.uint32(/* id 6, wireType 0 =*/48).bool(message.canMultiparty);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a PhoneCapabilities message from the specified reader or buffer.
                      * @function decode
@@ -10397,7 +17662,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a PhoneCapabilities message.
                      * @function verify
@@ -10433,7 +17698,7 @@
                                 return "canMultiparty: boolean expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a PhoneCapabilities message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -10466,7 +17731,7 @@
                             message.canMultiparty = Boolean(object.canMultiparty);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a PhoneCapabilities message. Also converts values to other types if specified.
                      * @function toObject
@@ -10506,7 +17771,7 @@
                             object.canMultiparty = message.canMultiparty;
                         return object;
                     };
-    
+
                     /**
                      * Converts this PhoneCapabilities to JSON.
                      * @function toJSON
@@ -10517,7 +17782,7 @@
                     PhoneCapabilities.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for PhoneCapabilities
                      * @function getTypeUrl
@@ -10532,12 +17797,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.PhoneCapabilities";
                     };
-    
+
                     return PhoneCapabilities;
                 })();
-    
+
                 v1.PhoneStatus = (function() {
-    
+
                     /**
                      * Properties of a PhoneStatus.
                      * @memberof prodigy.api.v1
@@ -10547,7 +17812,7 @@
                      * @property {Array.<prodigy.api.v1.ICall>|null} [calls] PhoneStatus calls
                      * @property {prodigy.api.v1.IPhoneCapabilities|null} [capabilities] PhoneStatus capabilities
                      */
-    
+
                     /**
                      * Constructs a new PhoneStatus.
                      * @memberof prodigy.api.v1
@@ -10563,7 +17828,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * PhoneStatus hfpConnected.
                      * @member {boolean} hfpConnected
@@ -10571,7 +17836,7 @@
                      * @instance
                      */
                     PhoneStatus.prototype.hfpConnected = false;
-    
+
                     /**
                      * PhoneStatus deviceName.
                      * @member {string} deviceName
@@ -10579,7 +17844,7 @@
                      * @instance
                      */
                     PhoneStatus.prototype.deviceName = "";
-    
+
                     /**
                      * PhoneStatus calls.
                      * @member {Array.<prodigy.api.v1.ICall>} calls
@@ -10587,7 +17852,7 @@
                      * @instance
                      */
                     PhoneStatus.prototype.calls = $util.emptyArray;
-    
+
                     /**
                      * PhoneStatus capabilities.
                      * @member {prodigy.api.v1.IPhoneCapabilities|null|undefined} capabilities
@@ -10595,7 +17860,7 @@
                      * @instance
                      */
                     PhoneStatus.prototype.capabilities = null;
-    
+
                     /**
                      * Creates a new PhoneStatus instance using the specified properties.
                      * @function create
@@ -10607,7 +17872,7 @@
                     PhoneStatus.create = function create(properties) {
                         return new PhoneStatus(properties);
                     };
-    
+
                     /**
                      * Encodes the specified PhoneStatus message. Does not implicitly {@link prodigy.api.v1.PhoneStatus.verify|verify} messages.
                      * @function encode
@@ -10635,7 +17900,7 @@
                             $root.prodigy.api.v1.PhoneCapabilities.encode(message.capabilities, writer.uint32(/* id 4, wireType 2 =*/34).fork(), q + 1).ldelim();
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a PhoneStatus message from the specified reader or buffer.
                      * @function decode
@@ -10685,7 +17950,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a PhoneStatus message.
                      * @function verify
@@ -10723,7 +17988,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates a PhoneStatus message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -10763,7 +18028,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a PhoneStatus message. Also converts values to other types if specified.
                      * @function toObject
@@ -10801,7 +18066,7 @@
                             object.capabilities = $root.prodigy.api.v1.PhoneCapabilities.toObject(message.capabilities, options, q + 1);
                         return object;
                     };
-    
+
                     /**
                      * Converts this PhoneStatus to JSON.
                      * @function toJSON
@@ -10812,7 +18077,7 @@
                     PhoneStatus.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for PhoneStatus
                      * @function getTypeUrl
@@ -10827,10 +18092,10 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.PhoneStatus";
                     };
-    
+
                     return PhoneStatus;
                 })();
-    
+
                 /**
                  * PhoneCommandResult enum.
                  * @name prodigy.api.v1.PhoneCommandResult
@@ -10848,16 +18113,16 @@
                     values[valuesById[3] = "PHONE_COMMAND_RESULT_FAILED"] = 3;
                     return values;
                 })();
-    
+
                 v1.DialRequest = (function() {
-    
+
                     /**
                      * Properties of a DialRequest.
                      * @memberof prodigy.api.v1
                      * @interface IDialRequest
                      * @property {string|null} [number] DialRequest number
                      */
-    
+
                     /**
                      * Constructs a new DialRequest.
                      * @memberof prodigy.api.v1
@@ -10872,7 +18137,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * DialRequest number.
                      * @member {string} number
@@ -10880,7 +18145,7 @@
                      * @instance
                      */
                     DialRequest.prototype.number = "";
-    
+
                     /**
                      * Creates a new DialRequest instance using the specified properties.
                      * @function create
@@ -10892,7 +18157,7 @@
                     DialRequest.create = function create(properties) {
                         return new DialRequest(properties);
                     };
-    
+
                     /**
                      * Encodes the specified DialRequest message. Does not implicitly {@link prodigy.api.v1.DialRequest.verify|verify} messages.
                      * @function encode
@@ -10913,7 +18178,7 @@
                             writer.uint32(/* id 1, wireType 2 =*/10).string(message.number);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a DialRequest message from the specified reader or buffer.
                      * @function decode
@@ -10949,7 +18214,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a DialRequest message.
                      * @function verify
@@ -10970,7 +18235,7 @@
                                 return "number: string expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a DialRequest message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -10993,7 +18258,7 @@
                             message.number = String(object.number);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a DialRequest message. Also converts values to other types if specified.
                      * @function toObject
@@ -11017,7 +18282,7 @@
                             object.number = message.number;
                         return object;
                     };
-    
+
                     /**
                      * Converts this DialRequest to JSON.
                      * @function toJSON
@@ -11028,7 +18293,7 @@
                     DialRequest.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for DialRequest
                      * @function getTypeUrl
@@ -11043,18 +18308,18 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.DialRequest";
                     };
-    
+
                     return DialRequest;
                 })();
-    
+
                 v1.AnswerCallRequest = (function() {
-    
+
                     /**
                      * Properties of an AnswerCallRequest.
                      * @memberof prodigy.api.v1
                      * @interface IAnswerCallRequest
                      */
-    
+
                     /**
                      * Constructs a new AnswerCallRequest.
                      * @memberof prodigy.api.v1
@@ -11069,7 +18334,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * Creates a new AnswerCallRequest instance using the specified properties.
                      * @function create
@@ -11081,7 +18346,7 @@
                     AnswerCallRequest.create = function create(properties) {
                         return new AnswerCallRequest(properties);
                     };
-    
+
                     /**
                      * Encodes the specified AnswerCallRequest message. Does not implicitly {@link prodigy.api.v1.AnswerCallRequest.verify|verify} messages.
                      * @function encode
@@ -11100,7 +18365,7 @@
                             throw Error("max depth exceeded");
                         return writer;
                     };
-    
+
                     /**
                      * Decodes an AnswerCallRequest message from the specified reader or buffer.
                      * @function decode
@@ -11132,7 +18397,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies an AnswerCallRequest message.
                      * @function verify
@@ -11150,7 +18415,7 @@
                             return "maximum nesting depth exceeded";
                         return null;
                     };
-    
+
                     /**
                      * Creates an AnswerCallRequest message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -11164,7 +18429,7 @@
                             return object;
                         return new $root.prodigy.api.v1.AnswerCallRequest();
                     };
-    
+
                     /**
                      * Creates a plain object from an AnswerCallRequest message. Also converts values to other types if specified.
                      * @function toObject
@@ -11177,7 +18442,7 @@
                     AnswerCallRequest.toObject = function toObject() {
                         return {};
                     };
-    
+
                     /**
                      * Converts this AnswerCallRequest to JSON.
                      * @function toJSON
@@ -11188,7 +18453,7 @@
                     AnswerCallRequest.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for AnswerCallRequest
                      * @function getTypeUrl
@@ -11203,18 +18468,18 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.AnswerCallRequest";
                     };
-    
+
                     return AnswerCallRequest;
                 })();
-    
+
                 v1.HangupRequest = (function() {
-    
+
                     /**
                      * Properties of a HangupRequest.
                      * @memberof prodigy.api.v1
                      * @interface IHangupRequest
                      */
-    
+
                     /**
                      * Constructs a new HangupRequest.
                      * @memberof prodigy.api.v1
@@ -11229,7 +18494,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * Creates a new HangupRequest instance using the specified properties.
                      * @function create
@@ -11241,7 +18506,7 @@
                     HangupRequest.create = function create(properties) {
                         return new HangupRequest(properties);
                     };
-    
+
                     /**
                      * Encodes the specified HangupRequest message. Does not implicitly {@link prodigy.api.v1.HangupRequest.verify|verify} messages.
                      * @function encode
@@ -11260,7 +18525,7 @@
                             throw Error("max depth exceeded");
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a HangupRequest message from the specified reader or buffer.
                      * @function decode
@@ -11292,7 +18557,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a HangupRequest message.
                      * @function verify
@@ -11310,7 +18575,7 @@
                             return "maximum nesting depth exceeded";
                         return null;
                     };
-    
+
                     /**
                      * Creates a HangupRequest message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -11324,7 +18589,7 @@
                             return object;
                         return new $root.prodigy.api.v1.HangupRequest();
                     };
-    
+
                     /**
                      * Creates a plain object from a HangupRequest message. Also converts values to other types if specified.
                      * @function toObject
@@ -11337,7 +18602,7 @@
                     HangupRequest.toObject = function toObject() {
                         return {};
                     };
-    
+
                     /**
                      * Converts this HangupRequest to JSON.
                      * @function toJSON
@@ -11348,7 +18613,7 @@
                     HangupRequest.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for HangupRequest
                      * @function getTypeUrl
@@ -11363,19 +18628,19 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.HangupRequest";
                     };
-    
+
                     return HangupRequest;
                 })();
-    
+
                 v1.SendDtmfRequest = (function() {
-    
+
                     /**
                      * Properties of a SendDtmfRequest.
                      * @memberof prodigy.api.v1
                      * @interface ISendDtmfRequest
                      * @property {string|null} [tones] SendDtmfRequest tones
                      */
-    
+
                     /**
                      * Constructs a new SendDtmfRequest.
                      * @memberof prodigy.api.v1
@@ -11390,7 +18655,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * SendDtmfRequest tones.
                      * @member {string} tones
@@ -11398,7 +18663,7 @@
                      * @instance
                      */
                     SendDtmfRequest.prototype.tones = "";
-    
+
                     /**
                      * Creates a new SendDtmfRequest instance using the specified properties.
                      * @function create
@@ -11410,7 +18675,7 @@
                     SendDtmfRequest.create = function create(properties) {
                         return new SendDtmfRequest(properties);
                     };
-    
+
                     /**
                      * Encodes the specified SendDtmfRequest message. Does not implicitly {@link prodigy.api.v1.SendDtmfRequest.verify|verify} messages.
                      * @function encode
@@ -11431,7 +18696,7 @@
                             writer.uint32(/* id 1, wireType 2 =*/10).string(message.tones);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a SendDtmfRequest message from the specified reader or buffer.
                      * @function decode
@@ -11467,7 +18732,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a SendDtmfRequest message.
                      * @function verify
@@ -11488,7 +18753,7 @@
                                 return "tones: string expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a SendDtmfRequest message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -11511,7 +18776,7 @@
                             message.tones = String(object.tones);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a SendDtmfRequest message. Also converts values to other types if specified.
                      * @function toObject
@@ -11535,7 +18800,7 @@
                             object.tones = message.tones;
                         return object;
                     };
-    
+
                     /**
                      * Converts this SendDtmfRequest to JSON.
                      * @function toJSON
@@ -11546,7 +18811,7 @@
                     SendDtmfRequest.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for SendDtmfRequest
                      * @function getTypeUrl
@@ -11561,12 +18826,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.SendDtmfRequest";
                     };
-    
+
                     return SendDtmfRequest;
                 })();
-    
+
                 v1.PhoneCommandResponse = (function() {
-    
+
                     /**
                      * Properties of a PhoneCommandResponse.
                      * @memberof prodigy.api.v1
@@ -11574,7 +18839,7 @@
                      * @property {prodigy.api.v1.PhoneCommandResult|null} [result] PhoneCommandResponse result
                      * @property {string|null} [detail] PhoneCommandResponse detail
                      */
-    
+
                     /**
                      * Constructs a new PhoneCommandResponse.
                      * @memberof prodigy.api.v1
@@ -11589,7 +18854,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * PhoneCommandResponse result.
                      * @member {prodigy.api.v1.PhoneCommandResult} result
@@ -11597,7 +18862,7 @@
                      * @instance
                      */
                     PhoneCommandResponse.prototype.result = 0;
-    
+
                     /**
                      * PhoneCommandResponse detail.
                      * @member {string} detail
@@ -11605,7 +18870,7 @@
                      * @instance
                      */
                     PhoneCommandResponse.prototype.detail = "";
-    
+
                     /**
                      * Creates a new PhoneCommandResponse instance using the specified properties.
                      * @function create
@@ -11617,7 +18882,7 @@
                     PhoneCommandResponse.create = function create(properties) {
                         return new PhoneCommandResponse(properties);
                     };
-    
+
                     /**
                      * Encodes the specified PhoneCommandResponse message. Does not implicitly {@link prodigy.api.v1.PhoneCommandResponse.verify|verify} messages.
                      * @function encode
@@ -11640,7 +18905,7 @@
                             writer.uint32(/* id 2, wireType 2 =*/18).string(message.detail);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a PhoneCommandResponse message from the specified reader or buffer.
                      * @function decode
@@ -11680,7 +18945,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a PhoneCommandResponse message.
                      * @function verify
@@ -11711,7 +18976,7 @@
                                 return "detail: string expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a PhoneCommandResponse message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -11758,7 +19023,7 @@
                             message.detail = String(object.detail);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a PhoneCommandResponse message. Also converts values to other types if specified.
                      * @function toObject
@@ -11786,7 +19051,7 @@
                             object.detail = message.detail;
                         return object;
                     };
-    
+
                     /**
                      * Converts this PhoneCommandResponse to JSON.
                      * @function toJSON
@@ -11797,7 +19062,7 @@
                     PhoneCommandResponse.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for PhoneCommandResponse
                      * @function getTypeUrl
@@ -11812,12 +19077,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.PhoneCommandResponse";
                     };
-    
+
                     return PhoneCommandResponse;
                 })();
-    
+
                 v1.BtDeviceSummary = (function() {
-    
+
                     /**
                      * Properties of a BtDeviceSummary.
                      * @memberof prodigy.api.v1
@@ -11825,7 +19090,7 @@
                      * @property {boolean|null} [connected] BtDeviceSummary connected
                      * @property {string|null} [deviceName] BtDeviceSummary deviceName
                      */
-    
+
                     /**
                      * Constructs a new BtDeviceSummary.
                      * @memberof prodigy.api.v1
@@ -11840,7 +19105,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * BtDeviceSummary connected.
                      * @member {boolean} connected
@@ -11848,7 +19113,7 @@
                      * @instance
                      */
                     BtDeviceSummary.prototype.connected = false;
-    
+
                     /**
                      * BtDeviceSummary deviceName.
                      * @member {string} deviceName
@@ -11856,7 +19121,7 @@
                      * @instance
                      */
                     BtDeviceSummary.prototype.deviceName = "";
-    
+
                     /**
                      * Creates a new BtDeviceSummary instance using the specified properties.
                      * @function create
@@ -11868,7 +19133,7 @@
                     BtDeviceSummary.create = function create(properties) {
                         return new BtDeviceSummary(properties);
                     };
-    
+
                     /**
                      * Encodes the specified BtDeviceSummary message. Does not implicitly {@link prodigy.api.v1.BtDeviceSummary.verify|verify} messages.
                      * @function encode
@@ -11891,7 +19156,7 @@
                             writer.uint32(/* id 2, wireType 2 =*/18).string(message.deviceName);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a BtDeviceSummary message from the specified reader or buffer.
                      * @function decode
@@ -11931,7 +19196,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a BtDeviceSummary message.
                      * @function verify
@@ -11955,7 +19220,7 @@
                                 return "deviceName: string expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a BtDeviceSummary message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -11980,7 +19245,7 @@
                             message.deviceName = String(object.deviceName);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a BtDeviceSummary message. Also converts values to other types if specified.
                      * @function toObject
@@ -12008,7 +19273,7 @@
                             object.deviceName = message.deviceName;
                         return object;
                     };
-    
+
                     /**
                      * Converts this BtDeviceSummary to JSON.
                      * @function toJSON
@@ -12019,7 +19284,7 @@
                     BtDeviceSummary.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for BtDeviceSummary
                      * @function getTypeUrl
@@ -12034,12 +19299,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.BtDeviceSummary";
                     };
-    
+
                     return BtDeviceSummary;
                 })();
-    
+
                 v1.SystemStatus = (function() {
-    
+
                     /**
                      * Properties of a SystemStatus.
                      * @memberof prodigy.api.v1
@@ -12052,7 +19317,7 @@
                      * @property {number|null} [displayWidth] SystemStatus displayWidth
                      * @property {number|null} [displayHeight] SystemStatus displayHeight
                      */
-    
+
                     /**
                      * Constructs a new SystemStatus.
                      * @memberof prodigy.api.v1
@@ -12068,7 +19333,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * SystemStatus nightMode.
                      * @member {boolean} nightMode
@@ -12076,7 +19341,7 @@
                      * @instance
                      */
                     SystemStatus.prototype.nightMode = false;
-    
+
                     /**
                      * SystemStatus themeId.
                      * @member {string} themeId
@@ -12084,7 +19349,7 @@
                      * @instance
                      */
                     SystemStatus.prototype.themeId = "";
-    
+
                     /**
                      * SystemStatus themeTokens.
                      * @member {Object.<string,string>} themeTokens
@@ -12092,7 +19357,7 @@
                      * @instance
                      */
                     SystemStatus.prototype.themeTokens = $util.emptyObject;
-    
+
                     /**
                      * SystemStatus appVersion.
                      * @member {string} appVersion
@@ -12100,7 +19365,7 @@
                      * @instance
                      */
                     SystemStatus.prototype.appVersion = "";
-    
+
                     /**
                      * SystemStatus bluetooth.
                      * @member {prodigy.api.v1.IBtDeviceSummary|null|undefined} bluetooth
@@ -12108,7 +19373,7 @@
                      * @instance
                      */
                     SystemStatus.prototype.bluetooth = null;
-    
+
                     /**
                      * SystemStatus displayWidth.
                      * @member {number|null|undefined} displayWidth
@@ -12116,7 +19381,7 @@
                      * @instance
                      */
                     SystemStatus.prototype.displayWidth = null;
-    
+
                     /**
                      * SystemStatus displayHeight.
                      * @member {number|null|undefined} displayHeight
@@ -12124,22 +19389,22 @@
                      * @instance
                      */
                     SystemStatus.prototype.displayHeight = null;
-    
+
                     // OneOf field names bound to virtual getters and setters
                     var $oneOfFields;
-    
+
                     // Virtual OneOf for proto3 optional field
                     Object.defineProperty(SystemStatus.prototype, "_displayWidth", {
                         get: $util.oneOfGetter($oneOfFields = ["displayWidth"]),
                         set: $util.oneOfSetter($oneOfFields)
                     });
-    
+
                     // Virtual OneOf for proto3 optional field
                     Object.defineProperty(SystemStatus.prototype, "_displayHeight", {
                         get: $util.oneOfGetter($oneOfFields = ["displayHeight"]),
                         set: $util.oneOfSetter($oneOfFields)
                     });
-    
+
                     /**
                      * Creates a new SystemStatus instance using the specified properties.
                      * @function create
@@ -12151,7 +19416,7 @@
                     SystemStatus.create = function create(properties) {
                         return new SystemStatus(properties);
                     };
-    
+
                     /**
                      * Encodes the specified SystemStatus message. Does not implicitly {@link prodigy.api.v1.SystemStatus.verify|verify} messages.
                      * @function encode
@@ -12185,7 +19450,7 @@
                             writer.uint32(/* id 7, wireType 0 =*/56).uint32(message.displayHeight);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a SystemStatus message from the specified reader or buffer.
                      * @function decode
@@ -12266,7 +19531,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a SystemStatus message.
                      * @function verify
@@ -12317,7 +19582,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates a SystemStatus message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -12363,7 +19628,7 @@
                             message.displayHeight = object.displayHeight >>> 0;
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a SystemStatus message. Also converts values to other types if specified.
                      * @function toObject
@@ -12418,7 +19683,7 @@
                         }
                         return object;
                     };
-    
+
                     /**
                      * Converts this SystemStatus to JSON.
                      * @function toJSON
@@ -12429,7 +19694,7 @@
                     SystemStatus.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for SystemStatus
                      * @function getTypeUrl
@@ -12444,10 +19709,10 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.SystemStatus";
                     };
-    
+
                     return SystemStatus;
                 })();
-    
+
                 /**
                  * NotificationKind enum.
                  * @name prodigy.api.v1.NotificationKind
@@ -12461,9 +19726,9 @@
                     values[valuesById[1] = "NOTIFICATION_KIND_TOAST"] = 1;
                     return values;
                 })();
-    
+
                 v1.PostNotificationRequest = (function() {
-    
+
                     /**
                      * Properties of a PostNotificationRequest.
                      * @memberof prodigy.api.v1
@@ -12473,7 +19738,7 @@
                      * @property {number|null} [priority] PostNotificationRequest priority
                      * @property {number|null} [ttlMs] PostNotificationRequest ttlMs
                      */
-    
+
                     /**
                      * Constructs a new PostNotificationRequest.
                      * @memberof prodigy.api.v1
@@ -12488,7 +19753,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * PostNotificationRequest kind.
                      * @member {prodigy.api.v1.NotificationKind} kind
@@ -12496,7 +19761,7 @@
                      * @instance
                      */
                     PostNotificationRequest.prototype.kind = 0;
-    
+
                     /**
                      * PostNotificationRequest message.
                      * @member {string} message
@@ -12504,7 +19769,7 @@
                      * @instance
                      */
                     PostNotificationRequest.prototype.message = "";
-    
+
                     /**
                      * PostNotificationRequest priority.
                      * @member {number|null|undefined} priority
@@ -12512,7 +19777,7 @@
                      * @instance
                      */
                     PostNotificationRequest.prototype.priority = null;
-    
+
                     /**
                      * PostNotificationRequest ttlMs.
                      * @member {number} ttlMs
@@ -12520,16 +19785,16 @@
                      * @instance
                      */
                     PostNotificationRequest.prototype.ttlMs = 0;
-    
+
                     // OneOf field names bound to virtual getters and setters
                     var $oneOfFields;
-    
+
                     // Virtual OneOf for proto3 optional field
                     Object.defineProperty(PostNotificationRequest.prototype, "_priority", {
                         get: $util.oneOfGetter($oneOfFields = ["priority"]),
                         set: $util.oneOfSetter($oneOfFields)
                     });
-    
+
                     /**
                      * Creates a new PostNotificationRequest instance using the specified properties.
                      * @function create
@@ -12541,7 +19806,7 @@
                     PostNotificationRequest.create = function create(properties) {
                         return new PostNotificationRequest(properties);
                     };
-    
+
                     /**
                      * Encodes the specified PostNotificationRequest message. Does not implicitly {@link prodigy.api.v1.PostNotificationRequest.verify|verify} messages.
                      * @function encode
@@ -12568,7 +19833,7 @@
                             writer.uint32(/* id 4, wireType 0 =*/32).uint32(message.ttlMs);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a PostNotificationRequest message from the specified reader or buffer.
                      * @function decode
@@ -12616,7 +19881,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a PostNotificationRequest message.
                      * @function verify
@@ -12654,7 +19919,7 @@
                                 return "ttlMs: integer expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a PostNotificationRequest message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -12697,7 +19962,7 @@
                             message.ttlMs = object.ttlMs >>> 0;
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a PostNotificationRequest message. Also converts values to other types if specified.
                      * @function toObject
@@ -12733,7 +19998,7 @@
                             object.ttlMs = message.ttlMs;
                         return object;
                     };
-    
+
                     /**
                      * Converts this PostNotificationRequest to JSON.
                      * @function toJSON
@@ -12744,7 +20009,7 @@
                     PostNotificationRequest.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for PostNotificationRequest
                      * @function getTypeUrl
@@ -12759,19 +20024,19 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.PostNotificationRequest";
                     };
-    
+
                     return PostNotificationRequest;
                 })();
-    
+
                 v1.PostNotificationResponse = (function() {
-    
+
                     /**
                      * Properties of a PostNotificationResponse.
                      * @memberof prodigy.api.v1
                      * @interface IPostNotificationResponse
                      * @property {string|null} [notificationId] PostNotificationResponse notificationId
                      */
-    
+
                     /**
                      * Constructs a new PostNotificationResponse.
                      * @memberof prodigy.api.v1
@@ -12786,7 +20051,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * PostNotificationResponse notificationId.
                      * @member {string} notificationId
@@ -12794,7 +20059,7 @@
                      * @instance
                      */
                     PostNotificationResponse.prototype.notificationId = "";
-    
+
                     /**
                      * Creates a new PostNotificationResponse instance using the specified properties.
                      * @function create
@@ -12806,7 +20071,7 @@
                     PostNotificationResponse.create = function create(properties) {
                         return new PostNotificationResponse(properties);
                     };
-    
+
                     /**
                      * Encodes the specified PostNotificationResponse message. Does not implicitly {@link prodigy.api.v1.PostNotificationResponse.verify|verify} messages.
                      * @function encode
@@ -12827,7 +20092,7 @@
                             writer.uint32(/* id 1, wireType 2 =*/10).string(message.notificationId);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a PostNotificationResponse message from the specified reader or buffer.
                      * @function decode
@@ -12863,7 +20128,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a PostNotificationResponse message.
                      * @function verify
@@ -12884,7 +20149,7 @@
                                 return "notificationId: string expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a PostNotificationResponse message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -12907,7 +20172,7 @@
                             message.notificationId = String(object.notificationId);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a PostNotificationResponse message. Also converts values to other types if specified.
                      * @function toObject
@@ -12931,7 +20196,7 @@
                             object.notificationId = message.notificationId;
                         return object;
                     };
-    
+
                     /**
                      * Converts this PostNotificationResponse to JSON.
                      * @function toJSON
@@ -12942,7 +20207,7 @@
                     PostNotificationResponse.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for PostNotificationResponse
                      * @function getTypeUrl
@@ -12957,19 +20222,19 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.PostNotificationResponse";
                     };
-    
+
                     return PostNotificationResponse;
                 })();
-    
+
                 v1.DismissNotificationRequest = (function() {
-    
+
                     /**
                      * Properties of a DismissNotificationRequest.
                      * @memberof prodigy.api.v1
                      * @interface IDismissNotificationRequest
                      * @property {string|null} [notificationId] DismissNotificationRequest notificationId
                      */
-    
+
                     /**
                      * Constructs a new DismissNotificationRequest.
                      * @memberof prodigy.api.v1
@@ -12984,7 +20249,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * DismissNotificationRequest notificationId.
                      * @member {string} notificationId
@@ -12992,7 +20257,7 @@
                      * @instance
                      */
                     DismissNotificationRequest.prototype.notificationId = "";
-    
+
                     /**
                      * Creates a new DismissNotificationRequest instance using the specified properties.
                      * @function create
@@ -13004,7 +20269,7 @@
                     DismissNotificationRequest.create = function create(properties) {
                         return new DismissNotificationRequest(properties);
                     };
-    
+
                     /**
                      * Encodes the specified DismissNotificationRequest message. Does not implicitly {@link prodigy.api.v1.DismissNotificationRequest.verify|verify} messages.
                      * @function encode
@@ -13025,7 +20290,7 @@
                             writer.uint32(/* id 1, wireType 2 =*/10).string(message.notificationId);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a DismissNotificationRequest message from the specified reader or buffer.
                      * @function decode
@@ -13061,7 +20326,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a DismissNotificationRequest message.
                      * @function verify
@@ -13082,7 +20347,7 @@
                                 return "notificationId: string expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a DismissNotificationRequest message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -13105,7 +20370,7 @@
                             message.notificationId = String(object.notificationId);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a DismissNotificationRequest message. Also converts values to other types if specified.
                      * @function toObject
@@ -13129,7 +20394,7 @@
                             object.notificationId = message.notificationId;
                         return object;
                     };
-    
+
                     /**
                      * Converts this DismissNotificationRequest to JSON.
                      * @function toJSON
@@ -13140,7 +20405,7 @@
                     DismissNotificationRequest.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for DismissNotificationRequest
                      * @function getTypeUrl
@@ -13155,12 +20420,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.DismissNotificationRequest";
                     };
-    
+
                     return DismissNotificationRequest;
                 })();
-    
+
                 v1.GpsReport = (function() {
-    
+
                     /**
                      * Properties of a GpsReport.
                      * @memberof prodigy.api.v1
@@ -13173,7 +20438,7 @@
                      * @property {number|null} [ageMs] GpsReport ageMs
                      * @property {number|null} [altitudeM] GpsReport altitudeM
                      */
-    
+
                     /**
                      * Constructs a new GpsReport.
                      * @memberof prodigy.api.v1
@@ -13188,7 +20453,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * GpsReport latitude.
                      * @member {number} latitude
@@ -13196,7 +20461,7 @@
                      * @instance
                      */
                     GpsReport.prototype.latitude = 0;
-    
+
                     /**
                      * GpsReport longitude.
                      * @member {number} longitude
@@ -13204,7 +20469,7 @@
                      * @instance
                      */
                     GpsReport.prototype.longitude = 0;
-    
+
                     /**
                      * GpsReport speedMps.
                      * @member {number} speedMps
@@ -13212,7 +20477,7 @@
                      * @instance
                      */
                     GpsReport.prototype.speedMps = 0;
-    
+
                     /**
                      * GpsReport bearingDeg.
                      * @member {number} bearingDeg
@@ -13220,7 +20485,7 @@
                      * @instance
                      */
                     GpsReport.prototype.bearingDeg = 0;
-    
+
                     /**
                      * GpsReport accuracyM.
                      * @member {number} accuracyM
@@ -13228,7 +20493,7 @@
                      * @instance
                      */
                     GpsReport.prototype.accuracyM = 0;
-    
+
                     /**
                      * GpsReport ageMs.
                      * @member {number} ageMs
@@ -13236,7 +20501,7 @@
                      * @instance
                      */
                     GpsReport.prototype.ageMs = 0;
-    
+
                     /**
                      * GpsReport altitudeM.
                      * @member {number|null|undefined} altitudeM
@@ -13244,16 +20509,16 @@
                      * @instance
                      */
                     GpsReport.prototype.altitudeM = null;
-    
+
                     // OneOf field names bound to virtual getters and setters
                     var $oneOfFields;
-    
+
                     // Virtual OneOf for proto3 optional field
                     Object.defineProperty(GpsReport.prototype, "_altitudeM", {
                         get: $util.oneOfGetter($oneOfFields = ["altitudeM"]),
                         set: $util.oneOfSetter($oneOfFields)
                     });
-    
+
                     /**
                      * Creates a new GpsReport instance using the specified properties.
                      * @function create
@@ -13265,7 +20530,7 @@
                     GpsReport.create = function create(properties) {
                         return new GpsReport(properties);
                     };
-    
+
                     /**
                      * Encodes the specified GpsReport message. Does not implicitly {@link prodigy.api.v1.GpsReport.verify|verify} messages.
                      * @function encode
@@ -13298,7 +20563,7 @@
                             writer.uint32(/* id 7, wireType 1 =*/57).double(message.altitudeM);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a GpsReport message from the specified reader or buffer.
                      * @function decode
@@ -13358,7 +20623,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a GpsReport message.
                      * @function verify
@@ -13400,7 +20665,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates a GpsReport message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -13435,7 +20700,7 @@
                             message.altitudeM = Number(object.altitudeM);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a GpsReport message. Also converts values to other types if specified.
                      * @function toObject
@@ -13480,7 +20745,7 @@
                         }
                         return object;
                     };
-    
+
                     /**
                      * Converts this GpsReport to JSON.
                      * @function toJSON
@@ -13491,7 +20756,7 @@
                     GpsReport.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for GpsReport
                      * @function getTypeUrl
@@ -13506,12 +20771,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.GpsReport";
                     };
-    
+
                     return GpsReport;
                 })();
-    
+
                 v1.BatteryReport = (function() {
-    
+
                     /**
                      * Properties of a BatteryReport.
                      * @memberof prodigy.api.v1
@@ -13519,7 +20784,7 @@
                      * @property {number|null} [percent] BatteryReport percent
                      * @property {boolean|null} [charging] BatteryReport charging
                      */
-    
+
                     /**
                      * Constructs a new BatteryReport.
                      * @memberof prodigy.api.v1
@@ -13534,7 +20799,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * BatteryReport percent.
                      * @member {number} percent
@@ -13542,7 +20807,7 @@
                      * @instance
                      */
                     BatteryReport.prototype.percent = 0;
-    
+
                     /**
                      * BatteryReport charging.
                      * @member {boolean} charging
@@ -13550,7 +20815,7 @@
                      * @instance
                      */
                     BatteryReport.prototype.charging = false;
-    
+
                     /**
                      * Creates a new BatteryReport instance using the specified properties.
                      * @function create
@@ -13562,7 +20827,7 @@
                     BatteryReport.create = function create(properties) {
                         return new BatteryReport(properties);
                     };
-    
+
                     /**
                      * Encodes the specified BatteryReport message. Does not implicitly {@link prodigy.api.v1.BatteryReport.verify|verify} messages.
                      * @function encode
@@ -13585,7 +20850,7 @@
                             writer.uint32(/* id 2, wireType 0 =*/16).bool(message.charging);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a BatteryReport message from the specified reader or buffer.
                      * @function decode
@@ -13625,7 +20890,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a BatteryReport message.
                      * @function verify
@@ -13649,7 +20914,7 @@
                                 return "charging: boolean expected";
                         return null;
                     };
-    
+
                     /**
                      * Creates a BatteryReport message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -13674,7 +20939,7 @@
                             message.charging = Boolean(object.charging);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a BatteryReport message. Also converts values to other types if specified.
                      * @function toObject
@@ -13702,7 +20967,7 @@
                             object.charging = message.charging;
                         return object;
                     };
-    
+
                     /**
                      * Converts this BatteryReport to JSON.
                      * @function toJSON
@@ -13713,7 +20978,7 @@
                     BatteryReport.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for BatteryReport
                      * @function getTypeUrl
@@ -13728,12 +20993,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.BatteryReport";
                     };
-    
+
                     return BatteryReport;
                 })();
-    
+
                 v1.ConnectivityReport = (function() {
-    
+
                     /**
                      * Properties of a ConnectivityReport.
                      * @memberof prodigy.api.v1
@@ -13743,7 +21008,7 @@
                      * @property {number|null} [socks5Port] ConnectivityReport socks5Port
                      * @property {string|null} [socks5Password] ConnectivityReport socks5Password
                      */
-    
+
                     /**
                      * Constructs a new ConnectivityReport.
                      * @memberof prodigy.api.v1
@@ -13758,7 +21023,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * ConnectivityReport internetAvailable.
                      * @member {boolean} internetAvailable
@@ -13766,7 +21031,7 @@
                      * @instance
                      */
                     ConnectivityReport.prototype.internetAvailable = false;
-    
+
                     /**
                      * ConnectivityReport socks5Active.
                      * @member {boolean} socks5Active
@@ -13774,7 +21039,7 @@
                      * @instance
                      */
                     ConnectivityReport.prototype.socks5Active = false;
-    
+
                     /**
                      * ConnectivityReport socks5Port.
                      * @member {number} socks5Port
@@ -13782,7 +21047,7 @@
                      * @instance
                      */
                     ConnectivityReport.prototype.socks5Port = 0;
-    
+
                     /**
                      * ConnectivityReport socks5Password.
                      * @member {string|null|undefined} socks5Password
@@ -13790,16 +21055,16 @@
                      * @instance
                      */
                     ConnectivityReport.prototype.socks5Password = null;
-    
+
                     // OneOf field names bound to virtual getters and setters
                     var $oneOfFields;
-    
+
                     // Virtual OneOf for proto3 optional field
                     Object.defineProperty(ConnectivityReport.prototype, "_socks5Password", {
                         get: $util.oneOfGetter($oneOfFields = ["socks5Password"]),
                         set: $util.oneOfSetter($oneOfFields)
                     });
-    
+
                     /**
                      * Creates a new ConnectivityReport instance using the specified properties.
                      * @function create
@@ -13811,7 +21076,7 @@
                     ConnectivityReport.create = function create(properties) {
                         return new ConnectivityReport(properties);
                     };
-    
+
                     /**
                      * Encodes the specified ConnectivityReport message. Does not implicitly {@link prodigy.api.v1.ConnectivityReport.verify|verify} messages.
                      * @function encode
@@ -13838,7 +21103,7 @@
                             writer.uint32(/* id 4, wireType 2 =*/34).string(message.socks5Password);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a ConnectivityReport message from the specified reader or buffer.
                      * @function decode
@@ -13886,7 +21151,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a ConnectivityReport message.
                      * @function verify
@@ -13919,7 +21184,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates a ConnectivityReport message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -13948,7 +21213,7 @@
                             message.socks5Password = String(object.socks5Password);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a ConnectivityReport message. Also converts values to other types if specified.
                      * @function toObject
@@ -13984,7 +21249,7 @@
                         }
                         return object;
                     };
-    
+
                     /**
                      * Converts this ConnectivityReport to JSON.
                      * @function toJSON
@@ -13995,7 +21260,7 @@
                     ConnectivityReport.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for ConnectivityReport
                      * @function getTypeUrl
@@ -14010,12 +21275,12 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.ConnectivityReport";
                     };
-    
+
                     return ConnectivityReport;
                 })();
-    
+
                 v1.TimeReport = (function() {
-    
+
                     /**
                      * Properties of a TimeReport.
                      * @memberof prodigy.api.v1
@@ -14023,7 +21288,7 @@
                      * @property {number|Long|null} [unixTimeMs] TimeReport unixTimeMs
                      * @property {string|null} [timezoneId] TimeReport timezoneId
                      */
-    
+
                     /**
                      * Constructs a new TimeReport.
                      * @memberof prodigy.api.v1
@@ -14038,7 +21303,7 @@
                                 if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
-    
+
                     /**
                      * TimeReport unixTimeMs.
                      * @member {number|Long} unixTimeMs
@@ -14046,7 +21311,7 @@
                      * @instance
                      */
                     TimeReport.prototype.unixTimeMs = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
-    
+
                     /**
                      * TimeReport timezoneId.
                      * @member {string|null|undefined} timezoneId
@@ -14054,16 +21319,16 @@
                      * @instance
                      */
                     TimeReport.prototype.timezoneId = null;
-    
+
                     // OneOf field names bound to virtual getters and setters
                     var $oneOfFields;
-    
+
                     // Virtual OneOf for proto3 optional field
                     Object.defineProperty(TimeReport.prototype, "_timezoneId", {
                         get: $util.oneOfGetter($oneOfFields = ["timezoneId"]),
                         set: $util.oneOfSetter($oneOfFields)
                     });
-    
+
                     /**
                      * Creates a new TimeReport instance using the specified properties.
                      * @function create
@@ -14075,7 +21340,7 @@
                     TimeReport.create = function create(properties) {
                         return new TimeReport(properties);
                     };
-    
+
                     /**
                      * Encodes the specified TimeReport message. Does not implicitly {@link prodigy.api.v1.TimeReport.verify|verify} messages.
                      * @function encode
@@ -14098,7 +21363,7 @@
                             writer.uint32(/* id 2, wireType 2 =*/18).string(message.timezoneId);
                         return writer;
                     };
-    
+
                     /**
                      * Decodes a TimeReport message from the specified reader or buffer.
                      * @function decode
@@ -14138,7 +21403,7 @@
                         }
                         return message;
                     };
-    
+
                     /**
                      * Verifies a TimeReport message.
                      * @function verify
@@ -14165,7 +21430,7 @@
                         }
                         return null;
                     };
-    
+
                     /**
                      * Creates a TimeReport message from a plain object. Also converts values to their respective internal types.
                      * @function fromObject
@@ -14197,7 +21462,7 @@
                             message.timezoneId = String(object.timezoneId);
                         return message;
                     };
-    
+
                     /**
                      * Creates a plain object from a TimeReport message. Also converts values to other types if specified.
                      * @function toObject
@@ -14235,7 +21500,7 @@
                         }
                         return object;
                     };
-    
+
                     /**
                      * Converts this TimeReport to JSON.
                      * @function toJSON
@@ -14246,7 +21511,7 @@
                     TimeReport.prototype.toJSON = function toJSON() {
                         return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
                     };
-    
+
                     /**
                      * Gets the default type url for TimeReport
                      * @function getTypeUrl
@@ -14261,16 +21526,16 @@
                         }
                         return typeUrlPrefix + "/prodigy.api.v1.TimeReport";
                     };
-    
+
                     return TimeReport;
                 })();
-    
+
                 return v1;
             })();
-    
+
             return api;
         })();
-    
+
         return prodigy;
     })();
 

@@ -13,6 +13,7 @@ add_library(openauto-core STATIC
     core/api/ApiPublishers.cpp
     core/api/ApiSession.cpp
     core/api/ApiInboundState.cpp
+    core/api/ApiDataBridge.cpp
     core/api/ApiRequestHandlers.cpp
     core/api/ApiServer.cpp
     core/system/HostapdConfig.cpp
@@ -66,6 +67,7 @@ add_library(openauto-core STATIC
     core/services/ActionRegistry.cpp
     core/services/OverlayService.cpp
     core/services/NotificationService.cpp
+    core/services/DataRegistry.cpp
     core/services/ClockSyncService.cpp
     core/services/WeatherService.cpp
     core/services/SystemServiceClient.cpp

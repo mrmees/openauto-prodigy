@@ -43,6 +43,7 @@ ApiServer::ApiServer(ApiServiceRefs refs, QObject* parent)
     hd.notifications = refs_.notifications;
     hd.phone = refs_.phone;
     hd.inbound = inbound_;
+    hd.dataRegistry = refs_.dataRegistry;
     handlers_ = new ApiRequestHandlers(hd, this);
 
     // Expose pairing as actions too, so a UI button or a companion client can
@@ -293,6 +294,8 @@ pb::Capabilities ApiServer::buildCapabilities() const {
     // that before enabling call UI.
     caps.mutable_phone();
     caps.set_secure_pairing_code(true);
+    if (refs_.dataRegistry)
+        caps.set_data_provider_bridge(true);
     return caps;
 }
 

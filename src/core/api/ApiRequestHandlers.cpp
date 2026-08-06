@@ -1,6 +1,7 @@
 #include "core/api/ApiRequestHandlers.hpp"
 
 #include "core/api/ApiInboundState.hpp"
+#include "core/api/ApiDataBridge.hpp"
 #include "core/services/ActionRegistry.hpp"
 #include "core/services/INotificationService.hpp"
 #include "core/services/IPhoneStateService.hpp"
@@ -66,6 +67,8 @@ void sendError(ApiSession* session, quint64 requestId, pb::ErrorCode code,
 
 ApiRequestHandlers::ApiRequestHandlers(Deps deps, QObject* parent)
     : QObject(parent), deps_(deps) {
+    if (deps_.dataRegistry)
+        dataBridge_ = new ApiDataBridge(deps_.dataRegistry, this);
     livenessClock_.start();
     livenessTimer_.setInterval(5000);
     connect(&livenessTimer_, &QTimer::timeout,
@@ -83,6 +86,9 @@ bool ApiRequestHandlers::hasReservedPrefix(const QString& id) {
 
 void ApiRequestHandlers::handleRequest(ApiSession* session, quint64 requestId,
                                        const pb::ApiMessage& msg) {
+    if (dataBridge_ && dataBridge_->handleRequest(session, requestId, msg))
+        return;
+
     switch (msg.payload_case()) {
         case pb::ApiMessage::kListActionsRequest:
             handleListActions(session, requestId); break;
@@ -128,6 +134,9 @@ void ApiRequestHandlers::handleRequest(ApiSession* session, quint64 requestId,
 }
 
 void ApiRequestHandlers::sessionClosed(ApiSession* session) {
+    if (dataBridge_)
+        dataBridge_->sessionClosed(session);
+
     // Auto-unregister every action this session owned (the invariant that a
     // client action is dead once its session is gone). Iterate a snapshot of
     // the keys since we mutate the map inside the loop.

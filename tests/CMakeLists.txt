@@ -120,6 +120,7 @@ oap_add_test(test_event_bus SOURCES test_event_bus.cpp)
 oap_add_test(test_action_registry SOURCES test_action_registry.cpp)
 oap_add_test(test_overlay_service SOURCES test_overlay_service.cpp)
 oap_add_test(test_notification_service SOURCES test_notification_service.cpp)
+oap_add_test(test_data_registry SOURCES test_data_registry.cpp)
 oap_add_test(test_clock_sync SOURCES test_clock_sync.cpp)
 oap_add_test(test_system_service_client SOURCES test_system_service_client.cpp)
 oap_add_test(test_bluetooth_manager DBUS_SESSION SOURCES test_bluetooth_manager.cpp)
@@ -233,6 +234,9 @@ oap_add_test(test_widget_picker_model SOURCES test_widget_picker_model.cpp)
 oap_add_test(test_web_widget_manifest SOURCES test_web_widget_manifest.cpp)
 oap_add_test(test_web_widget_resolver SOURCES test_web_widget_resolver.cpp)
 oap_add_test(test_web_widget_scanner SOURCES test_web_widget_scanner.cpp)
+if(TARGET Qt6::WebEngineQuick)
+    oap_add_test(test_web_widget_scheme SOURCES test_web_widget_scheme.cpp)
+endif()
 
 oap_add_test(test_weather_service SOURCES test_weather_service.cpp)
 
@@ -266,13 +270,25 @@ set_tests_properties(test_api_publishers PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM
 oap_add_test(test_api_session SOURCES test_api_session.cpp)
 set_tests_properties(test_api_session PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 oap_add_test(test_api_request_handlers SOURCES test_api_request_handlers.cpp)
+oap_add_test(test_api_data_bridge SOURCES test_api_data_bridge.cpp)
 set_tests_properties(test_api_request_handlers PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+set_tests_properties(test_api_data_bridge PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 oap_add_test(test_api_server SOURCES test_api_server.cpp)
 set_tests_properties(test_api_server PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 oap_add_test(test_api_loopback SOURCES test_api_loopback.cpp)
 set_tests_properties(test_api_loopback PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
 # --- Script tests (no compilation) ---
+
+find_program(NODE_EXECUTABLE node)
+if(NODE_EXECUTABLE)
+    add_test(
+        NAME test_prodigy_data_js
+        COMMAND ${NODE_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_prodigy_data_js.mjs
+    )
+    set_tests_properties(test_prodigy_data_js PROPERTIES
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+endif()
 
 add_test(
     NAME test_prebuilt_release_package

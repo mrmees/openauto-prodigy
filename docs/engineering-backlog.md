@@ -13,6 +13,17 @@ limits, and a verification command before implementation.
 
 ## Configuration and Web Config
 
+- **Display brightness hardware backend lacks synthetic sysfs coverage and
+  generic fallback semantics** — Evidence: **CODE-REVIEW CONFIRMED 2026-08-01;
+  SUPPORTED PI NONBLOCKING**. The live Pi path is safe (`max_brightness=255`,
+  service user in `video`, brightness node writable), but tests cannot inject
+  a synthetic backlight tree. A nonstandard small-range panel can scale the 5%
+  floor to zero, and a detected-but-unwritable node logs instead of falling
+  back to the software overlay. Candidate deliverable: inject the scan root,
+  exercise the real sysfs write path with a temporary tree, retain a nonzero
+  hardware floor, and define fallback behavior for unreadable limits or failed
+  writes.
+
 - **Web settings submit fields the IPC writer ignores** — Evidence:
   **CODE-CONFIRMED 2026-07-24**. settings.html sends video_resolution,
   brightness, and night_mode, while IpcServer::handleSetConfig handles none of
@@ -302,6 +313,14 @@ limits, and a verification command before implementation.
 
 ## Web-Widget Runtime
 
+- **Package fetch treats non-GET methods as read requests** — Evidence:
+  **CODE-REVIEW CONFIRMED 2026-08-05; HARDWARE NONBLOCKING**.
+  `WebWidgetSchemeHandler::requestStarted()` resolves and returns package files
+  without checking the request method, so a same-origin `POST` currently gets
+  the same read-only response as `GET`. No mutation path exists. Candidate
+  deliverable: define the package-scheme method contract and reject methods
+  other than `GET` (and optionally support `HEAD`) with focused coverage.
+
 - **Shim readiness is one-shot across reconnects** — Evidence:
   **CODE-CONFIRMED 2026-07-24**. prodigy.ready resolves once and never represents
   a later disconnected interval. Candidate deliverable: callers can reliably
@@ -343,6 +362,18 @@ limits, and a verification command before implementation.
   pins plus a documented/regression-checked regeneration procedure.
 
 ## Release Engineering and Documentation
+
+- **Protocol submodule helper lacks recovery for uncommon Git metadata
+  states** — Evidence: **CODE-REVIEW CONFIRMED 2026-08-01; CURRENT INSTALL
+  NONBLOCKING**. The source installer now initializes the exact pinned commit
+  from the lightweight `dist` branch, but a missing worktree paired with an
+  existing `.git/modules/.../proto` repository can wedge its separate-git-dir
+  clone. It also does not resync a changed tracked URL or try a direct-SHA fetch
+  if a future rewritten `dist` branch no longer contains an old release pin.
+  Candidate deliverable: reattach an orphaned module gitdir without deleting
+  it, sync the tracked URL while respecting deliberate local overrides, add an
+  actionable direct-pin fallback, and cover both orphaned and legacy
+  standalone-clone migrations with real temporary repositories.
 
 - **Fable review-gate invocation needs a reproducible readiness/progress
   check** — Evidence: **LOCAL TOOLING OBSERVATION 2026-07-25**. Two Fable

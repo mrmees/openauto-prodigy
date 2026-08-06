@@ -4,265 +4,260 @@ Newest entries first.
 
 ---
 
-## 2026-07-31 — Native dashboard PR and Opus pre-merge review
+## 2026-08-06 — Cross-repository live vehicle-data slice completed
 
-**What changed:** pushed the completed `dev` branch and opened draft PR #43,
-`Add native Android Auto turn card and richer trip data`, against `main`. The
-PR contains the complete hardware-accepted dashboard selector, native turn-card
-foundation, and richer trip-data work. No application code changed after the
-accepted and reviewed head `f8f1759c9f99756c6a9ddef39b7adc2cb7ede45c`.
+**What changed:** updated Prodigy's current roadmap after Gauge Studio and the
+separate `prodigy-obd` repository completed the public data-provider vertical
+slice. Prodigy runtime code did not change in this session. The immutable
+feature anchors are Prodigy `3a7955f`, Gauge Studio `f784bf7`, and
+`prodigy-obd` `34632d7`.
 
-**Status:** PR #43 is open and mergeable but remains a draft; it has not been
-merged. One read-only Opus 4.6 review covered the immutable 26-commit
-`origin/main..f8f1759` range and returned **MERGE** with no blocker and one new
-minor. The confirmed minor is roadless guidance coupling the cue/time row to
-road-text visibility; it is recorded in `docs/engineering-backlog.md` rather
-than churning the hardware-accepted implementation.
+**Why:** the roadmap and older handoff still described Gauge Studio as planned
+and the backend path as empty. Both statements became stale after two exported
+gauges and the production Bluetooth/USB backend completed live Pi validation.
 
-**Verification:** the PR head retained the previously green focused, native,
-explicit app, complete offscreen CTest, ARM cross-build, exact Pi hash, and
-sequential live acceptance evidence. This docs-only review record passed
-`python3 scripts/check-doc-links.py --scope tracked-live` and
-`git diff --check`; no application rebuild was required.
+**Status:** CROSS-REPOSITORY FEATURE COMPLETE. Engine RPM and control-module
+voltage gauges render through only `window.prodigy.data`, resize normally,
+show provider disconnection, and recover automatically. The backend owns ELM
+transport, decoded PIDs, setup, service lifecycle, and reliability; Prodigy
+remains a source-agnostic typed-scalar bridge.
 
-**Next 1–3 steps:** push this docs-only review record to PR #43; merge only on
-the user's authorization; re-research the roadless-guidance presentation lead
-before promoting it into implementation scope.
+**Verification:** the previously recorded Prodigy native/app/offscreen/ARM and
+live widget gates remain the evidence for this unchanged runtime. Gauge Studio
+records its full suite, deterministic package generation, and live dashboard
+proof at `f784bf7`. The backend records its full check, independent emulator,
+transaction matrix, USB/Bluetooth switching, disconnect recovery, reboot,
+fresh-install path, and production soak at `34632d7`. For this documentation
+update, `python3 scripts/check-doc-links.py` and `git diff --check` apply.
 
----
+**Review:** the Prodigy provider bridge completed its bounded Fable review and
+the package-fetch fix completed its bounded Opus review. Gauge Studio and the
+backend retain their independent review records. No additional review is
+required for this factual documentation correction.
 
-## 2026-07-31 — Native dashboard richer-trip hardware acceptance
-
-**What changed:** completed the live-proven richer native turn card at accepted
-code SHA `e26e9406084f4162d7e4f3e39ee99a07967bebbc`. Exact modern navigation
-snapshots now drive rerouting freshness, ordered distinct action cues,
-next-step timing, and index-zero destination distance/ETA with
-single-destination remaining duration. Live lanes replace the full trip footer;
-otherwise its adaptive metrics share the accepted fixed-height destination
-band and overflow-only address marquee. The older flat turn event remains the
-compatibility fallback, and the hands-off OAA v1.5 proto tree was not edited.
-
-**Status:** COMPLETED and HARDWARE ACCEPTED. The deployed ARM executable matched
-locally and on the Pi at SHA-256
-`7ca081c83d10a3d0de0908070af89b6822ca6d57b6b1d02ea83907cd5a686bec`,
-and the Prodigy service was active. The completed design and plan are archived
-at
-`docs/archive/plans/2026-07-31-native-dashboard-richer-trip-data-design.md`
-and
-`docs/archive/plans/2026-07-31-native-dashboard-richer-trip-data-plan.md`.
-
-**Verification:** the three focused navigation suites, native build, explicit
-`openauto-prodigy` app target, complete offscreen CTest suite, and
-`./cross-build.sh` passed. The one-screen Pi/Samsung run passed the projected
-Map baseline, immediate Map→Turn with uninterrupted audio, no-lane adaptive
-trip data and marquee, lane-footer replacement without pulsing, rerouting
-placeholder and fresh restoration, route-end clearing, and immediate Map
-restoration. Documentation closure passed
-`python3 scripts/check-doc-links.py --scope tracked-live` and
-`git diff --check`; no application rebuild was required for the docs-only
-closure commit.
-
-**Review:** the single high-effort Fable pass reviewed immutable range
-`e70a012e7f2ff171f96954fd8d6e0e387ec9a670..e26e9406084f4162d7e4f3e39ee99a07967bebbc`
-with the accepted anchor and returned BLOCKER=0, MAJOR=1, MINOR=3. All four
-facts were confirmed, none dismissed, and three deferred: notification-order
-NOTIFY mismatch, footer boundary-width fit math, and pre-existing navigation
-EventBus connection accumulation. The fourth finding was accepted as intended:
-removing derived shadow signals restores inherited `INavigationProvider`
-notifications and External API v1 navigation pushes without changing the
-payload; freshness-gated rerouting clears stale route fields by design. No
-remediation review was needed.
-
-**Next 1–3 steps:** publish only with the user's authorization; re-research the
-three deferred findings before promotion; retain multi-stop, roundabout,
-other-provider lookahead, and current-road questions as unclaimed validation.
+**Next 1–3 steps:** push Prodigy's reviewed `dev` commits; keep future OBD/CAN
+backend work in `prodigy-obd`; promote a new Prodigy task only when selected
+from the current backlog or wishlist.
 
 ---
 
-## 2026-07-31 — Native dashboard richer-trip design
+## 2026-08-05 — Package-local web-widget fetch and live gauge verification
 
-**What changed:** promoted the live-proven richer native navigation data into
-an implementation-ready design. One complete Samsung S25+ GAL 6.0 mock route
-produced synchronized notification/position snapshots, exact rerouting edges,
-ordered action cues, time to step, next-destination distance, formatted ETA,
-and remaining duration. A focused Maps 26.30.05/Gearhead 17.3 source trace
-established replacement-snapshot semantics, corrected the misleading local
-road/cue field names, proved Maps current-step-only and current-road-absent
-behavior, and established destination index-zero policy.
+**What changed:** fixed the `prodigy://widgets` scheme registration so Chromium
+permits package-local Fetch API requests while retaining the canonical-path
+jail and denying local-file access. Engine RPM and control-module-voltage gauge
+packages can now load their generated `gauge.json` at runtime. The code fix is
+commit `9830f7f`.
 
-**Historical status (superseded by the acceptance above):** DESIGN APPROVED;
-PLAN WRITTEN; READY TO EXECUTE. The design was grounded on `7c47172` and is now
-archived at
-`docs/archive/plans/2026-07-31-native-dashboard-richer-trip-data-design.md`;
-the implementation plan was grounded on `e70a012` and is now archived at
-`docs/archive/plans/2026-07-31-native-dashboard-richer-trip-data-plan.md`.
-They kept the accepted maneuver/lane hierarchy and made live lanes replace the
-complete trip footer. Current road, Maps lookahead, roundabout presentation,
-EV data, and ambiguous multi-stop numeric duration remained excluded.
+**Status:** LIVE-VERIFIED on the vehicle Pi. The deployed ARM binary matched
+local SHA-256
+`2c9b9b09e282c99cc92767d6cc1210030409f7c7e9e5193b7149902cae1d4dcc`.
+Both gauges rendered live data, resized correctly, showed `PROVIDER
+DISCONNECTED` after a clean backend stop, and recovered automatically after
+the provider restarted. The temporary provider is stopped; no further hardware
+time is required for this fix.
 
-**Evidence:** navigation-only capture SHA-256
-`61a145a0ba3a3c2612007215e78d8b92cdca2b3885236815311a16a0e6262f7e`;
-external Maps research response SHA-256
-`cc49376c83e1575527a66216ef945fa820734a7274397c47c988736383d46c7d`.
-The capture setting was returned to disabled and broader temporary protocol
-traffic was removed after the navigation artifact was verified.
-
-**Verification:** documentation links and whitespace are checked on the final
-docs tree. No application build is required for this documentation-only step.
-
-**Next 1–3 steps (historical):** execute handler snapshot tests and
-implementation; execute provider freshness/presentation tests; complete QML,
-native/ARM, live hardware, and the one bounded Fable review gate. All were
-completed by the acceptance entry above.
-
----
-
-## 2026-07-31 — Native dashboard turn-card hardware acceptance
-
-**What changed:** completed the native semantic dashboard turn card on the
-existing AUXILIARY navigation-map connection. Local Map/Turn card switching no
-longer reconnects AA. The accepted card has exhaustive maneuver/lane mappings,
-compound physical-lane composition, shared hero/lane geometry, stable lane
-updates, theme-aware in-dash typography, a lane-priority destination footer,
-and the approved final hierarchy: wider label-free maneuver tile,
-right-aligned distance block, centered road row, and whole-mile formatting
-above 9.9 miles. The hands-off OAA v1.5 proto tree was not edited.
-
-**Status:** COMPLETED and HARDWARE ACCEPTED at
-`5a2b1b52864220e4b62e4efabdccc748ccd73ba0`. The deployed
-`ALPHA-26-07-24-01-134-g5a2b1b5` ARM executable matched locally and remotely at
-SHA-256 `bd75d15e350bb8c5b8ed7cc5aec349a956467a684ce1f42e7e978e5be313d13e`;
-the service was active at PID 343022 with `NRestarts=0` and no QML startup
-errors. The operator accepted the final live card at installed resolution and
-viewing distance. The one-screen rig validated Map and card sequentially.
-
-**Verification:** focused behavior was developed red-first. The final native
-build, explicit `openauto-prodigy` app target, complete offscreen CTest suite,
-ARM `./cross-build.sh`, exact binary-hash comparison, clean service restart,
-and live Pi/phone route checks passed. Pixel and Samsung runs covered local
-Map/card switching, maneuver and lane presentation, friendly states, audio,
-route transitions, and readability. A Samsung S25+ stationary route repeatedly
-proved destination-address delivery; trip time, ETA, and destination distance
-remain gated because it did not deliver `NavigationNextTurnDistanceEvent`.
-
-**Review:** the single high-effort Fable pass reviewed immutable range
-`4439c29922971af9fbd3ce2bce9b15acab82f9be..5a2b1b52864220e4b62e4efabdccc748ccd73ba0`
-with the accepted anchor. BLOCKER=0, MAJOR=0, MINOR=4. All four minor findings
-were confirmed and deferred under the accepted-tree rule: projection enum
-literals, delivery-dependent empty modern distance text, C-locale mile
-parsing, and a possible transient null-provider QML warning. They are recorded
-in `docs/engineering-backlog.md`; no remediation pass was needed.
-
-**Next 1–3 steps:** capture moving-route trip-summary delivery before
-promoting richer Stage 2 fields; write a focused plan only for live-proven
-semantics; keep the accepted primary maneuver and lane hierarchy unchanged.
-
----
-
-## 2026-07-28 — Native dashboard turn-card Stage 1 guidance
-
-**What changed:** reconciled current Android Auto documentation with the Stage
-1 native dashboard behavior. The auxiliary descriptor is now invariantly
-`AUXILIARY`/`KEYCODE_NAVIGATION`; `video.secondary_display_content` immediately
-selects local map or native turn-card presentation without reconnecting AA.
-Map mode uses the live decoded map, while the native card keeps that decoder
-live and renders NavigationProvider semantics with a continuous lane band.
-Stage 2 data remains explicitly evidence-gated.
-
-**Historical status (superseded by the 2026-07-31 acceptance above):**
-DOCUMENTATION RECONCILED; Stage 1 then awaited hardware acceptance. The
-runtime anchor at this checkpoint was
-`8f2df93219dbfbb3c80823a0f3e32d513999b43f`.
-The completed projected-dashboard fallback-wording item was removed from the
-engineering backlog; the settings-striping and CLUSTER/AUXILIARY terminology
-entries remain separate follow-up leads.
-
-**Verification:** `cmake --build /home/matt/builds/openauto-prodigy --target
-test_aa_cluster_widget -j$(nproc)` and `QT_QPA_PLATFORM=offscreen ctest
---test-dir /home/matt/builds/openauto-prodigy --output-on-failure -R
-'^test_aa_cluster_widget$'` passed. The full native/app/CTest/ARM gate is run
-from the final documentation commit before deployment or publication.
-
-**Next 1–3 steps:** record the final gate artifact hash; obtain focused Stage
-1 Pi acceptance; only propose Stage 2 from captured phone delivery evidence.
-
----
-
-## 2026-07-28 — Native dashboard turn-card design
-
-**What changed:** promoted and documented the approved staged replacement for
-the phone-rendered dashboard turn card. The design keeps the phone auxiliary
-provider on the accepted map path, makes `map`/`turn_card` an immediate local
-presentation switch, and defines a theme-aware instrument card with explicit
-1024x600 typography floors. Stage 1 now includes an intentional mapping for
-every defined maneuver, transport and rendering for every lane shape, multiple
-directions per lane, and a continuous roadway-style lane band with no
-button-like cells. Stage 2 retains explicit rerouting, distinct road and
-instruction text, roundabout detail, ETA/destination data, and lookahead.
-
-**Historical status (superseded by the 2026-07-31 acceptance above):** DESIGN
-APPROVED; STAGE 1 PLAN WRITTEN; AWAITING EXECUTION AUTHORIZATION. The design is
-grounded on `15a45c1` and is archived at
-`docs/archive/plans/2026-07-28-native-dashboard-turn-card-design.md`. The
-executable Stage 1 plan is grounded on design commit `4439c29` and is archived
-at `docs/archive/plans/2026-07-28-native-dashboard-turn-card-stage-1-plan.md`. It stops
-after Stage 1 hardware acceptance and preserves Stage 2 as evidence-gated work.
-No runtime, configuration, QML, protocol-library, or proto-submodule files
-changed in this documentation step.
-
-**Verification:** design and Stage 1 plan self-review found no placeholders,
-contradictory requirements, unresolved choices, or Stage 2 scope leakage.
-`python3 scripts/check-doc-links.py --scope tracked-live`, `git diff --check`,
-and the final staged-diff whitespace check passed. No application build was
-run for this documentation-only step.
-
-**Next 1–3 steps:** review the Stage 1 plan with the user; execute it red-first
-after authorization; write the Stage 2 plan only from recorded live-delivery
-evidence.
-
----
-
-## 2026-07-28 — Selectable projected dashboard navigation
-
-**What changed:** hardware probe `76d631e` proved that AA accepts
-AUXILIARY/NAVIGATION on the existing secondary display and renders the map.
-Production code anchor `1b1086480608ca7a58dcbc1c36f18d8ca8f6afa9` adds the
-durable `video.secondary_display_content` setting, a visible Map/Turn card
-picker when the projected dashboard is enabled, connection-time
-`KEYCODE_NAVIGATION`/`KEYCODE_TURN_CARD` descriptor selection, automatic AA
-renegotiation on a real change, and a local fallback while a phone sends no
-frames. The hands-off protocol submodule remains unchanged at OAA v1.5.
-
-**Status:** COMPLETED and HARDWARE ACCEPTED. The Pi ran
-`ALPHA-26-07-24-01-120-g1b10864`, executable SHA-256
-`1b6b0ee2064e930a4253cf8c47e9b1224920e892f51a41f40714ed2b2f2f9f98`.
-The operator independently confirmed Map mode, Turn card mode after the
-automatic reconnect, the phone-rendered no-route Maps icon, its immediate
-transition to a compact maneuver card when a route started, and restoration
-to the full map after selecting Map again. Final runtime state was GAL 6.0,
-720p, `secondary_display_content: map`, app PID 91361, and `NRestarts=0`.
-
-**Verification:** focused tests were written red-first and passed. Then
-`cmake --build /home/matt/builds/openauto-prodigy -j$(nproc)`,
-`cmake --build /home/matt/builds/openauto-prodigy --target openauto-prodigy -j$(nproc)`,
+**Verification:** the focused scheme-flags regression was observed failing
+before implementation and passed afterward. The native app target,
 `QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, and
-`./cross-build.sh` passed on the accepted code tree. The exact local/remote ARM
-hashes matched. `python3 scripts/check-doc-links.py --scope tracked-live` and
-`git diff --check` passed for documentation.
+`./cross-build.sh` passed. The Pi service remained active with zero restarts;
+its journal contained no post-fix Fetch API errors. A public API subscriber
+observed `engine.rpm=861.25` and
+`electrical.control-module-voltage=13.662` during the live run.
 
-**Review:** the standard Opus pass reviewed immutable range
-`fff66b261de74b6e96809e44c91c6a141e78cf2a..b08e0ccd844de523cfd5d4a1e1e03b02b3f4ca91`
-with accepted anchor `1b10864`: BLOCKER=0, MAJOR=1, MINOR=2. All three findings
-were confirmed but nonblocking and deferred under the accepted-tree rule: one
-fallback-copy issue, one hidden-row striping issue, and one internal naming
-cleanup. They are recorded in `docs/engineering-backlog.md`; no remediation
+**Review:** Opus pass 1 reported BLOCKER=0, MAJOR=0, MINOR=3. Live hardware
+resolved the request for end-to-end Fetch evidence. The shared-origin package
+visibility was documented as part of the accepted trusted-local-widget model.
+Non-GET package-fetch semantics are nonblocking and recorded in the engineering
+backlog. Remediation pass 2 reviewed the resulting immutable range and reported
+BLOCKER=0, MAJOR=0, MINOR=0.
+
+**Next 1–3 steps:** optionally define strict non-GET package-scheme behavior;
+polish or replace the example gauge designs in Gauge Studio; resume the longer
+OBD transport soak/reliability work in the backend repository when convenient.
+
+---
+
+## 2026-08-02 — External data-provider API implemented and reviewed
+
+**What changed:** implemented the approved source-agnostic typed-scalar bridge
+across additive protobuf messages, the application-lifetime `DataRegistry`,
+per-session `ApiDataBridge`, TCP/WebSocket composition, and the public
+`prodigy.data` widget shim. Providers publish at their own cadence; consumers
+discover deterministic catalogs and subscribe by exact provider namespace and
+channel. The shim preserves exact 64-bit data scalars, stamps monotonic browser
+receipt time, restores subscriptions after reconnect, and keeps legacy
+media/phone int64 topic fields as their established JavaScript `number` shape.
+
+**Why:** independently developed OBD, CAN, GPIO, MQTT, simulator, and other
+backends need one generic handoff to Prodigy widgets without making Prodigy a
+semantic arbiter or performance gatekeeper.
+
+**Status:** PRODIGY IMPLEMENTATION COMPLETE; not deployed or hardware-tested in
+this session. The approved design and implementation plan are archived. Gauge
+Studio has a separate executable plan at
+`/mnt/e/claude/personal/openautopro/gauges/docs/superpowers/plans/2026-08-02-prodigy-live-data.md`
+(Gauge commit `7b91966`). `/mnt/e/claude/personal/openautopro/obd-plugin`
+remains an empty, non-git directory; backend language, packaging, and hardware
+ownership remain open by design.
+
+**Verification:** the native build and explicit `openauto-prodigy` target,
+`QT_QPA_PLATFORM=offscreen ctest --output-on-failure`, the Node shim contract
+test, tracked-live doc-link check, `git diff --check`, and `./cross-build.sh`
+passed. The complete suite passed without failures. The final embedded-shim
+remediation was followed by a fresh app build, complete offscreen CTest, Node
+test, doc-link check, diff check, and ARM cross-build.
+
+**Review:** Fable pass 1 reported BLOCKER 0, MAJOR 1, MINOR 5. The major was
+confirmed: installing exact Long support for new data scalars changed legacy
+topic int64 fields from numbers to Long objects. Compatibility normalization
+and a regression test fixed it. The valueless-sample documentation,
+widget-link-loss reason, and portable protobuf-generation edit were also
+tightened. The single remediation review reported BLOCKER 0, MAJOR 0, MINOR 2;
+both notes preserve historical behavior and require no publication change.
+The remaining trusted-client resource-cap and request-ID asymmetry observations
+are accepted design tradeoffs, not hidden release blockers.
+
+**Next 1–3 steps:** execute the Gauge Studio plan against only
+`window.prodigy.data`; choose and bootstrap the backend repository; then run a
+paired backend → Prodigy → exported gauge Pi smoke test before declaring the
+cross-repository feature hardware-complete.
+
+---
+
+## 2026-08-02 — External data-provider API contract approved and reviewed
+
+**What changed:** added the ACTIVE external data-provider API design and linked
+it from the documentation index. The contract is source-agnostic: one
+authenticated session owns one live provider namespace, declares arbitrary
+typed-scalar channels, and publishes at backend-selected cadence. Consumers
+discover the live catalog and subscribe by exact provider/channel identity;
+subscriptions wait through provider absence and resume automatically. Prodigy
+retains only current values, performs no semantic arbitration, conversion,
+rate selection, history, or command routing, and exposes web widgets only
+through the same additive protobuf API.
+
+**Why:** the original OBD framing was too narrow. The intended boundary must be
+usable by independently developed OBD, CAN, GPIO, MQTT, simulator, or other
+backends and by Gauge Studio without making Prodigy a source-specific policy or
+performance gatekeeper.
+
+**Status:** DESIGN APPROVED; the Prodigy implementation plan is written and the
+work is promoted in the current roadmap. No production code, protobuf, Gauge
+Studio, or backend source changed in this session.
+
+**Review:** the requested read-only Opus 4.6 pass returned `APPROVE WITH
+CHANGES`: BLOCKER 0, MAJOR 2, MINOR 6. All eight findings were confirmed and
+incorporated. The two majors added snapshot-guarded/reentrancy-safe fan-out and
+an explicit `Ack`-before-catalog-snapshot contract. The minors clarified
+request-scoped declaration rejection, empty scalar presence, namespace-switch
+rejection, metadata-change ordering, JavaScript timestamp conversion, and
+reconnect-gap request behavior. Matthew then supplied a Fable follow-up review;
+its five actionable tightenings were confirmed and incorporated. Staleness now
+uses a local monotonic receipt deadline rather than wall clocks, half-open TCP
+behavior is explicitly dispositioned, duplicate publications are normalized
+before forwarding, request-ID misuse has deterministic handling, and catalog
+watch amplification is an accepted trusted-provider risk. Fable's namespace
+squatting observation required no edit because Section 18 already covers it.
+
+**Verification:** `python3 scripts/check-doc-links.py`, tracked and untracked
+Markdown whitespace checks, placeholder/ambiguity searches, and live-schema
+allocation inspection passed. Opus independently confirmed that capability
+field 3 and envelope fields 80–94 are available at the grounded commit and that
+the proposed proto3 presence/oneof shapes are legal. Application builds and
+CTest were not run because this change is documentation only. The tracked-live
+link check, `git diff --check`, and targeted stale/request-ID ambiguity search
+were rerun after the Fable remediation edits. The implementation plan was
+self-reviewed against the approved contract for schema, lifecycle, ordering,
+clock, backpressure, JavaScript, and cross-repository boundaries; its
+placeholder scan and tracked-live link check passed.
+
+**Planning:** the executable Prodigy plan implements the public contract first,
+then requires a separate Gauge Studio plan against `window.prodigy.data`. The
+`obd-plugin` path is currently an empty, non-git directory, so provider language,
+packaging, and source-hardware ownership remain a later backend-repository
+decision rather than being smuggled into the generic protocol.
+
+**Next 1–3 steps:** execute the Prodigy implementation plan; write and execute
+the Gauge Studio integration plan against the finished public shim; bootstrap a
+provider repository and live-test its deterministic fixture with an exported
+gauge on the Pi before declaring the cross-repository feature complete.
+
+---
+
+## 2026-08-01 — Fresh-Pi sysfs backlight startup crash
+
+**What changed:** fixed a deterministic `DisplayService` construction-order
+bug exposed by a fresh Raspberry Pi with a real sysfs backlight. The constructor
+previously called `detectBackend()` while initializing `backend_`; that method
+assigned `sysfsPath_` before its `QString` lifetime began. Backend detection now
+runs in the constructor body after all members are constructed. No brightness
+policy or public API changed.
+
+**Status:** FIXED AND LIVE-VERIFIED on `prodigy2.local` at commit `c46bac8`.
+The original service failure reproduced five times as `SIGBUS`; GDB traced it
+through `QString::operator=` to `DisplayService::detectBackend()`. The original
+Pi has no sysfs backlight, while `prodigy2` exposes `10-0045`, confirming why
+only the fresh device entered the invalid path. The reviewed ARM binary is
+deployed; the pre-fix binary remains recoverable as
+`build/src/openauto-prodigy.pre-display-fix`.
+
+**Verification:** the focused display test, native build, explicit
+`openauto-prodigy` target, complete offscreen CTest suite, and
+`./cross-build.sh` passed. The deployed ARM binary matched SHA-256
+`73374ca446b5010fbdb435caed5ce85aacc8a4862355536c59c3ab887d542146`.
+A condition-driven manual launch on `prodigy2` detected
+`/sys/class/backlight/10-0045`, selected backend `sysfs`, reached
+`sd_notify: READY=1 sent`, and shut down cleanly. The node reports max 255 and
+is writable by `matt` through group `video`.
+
+**Review:** the standard Opus review covered immutable range
+`f022a9d..c46bac8` and reported BLOCKER=0, MAJOR=0, MINOR=3. The small-range
+floor and write-permission concerns were dismissed for the supported live
+target using direct hardware evidence; synthetic sysfs coverage and generic
+fallback behavior were deferred to the engineering backlog. No remediation
 pass was needed.
 
-**Evidence and rollback:** pre-probe accepted binary:
-`/var/backups/openauto-prodigy/20260728-073214-pre-aux-navigation/openauto-prodigy`;
-pre-production-selector probe binary:
-`/var/backups/openauto-prodigy/20260728-074813-pre-dashboard-selector/openauto-prodigy`.
+**Next 1–3 steps:** reset the service start limit and start it from an
+interactive sudo session; confirm systemd reaches active/running; push the
+local installer and display fixes only after explicit user authorization.
 
-**Next 1–3 steps:** publish the completed branch only with user authorization;
-select any deferred UI/naming cleanup as a separate follow-up feature; keep the
-current phone-rendered idle surface unchanged.
+---
+
+## 2026-08-01 — Fresh source install protocol-submodule recovery
+
+**What changed:** corrected `install.sh` so a normal initialized protocol
+submodule (whose `.git` is a file) is never mistaken for an absent checkout.
+The installer now uses a dedicated helper to fetch only the OAA `dist` branch,
+normalize its fetchspec, retain conventional gitfile ownership, and check out
+the exact gitlink pinned by the Prodigy source tree. A real temporary-repository
+regression covers both fresh initialization and an immediate initialized rerun.
+The hands-off protocol content was not edited.
+
+**Status:** VERIFIED LOCALLY AND ON `prodigy2.local`; full installer resumption
+awaits the operator entering the local sudo password. The reviewed patch is at
+`9e934faccc89b39f2d387bc4fc6e9a2d9da34fe3` and remains two local commits ahead
+of `origin/dev`. The release checkout on `prodigy2` is intentionally patched
+with `install.sh` plus the new helper; its superproject remains `cd4b6b0` and
+its protocol checkout remains the v1.5 pin `5ff4aa2` with a `dist`-only
+fetchspec.
+
+**Verification:** the regression was observed failing against both the
+original clone-over-gitfile path and the first default-branch submodule fix.
+`python3 tests/test_install_source_lifecycle.py`,
+`python3 tests/test_ops_install_contracts.py`,
+`python3 tests/test_install_list_prebuilt.py`,
+`python3 tests/test_installer_hardware_contracts.py`, `bash -n install.sh
+scripts/initialize-protocol-submodule.sh`, and `git diff --check` passed. The
+helper also completed directly on `prodigy2` and preserved both exact SHAs.
+
+**Review:** Opus pass 1 reported BLOCKER=0, MAJOR=1, MINOR=2. The branch-scope,
+pin-integrity, shallow-clone, and inert-test concerns were remediated. Pass 2
+reported BLOCKER=0, MAJOR=1, MINOR=4. The orphaned-gitdir recovery edge, direct
+SHA fallback, tracked-URL resync, and related migration coverage were confirmed
+or retained as nonblocking follow-up; the full `dist` history is an intentional
+pin-integrity tradeoff. Those leads are recorded in the engineering backlog.
+
+**Next 1–3 steps:** rerun `bash install.sh --mode source` locally on
+`prodigy2`; confirm the source build and service installation complete; obtain
+explicit user authorization before pushing the two installer commits.

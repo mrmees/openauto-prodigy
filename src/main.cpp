@@ -40,6 +40,7 @@
 #include "core/services/ActionRegistry.hpp"
 #include "core/services/OverlayService.hpp"
 #include "core/services/NotificationService.hpp"
+#include "core/services/DataRegistry.hpp"
 #include "core/services/WeatherService.hpp"
 #include "core/services/SystemServiceClient.hpp"
 #include "core/services/BluetoothManager.hpp"
@@ -100,15 +101,17 @@ int main(int argc, char *argv[])
     // Chromium requires custom schemes registered before the app object
     // exists (design §3/§9); initialize() must also precede QGuiApplication.
     //
-    // Scheme is Secure (trustworthy origin so ws://127.0.0.1 connects) but
-    // deliberately NOT LocalAccessAllowed — widget pages must not load
+    // Scheme is Secure (trustworthy origin so ws://127.0.0.1 connects) and
+    // FetchApiAllowed so widgets can load JSON and other same-origin package
+    // resources through the resolver jail. It is deliberately NOT
+    // LocalAccessAllowed — widget pages must not load
     // file:/qrc: subresources; all content flows through the prodigy://
     // resolver jail (design §7; erratum vs design §3's flag list,
     // final-review 2026-07-07).
     {
         QWebEngineUrlScheme scheme("prodigy");
         scheme.setSyntax(QWebEngineUrlScheme::Syntax::Host);
-        scheme.setFlags(QWebEngineUrlScheme::SecureScheme);
+        scheme.setFlags(oap::webWidgetSchemeFlags());
         QWebEngineUrlScheme::registerScheme(scheme);
     }
     // Widevine CDM auto-wiring (spec 2026-07-07-web-surface-strategy §Slice 1):
@@ -1201,6 +1204,7 @@ int main(int argc, char *argv[])
     // ancestor), and ApiServer itself is instantiated here, after all of them,
     // parented to &app: this satisfies the provider-outlives-server lifetime
     // contract documented at the top of ApiServer.hpp.
+    auto* dataRegistry = new oap::data::DataRegistry(&app);
     oap::api::ApiServiceRefs apiRefs;
     apiRefs.media = mediaStatusService;
     apiRefs.navigation = navBridge;                 // always constructed; inert without an AA orchestrator
@@ -1212,6 +1216,7 @@ int main(int argc, char *argv[])
     apiRefs.config = configService.get();
     apiRefs.bluetooth = bluetoothManager;
     apiRefs.display = displayInfo;
+    apiRefs.dataRegistry = dataRegistry;
     auto* apiServer = new oap::api::ApiServer(apiRefs, &app);
     if (!apiServer->start())
         qWarning() << "[main] External API disabled or failed to start";

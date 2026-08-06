@@ -10,6 +10,12 @@ Read [Known Limitations (v1)](#known-limitations-v1) before you write any code. 
 
 A web widget is a directory of HTML/CSS/JS served over a custom `prodigy://widgets/<id>/<entry>` scheme and rendered inside a `WebEngineView` tile on the dashboard grid — the same grid, same sizing contract, same picker as native QML widgets. Content never touches the filesystem or the network directly; it's read in-process from the package directory by a scheme handler.
 
+Relative same-origin `fetch()` requests are supported for package resources,
+including JSON configuration files. For example, `fetch('gauge.json')` from
+`index.html` resolves inside that widget package. The resolver applies the same
+canonical-path jail as script, stylesheet, and image loads; this does not grant
+`file://` access.
+
 Web widgets talk to the head unit exclusively through the **External API** (WebSocket, `ws://127.0.0.1:<api.ws_port>`) via an injected `window.prodigy` convenience shim — there is no QWebChannel, no direct QML access, no second RPC surface. If you want the full architecture (why `prodigy://` instead of `file://`, single-origin rationale, packaging/discovery, shim internals, security model), read the design doc (design history): `docs/archive/plans/2026-07-06-js-runtime-design.md`. This guide doesn't re-derive that — it's the practical "how do I build one" companion.
 
 ---
@@ -78,6 +84,8 @@ Theme tokens land as CSS custom properties on `<html>`: token `on-primary` → `
 | `prodigy.context` | `{instanceId, widgetId, colSpan, rowSpan, kind}` | Current placement; updated live via `contextchange`. |
 | `prodigy.apiUrl` | string | The raw WS URL, for widgets that want their own socket. |
 | `prodigy.subscribe(topic, cb)` | `(string, fn) -> unsubscribe fn` | Topics: `"media"`, `"navigation"`, `"projection"`, `"phone"`, `"system"`. `cb` receives the status object each time it changes. |
+| `prodigy.data.listCatalog()` | `() -> Promise<DataCatalog>` | Present only when the server advertises the external data-provider capability. Returns the current deterministic live provider/channel catalog. |
+| `prodigy.data.subscribe(ref, cb)` | `({providerNamespace, channelName}, fn) -> unsubscribe fn` | Exact-channel live data. Multiple local callbacks share one server subscription; the last unsubscribe removes it server-side. |
 | `prodigy.dispatch(actionId, payload)` | `(string, any?) -> Promise<boolean>` | Fires a host action; resolves to whether it was dispatched. |
 | `prodigy.notify(message, {priority, ttlMs})` | `(string, object?) -> Promise<string>` | Posts a toast notification; resolves to a notification id. |
 | `prodigy.request(apiMessageObject)` | `(object) -> Promise<response>` | Low-level escape hatch — build your own `ApiMessage` field for anything not covered above. |
@@ -103,6 +111,90 @@ Minimal example:
 </html>
 ```
 
+### Live external data
+
+`prodigy.data` appears after `prodigy.ready` only when the connected server's
+capabilities include the full data-provider bridge. It is the supported surface
+for gauges and other widgets that display values supplied by an independent
+backend. Names identify sources; they do not tell Prodigy whether a value came
+from OBD-II, CAN, GPIO, MQTT, a simulator, or anything else.
+
+```javascript
+await prodigy.ready;
+if (!prodigy.data) throw new Error('external data API unavailable');
+
+const catalog = await prodigy.data.listCatalog();
+const unsubscribe = prodigy.data.subscribe({
+  providerNamespace: 'com.example.vehicle',
+  channelName: 'engine.rpm'
+}, event => {
+  const usable = event.sample &&
+    ['good', 'degraded', 'unknown'].includes(event.sample.quality) &&
+    event.sample.value !== undefined;
+  if (!event.available || !usable) {
+    renderUnavailable(event.unavailableReason || event.sample?.quality);
+    return;
+  }
+  renderValue(event.sample.value, event.definition.unit);
+});
+```
+
+The first callback after a successful subscription is an availability boundary.
+References to an absent provider or channel are accepted and wait; a later
+registration/declaration activates them without another call. When a retained
+sample exists, its value event follows the `available` event. Metadata changes
+produce another `available` event with the new definition before later values.
+Removal, provider disconnect, and widget-socket disconnect produce immediate
+unavailability. Active bindings are restored automatically after reconnect.
+
+The callback object has this stable shape:
+
+```javascript
+{
+  providerNamespace: 'com.example.vehicle',
+  channelName: 'engine.rpm',
+  available: true,
+  unavailableReason: null,       // provider_absent/channel_absent/etc. when false;
+                                 // link_lost means this widget's API socket closed
+  definition: {                  // present only while available
+    channelName: 'engine.rpm',
+    displayName: 'Engine RPM',
+    valueType: 1,                // DataValueType enum
+    unit: 'rpm',
+    nominalIntervalMs: 100,
+    staleAfterMs: 1000
+  },
+  sample: {
+    value: 975.5,
+    scalarType: 'double',        // double/signed_integer/unsigned_integer/boolean/string/enum
+    timestampMs: 1722000000000,  // backend observation or Prodigy receipt wall time
+    receivedAtMonotonicMs: 250,  // performance.now() at this widget's receipt
+    quality: 'good',
+    enumLabel: undefined         // populated for a matching current enum option
+  }
+}
+```
+
+Scalar conversion is fixed: doubles are JavaScript `number`; signed integers,
+unsigned integers, and enum values are exact `bigint`; booleans and strings
+retain their native types. Do not pass an integer through `Number(...)` unless
+your renderer has first proved it is inside JavaScript's safe-integer range.
+`timestampMs` is deliberately a number because Unix epoch milliseconds are
+safe, but it is provenance/display data—not a freshness clock.
+
+Samples whose quality is `stale`, `invalid`, or `unavailable` may omit the
+scalar value. Treat quality and value presence as usability gates; availability
+alone says the channel definition is live, not that the current sample is fit
+to display.
+
+Every live gauge must own a finite positive stale timeout. Schedule it from
+`receivedAtMonotonicMs` and compare against `performance.now()`; never compare
+`timestampMs` with `Date.now()`. A vehicle Pi may boot without correct RTC/NTP
+time or step its wall clock later. The server does not request, throttle,
+coalesce, or infer a provider cadence, and it does not probe idle providers in
+v1.2, so the widget's monotonic stale policy is the defense against a half-open
+provider connection.
+
 ---
 
 ## Known Limitations (v1)
@@ -123,7 +215,7 @@ All web widgets in v1 share **one** browser origin — there is no per-widget is
 
 > **Single origin (D2):** all widgets share the `prodigy://widgets` origin, so all views share one renderer process — the spike's measured cheap case. Consequence, accepted for v1: widgets share localStorage and could read each other's DOM-visible state if they embedded each other (they can't — see navigation policy §5). Web widgets are user-installed local content with the same trust level as native QML widgets (which already have full QML runtime access), so isolation between them buys little today. Per-widget origins (`prodigy://<id>`) are the recorded v2 hardening path if third-party widget distribution ever materializes; the spike says even hostile per-origin isolation (~60–100 MB/origin) stays in budget.
 
-Practically: if two installed widgets both write `localStorage.setItem('config', ...)`, they collide — there's no per-widget bucket. **Namespace your storage keys** (e.g. prefix with your `id` from the manifest) if you use `localStorage` at all — see the ephemerality caveat above for why you shouldn't lean on it heavily regardless. Per-widget origins are a wishlisted v2 hardening path, not something you can opt into today.
+Practically: if two installed widgets both write `localStorage.setItem('config', ...)`, they collide — there's no per-widget bucket. Fetch-enabled widgets can also read package files belonging to other installed widgets because those files share the same origin. This is accepted under the v1 trusted-local-widget model; per-widget origins remain the v2 hardening path if that trust model changes. **Namespace your storage keys** (e.g. prefix with your `id` from the manifest) if you use `localStorage` at all — see the ephemerality caveat above for why you shouldn't lean on it heavily regardless. Per-widget origins are a wishlisted v2 hardening path, not something you can opt into today.
 
 ### v1 shim simplifications
 

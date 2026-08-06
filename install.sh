@@ -1562,15 +1562,11 @@ build_project() {
     update_step 3 active
 
     cd "$INSTALL_DIR"
-    # Clone proto submodule from dist branch (lightweight, proto definitions only)
-    # The dist branch excludes research archive (~1600 files), keeping clone small
-    if [[ ! -d "$INSTALL_DIR/libs/prodigy-oaa-protocol/proto/.git" ]]; then
-        run_with_spinner "Initializing submodules" git clone --depth 1 -b dist \
-            https://github.com/mrmees/open-android-auto.git \
-            "$INSTALL_DIR/libs/prodigy-oaa-protocol/proto"
-    else
-        run_with_spinner "Updating submodules" git submodule update --init --recursive
-    fi
+    # Fetch only the lightweight dist branch, then check out the exact gitlink
+    # pinned by this source tree. The helper accepts both normal gitfiles and
+    # standalone clones produced by older installers.
+    run_with_spinner "Initializing protocol submodule" \
+        bash "$INSTALL_DIR/scripts/initialize-protocol-submodule.sh" "$INSTALL_DIR"
 
     if [[ -f "$INSTALL_DIR/build/src/openauto-prodigy" ]]; then
         enter_interactive

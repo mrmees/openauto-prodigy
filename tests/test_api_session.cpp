@@ -125,7 +125,7 @@ void TestApiSession::testHelloTrustedGoesReady() {
     QCOMPARE(last.payload_case(), pb::ApiMessage::kServerHello);
     QVERIFY(!last.server_hello().session_id().empty());
     QCOMPARE(last.server_hello().api_version_major(), quint32(1));
-    QCOMPARE(last.server_hello().api_version_minor(), quint32(1));
+    QCOMPARE(last.server_hello().api_version_minor(), quint32(2));
 }
 
 void TestApiSession::testBadVersionRejected() {

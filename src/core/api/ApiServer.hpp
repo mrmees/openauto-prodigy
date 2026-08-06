@@ -43,6 +43,7 @@ class ActionRegistry;
 class IConfigService;
 class BluetoothManager;
 class DisplayInfo;
+namespace data { class DataRegistry; }
 } // namespace oap
 
 namespace oap::api {
@@ -68,6 +69,7 @@ struct ApiServiceRefs {
     oap::IConfigService* config = nullptr;
     oap::BluetoothManager* bluetooth = nullptr;            // nullable
     oap::DisplayInfo* display = nullptr;                    // nullable
+    oap::data::DataRegistry* dataRegistry = nullptr;        // nullable
 };
 
 class ApiServer : public QObject {
