@@ -4,6 +4,43 @@ Newest entries first.
 
 ---
 
+## 2026-08-06 — Cross-repository live vehicle-data slice completed
+
+**What changed:** updated Prodigy's current roadmap after Gauge Studio and the
+separate `prodigy-obd` repository completed the public data-provider vertical
+slice. Prodigy runtime code did not change in this session. The immutable
+feature anchors are Prodigy `3a7955f`, Gauge Studio `f784bf7`, and
+`prodigy-obd` `34632d7`.
+
+**Why:** the roadmap and older handoff still described Gauge Studio as planned
+and the backend path as empty. Both statements became stale after two exported
+gauges and the production Bluetooth/USB backend completed live Pi validation.
+
+**Status:** CROSS-REPOSITORY FEATURE COMPLETE. Engine RPM and control-module
+voltage gauges render through only `window.prodigy.data`, resize normally,
+show provider disconnection, and recover automatically. The backend owns ELM
+transport, decoded PIDs, setup, service lifecycle, and reliability; Prodigy
+remains a source-agnostic typed-scalar bridge.
+
+**Verification:** the previously recorded Prodigy native/app/offscreen/ARM and
+live widget gates remain the evidence for this unchanged runtime. Gauge Studio
+records its full suite, deterministic package generation, and live dashboard
+proof at `f784bf7`. The backend records its full check, independent emulator,
+transaction matrix, USB/Bluetooth switching, disconnect recovery, reboot,
+fresh-install path, and production soak at `34632d7`. For this documentation
+update, `python3 scripts/check-doc-links.py` and `git diff --check` apply.
+
+**Review:** the Prodigy provider bridge completed its bounded Fable review and
+the package-fetch fix completed its bounded Opus review. Gauge Studio and the
+backend retain their independent review records. No additional review is
+required for this factual documentation correction.
+
+**Next 1–3 steps:** push Prodigy's reviewed `dev` commits; keep future OBD/CAN
+backend work in `prodigy-obd`; promote a new Prodigy task only when selected
+from the current backlog or wishlist.
+
+---
+
 ## 2026-08-05 — Package-local web-widget fetch and live gauge verification
 
 **What changed:** fixed the `prodigy://widgets` scheme registration so Chromium

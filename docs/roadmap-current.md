@@ -19,11 +19,24 @@ spike, or research-first feasibility work.
 
 ## Now
 
-- No promoted implementation is currently queued. Gauge Studio live-data work
-  is planned in its own repository, and backend bootstrap remains intentionally
-  open until its language and hardware ownership are chosen.
+- No promoted implementation is currently queued. The generic provider bridge,
+  exported Gauge Studio widgets, and the separately owned `prodigy-obd`
+  backend have completed their shared Pi proof. Future OBD/CAN transport,
+  decoding, setup, and reliability work remains in the backend repository;
+  Prodigy changes only when a source-agnostic public capability is missing.
 
 ## Done (recent)
+
+- Backend → Prodigy → dashboard-gauge vertical slice — **COMPLETED 2026-08-06;
+  HARDWARE ACCEPTED** at Prodigy code anchor `3a7955f`, Gauge Studio anchor
+  `f784bf7`, and `prodigy-obd` anchor `34632d7`. Two replaceable exported
+  gauges consumed live engine RPM and control-module voltage exclusively
+  through `window.prodigy.data`, resized through the supported dashboard
+  workflow, reported provider disconnection, and recovered automatically. The
+  production backend now supports Bluetooth and stable-path USB ELM adapters,
+  decoded PID selection, transactional command-line setup, reboot and physical
+  disconnect recovery, and a passing production soak. No OBD, CAN, PID, ECU,
+  or vehicle-bus semantics entered Prodigy or Gauge Studio.
 
 - External Data Provider API bridge — **COMPLETED 2026-08-02**. Paired
   sessions can own one live provider namespace, declare arbitrary typed scalar
@@ -34,10 +47,9 @@ spike, or research-first feasibility work.
   exact `bigint` integers/enums and browser-monotonic receipt timestamps. The
   native/app/offscreen CTest/ARM gates passed. The bounded two-pass Fable review
   found no blocker; its one major compatibility issue was fixed, and the
-  remediation pass returned no blocker or major. Gauge Studio integration is
-  planned separately at
-  `/mnt/e/claude/personal/openautopro/gauges/docs/superpowers/plans/2026-08-02-prodigy-live-data.md`;
-  the empty backend path remains uninitialized. Completed
+  remediation pass returned no blocker or major. Gauge Studio integration and
+  the first independent vehicle backend are now live-validated as the separate
+  cross-repository slice above. Completed
   [design](archive/plans/2026-08-02-external-data-provider-api-design.md) and
   [implementation plan](archive/plans/2026-08-02-external-data-provider-api-implementation-plan.md).
 
