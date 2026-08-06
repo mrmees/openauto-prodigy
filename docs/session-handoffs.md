@@ -32,7 +32,8 @@ observed `engine.rpm=861.25` and
 resolved the request for end-to-end Fetch evidence. The shared-origin package
 visibility was documented as part of the accepted trusted-local-widget model.
 Non-GET package-fetch semantics are nonblocking and recorded in the engineering
-backlog.
+backlog. Remediation pass 2 reviewed the resulting immutable range and reported
+BLOCKER=0, MAJOR=0, MINOR=0.
 
 **Next 1–3 steps:** optionally define strict non-GET package-scheme behavior;
 polish or replace the example gauge designs in Gauge Studio; resume the longer
