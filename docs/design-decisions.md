@@ -254,6 +254,10 @@ outlined minimum-to-maximum range; actual resizing remains in dashboard edit
 mode. Descriptions remain descriptor metadata but are omitted from the compact
 in-vehicle card.
 
+If the default size cannot fit, the picker stays open and displays the failure
+inside its own overlay. It does not silently shrink to the minimum: placement
+size remains the descriptor default, matching the card's filled indicator.
+
 **Rationale:** Choosing a size before placement duplicated the existing resize
 workflow and added a modal step in a touch-first vehicle UI. Descriptor authors
 retain full min/default/max control, while users can see the sizing envelope

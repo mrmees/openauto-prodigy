@@ -10,7 +10,7 @@ class WidgetRegistry;
 class WidgetPickerModel : public QAbstractListModel {
     Q_OBJECT
     Q_PROPERTY(QVariantList categories READ categories NOTIFY categoriesChanged)
-    Q_PROPERTY(QString categoryFilter READ categoryFilter WRITE setCategoryFilter NOTIFY categoryFilterChanged)
+    Q_PROPERTY(int categoryFilter READ categoryFilter WRITE setCategoryFilter NOTIFY categoryFilterChanged)
 public:
     enum Roles {
         WidgetIdRole = Qt::UserRole + 1,
@@ -37,20 +37,21 @@ public:
 
     Q_INVOKABLE void filterByAvailableSpace(int availCols, int availRows, bool includeNoWidget = true);
     QVariantList categories() const;
-    QString categoryFilter() const { return categoryFilter_; }
-    Q_INVOKABLE void setCategoryFilter(const QString& categoryId);
+    int categoryFilter() const { return categoryFilter_; }
+    Q_INVOKABLE void setCategoryFilter(int categoryIndex);
 
 signals:
     void categoriesChanged();
     void categoryFilterChanged();
 
 private:
+    QStringList availableCategoryIds() const;
     void rebuildFiltered();
 
     WidgetRegistry* registry_;
     QList<WidgetDescriptor> available_;
     QList<WidgetDescriptor> filtered_;
-    QString categoryFilter_;
+    int categoryFilter_ = 0;
 };
 
 } // namespace oap

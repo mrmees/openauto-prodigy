@@ -12,14 +12,28 @@ Item {
 
     property int gridCols: 1
     property int gridRows: 1
+    property string errorMessage: ""
 
     function openPicker() {
+        errorMessage = ""
         WidgetPickerModel.filterByAvailableSpace(gridCols, gridRows, false)
         pickerDialog.open()
     }
 
     function closePicker() {
+        errorMessage = ""
         pickerDialog.close()
+    }
+
+    function showError(message) {
+        errorMessage = message
+        errorClearTimer.restart()
+    }
+
+    Timer {
+        id: errorClearTimer
+        interval: 5000
+        onTriggered: root.errorMessage = ""
     }
 
     Dialog {
@@ -151,12 +165,29 @@ Item {
                     }
                 }
 
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    height: 1
-                    color: ThemeService.outlineVariant
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+                color: ThemeService.outlineVariant
+            }
+
+            Rectangle {
+                visible: root.errorMessage !== ""
+                Layout.fillWidth: true
+                Layout.preferredHeight: visible ? root.touchTarget : 0
+                color: ThemeService.errorContainer
+
+                Text {
+                    anchors.centerIn: parent
+                    width: parent.width - UiMetrics.marginPage * 2
+                    text: root.errorMessage
+                    font.pixelSize: UiMetrics.fontSmall
+                    font.bold: true
+                    color: ThemeService.onErrorContainer
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideRight
                 }
             }
 
@@ -289,9 +320,12 @@ Item {
                     MouseArea {
                         id: cardMouse
                         anchors.fill: parent
-                        onClicked: root.widgetChosen(card.widgetId,
-                                                     card.defaultCols,
-                                                     card.defaultRows)
+                        onClicked: {
+                            root.errorMessage = ""
+                            root.widgetChosen(card.widgetId,
+                                              card.defaultCols,
+                                              card.defaultRows)
+                        }
                     }
                 }
             }

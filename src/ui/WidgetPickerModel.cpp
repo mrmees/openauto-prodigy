@@ -5,8 +5,6 @@
 
 namespace oap {
 
-static const QString kUncategorizedFilter = QStringLiteral("__uncategorized__");
-
 static QString sizeLabel(int cols, int rows) {
     return QStringLiteral("%1×%2").arg(cols).arg(rows);
 }
@@ -121,8 +119,8 @@ void WidgetPickerModel::filterByAvailableSpace(int availCols, int availRows, boo
             return a.displayName.compare(b.displayName, Qt::CaseInsensitive) < 0;
         });
 
-    const bool filterChanged = !categoryFilter_.isEmpty();
-    categoryFilter_.clear();
+    const bool filterChanged = categoryFilter_ != 0;
+    categoryFilter_ = 0;
     rebuildFiltered();
     endResetModel();
     emit categoriesChanged();
@@ -132,9 +130,20 @@ void WidgetPickerModel::filterByAvailableSpace(int availCols, int availRows, boo
 
 QVariantList WidgetPickerModel::categories() const {
     QVariantList result;
-    result.append(QVariantMap{{QStringLiteral("id"), QString()},
+    result.append(QVariantMap{{QStringLiteral("id"), 0},
                               {QStringLiteral("label"), QStringLiteral("All")}});
 
+    const QStringList categoryIds = availableCategoryIds();
+    for (qsizetype i = 0; i < categoryIds.size(); ++i) {
+        result.append(QVariantMap{{QStringLiteral("id"), i + 1},
+                                  {QStringLiteral("label"), categoryLabel(categoryIds.at(i))}});
+    }
+
+    return result;
+}
+
+QStringList WidgetPickerModel::availableCategoryIds() const {
+    QStringList result;
     QSet<QString> seen;
     for (const auto& desc : available_) {
         const bool isNoWidget = desc.id.isEmpty()
@@ -142,23 +151,24 @@ QVariantList WidgetPickerModel::categories() const {
         if (isNoWidget)
             continue;
 
-        const QString id = desc.category.isEmpty() ? kUncategorizedFilter : desc.category;
-        if (seen.contains(id))
+        if (seen.contains(desc.category))
             continue;
-        seen.insert(id);
-        result.append(QVariantMap{{QStringLiteral("id"), id},
-                                  {QStringLiteral("label"), categoryLabel(desc.category)}});
+        seen.insert(desc.category);
+        result.append(desc.category);
     }
 
     return result;
 }
 
-void WidgetPickerModel::setCategoryFilter(const QString& categoryId) {
-    if (categoryFilter_ == categoryId)
+void WidgetPickerModel::setCategoryFilter(int categoryIndex) {
+    const int maxIndex = availableCategoryIds().size();
+    const int normalizedIndex = categoryIndex >= 0 && categoryIndex <= maxIndex
+        ? categoryIndex : 0;
+    if (categoryFilter_ == normalizedIndex)
         return;
 
     beginResetModel();
-    categoryFilter_ = categoryId;
+    categoryFilter_ = normalizedIndex;
     rebuildFiltered();
     endResetModel();
     emit categoryFilterChanged();
@@ -166,8 +176,12 @@ void WidgetPickerModel::setCategoryFilter(const QString& categoryId) {
 
 void WidgetPickerModel::rebuildFiltered() {
     filtered_.clear();
+    const QStringList categoryIds = availableCategoryIds();
+    const QString selectedCategory = categoryFilter_ > 0
+        && categoryFilter_ <= categoryIds.size()
+        ? categoryIds.at(categoryFilter_ - 1) : QString();
     for (const auto& desc : available_) {
-        if (categoryFilter_.isEmpty()) {
+        if (categoryFilter_ == 0) {
             filtered_.append(desc);
             continue;
         }
@@ -177,8 +191,7 @@ void WidgetPickerModel::rebuildFiltered() {
         if (isNoWidget)
             continue;
 
-        if ((categoryFilter_ == kUncategorizedFilter && desc.category.isEmpty())
-            || desc.category == categoryFilter_) {
+        if (desc.category == selectedCategory) {
             filtered_.append(desc);
         }
     }

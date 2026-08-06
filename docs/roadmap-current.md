@@ -27,7 +27,8 @@ spike, or research-first feasibility work.
 
 ## Done (recent)
 
-- Full-screen widget picker — **COMPLETED 2026-08-06; HARDWARE ACCEPTED**.
+- Full-screen widget picker — **COMPLETED 2026-08-06; HARDWARE ACCEPTED** at
+  code anchor `5698d2a`.
   The former 60%-height nested scrollers are replaced by a full-screen,
   three-column catalog with model-owned `All`/category filtering and touch
   targets of at least 64 pixels on the reference display. Cards use readable

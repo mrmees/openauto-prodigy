@@ -21,6 +21,7 @@ private slots:
     void testSizeConstraintRoles();
     void testCategoriesExposeAllAndAvailableGroups();
     void testCategoryFilterShowsOnlySelectedGroup();
+    void testUncategorizedCategoryDoesNotCollideWithPluginCategory();
 
 private:
     oap::WidgetRegistry* registry_ = nullptr;
@@ -238,12 +239,11 @@ void TestWidgetPickerModel::testCategoriesExposeAllAndAvailableGroups() {
 
     const QVariantList categories = model.categories();
     QCOMPARE(categories.size(), 5);
-    QCOMPARE(categories.at(0).toMap(), QVariantMap({{"id", ""}, {"label", "All"}}));
-    QCOMPARE(categories.at(1).toMap(), QVariantMap({{"id", "status"}, {"label", "Status"}}));
-    QCOMPARE(categories.at(2).toMap(), QVariantMap({{"id", "media"}, {"label", "Media"}}));
-    QCOMPARE(categories.at(3).toMap(), QVariantMap({{"id", "utilities"}, {"label", "Utilities"}}));
-    QCOMPARE(categories.at(4).toMap(),
-             QVariantMap({{"id", "__uncategorized__"}, {"label", "Other"}}));
+    QCOMPARE(categories.at(0).toMap(), QVariantMap({{"id", 0}, {"label", "All"}}));
+    QCOMPARE(categories.at(1).toMap(), QVariantMap({{"id", 1}, {"label", "Status"}}));
+    QCOMPARE(categories.at(2).toMap(), QVariantMap({{"id", 2}, {"label", "Media"}}));
+    QCOMPARE(categories.at(3).toMap(), QVariantMap({{"id", 3}, {"label", "Utilities"}}));
+    QCOMPARE(categories.at(4).toMap(), QVariantMap({{"id", 4}, {"label", "Other"}}));
 }
 
 void TestWidgetPickerModel::testCategoryFilterShowsOnlySelectedGroup() {
@@ -252,12 +252,24 @@ void TestWidgetPickerModel::testCategoryFilterShowsOnlySelectedGroup() {
 
     oap::WidgetPickerModel model(registry_);
     model.filterByAvailableSpace(6, 4, false);
-    model.setCategoryFilter("media");
+    model.setCategoryFilter(2);
 
-    QCOMPARE(model.categoryFilter(), QString("media"));
+    QCOMPARE(model.categoryFilter(), 2);
     QCOMPARE(model.rowCount(), 1);
     QCOMPARE(model.data(model.index(0, 0), oap::WidgetPickerModel::WidgetIdRole).toString(),
              QString("test.np"));
+}
+
+void TestWidgetPickerModel::testUncategorizedCategoryDoesNotCollideWithPluginCategory() {
+    registerTestWidget("test.empty", "Empty Category", "", "Other data");
+    registerTestWidget("test.named", "Named Category", "__uncategorized__", "Named data");
+
+    oap::WidgetPickerModel model(registry_);
+    model.filterByAvailableSpace(6, 4, false);
+
+    const QVariantList categories = model.categories();
+    QCOMPARE(categories.size(), 3);
+    QVERIFY(categories.at(1).toMap().value("id") != categories.at(2).toMap().value("id"));
 }
 
 QTEST_GUILESS_MAIN(TestWidgetPickerModel)

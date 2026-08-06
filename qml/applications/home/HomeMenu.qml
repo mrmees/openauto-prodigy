@@ -1329,7 +1329,8 @@ Item {
                 WidgetGridModel.placeWidget(widgetId, cell.col, cell.row, defCols, defRows)
                 widgetPickerSheet.closePicker()
             } else {
-                toast.show("No space available \u2014 remove a widget first")
+                widgetPickerSheet.showError("Default " + defCols + "\u00d7" + defRows
+                                            + " needs more free space")
             }
         }
     }
