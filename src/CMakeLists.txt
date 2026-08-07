@@ -106,6 +106,7 @@ add_library(openauto-core STATIC
     plugins/phone/PhonePlugin.cpp
     plugins/equalizer/EqualizerPlugin.cpp
     core/widget/WebWidgetManifest.cpp
+    core/widget/WidgetDataCatalog.cpp
     core/widget/WidgetRegistry.cpp
     core/widget/WebWidgetScanner.cpp
     core/webwidget/WebWidgetContentResolver.cpp

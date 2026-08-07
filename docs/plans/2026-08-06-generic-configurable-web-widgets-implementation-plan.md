@@ -243,7 +243,7 @@ fixed manifest syntax without changing legacy discovery.
 **Produces:** generic one-level collection discovery and owner-scoped
 `__data__` resolution with no Gauge document knowledge.
 
-- [ ] **Step 1: Write failing collection discovery tests**
+- [x] **Step 1: Write failing collection discovery tests**
 
   Use `QTemporaryDir` fixtures to prove:
 
@@ -255,14 +255,14 @@ fixed manifest syntax without changing legacy discovery.
   - results sort by case-folded name and then stable item ID;
   - missing roots/widgets/collections return an empty list.
 
-- [ ] **Step 2: Write failing `__data__` resolver tests**
+- [x] **Step 2: Write failing `__data__` resolver tests**
 
   Pin valid JSON/assets, unknown package IDs, missing files, `..`, absolute
   input, external and internal symlink paths, and cross-widget access. Create a
   package-local `__data__/shadow.json` and prove the reserved route never serves
   it. Existing package-local resolution outside `__data__` must remain green.
 
-- [ ] **Step 3: Run the focused tests and confirm failure**
+- [x] **Step 3: Run the focused tests and confirm failure**
 
   ```bash
   cmake --build ~/builds/openauto-prodigy \
@@ -271,7 +271,7 @@ fixed manifest syntax without changing legacy discovery.
 
   Expected: the catalog target/source and data-root resolver API do not exist.
 
-- [ ] **Step 4: Implement `WidgetDataCatalog`**
+- [x] **Step 4: Implement `WidgetDataCatalog`**
 
   Use these value types and public surface (minor naming adjustments are fine;
   ownership and semantics are not):
@@ -302,7 +302,7 @@ fixed manifest syntax without changing legacy discovery.
   remain below the owning widget-data root. Parse only `id`, `name`, and
   `description` with yaml-cpp. Log and continue on bad items.
 
-- [ ] **Step 5: Reserve and route `__data__`**
+- [x] **Step 5: Reserve and route `__data__`**
 
   Add `WebWidgetContentResolver::setDataRoot(const QString&)`. In `resolve()`,
   route `__data__/...` to `<data-root>/<registered-widget-id>/...` before normal
@@ -313,7 +313,7 @@ fixed manifest syntax without changing legacy discovery.
   change normal package behavior except that its `__data__` segment is now
   reserved.
 
-- [ ] **Step 6: Register sources, rerun tests, and commit**
+- [x] **Step 6: Register sources, rerun tests, and commit**
 
   ```bash
   cmake -S . -B ~/builds/openauto-prodigy

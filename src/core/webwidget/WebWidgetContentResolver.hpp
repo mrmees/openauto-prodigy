@@ -12,6 +12,7 @@ namespace oap {
 class WebWidgetContentResolver {
 public:
     void registerPackage(const QString& id, const QString& dirPath);
+    void setDataRoot(const QString& dirPath);
 
     // Absolute canonical file path, or empty for unknown id, missing file,
     // or any path escaping the package dir (traversal / symlink).
@@ -20,7 +21,10 @@ public:
     static QByteArray contentTypeFor(const QString& filePath);
 
 private:
+    QString resolveWidgetData(const QString& id, const QString& relativePath) const;
+
     QHash<QString, QString> packages_;  // id -> canonical package dir
+    QString dataRoot_;                  // cleaned absolute path; may appear later
 };
 
 } // namespace oap

@@ -19,8 +19,13 @@ private slots:
     void initTestCase() {
         touch("pkg/index.html", "<html/>");
         touch("pkg/assets/app.js");
+        touch("pkg/__data__/shadow.json", "package shadow");
         touch("outside.txt", "secret");
+        touch("data/com.test.pkg/profiles/sample/gauge.json", "{\"ok\":true}");
+        touch("data/com.test.pkg/profiles/sample/internal.txt", "inside");
+        touch("data/com.test.other/secret.txt", "other");
         resolver_.registerPackage("com.test.pkg", dir_.filePath("pkg"));
+        resolver_.setDataRoot(dir_.filePath("data"));
     }
     void testResolvesEntryFile() {
         const auto p = resolver_.resolve("com.test.pkg", "index.html");
@@ -43,6 +48,58 @@ private slots:
     void testSymlinkEscapeBlocked() {
         QFile::link(dir_.filePath("outside.txt"), dir_.filePath("pkg/sneaky.txt"));
         QVERIFY(resolver_.resolve("com.test.pkg", "sneaky.txt").isEmpty());
+    }
+    void testResolvesOwnedWidgetData() {
+        const auto path = resolver_.resolve(
+            "com.test.pkg", "__data__/profiles/sample/gauge.json");
+        QVERIFY(!path.isEmpty());
+        QVERIFY(path.endsWith(QStringLiteral(
+            "data/com.test.pkg/profiles/sample/gauge.json")));
+    }
+    void testDataRouteRequiresRegisteredPackage() {
+        QVERIFY(resolver_.resolve(
+            "com.test.other", "__data__/secret.txt").isEmpty());
+    }
+    void testDataRouteRejectsMissingEmptyAbsoluteAndTraversal() {
+        QVERIFY(resolver_.resolve("com.test.pkg", "__data__/").isEmpty());
+        QVERIFY(resolver_.resolve(
+            "com.test.pkg", "__data__/profiles/sample/missing.json").isEmpty());
+        QVERIFY(resolver_.resolve(
+            "com.test.pkg", "__data__/../com.test.other/secret.txt").isEmpty());
+        QVERIFY(resolver_.resolve(
+            "com.test.pkg", "/__data__/profiles/sample/gauge.json").isEmpty());
+    }
+    void testPackageLocalDataCollisionIsReserved() {
+        QVERIFY(resolver_.resolve(
+            "com.test.pkg", "__data__/shadow.json").isEmpty());
+    }
+    void testDataRouteRejectsExternalAndInternalSymlinks() {
+        QVERIFY(QFile::link(dir_.filePath("outside.txt"),
+                            dir_.filePath("data/com.test.pkg/profiles/sample/external.txt")));
+        QVERIFY(QFile::link(
+            dir_.filePath("data/com.test.pkg/profiles/sample/internal.txt"),
+            dir_.filePath("data/com.test.pkg/profiles/sample/internal-link.txt")));
+        QVERIFY(resolver_.resolve(
+            "com.test.pkg", "__data__/profiles/sample/external.txt").isEmpty());
+        QVERIFY(resolver_.resolve(
+            "com.test.pkg", "__data__/profiles/sample/internal-link.txt").isEmpty());
+    }
+    void testDataRootMayAppearAfterConfiguration() {
+        QTemporaryDir lateDir;
+        oap::WebWidgetContentResolver resolver;
+        resolver.registerPackage("com.test.late", dir_.filePath("pkg"));
+        const QString root = lateDir.filePath("later");
+        resolver.setDataRoot(root);
+        QVERIFY(resolver.resolve(
+            "com.test.late", "__data__/profiles/item/value.json").isEmpty());
+        QFileInfo info(root + "/com.test.late/profiles/item/value.json");
+        QDir().mkpath(info.absolutePath());
+        QFile file(info.absoluteFilePath());
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("{}");
+        file.close();
+        QVERIFY(!resolver.resolve(
+            "com.test.late", "__data__/profiles/item/value.json").isEmpty());
     }
     void testContentTypes() {
         using R = oap::WebWidgetContentResolver;

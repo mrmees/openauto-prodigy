@@ -1,5 +1,6 @@
 #include "core/webwidget/WebWidgetContentResolver.hpp"
 
+#include <QDir>
 #include <QFileInfo>
 
 namespace oap {
@@ -11,16 +12,75 @@ void WebWidgetContentResolver::registerPackage(const QString& id, const QString&
         packages_.insert(id, canonical);
 }
 
+void WebWidgetContentResolver::setDataRoot(const QString& dirPath)
+{
+    dataRoot_ = dirPath.isEmpty()
+        ? QString()
+        : QDir::cleanPath(QFileInfo(dirPath).absoluteFilePath());
+}
+
 QString WebWidgetContentResolver::resolve(const QString& id,
                                           const QString& relativePath) const
 {
     const QString base = packages_.value(id);
-    if (base.isEmpty())
+    if (base.isEmpty() || relativePath.isEmpty() || relativePath.startsWith(u'/'))
         return {};
+
+    if (relativePath == QStringLiteral("__data__"))
+        return {};
+    if (relativePath.startsWith(QStringLiteral("__data__/")))
+        return resolveWidgetData(id, relativePath.mid(9));
+
     // canonicalFilePath() resolves ".." and symlinks; empty if missing.
     const QString file = QFileInfo(base + u'/' + relativePath).canonicalFilePath();
     if (file.isEmpty() || !file.startsWith(base + u'/'))
         return {};
+    return file;
+}
+
+QString WebWidgetContentResolver::resolveWidgetData(
+    const QString& id, const QString& relativePath) const
+{
+    if (dataRoot_.isEmpty() || relativePath.isEmpty()
+        || relativePath.startsWith(u'/')) {
+        return {};
+    }
+
+    const QStringList components = relativePath.split(u'/', Qt::KeepEmptyParts);
+    for (const QString& component : components) {
+        if (component.isEmpty() || component == QStringLiteral(".")
+            || component == QStringLiteral("..")) {
+            return {};
+        }
+    }
+
+    const QFileInfo rootInfo(dataRoot_);
+    const QString root = rootInfo.canonicalFilePath();
+    if (root.isEmpty() || !rootInfo.isDir())
+        return {};
+
+    const QFileInfo widgetInfo(dataRoot_ + u'/' + id);
+    if (widgetInfo.isSymLink())
+        return {};
+    const QString widgetRoot = widgetInfo.canonicalFilePath();
+    if (widgetRoot.isEmpty() || !widgetInfo.isDir()
+        || !widgetRoot.startsWith(root + QDir::separator())) {
+        return {};
+    }
+
+    QString candidate = widgetRoot;
+    for (const QString& component : components) {
+        candidate += u'/' + component;
+        if (QFileInfo(candidate).isSymLink())
+            return {};
+    }
+
+    const QFileInfo fileInfo(candidate);
+    const QString file = fileInfo.canonicalFilePath();
+    if (file.isEmpty() || !fileInfo.isFile()
+        || !file.startsWith(widgetRoot + QDir::separator())) {
+        return {};
+    }
     return file;
 }
 
