@@ -210,6 +210,8 @@ Item {
                 Button {
                     Layout.minimumHeight: UiMetrics.touchMin
                     text: {
+                        if (!fieldData || !fieldData.values || !fieldData.options)
+                            return ""
                         var value = root.draftConfig[fieldData.key]
                         for (var i = 0; i < fieldData.values.length; ++i) {
                             if (fieldData.values[i] === value)
@@ -244,7 +246,8 @@ Item {
                             width: enumPopup.width
                             height: Math.max(UiMetrics.rowH, UiMetrics.touchMin)
                             text: modelData
-                            checked: fieldData.values[index] === root.draftConfig[fieldData.key]
+                            checked: fieldData && fieldData.values
+                                     && fieldData.values[index] === root.draftConfig[fieldData.key]
                             onClicked: {
                                 root.updateDraft(fieldData.key, fieldData.values[index])
                                 enumPopup.close()
@@ -264,17 +267,19 @@ Item {
             width: parent ? parent.width : 0
 
             function selectedText() {
+                if (!fieldData)
+                    return ""
                 var values = fieldData.values || []
                 var options = fieldData.options || []
                 var selected = root.draftConfig[fieldData.key]
-                if (values.length === 0)
-                    return qsTr("No items installed")
                 for (var i = 0; i < values.length; ++i) {
                     if (values[i] === selected)
                         return options[i] || values[i]
                 }
                 if (selected !== undefined && selected !== "")
                     return qsTr("Missing: ") + selected
+                if (values.length === 0)
+                    return qsTr("No items installed")
                 return qsTr("Select")
             }
 
@@ -322,7 +327,8 @@ Item {
                             width: collectionPopup.width
                             height: Math.max(UiMetrics.rowH, UiMetrics.touchMin)
                             text: modelData
-                            checked: fieldData.values[index] === root.draftConfig[fieldData.key]
+                            checked: fieldData && fieldData.values
+                                     && fieldData.values[index] === root.draftConfig[fieldData.key]
                             onClicked: {
                                 root.updateDraft(fieldData.key, fieldData.values[index])
                                 collectionPopup.close()

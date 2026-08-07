@@ -28,6 +28,8 @@ private slots:
         QVERIFY(source.contains(QStringLiteral("enabled: root.draftValid")));
         QVERIFY(source.contains(QStringLiteral("No items installed")));
         QVERIFY(source.contains(QStringLiteral("Missing: ")));
+        QVERIFY(source.indexOf(QStringLiteral("Missing: "))
+                < source.indexOf(QStringLiteral("No items installed")));
         QVERIFY(source.contains(QStringLiteral("fieldData.type === \"collection\"")));
     }
 
