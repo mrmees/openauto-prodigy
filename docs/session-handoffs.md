@@ -41,10 +41,12 @@ widget-data collections, full-screen draft lifecycle, public JavaScript config
 snapshots, and a domain-neutral Pi fixture. It explicitly excludes Gauge
 runtime/profile implementation and any provider/protobuf change.
 
-**Next 1–3 steps:** execute the Prodigy implementation plan inline; complete
-its bounded Fable review and generic Pi fixture checklist; then use
+**Next 1–3 steps:** execute the Prodigy implementation plan inline with Codex
+as the intended author; complete its bounded Fable review and generic Pi
+fixture checklist; then use
 `docs/plans/2026-08-06-gauge-studio-profile-handoff.md` as the input to the
-separate Gauge Studio session.
+separate Gauge Studio session. If implementation is explicitly reassigned to a
+Claude-family author, route the final review to Codex instead.
 
 ---
 

@@ -4,6 +4,11 @@
 > plan task by task. Repository policy keeps one inline implementation owner by
 > default. Steps use checkbox (`- [ ]`) syntax for execution tracking.
 
+**Intended implementation author:** Codex, inline. If the user explicitly
+reassigns implementation to a Claude-family author, the executor must record
+that change and route the final review with `--author claude`; the author label
+must always describe who actually wrote the implementation.
+
 **Status:** ACTIVE
 
 **Design:**
@@ -584,15 +589,24 @@ host before Gauge Studio consumes it.
   ./cross-build.sh
   ```
 
-- [ ] **Step 4: Run the one bounded major review**
+- [ ] **Step 4: Run the one bounded cross-family major review**
 
-  At implementation start, record the immutable feature-base SHA and reset the
-  previous design-review state only because the user has authorized execution
-  of this next feature. After the gates are green:
+  At implementation start, record the immutable feature-base SHA. Reset the
+  previous plan-review state only after a current user message explicitly
+  authorizes implementation (or explicitly authorizes that reset); cite that
+  message in the handoff. The plan text itself is not standing reset
+  authorization.
+
+  After the gates are green, use the real implementation author. For the
+  intended Codex-owned execution:
 
   ```bash
   bash scripts/review-gate.sh --author codex --major --base <feature-base-sha>
   ```
+
+  If the user reassigned implementation to Claude/Opus/Fable, do not run the
+  command above; use `--author claude --major` so the repository routes the
+  review to Codex.
 
   Adjudicate every finding against a supported production entry point,
   reachable call chain, material impact, and concrete evidence. If fixes are
@@ -657,7 +671,7 @@ true:
 - `__data__` serves only regular files confined to the registered widget's own
   data root;
 - the generic Pi fixture passes the touch/restart/missing/empty checklist;
-- native build, explicit app target, CTest, ARM cross-build, and the bounded
-  major review are green;
+- native build, explicit app target, CTest, ARM cross-build, and the correctly
+  author-routed bounded major review are green;
 - no Gauge runtime, profile, skin, backend behavior, or protocol change has
   entered the Prodigy implementation.
