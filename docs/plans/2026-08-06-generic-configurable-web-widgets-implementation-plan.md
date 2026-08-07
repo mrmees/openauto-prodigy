@@ -576,7 +576,7 @@ host before Gauge Studio consumes it.
   validation, and the same full-screen host. Keep Gauge-specific details only
   in the design/handoff documents.
 
-- [ ] **Step 3: Run the complete local and ARM gates once on the final tree**
+- [x] **Step 3: Run the complete local and ARM gates once on the final tree**
 
   ```bash
   cmake -S . -B ~/builds/openauto-prodigy
