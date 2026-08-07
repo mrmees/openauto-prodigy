@@ -239,6 +239,10 @@ oap_add_test(test_widget_data_catalog SOURCES test_widget_data_catalog.cpp)
 oap_add_test(test_web_widget_manifest SOURCES test_web_widget_manifest.cpp)
 oap_add_test(test_web_widget_resolver SOURCES test_web_widget_resolver.cpp)
 oap_add_test(test_web_widget_scanner SOURCES test_web_widget_scanner.cpp)
+oap_add_test(test_web_widget_host_structure
+    SOURCES test_web_widget_host_structure.cpp
+    DEFS TEST_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
 if(TARGET Qt6::WebEngineQuick)
     oap_add_test(test_web_widget_scheme SOURCES test_web_widget_scheme.cpp)
 endif()

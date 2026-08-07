@@ -96,6 +96,16 @@
         });
     }
 
+    function plainSnapshot(value) {
+        var snapshot = {};
+        if (Object.prototype.toString.call(value) !== '[object Object]')
+            return snapshot;
+        Object.keys(value).forEach(function (key) {
+            snapshot[key] = value[key];
+        });
+        return snapshot;
+    }
+
     var TOPIC = { media: 1, navigation: 2, projection: 3, phone: 4, system: 5 };
     var STATUS_FIELD = {
         mediaStatus: 'media', navigationStatus: 'navigation',
@@ -424,6 +434,7 @@
     window.prodigy = {
         get ready() { return readyPromise; },
         context: boot.context || {},
+        config: plainSnapshot(boot.config),
         apiUrl: boot.apiUrl,
 
         subscribe: function (topic, cb) {
@@ -471,6 +482,13 @@
         _updateContext: function (ctx) {
             window.prodigy.context = ctx;
             emit('contextchange', ctx);
+        },
+
+        // host-internal: full per-instance replacement snapshot
+        _updateConfig: function (next) {
+            var snapshot = plainSnapshot(next);
+            window.prodigy.config = snapshot;
+            emit('configchange', snapshot);
         }
     };
 

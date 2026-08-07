@@ -8,7 +8,7 @@ const PROTOBUF = readFileSync(new URL('resources/web/protobuf.min.js', ROOT), 'u
 const GENERATED = readFileSync(new URL('resources/web/prodigy-proto.js', ROOT), 'utf8');
 const SHIM = readFileSync(new URL('resources/web/prodigy.js', ROOT), 'utf8');
 
-function harness() {
+function harness(bootstrapConfig) {
     const sockets = [];
     const reconnects = [];
     let monotonic = 0;
@@ -31,12 +31,16 @@ function harness() {
         }
     }
 
-    const sandbox = {
-        __prodigyBootstrap: {
+    const bootstrap = {
             apiUrl: 'ws://127.0.0.1:9811',
             context: { widgetId: 'test.widget' },
             themeTokens: {},
-        },
+    };
+    if (arguments.length > 0)
+        bootstrap.config = bootstrapConfig;
+
+    const sandbox = {
+        __prodigyBootstrap: bootstrap,
         location: { protocol: 'prodigy:' },
         document: {
             documentElement: { style: { setProperty() {} } },
@@ -98,9 +102,53 @@ function harness() {
     };
 }
 
+function plain(value) {
+    return JSON.parse(JSON.stringify(value));
+}
+
 function dataRef(channelName) {
     return { providerNamespace: 'com.example.vehicle', channelName };
 }
+
+test('configuration is available before readiness and updates by replacement', () => {
+    const h = harness({ profileId: 'initial', label: 'Before' });
+    assert.deepEqual(plain(h.sandbox.prodigy.config), {
+        profileId: 'initial', label: 'Before',
+    });
+
+    const changes = [];
+    h.sandbox.prodigy.on('configchange', config => changes.push(config));
+    const next = { profileId: 'replacement' };
+    h.sandbox.prodigy._updateConfig(next);
+
+    assert.deepEqual(plain(h.sandbox.prodigy.config), {
+        profileId: 'replacement',
+    });
+    assert.equal('label' in h.sandbox.prodigy.config, false);
+    assert.equal(changes.length, 1);
+    assert.equal(changes[0], h.sandbox.prodigy.config);
+    next.profileId = 'mutated-after-update';
+    assert.equal(h.sandbox.prodigy.config.profileId, 'replacement');
+});
+
+test('invalid bootstrap configuration normalizes to an empty snapshot', () => {
+    for (const config of [undefined, null, [], 'bad']) {
+        const h = config === undefined ? harness() : harness(config);
+        assert.deepEqual(plain(h.sandbox.prodigy.config), {});
+    }
+});
+
+test('configuration updates do not disturb context events', () => {
+    const h = harness({ profileId: 'initial' });
+    const contexts = [];
+    h.sandbox.prodigy.on('contextchange', context => contexts.push(context));
+    h.sandbox.prodigy._updateContext({ widgetId: 'test.widget', colSpan: 3 });
+    h.sandbox.prodigy._updateConfig({ profileId: 'next' });
+
+    assert.equal(contexts.length, 1);
+    assert.equal(contexts[0], h.sandbox.prodigy.context);
+    assert.equal(contexts[0].colSpan, 3);
+});
 
 test('data API is capability-gated and lists the catalog', async () => {
     const absent = harness();

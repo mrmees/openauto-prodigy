@@ -38,6 +38,7 @@ Item {
         function onIsCurrentPageChanged() { hostRoot.maybeActivate() }
         function onColSpanChanged() { hostRoot.pushContext() }
         function onRowSpanChanged() { hostRoot.pushContext() }
+        function onEffectiveConfigChanged() { hostRoot.pushConfig() }
     }
 
     function contextObject() {
@@ -53,15 +54,32 @@ Item {
         var boot = {
             apiUrl: "ws://127.0.0.1:" + ConfigService.value("api.ws_port"),
             context: contextObject(),
+            config: publicConfigObject(),
             themeTokens: ThemeService.themeTokenMap()
         }
         return "window.__prodigyBootstrap = " + JSON.stringify(boot) + ";"
+    }
+    function publicConfigObject() {
+        var publicConfig = {}
+        if (!effectiveCfg)
+            return publicConfig
+        for (var key in effectiveCfg) {
+            if (key !== "url")
+                publicConfig[key] = effectiveCfg[key]
+        }
+        return publicConfig
     }
     function pushContext() {
         if (viewLoader.item)
             viewLoader.item.runJavaScript(
                 "window.prodigy && prodigy._updateContext("
                 + JSON.stringify(contextObject()) + ")")
+    }
+    function pushConfig() {
+        if (viewLoader.item)
+            viewLoader.item.runJavaScript(
+                "window.prodigy && prodigy._updateConfig("
+                + JSON.stringify(publicConfigObject()) + ")")
     }
 
     Loader {
@@ -124,6 +142,7 @@ Item {
                     hostRoot.retryCount = 0
                     errorCard.visible = false
                     hostRoot.pushContext()          // refresh live spans (creation-time bootstrap may be stale after crash-reload)
+                    hostRoot.pushConfig()           // refresh instance config after crash-reload
                 }
             }
             onNavigationRequested: function (request) {

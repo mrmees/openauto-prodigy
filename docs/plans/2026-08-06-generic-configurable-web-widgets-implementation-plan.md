@@ -480,7 +480,7 @@ supports missing selections, and commits only on explicit Save.
 `configchange` events over the existing public shim, without page reload or a
 private bridge.
 
-- [ ] **Step 1: Write failing JavaScript contract tests**
+- [x] **Step 1: Write failing JavaScript contract tests**
 
   Extend the Node `vm` harness with bootstrap configuration. Assert that:
 
@@ -491,14 +491,14 @@ private bridge.
   - the data API, reconnect behavior, and existing context events remain
     unchanged.
 
-- [ ] **Step 2: Write a failing host source-contract test**
+- [x] **Step 2: Write a failing host source-contract test**
 
   Pin that `WebWidgetHost.qml` adds public configuration to the bootstrap,
   listens for `effectiveConfigChanged`, pushes `_updateConfig`, excludes the
   internal `url` key, and refreshes both context and configuration after a
   successful crash reload.
 
-- [ ] **Step 3: Run focused tests and confirm failure**
+- [x] **Step 3: Run focused tests and confirm failure**
 
   ```bash
   node tests/test_prodigy_data_js.mjs
@@ -506,14 +506,14 @@ private bridge.
     --target test_web_widget_host_structure -j$(nproc)
   ```
 
-- [ ] **Step 4: Implement shim replacement snapshots**
+- [x] **Step 4: Implement shim replacement snapshots**
 
   Initialize `prodigy.config` from a normalized plain bootstrap object. Add the
   host-only `_updateConfig(next)` method beside `_updateContext`; replace with
   a new shallow plain-object snapshot and emit `configchange` with that whole
   object. Do not expose filesystem access or add External API messages.
 
-- [ ] **Step 5: Push configuration from `WebWidgetHost`**
+- [x] **Step 5: Push configuration from `WebWidgetHost`**
 
   Add `publicConfigObject()` that copies `effectiveCfg` except the reserved
   host key `url`. Put it in `bootstrapSource()`, call `pushConfig()` when the
@@ -521,7 +521,7 @@ private bridge.
   existing lazy activation, gesture sentinel, navigation restrictions, and
   crash retry behavior intact.
 
-- [ ] **Step 6: Rerun focused tests and commit**
+- [x] **Step 6: Rerun focused tests and commit**
 
   ```bash
   node tests/test_prodigy_data_js.mjs
