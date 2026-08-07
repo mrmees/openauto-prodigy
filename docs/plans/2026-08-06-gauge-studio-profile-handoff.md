@@ -3,11 +3,12 @@
 **Status:** ACTIVE
 
 **Purpose:** standalone input for a future Gauge Studio implementation session.
-This document is subordinate to the approved Prodigy design
-`2026-08-06-generic-configurable-web-widgets-design.md`, but contains the full
-Gauge Studio-facing contract so the target session does not need this chat.
+This document is subordinate to the completed Prodigy
+[design](../archive/plans/2026-08-06-generic-configurable-web-widgets-design.md),
+but contains the full Gauge Studio-facing contract so the target session does
+not need this chat.
 
-**Upstream anchors:** OpenAuto Prodigy `2506041`, Gauge Studio `f784bf7`, and
+**Upstream anchors:** OpenAuto Prodigy `b30c262` (hardware accepted), Gauge Studio `f784bf7`, and
 `prodigy-obd` `34632d7`.
 
 ## Outcome

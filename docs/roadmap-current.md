@@ -19,17 +19,24 @@ spike, or research-first feasibility work.
 
 ## Now
 
-- Generic configurable web widgets and one-profile-selecting Gauge entry —
-  **IMPLEMENTATION ACTIVE 2026-08-06**. Prodigy is adding a full-screen,
-  explicit-opt-in widget configuration lifecycle plus generic widget-owned data collections.
-  Gauge Studio will later distribute one Gauge runtime and independent profiles
-  instead of one picker card per gauge. The Prodigy design and the standalone
-  Gauge Studio handoff are in `docs/plans/`; the reviewed five-task Prodigy
-  implementation is locally feature-complete and awaiting final gates, bounded
-  review, and Pi acceptance. The provider API and `prodigy-obd` runtime remain
-  unchanged.
+No promoted implementation is active. The standalone Gauge Studio handoff is
+ready for its separate repository session.
 
 ## Done (recent)
+
+- Generic configurable web widgets — **COMPLETED 2026-08-06; HARDWARE
+  ACCEPTED** at code anchor `b30c262`. Explicitly opted-in native and web
+  widgets now use a full-screen, touch-oriented draft/save/cancel flow with
+  typed generic fields. Widget-owned collections are discovered
+  deterministically, served read-only through a canonical path jail, and
+  exposed to web widgets through complete `prodigy.config` snapshots and live
+  `configchange` events. Pi testing covered configure-on-add, Cancel, live
+  profile switching, restart persistence, missing saved items, and an empty
+  collection with disabled Save. The bounded two-pass Fable review returned no
+  blocker or major; a live-update blocker discovered during hardware testing
+  was fixed and accepted. The completed [design](archive/plans/2026-08-06-generic-configurable-web-widgets-design.md)
+  and [implementation plan](archive/plans/2026-08-06-generic-configurable-web-widgets-implementation-plan.md)
+  leave the Gauge Studio runtime/profile work as the next separate session.
 
 - Full-screen widget picker — **COMPLETED 2026-08-06; HARDWARE ACCEPTED** at
   code anchor `5698d2a`.

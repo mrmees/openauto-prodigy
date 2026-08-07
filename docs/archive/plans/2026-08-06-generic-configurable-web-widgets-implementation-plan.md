@@ -9,7 +9,7 @@ reassigns implementation to a Claude-family author, the executor must record
 that change and route the final review with `--author claude`; the author label
 must always describe who actually wrote the implementation.
 
-**Status:** ACTIVE
+**Status:** COMPLETED 2026-08-06
 
 **Design:**
 `docs/plans/2026-08-06-generic-configurable-web-widgets-design.md`
@@ -589,7 +589,7 @@ host before Gauge Studio consumes it.
   ./cross-build.sh
   ```
 
-- [ ] **Step 4: Run the one bounded cross-family major review**
+- [x] **Step 4: Run the one bounded cross-family major review**
 
   At implementation start, record the immutable feature-base SHA. Reset the
   previous plan-review state only after a current user message explicitly
@@ -614,7 +614,7 @@ host before Gauge Studio consumes it.
   one remediation commit, and run the single permitted remediation review.
   Do not start a third pass.
 
-- [ ] **Step 5: Deploy the reviewed ARM binary and generic fixtures**
+- [x] **Step 5: Deploy the reviewed ARM binary and generic fixtures**
 
   ```bash
   rsync -av build-pi/src/openauto-prodigy \
@@ -628,7 +628,7 @@ host before Gauge Studio consumes it.
   ssh matt@192.168.1.149 'sudo systemctl restart openauto-prodigy.service'
   ```
 
-- [ ] **Step 6: Run the touch and recovery checklist**
+- [x] **Step 6: Run the touch and recovery checklist**
 
   1. Confirm one configurable example card appears and opens full-screen
      configuration immediately after placement.
@@ -642,7 +642,7 @@ host before Gauge Studio consumes it.
   5. Temporarily move all items out, confirm `No items installed`, Save disabled,
      and Cancel still available; restore the fixture afterward.
 
-- [ ] **Step 7: Record completion and commit**
+- [x] **Step 7: Record completion and commit**
 
   Append the exact local/ARM/live results and review adjudication to
   `docs/session-handoffs.md`. Once the generic host is accepted on hardware,

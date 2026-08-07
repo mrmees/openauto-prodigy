@@ -206,11 +206,14 @@ the Pi:
 install -d ~/.openauto/webwidgets/com.example.configurable
 cp -a examples/webwidgets/configurable-collection/. \
   ~/.openauto/webwidgets/com.example.configurable/
-install -d ~/.openauto/widget-data/com.example.configurable/profiles/sample
-cp -a examples/widget-data/com.example.configurable/profiles/sample/. \
-  ~/.openauto/widget-data/com.example.configurable/profiles/sample/
+install -d ~/.openauto/widget-data/com.example.configurable/profiles
+cp -a examples/widget-data/com.example.configurable/profiles/. \
+  ~/.openauto/widget-data/com.example.configurable/profiles/
 sudo systemctl restart openauto-prodigy.service
 ```
+
+The two example profiles make it possible to verify that Save publishes a
+live `configchange` replacement snapshot without restarting Prodigy.
 
 Restart is required for a newly installed widget package. Collection choices
 are rescanned whenever the form opens, so later item copies do not require a

@@ -2,6 +2,11 @@
 
 ## Recently Completed Plans
 
+- [Generic configurable web widgets design](archive/plans/2026-08-06-generic-configurable-web-widgets-design.md)
+  and [implementation plan](archive/plans/2026-08-06-generic-configurable-web-widgets-implementation-plan.md)
+  — completed and hardware-accepted 2026-08-06 with generic full-screen
+  configuration, widget-owned collections, jailed data delivery, and complete
+  live web-widget configuration snapshots.
 - [External Data Provider API design](archive/plans/2026-08-02-external-data-provider-api-design.md)
   and [implementation plan](archive/plans/2026-08-02-external-data-provider-api-implementation-plan.md)
   — completed 2026-08-02 with generic typed-scalar providers, deterministic
@@ -72,14 +77,9 @@ Protocol definitions and generic reference docs are in [open-android-auto](https
 
 Active plans:
 
-- [Generic configurable web widgets and Gauge profiles](plans/2026-08-06-generic-configurable-web-widgets-design.md)
-  — approved cross-repository design for one configurable Gauge runtime,
-  independent widget-owned profiles, and a generic full-screen configuration
-  lifecycle. The executable
-  [Prodigy implementation plan](plans/2026-08-06-generic-configurable-web-widgets-implementation-plan.md)
-  covers only the generic host. The companion
-  [Gauge Studio handoff](plans/2026-08-06-gauge-studio-profile-handoff.md)
-  is standalone input for the later Gauge Studio session.
+- [Gauge Studio handoff](plans/2026-08-06-gauge-studio-profile-handoff.md)
+  — standalone contract for the later Gauge Studio runtime/profile session;
+  the required generic Prodigy host is complete.
 
 ## Pi Configuration (pi-config/)
 

@@ -1,6 +1,6 @@
 # Generic Configurable Web Widgets and Gauge Profiles
 
-**Status:** ACTIVE
+**Status:** COMPLETED 2026-08-06
 
 **Grounded on:** OpenAuto Prodigy `2506041`, Gauge Studio `f784bf7`, and
 `prodigy-obd` `34632d7`.
