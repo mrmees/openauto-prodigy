@@ -62,6 +62,31 @@ private slots:
         QCOMPARE(oap::WebWidgetScanner::scan(QStringLiteral("/nonexistent-dir-xyz"),
                                              registry, nullptr), 0);
     }
+    void testConfigurationMetadataPropagates() {
+        QTemporaryDir dir;
+        writePackage(dir.path(), "configurable",
+            "id: com.test.configurable\n"
+            "name: Configurable\n"
+            "configuration:\n"
+            "  configureOnAdd: true\n"
+            "  fields:\n"
+            "    - key: profileId\n"
+            "      label: Profile\n"
+            "      type: collection\n"
+            "      collection: profiles\n"
+            "      required: true\n");
+
+        oap::WidgetRegistry registry;
+        QCOMPARE(oap::WebWidgetScanner::scan(dir.path(), registry, nullptr), 1);
+        const auto descriptor = registry.descriptor(QStringLiteral("com.test.configurable"));
+        QVERIFY(descriptor.has_value());
+        QVERIFY(descriptor->configureOnAdd);
+        QCOMPARE(descriptor->configSchema.size(), 1);
+        const auto& field = descriptor->configSchema.first();
+        QCOMPARE(field.type, oap::ConfigFieldType::Collection);
+        QCOMPARE(field.collection, QStringLiteral("profiles"));
+        QVERIFY(field.required);
+    }
 };
 QTEST_GUILESS_MAIN(TestWebWidgetScanner)
 #include "test_web_widget_scanner.moc"

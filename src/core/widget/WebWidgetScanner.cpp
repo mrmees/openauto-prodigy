@@ -43,6 +43,8 @@ int WebWidgetScanner::scan(const QString& rootDir, WidgetRegistry& registry,
             {QStringLiteral("url"),
              QStringLiteral("prodigy://widgets/%1/%2").arg(m.id, m.entry)},
         };
+        d.configSchema = m.configSchema;
+        d.configureOnAdd = m.configureOnAdd;
         d.minCols = m.minCols;
         d.minRows = m.minRows;
         d.maxCols = m.maxCols;

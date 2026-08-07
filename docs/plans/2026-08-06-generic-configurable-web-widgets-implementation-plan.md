@@ -163,7 +163,7 @@ The scanner's host-internal `url` default remains available to
 **Produces:** additive in-memory schema metadata and defensive parsing of the
 fixed manifest syntax without changing legacy discovery.
 
-- [ ] **Step 1: Pin additive defaults and valid parsing in failing tests**
+- [x] **Step 1: Pin additive defaults and valid parsing in failing tests**
 
   Add assertions that a default `WidgetDescriptor` has
   `configureOnAdd == false`, that `Collection` follows `IntRange`, and that a
@@ -171,14 +171,14 @@ fixed manifest syntax without changing legacy discovery.
   four field types, collection `required`, enum scalar values, range bounds,
   and a requested `configureOnAdd`.
 
-- [ ] **Step 2: Pin partial-failure behavior in failing tests**
+- [x] **Step 2: Pin partial-failure behavior in failing tests**
 
   Verify that malformed field nodes, unknown types, empty labels, unsafe keys
   or collection IDs, duplicate keys, duplicate enum values, and invalid ranges
   are omitted individually. The base manifest must remain valid. Verify that
   `configureOnAdd` is forced false when no valid fields survive.
 
-- [ ] **Step 3: Run the focused tests and confirm the contract is absent**
+- [x] **Step 3: Run the focused tests and confirm the contract is absent**
 
   ```bash
   cmake --build ~/builds/openauto-prodigy \
@@ -191,7 +191,7 @@ fixed manifest syntax without changing legacy discovery.
   Expected: compile or assertion failure because collection/configuration
   metadata does not exist.
 
-- [ ] **Step 4: Implement the additive types and defensive parser**
+- [x] **Step 4: Implement the additive types and defensive parser**
 
   Append `ConfigFieldType::Collection`. Append `bool required = false` and
   `QString collection` after the existing range members in
@@ -205,13 +205,13 @@ fixed manifest syntax without changing legacy discovery.
   file content. Do not add configuration checks to
   `WebWidgetManifest::isValid()`.
 
-- [ ] **Step 5: Propagate only valid metadata through the scanner**
+- [x] **Step 5: Propagate only valid metadata through the scanner**
 
   Copy `m.configSchema` and the normalized `m.configureOnAdd` into the
   descriptor. Preserve the current internal `defaultConfig.url`, sizing,
   duplicate-ID behavior, and resolver registration.
 
-- [ ] **Step 6: Rerun the focused tests and commit**
+- [x] **Step 6: Rerun the focused tests and commit**
 
   ```bash
   cmake --build ~/builds/openauto-prodigy \

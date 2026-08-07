@@ -2,6 +2,8 @@
 
 #include <QString>
 
+#include "core/widget/WidgetTypes.hpp"
+
 namespace oap {
 
 // Parsed ~/.openauto/webwidgets/<dir>/widget.yaml (design §4). Mirrors the
@@ -20,6 +22,8 @@ struct WebWidgetManifest {
     int maxRows = 4;
     int defaultCols = 1;
     int defaultRows = 1;
+    QList<ConfigSchemaField> configSchema;
+    bool configureOnAdd = false;
     QString dirPath;      // package directory, set by fromFile()
 
     static WebWidgetManifest fromFile(const QString& filePath);

@@ -13,6 +13,7 @@ private slots:
     void testLegacyPageDescriptorDefaults();
     void testContributionKindDefaultsToWidget();
     void testContributionKindCanBeSet();
+    void testConfigFieldTypeAppendsCollection();
 };
 
 void TestWidgetTypes::testWidgetDescriptorDefaults() {
@@ -28,6 +29,8 @@ void TestWidgetTypes::testWidgetDescriptorDefaults() {
     QCOMPARE(desc.maxRows, 4);
     QCOMPARE(desc.defaultCols, 1);
     QCOMPARE(desc.defaultRows, 1);
+    QVERIFY(desc.configSchema.isEmpty());
+    QVERIFY(!desc.configureOnAdd);
 }
 
 void TestWidgetTypes::testWidgetDescriptorGridSpans() {
@@ -102,6 +105,11 @@ void TestWidgetTypes::testContributionKindCanBeSet() {
     oap::WidgetDescriptor desc;
     desc.contributionKind = oap::DashboardContributionKind::LiveSurfaceWidget;
     QCOMPARE(desc.contributionKind, oap::DashboardContributionKind::LiveSurfaceWidget);
+}
+
+void TestWidgetTypes::testConfigFieldTypeAppendsCollection() {
+    QCOMPARE(static_cast<int>(oap::ConfigFieldType::Collection),
+             static_cast<int>(oap::ConfigFieldType::IntRange) + 1);
 }
 
 QTEST_GUILESS_MAIN(TestWidgetTypes)

@@ -8,7 +8,7 @@
 
 namespace oap {
 
-enum class ConfigFieldType { Enum, Bool, IntRange };
+enum class ConfigFieldType { Enum, Bool, IntRange, Collection };
 
 struct ConfigSchemaField {
     QString key;           // config map key (e.g. "style")
@@ -19,6 +19,8 @@ struct ConfigSchemaField {
     int rangeMin = 0;      // for IntRange
     int rangeMax = 100;    // for IntRange
     int rangeStep = 1;     // for IntRange
+    bool required = false; // for Collection
+    QString collection;    // for Collection: widget-data collection ID
 };
 
 enum class DashboardContributionKind {
@@ -38,6 +40,7 @@ struct WidgetDescriptor {
     DashboardContributionKind contributionKind = DashboardContributionKind::Widget;
     QVariantMap defaultConfig;          // optional per-widget defaults
     QList<ConfigSchemaField> configSchema;  // empty = no config UI
+    bool configureOnAdd = false;        // open config immediately after placement
 
     // Grid size constraints (replaces WidgetSizeFlags)
     int minCols = 1;
