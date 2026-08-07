@@ -14,6 +14,8 @@ Item {
     property var values: []        // typed values to store (if empty, stores options strings)
     property bool restartRequired: false
     property bool flat: false
+    property string placeholderText: ""
+    property bool pickerEnabled: true
 
     // --- Model-driven mode ---
     property var model: null       // QAbstractItemModel or JS array
@@ -39,7 +41,7 @@ Item {
 
     // --- Resolved display text for current selection ---
     readonly property string _displayText: {
-        if (root.currentIndex < 0) return ""
+        if (root.currentIndex < 0) return root.placeholderText
         if (root._useModel) {
             // Read from model via textRole
             if (root.model && root.textRole !== "" && typeof root.model.data === "function") {
@@ -67,6 +69,8 @@ Item {
     }
 
     readonly property bool _isPressed: rowMouseArea.pressed
+
+    opacity: root.pickerEnabled ? 1.0 : 0.6
 
     scale: (!root.flat && _isPressed) ? 0.97 : 1.0
     Behavior on scale { NumberAnimation { duration: UiMetrics.animDurationFast; easing.type: Easing.OutCubic } }
@@ -150,7 +154,8 @@ Item {
     SettingsHoldArea {
         id: rowMouseArea
         anchors.fill: parent
-        onShortClicked: pickerDialog.open()
+        enabled: root.pickerEnabled
+        onShortClicked: if (root.pickerEnabled) pickerDialog.open()
     }
 
     // --- Modal bottom-sheet dialog ---

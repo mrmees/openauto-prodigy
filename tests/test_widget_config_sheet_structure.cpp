@@ -25,12 +25,18 @@ private slots:
         QVERIFY(source.contains(QStringLiteral("height: parent ? parent.height : 0")));
         QVERIFY(source.contains(QStringLiteral("objectName: \"widgetConfigSave\"")));
         QVERIFY(source.contains(QStringLiteral("objectName: \"widgetConfigCancel\"")));
-        QVERIFY(source.contains(QStringLiteral("enabled: root.draftValid")));
+        QVERIFY(source.contains(QStringLiteral("buttonEnabled: root.draftValid")));
         QVERIFY(source.contains(QStringLiteral("No items installed")));
         QVERIFY(source.contains(QStringLiteral("Missing: ")));
         QVERIFY(source.indexOf(QStringLiteral("Missing: "))
                 < source.indexOf(QStringLiteral("No items installed")));
         QVERIFY(source.contains(QStringLiteral("fieldData.type === \"collection\"")));
+        QVERIFY(source.contains(QStringLiteral("FullScreenPicker")));
+        QVERIFY(source.contains(QStringLiteral("FilledButton")));
+        QVERIFY(source.contains(QStringLiteral("OutlinedButton")));
+        QVERIFY(source.contains(QStringLiteral("objectName: \"widgetConfigClose\"")));
+        QVERIFY(source.contains(QStringLiteral("dim: false")));
+        QVERIFY(!source.contains(QStringLiteral("\n                Button {")));
     }
 
     void testConfigureOnAddUsesPlacedInstance()

@@ -14,6 +14,8 @@ Item {
     property var overrideKeys: ({})
     property var schemaFields: []
     readonly property bool isOpen: configDialog.visible
+    readonly property int touchTarget: Math.max(UiMetrics.touchMin,
+                                                Math.round(64 * UiMetrics.scale))
     readonly property bool draftValid: root.widgetId !== ""
                                           && WidgetGridModel.isWidgetConfigValid(
                                               root.widgetId, root.draftConfig)
@@ -84,8 +86,8 @@ Item {
     Dialog {
         id: configDialog
         modal: true
-        dim: true
-        closePolicy: Popup.NoAutoClose
+        dim: false
+        closePolicy: Popup.CloseOnEscape
         parent: Overlay.overlay
         x: 0
         y: 0
@@ -93,56 +95,62 @@ Item {
         height: parent ? parent.height : 0
         padding: 0
 
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: UiMetrics.animDuration }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: UiMetrics.animDurationFast }
+        }
+
         background: Rectangle {
             color: ThemeService.surface
         }
 
         header: Item {
-            implicitHeight: Math.max(UiMetrics.headerH, UiMetrics.touchMin)
+            implicitHeight: Math.max(root.touchTarget, Math.round(72 * UiMetrics.scale))
 
             RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: UiMetrics.marginPage
-                anchors.rightMargin: UiMetrics.marginPage
+                anchors.rightMargin: UiMetrics.marginRow
                 spacing: UiMetrics.gap
 
-                Button {
-                    objectName: "widgetConfigCancel"
-                    text: qsTr("Cancel")
-                    Layout.preferredWidth: Math.max(UiMetrics.touchMin * 1.6, implicitWidth)
-                    Layout.preferredHeight: UiMetrics.touchMin
-                    onClicked: root.cancelDraft()
+                MaterialIcon {
+                    icon: root.widgetIcon
+                    size: UiMetrics.iconSize
+                    color: ThemeService.primary
+                    visible: root.widgetIcon !== ""
                 }
 
-                RowLayout {
+                Text {
+                    text: qsTr("Configure %1").arg(root.widgetName)
+                    font.pixelSize: UiMetrics.fontTitle
+                    font.bold: true
+                    color: ThemeService.onSurface
+                    elide: Text.ElideRight
                     Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignVCenter
-                    spacing: UiMetrics.spacing
+                }
+
+                MouseArea {
+                    objectName: "widgetConfigClose"
+                    Layout.preferredWidth: root.touchTarget
+                    Layout.preferredHeight: root.touchTarget
+                    onClicked: root.cancelDraft()
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: UiMetrics.radius
+                        color: parent.pressed
+                            ? ThemeService.primaryContainer
+                            : ThemeService.surfaceContainer
+                    }
 
                     MaterialIcon {
-                        icon: root.widgetIcon
+                        anchors.centerIn: parent
+                        icon: "\ue5cd"
                         size: UiMetrics.iconSize
                         color: ThemeService.onSurface
-                        visible: root.widgetIcon !== ""
                     }
-
-                    Text {
-                        text: root.widgetName
-                        font.pixelSize: UiMetrics.fontTitle
-                        font.bold: true
-                        color: ThemeService.onSurface
-                        elide: Text.ElideRight
-                        Layout.fillWidth: true
-                    }
-                }
-
-                Button {
-                    objectName: "widgetConfigSave"
-                    text: qsTr("Save")
-                    Layout.preferredWidth: Math.max(UiMetrics.touchMin * 1.6, implicitWidth)
-                    Layout.preferredHeight: UiMetrics.touchMin
-                    enabled: root.draftValid
-                    onClicked: root.saveDraft()
                 }
             }
 
@@ -154,34 +162,75 @@ Item {
             }
         }
 
-        contentItem: Flickable {
-            id: configFlickable
-            clip: true
-            contentHeight: configColumn.implicitHeight
-            boundsBehavior: Flickable.StopAtBounds
+        contentItem: ColumnLayout {
+            spacing: 0
 
-            Column {
-                id: configColumn
-                width: configFlickable.width
-                spacing: UiMetrics.spacing
-                topPadding: UiMetrics.spacing
-                bottomPadding: UiMetrics.marginPage
+            Flickable {
+                id: configFlickable
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                contentHeight: configColumn.implicitHeight
+                boundsBehavior: Flickable.StopAtBounds
 
-                Repeater {
-                    model: root.schemaFields
+                Column {
+                    id: configColumn
+                    width: configFlickable.width
+                    spacing: UiMetrics.spacing
+                    topPadding: UiMetrics.spacing
+                    bottomPadding: UiMetrics.marginPage
 
-                    Loader {
-                        width: configColumn.width
-                        property var fieldData: modelData
-                        sourceComponent: {
-                            if (!fieldData) return null
-                            if (fieldData.type === "enum") return enumControl
-                            if (fieldData.type === "bool") return boolControl
-                            if (fieldData.type === "intrange") return intRangeControl
-                            if (fieldData.type === "collection") return collectionControl
-                            return null
+                    Repeater {
+                        model: root.schemaFields
+
+                        Loader {
+                            x: UiMetrics.marginPage
+                            width: configColumn.width - UiMetrics.marginPage * 2
+                            property var fieldData: modelData
+                            sourceComponent: {
+                                if (!fieldData) return null
+                                if (fieldData.type === "enum") return enumControl
+                                if (fieldData.type === "bool") return boolControl
+                                if (fieldData.type === "intrange") return intRangeControl
+                                if (fieldData.type === "collection") return collectionControl
+                                return null
+                            }
                         }
                     }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+                color: ThemeService.outlineVariant
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.preferredHeight: root.touchTarget + UiMetrics.spacing * 2
+                Layout.leftMargin: UiMetrics.marginPage
+                Layout.rightMargin: UiMetrics.marginPage
+                spacing: UiMetrics.gap
+
+                Item { Layout.fillWidth: true }
+
+                OutlinedButton {
+                    objectName: "widgetConfigCancel"
+                    text: qsTr("Cancel")
+                    Layout.preferredWidth: Math.max(root.touchTarget * 1.8, implicitWidth)
+                    Layout.preferredHeight: root.touchTarget
+                    onClicked: root.cancelDraft()
+                }
+
+                FilledButton {
+                    objectName: "widgetConfigSave"
+                    text: qsTr("Save")
+                    iconCode: "\ue161"
+                    buttonEnabled: root.draftValid
+                    Layout.preferredWidth: Math.max(root.touchTarget * 1.8, implicitWidth)
+                    Layout.preferredHeight: root.touchTarget
+                    onClicked: root.saveDraft()
                 }
             }
         }
@@ -190,71 +239,20 @@ Item {
     Component {
         id: enumControl
 
-        Item {
-            height: Math.max(UiMetrics.rowH, UiMetrics.touchMin)
+        FullScreenPicker {
             width: parent ? parent.width : 0
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: UiMetrics.marginPage
-                anchors.rightMargin: UiMetrics.marginPage
-                spacing: UiMetrics.gap
-
-                Text {
-                    text: fieldData.label || ""
-                    font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.onSurface
-                    Layout.fillWidth: true
-                }
-
-                Button {
-                    Layout.minimumHeight: UiMetrics.touchMin
-                    text: {
-                        if (!fieldData || !fieldData.values || !fieldData.options)
-                            return ""
-                        var value = root.draftConfig[fieldData.key]
-                        for (var i = 0; i < fieldData.values.length; ++i) {
-                            if (fieldData.values[i] === value)
-                                return fieldData.options[i] || ""
-                        }
-                        return value === undefined ? "" : String(value)
-                    }
-                    onClicked: enumPopup.open()
-                }
+            label: fieldData ? fieldData.label || "" : ""
+            options: fieldData ? fieldData.options || [] : []
+            values: fieldData ? fieldData.values || [] : []
+            placeholderText: qsTr("Select")
+            currentIndex: {
+                if (!fieldData || !fieldData.values)
+                    return -1
+                return fieldData.values.indexOf(root.draftConfig[fieldData.key])
             }
-
-            Popup {
-                id: enumPopup
-                parent: Overlay.overlay
-                modal: true
-                dim: true
-                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-                anchors.centerIn: Overlay.overlay
-                width: Math.min(Overlay.overlay.width * 0.7, 420)
-                padding: 0
-
-                background: Rectangle {
-                    color: ThemeService.surfaceContainerHigh
-                    radius: UiMetrics.radius
-                }
-
-                contentItem: Column {
-                    Repeater {
-                        model: fieldData.options || []
-
-                        Button {
-                            width: enumPopup.width
-                            height: Math.max(UiMetrics.rowH, UiMetrics.touchMin)
-                            text: modelData
-                            checked: fieldData && fieldData.values
-                                     && fieldData.values[index] === root.draftConfig[fieldData.key]
-                            onClicked: {
-                                root.updateDraft(fieldData.key, fieldData.values[index])
-                                enumPopup.close()
-                            }
-                        }
-                    }
-                }
+            onActivated: function(index) {
+                if (fieldData && fieldData.values && index >= 0)
+                    root.updateDraft(fieldData.key, fieldData.values[index])
             }
         }
     }
@@ -262,8 +260,7 @@ Item {
     Component {
         id: collectionControl
 
-        Item {
-            height: Math.max(UiMetrics.rowH, UiMetrics.touchMin)
+        FullScreenPicker {
             width: parent ? parent.width : 0
 
             function selectedText() {
@@ -282,60 +279,21 @@ Item {
                     return qsTr("No items installed")
                 return qsTr("Select")
             }
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: UiMetrics.marginPage
-                anchors.rightMargin: UiMetrics.marginPage
-                spacing: UiMetrics.gap
-
-                Text {
-                    text: (fieldData.label || "") + (fieldData.required ? " *" : "")
-                    font.pixelSize: UiMetrics.fontBody
-                    color: ThemeService.onSurface
-                    Layout.fillWidth: true
-                }
-
-                Button {
-                    Layout.minimumHeight: UiMetrics.touchMin
-                    text: parent.parent.selectedText()
-                    enabled: fieldData.values && fieldData.values.length > 0
-                    onClicked: collectionPopup.open()
-                }
+            label: fieldData
+                   ? (fieldData.label || "") + (fieldData.required ? " *" : "")
+                   : ""
+            options: fieldData ? fieldData.options || [] : []
+            values: fieldData ? fieldData.values || [] : []
+            placeholderText: selectedText()
+            pickerEnabled: fieldData && fieldData.values && fieldData.values.length > 0
+            currentIndex: {
+                if (!fieldData || !fieldData.values)
+                    return -1
+                return fieldData.values.indexOf(root.draftConfig[fieldData.key])
             }
-
-            Popup {
-                id: collectionPopup
-                parent: Overlay.overlay
-                modal: true
-                dim: true
-                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-                anchors.centerIn: Overlay.overlay
-                width: Math.min(Overlay.overlay.width * 0.8, 480)
-                padding: 0
-
-                background: Rectangle {
-                    color: ThemeService.surfaceContainerHigh
-                    radius: UiMetrics.radius
-                }
-
-                contentItem: Column {
-                    Repeater {
-                        model: fieldData.options || []
-
-                        Button {
-                            width: collectionPopup.width
-                            height: Math.max(UiMetrics.rowH, UiMetrics.touchMin)
-                            text: modelData
-                            checked: fieldData && fieldData.values
-                                     && fieldData.values[index] === root.draftConfig[fieldData.key]
-                            onClicked: {
-                                root.updateDraft(fieldData.key, fieldData.values[index])
-                                collectionPopup.close()
-                            }
-                        }
-                    }
-                }
+            onActivated: function(index) {
+                if (fieldData && fieldData.values && index >= 0)
+                    root.updateDraft(fieldData.key, fieldData.values[index])
             }
         }
     }
@@ -346,6 +304,14 @@ Item {
         Item {
             height: Math.max(UiMetrics.rowH, UiMetrics.touchMin)
             width: parent ? parent.width : 0
+
+            Rectangle {
+                anchors.fill: parent
+                radius: UiMetrics.radiusSmall
+                color: ThemeService.surfaceContainerLow
+                border.width: 1
+                border.color: ThemeService.outlineVariant
+            }
 
             RowLayout {
                 anchors.fill: parent
@@ -376,10 +342,17 @@ Item {
             height: Math.max(UiMetrics.rowH * 1.5, UiMetrics.touchMin)
             width: parent ? parent.width : 0
 
+            Rectangle {
+                anchors.fill: parent
+                radius: UiMetrics.radiusSmall
+                color: ThemeService.surfaceContainerLow
+                border.width: 1
+                border.color: ThemeService.outlineVariant
+            }
+
             Column {
                 anchors.fill: parent
-                anchors.leftMargin: UiMetrics.marginPage
-                anchors.rightMargin: UiMetrics.marginPage
+                anchors.margins: UiMetrics.marginRow
                 spacing: UiMetrics.spacing * 0.25
 
                 RowLayout {

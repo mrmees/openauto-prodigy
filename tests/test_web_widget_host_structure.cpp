@@ -33,6 +33,24 @@ private slots:
         QVERIFY(successPath.contains(QStringLiteral("hostRoot.pushContext()")));
         QVERIFY(successPath.contains(QStringLiteral("hostRoot.pushConfig()")));
     }
+
+    void testLiveUpdateReadsFreshContextConfiguration()
+    {
+        QFile file(QStringLiteral(TEST_SOURCE_DIR "/qml/widgets/WebWidgetHost.qml"));
+        QVERIFY2(file.open(QIODevice::ReadOnly | QIODevice::Text),
+                 "Failed to read WebWidgetHost.qml");
+        const QString source = QString::fromUtf8(file.readAll());
+
+        // effectiveCfg is a QML binding. A signal handler can run before that
+        // binding has refreshed, so the live-update path must read the C++
+        // property directly instead of serializing the cached binding.
+        const qsizetype publicConfig = source.indexOf(
+            QStringLiteral("function publicConfigObject()"));
+        QVERIFY(publicConfig >= 0);
+        const QString serializationPath = source.mid(publicConfig, 700);
+        QVERIFY(serializationPath.contains(
+            QStringLiteral("widgetContext.effectiveConfig")));
+    }
 };
 
 QTEST_GUILESS_MAIN(TestWebWidgetHostStructure)

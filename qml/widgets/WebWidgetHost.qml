@@ -61,11 +61,14 @@ Item {
     }
     function publicConfigObject() {
         var publicConfig = {}
-        if (!effectiveCfg)
+        // Read the C++ property directly. During effectiveConfigChanged, the
+        // cached effectiveCfg binding can still contain the previous map.
+        var currentConfig = widgetContext ? widgetContext.effectiveConfig : effectiveCfg
+        if (!currentConfig)
             return publicConfig
-        for (var key in effectiveCfg) {
+        for (var key in currentConfig) {
             if (key !== "url")
-                publicConfig[key] = effectiveCfg[key]
+                publicConfig[key] = currentConfig[key]
         }
         return publicConfig
     }
