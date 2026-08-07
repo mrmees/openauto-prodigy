@@ -1,4 +1,5 @@
 #include "ui/WidgetGridModel.hpp"
+#include "core/widget/WidgetDataCatalog.hpp"
 #include "core/widget/WidgetRegistry.hpp"
 #include <algorithm>
 #include <cmath>
@@ -147,13 +148,26 @@ QHash<int, QByteArray> WidgetGridModel::roleNames() const
 bool WidgetGridModel::placeWidget(const QString& widgetId, int col, int row,
                                    int colSpan, int rowSpan)
 {
+    return !placeWidgetInternal(widgetId, col, row, colSpan, rowSpan).isEmpty();
+}
+
+QString WidgetGridModel::placeWidgetAndReturnInstance(const QString& widgetId,
+                                                       int col, int row,
+                                                       int colSpan, int rowSpan)
+{
+    return placeWidgetInternal(widgetId, col, row, colSpan, rowSpan);
+}
+
+QString WidgetGridModel::placeWidgetInternal(const QString& widgetId, int col, int row,
+                                              int colSpan, int rowSpan)
+{
     applyPendingRemap();
     if (widgetId.isEmpty())
-        return false;
+        return {};
     if (!canPlace(col, row, colSpan, rowSpan))
-        return false;
+        return {};
 
-    QString instanceId = widgetId + "-" + QString::number(nextInstanceId_++);
+    const QString instanceId = widgetId + "-" + QString::number(nextInstanceId_);
 
     GridPlacement p;
     p.instanceId = instanceId;
@@ -173,9 +187,10 @@ bool WidgetGridModel::placeWidget(const QString& widgetId, int col, int row,
 
     if (requiredPageCount(livePlacements_) > pageCount_)
         setCurrentPageCount(requiredPageCount(livePlacements_));
+    ++nextInstanceId_;
     promoteToBase();
     emit placementsChanged();
-    return true;
+    return instanceId;
 }
 
 bool WidgetGridModel::moveWidget(const QString& instanceId, int newCol, int newRow)
@@ -365,6 +380,13 @@ QVariantMap WidgetGridModel::validateConfig(const QString& widgetId, const QVari
             // else: silently drop invalid enum value (default will apply)
             break;
         }
+        case ConfigFieldType::Collection: {
+            if (it.value().typeId() == QMetaType::QString
+                && WidgetDataCatalog::isSafeId(it.value().toString())) {
+                validated[it.key()] = it.value().toString();
+            }
+            break;
+        }
         }
     }
     return validated;
@@ -435,9 +457,28 @@ QVariantList WidgetGridModel::configSchemaForWidget(const QString& widgetId) con
         case ConfigFieldType::Enum:    m["type"] = QStringLiteral("enum"); break;
         case ConfigFieldType::Bool:    m["type"] = QStringLiteral("bool"); break;
         case ConfigFieldType::IntRange: m["type"] = QStringLiteral("intrange"); break;
+        case ConfigFieldType::Collection: m["type"] = QStringLiteral("collection"); break;
         }
-        m["options"] = QVariant::fromValue(field.options);
-        m["values"] = field.values;
+        m["required"] = field.required;
+        m["collection"] = field.collection;
+        if (field.type == ConfigFieldType::Collection) {
+            QStringList options;
+            QStringList values;
+            if (widgetDataCatalog_) {
+                const auto items = widgetDataCatalog_->items(widgetId, field.collection);
+                options.reserve(items.size());
+                values.reserve(items.size());
+                for (const auto& item : items) {
+                    options.append(item.name);
+                    values.append(item.id);
+                }
+            }
+            m["options"] = options;
+            m["values"] = values;
+        } else {
+            m["options"] = QVariant::fromValue(field.options);
+            m["values"] = field.values;
+        }
         m["rangeMin"] = field.rangeMin;
         m["rangeMax"] = field.rangeMax;
         m["rangeStep"] = field.rangeStep;
@@ -452,6 +493,39 @@ QVariantMap WidgetGridModel::defaultConfigForWidget(const QString& widgetId) con
     auto desc = registry_->descriptor(widgetId);
     if (!desc) return {};
     return desc->defaultConfig;
+}
+
+bool WidgetGridModel::isWidgetConfigValid(const QString& widgetId,
+                                           const QVariantMap& effectiveConfig) const
+{
+    if (!registry_)
+        return false;
+    const auto desc = registry_->descriptor(widgetId);
+    if (!desc)
+        return false;
+
+    for (const auto& field : desc->configSchema) {
+        if (field.type != ConfigFieldType::Collection)
+            continue;
+
+        const auto it = effectiveConfig.constFind(field.key);
+        if (it == effectiveConfig.constEnd()) {
+            if (field.required)
+                return false;
+            continue;
+        }
+        if (it.value().typeId() != QMetaType::QString)
+            return false;
+        const QString id = it.value().toString();
+        if (id.isEmpty()) {
+            if (field.required)
+                return false;
+            continue;
+        }
+        if (!WidgetDataCatalog::isSafeId(id))
+            return false;
+    }
+    return true;
 }
 
 QVariantMap WidgetGridModel::widgetMeta(const QString& instanceId) const
@@ -471,6 +545,7 @@ QVariantMap WidgetGridModel::widgetMeta(const QString& instanceId) const
             meta["iconName"] = desc->iconName;
             meta["hasConfigSchema"] = !desc->configSchema.isEmpty();
             meta["isSingleton"] = desc->singleton;
+            meta["configureOnAdd"] = desc->configureOnAdd;
         }
     }
 

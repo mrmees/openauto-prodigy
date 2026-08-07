@@ -225,6 +225,10 @@ oap_add_test(test_widget_config
 oap_add_test(test_grid_dimensions SOURCES test_grid_dimensions.cpp)
 oap_add_test(test_widget_grid_model SOURCES test_widget_grid_model.cpp)
 oap_add_test(test_dashboard_manager SOURCES test_dashboard_manager.cpp)
+oap_add_test(test_widget_config_sheet_structure
+    SOURCES test_widget_config_sheet_structure.cpp
+    DEFS TEST_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
 oap_add_test(test_widget_contract_qml
     SOURCES test_widget_contract_qml.cpp
     EXTRA_LIBS Qt6::Quick

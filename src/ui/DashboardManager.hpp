@@ -14,6 +14,7 @@ class WidgetGridModel;
 class WidgetContextFactory;
 class IHostContext;
 class YamlConfig;
+class WidgetDataCatalog;
 
 // Manages a set of named dashboards, each backed by its own WidgetGridModel
 // and WidgetContextFactory. Owns load/save orchestration so that all
@@ -44,6 +45,7 @@ public:
     // seeds "home" with the reserved launcher placements on fresh installs,
     // restores the active dashboard, then (last) wires up auto-save.
     void loadFromConfig(int initialCols, int initialRows);
+    void setWidgetDataCatalog(const WidgetDataCatalog* catalog);
 
     WidgetGridModel* activeModel() const;
     WidgetContextFactory* activeFactory() const;
@@ -93,6 +95,7 @@ private:
     int indexOf(const QString& id) const;
 
     WidgetRegistry* registry_;
+    const WidgetDataCatalog* widgetDataCatalog_ = nullptr;
     IHostContext* hostContext_;
     std::shared_ptr<YamlConfig> config_;
     QString configPath_;

@@ -9,6 +9,7 @@
 namespace oap {
 
 class WidgetRegistry;
+class WidgetDataCatalog;
 
 class WidgetGridModel : public QAbstractListModel {
     Q_OBJECT
@@ -52,6 +53,9 @@ public:
     // Core grid operations
     Q_INVOKABLE bool placeWidget(const QString& widgetId, int col, int row,
                                   int colSpan, int rowSpan);
+    Q_INVOKABLE QString placeWidgetAndReturnInstance(const QString& widgetId,
+                                                      int col, int row,
+                                                      int colSpan, int rowSpan);
     Q_INVOKABLE bool moveWidget(const QString& instanceId, int newCol, int newRow);
     Q_INVOKABLE bool resizeWidget(const QString& instanceId, int newColSpan, int newRowSpan);
     Q_INVOKABLE bool resizeWidgetFromEdge(const QString& instanceId,
@@ -64,6 +68,8 @@ public:
     Q_INVOKABLE QVariantMap effectiveWidgetConfig(const QString& instanceId) const;
     Q_INVOKABLE QVariantList configSchemaForWidget(const QString& widgetId) const;
     Q_INVOKABLE QVariantMap defaultConfigForWidget(const QString& widgetId) const;
+    Q_INVOKABLE bool isWidgetConfigValid(const QString& widgetId,
+                                          const QVariantMap& effectiveConfig) const;
     Q_INVOKABLE QVariantMap widgetMeta(const QString& instanceId) const;
     Q_INVOKABLE bool canPlace(int col, int row, int colSpan, int rowSpan,
                                const QString& excludeInstanceId = {}) const;
@@ -93,6 +99,7 @@ public:
 
     // Registry accessor (for WidgetContextFactory to look up defaultConfig)
     WidgetRegistry* registry() const { return registry_; }
+    void setWidgetDataCatalog(const WidgetDataCatalog* catalog) { widgetDataCatalog_ = catalog; }
 
     // Serialization
     QList<GridPlacement> placements() const;
@@ -135,6 +142,8 @@ private:
 
     // Config validation against schema
     QVariantMap validateConfig(const QString& widgetId, const QVariantMap& raw) const;
+    QString placeWidgetInternal(const QString& widgetId, int col, int row,
+                                int colSpan, int rowSpan);
 
     // After user edit: promote live state to new base
     void applyPendingRemap();
@@ -144,6 +153,7 @@ private:
     void setCurrentPageCount(int count);
 
     WidgetRegistry* registry_;
+    const WidgetDataCatalog* widgetDataCatalog_ = nullptr;
     QList<GridPlacement> livePlacements_;
     QList<GridPlacement> basePlacements_;
     QVector<QString> occupancy_; // flat grid: cols_ * rows_

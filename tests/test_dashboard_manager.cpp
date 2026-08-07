@@ -2,6 +2,7 @@
 #include <memory>
 #include "ui/DashboardManager.hpp"
 #include "ui/WidgetGridModel.hpp"
+#include "core/widget/WidgetDataCatalog.hpp"
 #include "core/widget/WidgetRegistry.hpp"
 #include "core/YamlConfig.hpp"
 
@@ -54,6 +55,7 @@ private slots:
     void testSwitchClearsOutgoingSelection();
     void testAutomaticRemapPersistsBaselineAcrossRestart();
     void testRemappedMutationSynchronizesDashboardBaselines();
+    void testWidgetDataCatalogPropagatesToExistingAndNewModels();
 };
 
 void TestDashboardManager::testFreshLoadSeedsHome() {
@@ -370,6 +372,47 @@ void TestDashboardManager::testRemappedMutationSynchronizesDashboardBaselines() 
     reloaded.setGridDimensions(6, 4);
     QCOMPARE(reloaded.modelForId("home")->pageCount(), 3);
     QCOMPARE(reloaded.modelForId("work")->pageCount(), 3);
+}
+
+void TestDashboardManager::testWidgetDataCatalogPropagatesToExistingAndNewModels() {
+    oap::WidgetRegistry reg;
+    registerSeedWidgets(reg);
+    oap::WidgetDescriptor descriptor;
+    descriptor.id = "collection-widget";
+    descriptor.displayName = "Collection Widget";
+    oap::ConfigSchemaField field;
+    field.key = "profileId";
+    field.label = "Profile";
+    field.type = oap::ConfigFieldType::Collection;
+    field.collection = "profiles";
+    descriptor.configSchema = {field};
+    reg.registerWidget(descriptor);
+
+    QTemporaryDir dataDir;
+    const QString itemPath = dataDir.filePath(
+        "collection-widget/profiles/sample/item.yaml");
+    QDir().mkpath(QFileInfo(itemPath).absolutePath());
+    QFile itemFile(itemPath);
+    QVERIFY(itemFile.open(QIODevice::WriteOnly));
+    itemFile.write("id: sample\nname: Sample\n");
+    itemFile.close();
+    oap::WidgetDataCatalog catalog(dataDir.path());
+
+    auto cfg = std::make_shared<oap::YamlConfig>();
+    oap::DashboardManager dm(&reg, nullptr, cfg, path_);
+    dm.setWidgetDataCatalog(&catalog);
+    dm.loadFromConfig(6, 4);
+    QCOMPARE(dm.modelForId("home")
+                 ->configSchemaForWidget("collection-widget")
+                 .first().toMap().value("values").toStringList(),
+             QStringList({QStringLiteral("sample")}));
+
+    const QString added = dm.addDashboard("Other");
+    QVERIFY(!added.isEmpty());
+    QCOMPARE(dm.modelForId(added)
+                 ->configSchemaForWidget("collection-widget")
+                 .first().toMap().value("values").toStringList(),
+             QStringList({QStringLiteral("sample")}));
 }
 
 QTEST_MAIN(TestDashboardManager)

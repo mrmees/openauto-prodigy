@@ -1326,8 +1326,20 @@ Item {
 
             var cell = WidgetGridModel.findFirstAvailableCell(defCols, defRows)
             if (cell.col >= 0) {
-                WidgetGridModel.placeWidget(widgetId, cell.col, cell.row, defCols, defRows)
+                var instanceId = WidgetGridModel.placeWidgetAndReturnInstance(
+                            widgetId, cell.col, cell.row, defCols, defRows)
+                if (instanceId === "") {
+                    widgetPickerSheet.showError("Widget could not be placed")
+                    return
+                }
                 widgetPickerSheet.closePicker()
+                var meta = WidgetGridModel.widgetMeta(instanceId)
+                if (meta.configureOnAdd && meta.hasConfigSchema) {
+                    Qt.callLater(function() {
+                        configSheet.openConfig(instanceId, widgetId,
+                                               meta.displayName, meta.iconName)
+                    })
+                }
             } else {
                 widgetPickerSheet.showError("Default " + defCols + "\u00d7" + defRows
                                             + " needs more free space")

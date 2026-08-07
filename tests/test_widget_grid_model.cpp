@@ -2,6 +2,7 @@
 #include <QtTest>
 #include <QSignalSpy>
 #include "ui/WidgetGridModel.hpp"
+#include "core/widget/WidgetDataCatalog.hpp"
 #include "core/widget/WidgetRegistry.hpp"
 
 class TestWidgetGridModel : public QObject {
@@ -111,6 +112,10 @@ private slots:
     // widgetMeta tests
     void testWidgetMetaReturnsCorrectData();
     void testWidgetMetaUnknownReturnsEmpty();
+    void testCollectionSchemaRescansAndSorts();
+    void testCollectionValidationPreservesSafeMissingId();
+    void testRequiredCollectionValidity();
+    void testPlaceWidgetAndReturnInstance();
     // resizeWidgetFromEdge tests
     void testResizeWidgetFromEdgeRight();
     void testResizeWidgetFromEdgeBottom();
@@ -1415,6 +1420,7 @@ void TestWidgetGridModel::testWidgetMetaReturnsCorrectData() {
         d.iconName = "\\ue8b5";
         d.qmlComponent = QUrl("qrc:/MetaTestWidget.qml");
         d.singleton = true;
+        d.configureOnAdd = true;
         d.configSchema = {
             oap::ConfigSchemaField{"key", "Label", oap::ConfigFieldType::Bool, {}, {}, 0, 0, 0}
         };
@@ -1433,6 +1439,7 @@ void TestWidgetGridModel::testWidgetMetaReturnsCorrectData() {
     QCOMPARE(meta["displayName"].toString(), QString("Meta Test Widget"));
     QCOMPARE(meta["hasConfigSchema"].toBool(), true);
     QCOMPARE(meta["isSingleton"].toBool(), true);
+    QCOMPARE(meta["configureOnAdd"].toBool(), true);
     QCOMPARE(meta["instanceId"].toString(), instanceId);
 }
 
@@ -1443,6 +1450,117 @@ void TestWidgetGridModel::testWidgetMetaUnknownReturnsEmpty() {
 
     QVariantMap meta = model.widgetMeta("nonexistent-instance-id");
     QVERIFY(meta.isEmpty());
+}
+
+void TestWidgetGridModel::testCollectionSchemaRescansAndSorts() {
+    QTemporaryDir dir;
+    oap::WidgetDataCatalog catalog(dir.path());
+    auto* reg = new oap::WidgetRegistry(this);
+    oap::WidgetDescriptor descriptor;
+    descriptor.id = "collection-widget";
+    descriptor.displayName = "Collection Widget";
+    oap::ConfigSchemaField field;
+    field.key = "profileId";
+    field.label = "Profile";
+    field.type = oap::ConfigFieldType::Collection;
+    field.collection = "profiles";
+    field.required = true;
+    descriptor.configSchema = {field};
+    reg->registerWidget(descriptor);
+
+    oap::WidgetGridModel model(reg);
+    model.setWidgetDataCatalog(&catalog);
+    auto schema = model.configSchemaForWidget("collection-widget");
+    QCOMPARE(schema.size(), 1);
+    auto map = schema.first().toMap();
+    QCOMPARE(map.value("type").toString(), QStringLiteral("collection"));
+    QCOMPARE(map.value("collection").toString(), QStringLiteral("profiles"));
+    QVERIFY(map.value("required").toBool());
+    QVERIFY(map.value("options").toStringList().isEmpty());
+
+    auto writeItem = [&](const QString& id, const QString& name) {
+        const QString path = dir.filePath(
+            "collection-widget/profiles/" + id + "/item.yaml");
+        QDir().mkpath(QFileInfo(path).absolutePath());
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("id: " + id.toUtf8() + "\nname: " + name.toUtf8() + "\n");
+    };
+    writeItem("zulu", "Zulu");
+    writeItem("alpha", "Alpha");
+
+    schema = model.configSchemaForWidget("collection-widget");
+    map = schema.first().toMap();
+    QCOMPARE(map.value("options").toStringList(),
+             QStringList({QStringLiteral("Alpha"), QStringLiteral("Zulu")}));
+    QCOMPARE(map.value("values").toStringList(),
+             QStringList({QStringLiteral("alpha"), QStringLiteral("zulu")}));
+}
+
+void TestWidgetGridModel::testCollectionValidationPreservesSafeMissingId() {
+    auto* reg = new oap::WidgetRegistry(this);
+    oap::WidgetDescriptor descriptor;
+    descriptor.id = "collection-widget";
+    descriptor.displayName = "Collection Widget";
+    oap::ConfigSchemaField field;
+    field.key = "profileId";
+    field.label = "Profile";
+    field.type = oap::ConfigFieldType::Collection;
+    field.collection = "profiles";
+    field.required = true;
+    descriptor.configSchema = {field};
+    reg->registerWidget(descriptor);
+
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+    QVERIFY(model.placeWidget("collection-widget", 0, 0, 1, 1));
+    const QString instanceId = model.placements().first().instanceId;
+
+    model.setWidgetConfig(instanceId, {{"profileId", "missing-profile"}});
+    QCOMPARE(model.widgetConfig(instanceId).value("profileId").toString(),
+             QStringLiteral("missing-profile"));
+
+    model.setWidgetConfig(instanceId, {{"profileId", "../escape"}});
+    QVERIFY(!model.widgetConfig(instanceId).contains("profileId"));
+    model.setWidgetConfig(instanceId, {{"profileId", 42}});
+    QVERIFY(!model.widgetConfig(instanceId).contains("profileId"));
+}
+
+void TestWidgetGridModel::testRequiredCollectionValidity() {
+    auto* reg = new oap::WidgetRegistry(this);
+    oap::WidgetDescriptor descriptor;
+    descriptor.id = "collection-widget";
+    descriptor.displayName = "Collection Widget";
+    oap::ConfigSchemaField field;
+    field.key = "profileId";
+    field.label = "Profile";
+    field.type = oap::ConfigFieldType::Collection;
+    field.collection = "profiles";
+    field.required = true;
+    descriptor.configSchema = {field};
+    reg->registerWidget(descriptor);
+
+    oap::WidgetGridModel model(reg);
+    QVERIFY(!model.isWidgetConfigValid("collection-widget", {}));
+    QVERIFY(!model.isWidgetConfigValid("collection-widget", {{"profileId", ""}}));
+    QVERIFY(!model.isWidgetConfigValid("collection-widget", {{"profileId", "../bad"}}));
+    QVERIFY(!model.isWidgetConfigValid("collection-widget", {{"profileId", 12}}));
+    QVERIFY(model.isWidgetConfigValid(
+        "collection-widget", {{"profileId", "safe-but-not-installed"}}));
+}
+
+void TestWidgetGridModel::testPlaceWidgetAndReturnInstance() {
+    auto* reg = makeRegistry();
+    oap::WidgetGridModel model(reg);
+    model.setGridDimensions(6, 4);
+
+    QCOMPARE(model.placeWidgetAndReturnInstance("clock", 0, 0, 2, 2),
+             QStringLiteral("clock-0"));
+    QVERIFY(model.placeWidgetAndReturnInstance("status", 1, 1, 2, 1).isEmpty());
+    QCOMPARE(model.placeWidgetAndReturnInstance("status", 2, 0, 2, 1),
+             QStringLiteral("status-1"));
+    QVERIFY(model.placeWidget("tiny", 4, 0, 1, 1));
+    QCOMPARE(model.placements().last().instanceId, QStringLiteral("tiny-2"));
 }
 
 // --- resizeWidgetFromEdge tests ---

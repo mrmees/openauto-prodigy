@@ -67,6 +67,7 @@ void DashboardManager::loadFromConfig(int initialCols, int initialRows)
         e.name = d.name;
 
         auto* model = new WidgetGridModel(registry_, this);
+        model->setWidgetDataCatalog(widgetDataCatalog_);
         model->setPageCount(d.pageCount);
         if (!d.placements.isEmpty()) {
             model->setPlacements(d.placements, registry_);
@@ -127,6 +128,13 @@ void DashboardManager::loadFromConfig(int initialCols, int initialRows)
 
     for (const auto& e : entries_)
         connectModelPersistence(e.model);
+}
+
+void DashboardManager::setWidgetDataCatalog(const WidgetDataCatalog* catalog)
+{
+    widgetDataCatalog_ = catalog;
+    for (const auto& entry : entries_)
+        entry.model->setWidgetDataCatalog(catalog);
 }
 
 WidgetGridModel* DashboardManager::activeModel() const
@@ -240,6 +248,7 @@ QString DashboardManager::addDashboard(const QString& name)
     e.name = trimmed;
 
     auto* model = new WidgetGridModel(registry_, this);
+    model->setWidgetDataCatalog(widgetDataCatalog_);
     if (auto* am = activeModel()) {
         model->setGridDimensions(am->gridColumns(), am->gridRows());
         model->setSavedDimensions(am->baselineGridColumns(), am->baselineGridRows());

@@ -78,6 +78,7 @@
 #include "ui/ScreenDpiBinding.hpp"
 #include "ui/GestureOverlayController.hpp"
 #include "core/widget/WidgetRegistry.hpp"
+#include "core/widget/WidgetDataCatalog.hpp"
 #include "core/widget/WidgetTypes.hpp"
 #include "ui/WidgetPickerModel.hpp"
 #include "ui/WidgetGridModel.hpp"
@@ -708,6 +709,8 @@ int main(int argc, char *argv[])
 
     // --- Widget system ---
     auto widgetRegistry = new oap::WidgetRegistry(&app);
+    auto widgetDataCatalog = std::make_unique<oap::WidgetDataCatalog>(
+        QDir::homePath() + QStringLiteral("/.openauto/widget-data"));
     oap::plugins::registerAAClusterWidget(*widgetRegistry,
                                           projectedClusterConfig,
                                           aaPlugin->orchestrator() != nullptr);
@@ -900,6 +903,7 @@ int main(int argc, char *argv[])
     // Web widget runtime: serve scanned packages over prodigy:// and
     // register them as grid widgets (design 2026-07-06-js-runtime §3-§4).
     auto* webWidgetResolver = new oap::WebWidgetContentResolver();
+    webWidgetResolver->setDataRoot(widgetDataCatalog->rootPath());
     auto* webWidgetSchemeHandler =
         new oap::WebWidgetSchemeHandler(webWidgetResolver, &app);
     QQuickWebEngineProfile::defaultProfile()->installUrlSchemeHandler(
@@ -929,6 +933,7 @@ int main(int argc, char *argv[])
     // --- Dashboards: per-dashboard widget grids (design 2026-07-05 §3) ---
     auto dashboardManager = new oap::DashboardManager(
         widgetRegistry, hostContext.get(), yamlConfig, yamlPath, &app);
+    dashboardManager->setWidgetDataCatalog(widgetDataCatalog.get());
     {
         qreal cs = displayInfo->cellSide();
         int initCols = qMax(3, static_cast<int>(std::floor(displayInfo->windowWidth() / cs)));

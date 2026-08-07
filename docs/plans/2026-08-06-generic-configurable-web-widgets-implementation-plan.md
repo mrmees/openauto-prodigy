@@ -350,7 +350,7 @@ fixed manifest syntax without changing legacy discovery.
 **Produces:** a full-screen generic form that rescans collections on open,
 supports missing selections, and commits only on explicit Save.
 
-- [ ] **Step 1: Write failing model tests for collection configuration**
+- [x] **Step 1: Write failing model tests for collection configuration**
 
   Register descriptors with collection schemas and inject a temporary
   `WidgetDataCatalog`. Assert that `configSchemaForWidget()` returns sorted
@@ -361,13 +361,13 @@ supports missing selections, and commits only on explicit Save.
   persist, unsafe/non-string values are dropped, unknown keys remain rejected,
   and required validity distinguishes empty from a safe missing ID.
 
-- [ ] **Step 2: Write failing placement/meta tests**
+- [x] **Step 2: Write failing placement/meta tests**
 
   Add `placeWidgetAndReturnInstance(...)` tests for success, collision/failure,
   stable existing `placeWidget()` behavior, and instance-ID sequencing. Verify
   `widgetMeta()` reports normalized `configureOnAdd`.
 
-- [ ] **Step 3: Write failing QML structure tests**
+- [x] **Step 3: Write failing QML structure tests**
 
   Add a source-contract test following
   `test_settings_menu_structure.cpp`. Pin:
@@ -381,7 +381,7 @@ supports missing selections, and commits only on explicit Save.
   - Save disabled by the model validity check while Cancel remains enabled;
   - configure-on-add uses the returned instance ID after successful placement.
 
-- [ ] **Step 4: Run focused tests and confirm failure**
+- [x] **Step 4: Run focused tests and confirm failure**
 
   ```bash
   cmake --build ~/builds/openauto-prodigy \
@@ -392,7 +392,7 @@ supports missing selections, and commits only on explicit Save.
   Expected: new model APIs, collection schema output, and full-screen QML
   contracts do not exist.
 
-- [ ] **Step 5: Wire the catalog without disturbing existing constructors**
+- [x] **Step 5: Wire the catalog without disturbing existing constructors**
 
   Keep `WidgetGridModel(WidgetRegistry*, QObject*)` source-compatible. Add a
   non-owning `setWidgetDataCatalog(const WidgetDataCatalog*)`. Add the same
@@ -405,7 +405,7 @@ supports missing selections, and commits only on explicit Save.
   `HAS_WEBENGINE`. Keep collection configuration usable by native/plugin
   widgets even in a build without WebEngine.
 
-- [ ] **Step 6: Add model APIs and validation**
+- [x] **Step 6: Add model APIs and validation**
 
   Preserve the bool `placeWidget()` API and route it plus the new
   `Q_INVOKABLE QString placeWidgetAndReturnInstance(...)` through one private
@@ -418,7 +418,7 @@ supports missing selections, and commits only on explicit Save.
   presence and safe scalar shape, not current filesystem membership. Extend
   `validateConfig()` so safe collection IDs persist even when absent.
 
-- [ ] **Step 7: Replace live edits with full-screen draft/save/cancel**
+- [x] **Step 7: Replace live edits with full-screen draft/save/cancel**
 
   In `WidgetConfigSheet.qml`:
 
@@ -439,7 +439,7 @@ supports missing selections, and commits only on explicit Save.
   Preserve default-delta behavior for native widgets and the existing enum,
   bool, and integer-range controls.
 
-- [ ] **Step 8: Open configuration after opted-in placement**
+- [x] **Step 8: Open configuration after opted-in placement**
 
   In `HomeMenu.qml`, call `placeWidgetAndReturnInstance()`. Keep the picker
   open and show its existing error if placement fails. On success, close it;
@@ -447,7 +447,7 @@ supports missing selections, and commits only on explicit Save.
   use `Qt.callLater()` to open configuration after the picker has closed.
   Cancel does not remove the placement.
 
-- [ ] **Step 9: Rerun focused tests and commit**
+- [x] **Step 9: Rerun focused tests and commit**
 
   ```bash
   cmake -S . -B ~/builds/openauto-prodigy
