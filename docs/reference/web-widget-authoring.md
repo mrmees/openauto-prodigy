@@ -45,6 +45,8 @@ A web widget lives under `~/.openauto/webwidgets/<pkg>/`:
 | `size.minCols` / `minRows` | int | `1` / `1` | Grid span floor. |
 | `size.maxCols` / `maxRows` | int | `6` / `4` | Grid span ceiling. |
 | `size.defaultCols` / `defaultRows` | int | `1` / `1` | Placement default. |
+| `configuration.configureOnAdd` | bool | `false` | Opens the generic configuration screen immediately after successful placement when at least one valid field exists. |
+| `configuration.fields` | sequence | `[]` | Host-rendered per-instance fields; invalid optional fields are logged and dropped without rejecting the widget. |
 
 Example manifest:
 
@@ -64,7 +66,40 @@ size:
   defaultRows: 2
 ```
 
-There's no `config:` schema field yet — per-widget configuration UI is a v1.1 item, not implemented. Ship whatever config your widget needs baked into its own JS/localStorage for now (see the storage limitation below on why that's ephemeral).
+Configuration is optional and uses this fixed host-rendered syntax:
+
+```yaml
+configuration:
+  configureOnAdd: true
+  fields:
+    - key: profileId
+      label: Profile
+      type: collection
+      collection: profiles
+      required: true
+    - key: mode
+      label: Mode
+      type: enum
+      options:
+        - { label: Compact, value: compact }
+        - { label: Detailed, value: detailed }
+    - key: showTitle
+      label: Show title
+      type: bool
+    - key: refreshSeconds
+      label: Refresh interval
+      type: intRange
+      min: 1
+      max: 60
+      step: 1
+```
+
+Field keys and collection IDs use the same safe identifier grammar as widget
+IDs. Enum values are scalar strings, booleans, or integers and keep their YAML
+type; quote values such as `"true"` when you mean a string. The full-screen
+configuration form edits a draft. **Save** validates and persists once;
+**Cancel** discards the draft but leaves a newly placed widget on the
+dashboard. Required collection fields disable Save while empty.
 
 **Getting registered:** `WebWidgetScanner` (`src/core/widget/WebWidgetScanner.cpp`) walks `~/.openauto/webwidgets/` once at startup. A subdirectory with no `widget.yaml` is skipped with a log line; an invalid manifest (bad `id`, missing `name`, inconsistent size bounds) is skipped with a warning; a duplicate `id` keeps the earlier registration and warns. **If your widget doesn't show up in the picker, `journalctl` is the first stop** — see the [Debugging Checklist](#debugging-checklist).
 
@@ -72,7 +107,7 @@ There's no `config:` schema field yet — per-widget configuration UI is a v1.1 
 
 ## The `prodigy` API Surface
 
-At `DocumentCreation`, the host (`qml/widgets/WebWidgetHost.qml`) injects a chain of scripts into every widget document: a per-instance bootstrap object (`window.__prodigyBootstrap` — API URL, widget context, a themed CSS-token snapshot), the protobuf runtime + generated API types, the static shim (`resources/web/prodigy.js`) that builds `window.prodigy` from the bootstrap, and an internal host-gestures helper (edit-mode long-press). The two you interact with are the bootstrap and the shim; the rest is plumbing. First paint is already themed from the bootstrap snapshot — no flash-of-unthemed-content while the WebSocket connects.
+At `DocumentCreation`, the host (`qml/widgets/WebWidgetHost.qml`) injects a chain of scripts into every widget document: a per-instance bootstrap object (`window.__prodigyBootstrap` — API URL, widget context, saved configuration, and a themed CSS-token snapshot), the protobuf runtime + generated API types, the static shim (`resources/web/prodigy.js`) that builds `window.prodigy` from the bootstrap, and an internal host-gestures helper (edit-mode long-press). The public surface is `window.prodigy`; the bootstrap is host plumbing. First paint is already themed and configuration is available before the API WebSocket becomes ready.
 
 Theme tokens land as CSS custom properties on `<html>`: token `on-primary` → `--prodigy-on-primary`. A pure-CSS widget gets full day/night theming with zero widget JS.
 
@@ -82,6 +117,7 @@ Theme tokens land as CSS custom properties on `<html>`: token `on-primary` → `
 |--------|-----------|----------|
 | `prodigy.ready` | `Promise` | Resolves once, after the first `ServerHello`. See limitations below — it does not re-pend on reconnect. |
 | `prodigy.context` | `{instanceId, widgetId, colSpan, rowSpan, kind}` | Current placement; updated live via `contextchange`. |
+| `prodigy.config` | plain object | Complete current per-instance configuration snapshot; available before `ready`. The reserved host key `url` is never exposed. |
 | `prodigy.apiUrl` | string | The raw WS URL, for widgets that want their own socket. |
 | `prodigy.subscribe(topic, cb)` | `(string, fn) -> unsubscribe fn` | Topics: `"media"`, `"navigation"`, `"projection"`, `"phone"`, `"system"`. `cb` receives the status object each time it changes. |
 | `prodigy.data.listCatalog()` | `() -> Promise<DataCatalog>` | Present only when the server advertises the external data-provider capability. Returns the current deterministic live provider/channel catalog. |
@@ -89,7 +125,7 @@ Theme tokens land as CSS custom properties on `<html>`: token `on-primary` → `
 | `prodigy.dispatch(actionId, payload)` | `(string, any?) -> Promise<boolean>` | Fires a host action; resolves to whether it was dispatched. |
 | `prodigy.notify(message, {priority, ttlMs})` | `(string, object?) -> Promise<string>` | Posts a toast notification; resolves to a notification id. |
 | `prodigy.request(apiMessageObject)` | `(object) -> Promise<response>` | Low-level escape hatch — build your own `ApiMessage` field for anything not covered above. |
-| `prodigy.on(name, cb)` | `("themechange"\|"contextchange", fn)` | Fires on live theme flips and span/placement changes. |
+| `prodigy.on(name, cb)` | `("themechange"\|"contextchange"\|"configchange", fn)` | Fires on live theme flips, span/placement changes, and saved configuration replacement. |
 
 For the full wire protocol behind all of this (subscription/delivery model, requests, error model), see `docs/archive/plans/2026-07-06-external-api-v1-design.md` (design history) §6 (Subscription & delivery model) and the rest of that doc.
 
@@ -110,6 +146,76 @@ Minimal example:
 </body>
 </html>
 ```
+
+### Per-instance configuration and widget-owned data
+
+`prodigy.config` is a complete snapshot, not a live mutable settings store.
+When the user saves the host form, Prodigy replaces it and emits
+`configchange` with the same complete replacement object. Rebuild all
+configuration-dependent state from the callback argument:
+
+```javascript
+function applyConfig(config) {
+  renderMode(config.mode || 'compact');
+}
+
+applyConfig(prodigy.config);
+prodigy.on('configchange', applyConfig);
+```
+
+Collection fields discover one-directory-deep items under:
+
+```text
+~/.openauto/widget-data/<widget-id>/<collection-id>/<item-id>/
+```
+
+Each item requires an `item.yaml` whose `id` equals the directory name and
+whose `name` is non-empty. `description` is optional; unknown metadata keys are
+ignored:
+
+```yaml
+id: sample
+name: Sample Profile
+description: Optional picker metadata
+```
+
+Choices are sorted by case-folded name and then ID each time the configuration
+screen opens. A saved item that is no longer installed remains saved and is
+shown as `Missing: <id>`; Prodigy never silently chooses a replacement. An
+empty collection shows `No items installed`.
+
+The owning page reads item content through its reserved read-only URL segment:
+
+```javascript
+const id = prodigy.config.profileId;
+const response = await fetch(
+  '__data__/profiles/' + encodeURIComponent(id) + '/payload.json'
+);
+```
+
+That maps only to `~/.openauto/widget-data/<widget-id>/`. Widget, collection,
+and item paths are canonicalized; traversal and symlinks are rejected. This is
+a filesystem path jail within the existing trusted-local-widget model, not a
+package-signing or mutual-isolation boundary. The normal widget package cannot
+serve its own colliding `__data__` directory.
+
+To install the repository's domain-neutral example from a Prodigy checkout on
+the Pi:
+
+```bash
+install -d ~/.openauto/webwidgets/com.example.configurable
+cp -a examples/webwidgets/configurable-collection/. \
+  ~/.openauto/webwidgets/com.example.configurable/
+install -d ~/.openauto/widget-data/com.example.configurable/profiles/sample
+cp -a examples/widget-data/com.example.configurable/profiles/sample/. \
+  ~/.openauto/widget-data/com.example.configurable/profiles/sample/
+sudo systemctl restart openauto-prodigy.service
+```
+
+Restart is required for a newly installed widget package. Collection choices
+are rescanned whenever the form opens, so later item copies do not require a
+restart. A profile already loaded by a running page is not hot-reloaded; save
+the selection again or reload the widget according to its own runtime policy.
 
 ### Live external data
 
@@ -231,14 +337,14 @@ The shim (`resources/web/prodigy.js`) trades a few edge-case guarantees for simp
 `WebWidgetHost.qml` runs each widget under Chromium defaults plus explicit lockdown (verified against `qml/widgets/WebWidgetHost.qml`):
 
 - `settings.javascriptCanOpenWindows: false`, `settings.fullScreenSupportEnabled: false` — no `window.open()`, no fullscreen requests.
-- `settings.localContentCanAccessFileUrls: false` — no `file://` access; your widget can only read its own package directory through the `prodigy://` scheme handler.
+- `settings.localContentCanAccessFileUrls: false` — no `file://` access; widget package and owning `__data__` content are served through the jailed `prodigy://` scheme handler.
 - `settings.localContentCanAccessRemoteUrls: true` — **https subresources are allowed** (fetch a weather API, load a remote font, etc.), but top-level navigation is restricted to same-origin `prodigy://widgets/` URLs (`onNavigationRequested` rejects anything else). There's no way to navigate your widget's top-level document off to an external site, and no external browser handoff.
 
 Design this in from the start: a widget that expects to pop a window, go fullscreen, or link out to a browser simply won't — those requests are silently denied, not errored back to your JS.
 
 ### Crash recovery (D5)
 
-If the widget's renderer process dies (a rendering bug, an OOM, whatever), `WebWidgetHost.qml` auto-reloads it — 3 attempts with 2s/4s/8s backoff, then an error card ("tap to retry") if all three fail. On every successful reload (including after a crash), the host re-pushes the live widget context (span/placement) via `pushContext()` — that's a just-landed fix; the reload reuses the same `WebEngineView`, so without it a crash-reloaded widget would be stuck reading whatever `colSpan`/`rowSpan` it had at original construction time, not its current placement.
+If the widget's renderer process dies (a rendering bug, an OOM, whatever), `WebWidgetHost.qml` auto-reloads it — 3 attempts with 2s/4s/8s backoff, then an error card ("tap to retry") if all three fail. On every successful reload (including after a crash), the host re-pushes both the live widget context and the complete current configuration snapshot. A crash-reloaded widget therefore sees current spans and saved settings rather than stale construction-time values.
 
 **Write your widget's init code to be idempotent** — it will run again from scratch on a fresh document load after any crash, with no guarantee prior JS state (in-memory variables, timers, DOM state) survived. Don't assume `index.html` only ever executes once per widget lifetime.
 

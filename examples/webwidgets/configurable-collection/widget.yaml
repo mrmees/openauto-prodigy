@@ -1,0 +1,20 @@
+id: com.example.configurable
+name: Configurable Example
+entry: index.html
+category: status
+description: Selects an installed profile
+size:
+  minCols: 2
+  minRows: 1
+  maxCols: 4
+  maxRows: 3
+  defaultCols: 2
+  defaultRows: 2
+configuration:
+  configureOnAdd: true
+  fields:
+    - key: profileId
+      label: Profile
+      type: collection
+      collection: profiles
+      required: true

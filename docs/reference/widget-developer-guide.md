@@ -229,6 +229,7 @@ Every widget is described by a `WidgetDescriptor` struct defined in `src/core/wi
 | `contributionKind` | `DashboardContributionKind` | `Widget` | Native `Widget`, deferred `LiveSurfaceWidget`, or manifest-backed `WebWidget`. |
 | `defaultConfig` | `QVariantMap` | `{}` | Optional per-widget default configuration |
 | `configSchema` | `QList<ConfigSchemaField>` | `{}` | Optional host-rendered per-instance settings schema. |
+| `configureOnAdd` | `bool` | `false` | If true and the schema has fields, opens configuration immediately after successful placement. |
 | `minCols` | `int` | `1` | Minimum column span |
 | `minRows` | `int` | `1` | Minimum row span |
 | `maxCols` | `int` | `6` | Maximum column span |
@@ -240,11 +241,38 @@ Every widget is described by a `WidgetDescriptor` struct defined in `src/core/wi
 `DashboardContributionKind` also contains `WebWidget`, used by scanned
 manifest-backed HTML/JS widgets. Native QML widgets use `Widget`.
 
-`ConfigSchemaField` supports `Enum`, `Bool`, and `IntRange` fields. It contains
-`key`, `label`, parallel enum `options`/`values`, and integer range
-`rangeMin`/`rangeMax`/`rangeStep` values. The host merges `defaultConfig` with
-the placement's overrides and exposes the result as
-`widgetContext.effectiveConfig`.
+`ConfigSchemaField` supports `Enum`, `Bool`, `IntRange`, and `Collection`.
+Every field has `key` and `label`; enums add parallel `options`/`values`,
+integer ranges add `rangeMin`/`rangeMax`/`rangeStep`, and collections add a safe
+`collection` ID plus `required`. Collection choices come from
+`~/.openauto/widget-data/<widget-id>/<collection-id>/<item-id>/item.yaml` and
+are rescanned whenever the full-screen configuration form opens.
+
+```cpp
+oap::ConfigSchemaField profile;
+profile.key = QStringLiteral("profileId");
+profile.label = QStringLiteral("Profile");
+profile.type = oap::ConfigFieldType::Collection;
+profile.collection = QStringLiteral("profiles");
+profile.required = true;
+
+descriptor.configSchema = {profile};
+descriptor.configureOnAdd = true;
+```
+
+The form always edits a draft. Save validates and commits once; Cancel discards
+the draft and, after configure-on-add, leaves the new placement intact. A safe
+saved collection ID remains valid even when its item directory is missing, so
+the UI can display `Missing: <id>` without deleting or rewriting user state.
+Required collection fields prevent Save only when the ID is absent, empty,
+non-string, or unsafe; filesystem membership is deliberately not a validity
+condition.
+
+The host merges `defaultConfig` with each placement's validated overrides and
+exposes the result as `widgetContext.effectiveConfig`. Native widgets should
+react to `effectiveConfigChanged`; HTML/JS widgets receive the equivalent
+complete `prodigy.config` replacement described in the
+[web-widget authoring guide](web-widget-authoring.md#per-instance-configuration-and-widget-owned-data).
 
 ### Icon Codepoints
 

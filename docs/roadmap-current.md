@@ -20,13 +20,14 @@ spike, or research-first feasibility work.
 ## Now
 
 - Generic configurable web widgets and one-profile-selecting Gauge entry —
-  **DESIGN ACTIVE 2026-08-06**. Prodigy will add a full-screen, explicit-opt-in
-  widget configuration lifecycle plus generic widget-owned data collections.
+  **IMPLEMENTATION ACTIVE 2026-08-06**. Prodigy is adding a full-screen,
+  explicit-opt-in widget configuration lifecycle plus generic widget-owned data collections.
   Gauge Studio will later distribute one Gauge runtime and independent profiles
   instead of one picker card per gauge. The Prodigy design and the standalone
-  Gauge Studio handoff are in `docs/plans/`; the reviewed design now has an
-  executable five-task Prodigy implementation plan. The provider API and
-  `prodigy-obd` runtime remain unchanged.
+  Gauge Studio handoff are in `docs/plans/`; the reviewed five-task Prodigy
+  implementation is locally feature-complete and awaiting final gates, bounded
+  review, and Pi acceptance. The provider API and `prodigy-obd` runtime remain
+  unchanged.
 
 ## Done (recent)
 

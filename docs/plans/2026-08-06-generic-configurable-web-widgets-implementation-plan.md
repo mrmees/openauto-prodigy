@@ -557,14 +557,14 @@ private bridge.
 verification evidence, one bounded major review, and a Pi proof of the generic
 host before Gauge Studio consumes it.
 
-- [ ] **Step 1: Add the generic example package and data item**
+- [x] **Step 1: Add the generic example package and data item**
 
   Use ID `com.example.configurable`, collection `profiles`, and field
   `profileId`. The page displays the selected item's `payload.json`, listens
   for `configchange`, and visibly reports no selection/missing content. It must
   not mention Gauge, OBD, CAN, providers, or vehicle data.
 
-- [ ] **Step 2: Update public author documentation**
+- [x] **Step 2: Update public author documentation**
 
   Replace the statement that configuration schemas are unavailable. Document
   the fixed manifest syntax, draft/save/cancel lifecycle, collection layout,

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { width: 100%; height: 100%; }
+  body {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 12px;
+    background: transparent;
+    color: var(--prodigy-on-surface, #eee);
+    font-family: sans-serif;
+  }
+  .card {
+    box-sizing: border-box;
+    display: grid;
+    place-content: center;
+    width: 100%;
+    height: 100%;
+    padding: 16px;
+    text-align: center;
+    background: var(--prodigy-surface-container-high, #333);
+    border: 1px solid var(--prodigy-outline-variant, #555);
+    border-radius: 12px;
+  }
+  h2 { margin: 0 0 8px; color: var(--prodigy-primary, #8cf); }
+  p { margin: 0; color: var(--prodigy-on-surface-variant, #bbb); }
+</style>
+</head>
+<body>
+<main class="card">
+  <h2 id="title">No profile selected</h2>
+  <p id="message">Open widget settings to choose one.</p>
+</main>
+<script>
+  let renderGeneration = 0;
+
+  async function renderConfig(config) {
+    const generation = ++renderGeneration;
+    const title = document.getElementById('title');
+    const message = document.getElementById('message');
+    const profileId = config && config.profileId;
+
+    if (!profileId) {
+      title.textContent = 'No profile selected';
+      message.textContent = 'Open widget settings to choose one.';
+      return;
+    }
+
+    title.textContent = 'Loading ' + profileId + '…';
+    message.textContent = '';
+    try {
+      const path = '__data__/profiles/' + encodeURIComponent(profileId)
+                 + '/payload.json';
+      const response = await fetch(path, { cache: 'no-store' });
+      if (!response.ok)
+        throw new Error('HTTP ' + response.status);
+      const payload = await response.json();
+      if (generation !== renderGeneration)
+        return;
+      title.textContent = String(payload.title || profileId);
+      message.textContent = String(payload.message || '');
+    } catch (error) {
+      if (generation !== renderGeneration)
+        return;
+      title.textContent = 'Profile unavailable';
+      message.textContent = profileId + ': ' + error.message;
+    }
+  }
+
+  renderConfig(prodigy.config);
+  prodigy.on('configchange', renderConfig);
+</script>
+</body>
+</html>
