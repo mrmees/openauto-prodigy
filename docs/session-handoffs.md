@@ -36,6 +36,16 @@ numeric Gauge runtime, and fixture paths identify the Gauge Studio repository.
 Pass 2 reviewed the exact remediation range and reported BLOCKER=0, MAJOR=0,
 MINOR=0. Overall: confirmed 3, dismissed 0, fixed 3, deferred 0.
 
+**Plan review:** the separately authorized Fable review of the implementation
+plan reported BLOCKER=0, MAJOR=1, MINOR=1. Both findings identified one process
+ambiguity: the plan assumed Codex ownership without stating it, then embedded a
+future gate reset as though the plan itself supplied authorization. The plan
+now names Codex as the intended inline author, requires the real author label
+if ownership changes, and requires a current authorizing user message before
+the implementation review-gate reset. Fable pass 2 reviewed only that
+remediation and reported BLOCKER=0, MAJOR=0, MINOR=0. Overall plan review:
+confirmed 2, dismissed 0, fixed 2, deferred 0.
+
 **Planning:** the five-task Prodigy plan adds the manifest schema, jailed
 widget-data collections, full-screen draft lifecycle, public JavaScript config
 snapshots, and a domain-neutral Pi fixture. It explicitly excludes Gauge
