@@ -27,8 +27,8 @@ resize compatibility, persistence across restart, missing saved-item display
 without fallback, and empty-collection behavior with disabled Save and working
 Cancel. Both profiles were restored afterward, the service is active, and the
 selected Alternate profile renders normally. The completed design and Prodigy
-plan are archived; the Gauge Studio handoff remains ACTIVE. Nothing has been
-pushed in this session.
+plan are archived; the Gauge Studio handoff remains ACTIVE. The completed
+feature and documentation were pushed to `origin/dev` at `7681ece`.
 
 **Verification:** the native build, explicit `openauto-prodigy` app target,
 full offscreen CTest, document-link check, `git diff --check`, ARM
